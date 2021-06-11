@@ -1,0 +1,20 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2004"
+  config.vm.network "public_network"
+  config.vm.synced_folder ".", "/vagrant_data", disabled: true
+  config.vm.provider "hyperv"
+  config.vm.provider "hyperv" do |h|
+    h.enable_virtualization_extensions = false
+    h.linked_clone = true
+    h.memory = 2048
+    h.vmname = "ubuntu_plain_1"
+  end
+
+  config.vm.provision "ansible" do |a|
+    a.verbose = "v"
+    a.playbook = "playbook.yaml"
+  end
+end

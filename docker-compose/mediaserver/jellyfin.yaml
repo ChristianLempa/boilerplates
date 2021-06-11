@@ -1,0 +1,23 @@
+---
+version: '2.1'
+
+services:
+
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - JELLYFIN_PublishedServerUrl=192.168.0.32 #optional
+    volumes:
+      - /AmberPRO/jellyfin/config:/config
+      - /AmberPRO/jellyfin/tvshows:/data/tvshows
+      - /AmberPRO/jellyfin/movies:/data/movies
+    ports:
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    restart: unless-stopped

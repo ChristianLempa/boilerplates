@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    config.vm.define "node1", primary: true do |node1|
+
+        node1.vm.box = "generic/ubuntu2004"
+        node1.vm.network "public_network", bridge: "BRIDGE"
+        node1.vm.synced_folder ".", "/vagrant_data", disabled: true
+        node1.vm.provider "hyperv"
+        node1.vm.hostname = "node1"
+
+        node1.vm.provider "hyperv" do |h|
+            h.enable_virtualization_extensions = false
+            h.linked_clone = true
+            h.memory = 2048
+            h.vmname = "node1"
+        end
+    end
+
+    config.vm.define "node2" do |node2|
+
+        node2.vm.box = "generic/ubuntu2004"
+        node2.vm.network "public_network", bridge: "BRIDGE"
+        node2.vm.synced_folder ".", "/vagrant_data", disabled: true
+        node2.vm.provider "hyperv"
+        node2.vm.hostname = "node2"
+
+        node2.vm.provider "hyperv" do |h|
+            h.enable_virtualization_extensions = false
+            h.linked_clone = true
+            h.memory = 2048
+            h.vmname = "node2"
+        end
+    end
+
+end

@@ -1,0 +1,23 @@
+---
+version: '2'
+
+services:
+
+  swag:
+    image: linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Europe/Berlin
+      - URL=do-test-1.the-digital-life.com
+      - SUBDOMAINS=www
+      - VALIDATION=http
+    volumes:
+      - /opt/webserver_swag/config:/config
+    ports:
+      - 443:443
+      - 80:80 #optional
+    restart: unless-stopped

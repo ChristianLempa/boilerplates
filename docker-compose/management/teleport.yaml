@@ -1,0 +1,30 @@
+---
+version: '2'
+
+services:
+
+  configure:
+    image: quay.io/gravitational/teleport:4.3
+    container_name: teleport-configure
+    entrypoint: /bin/sh
+    hostname: dev.the-digital-life.com
+    command: -c "if [ ! -f /etc/teleport/teleport.yaml ]; then teleport configure > /etc/teleport/teleport.yaml; fi"
+    volumes:
+      - ./teleport/config:/etc/teleport
+
+  teleport:
+    image: quay.io/gravitational/teleport:4.3
+    container_name: teleport
+    entrypoint: /bin/sh
+    hostname: dev.the-digital-life.com
+    command: -c "sleep 1 && /bin/dumb-init teleport start -c /etc/teleport/teleport.yaml"
+    ports:
+      - "3023:3023"
+      - "3024:3024"
+      - "3025:3025"
+      - "3080:3080"
+    volumes:
+      - ./teleport/config:/etc/teleport
+      - ./teleport/data:/var/lib/teleport
+    depends_on:
+      - configure

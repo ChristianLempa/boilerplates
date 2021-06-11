@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+
+  linuxserver-plex:
+    container_name: linuxserver-plex
+    restart: unless-stopped
+    image: linuxserver/plex:latest
+    environment: 
+    - TZ=Europe/Berlin
+    - PUID=1000
+    - PGID=1000
+    - VERSION=docker
+    ports:
+    - "32400:32400" #(for access to the Plex Media Server) [required]
+    - "32400:32400/udp"
+    - "32410:32410/udp" #(for current GDM network discovery)
+    - "32412:32412/udp" 
+    - "32413:32413/udp" 
+    - "32414:32414/udp"
+    - "32469:32469" #(for access to the Plex DLNA Server)
+    - "32469:32469/udp"
+    - "5353:5353" # (for older Bonjour/Avahi network discovery)
+    #- "1900:1900/udp" #(for access to the Plex DLNA Server)
+
+    volumes:
+    - /AmberPRO/plex/config:/config
+    - /AmberPRO/plex/media1:/data/movies
+    - /AmberPRO/plex/transcode:/transcode
