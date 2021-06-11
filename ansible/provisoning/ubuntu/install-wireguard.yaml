@@ -1,0 +1,17 @@
+---
+- hosts: all
+  
+  become: yes
+
+  tasks:
+    - name: Install WireGuard
+      apt:
+        name: wireguard
+        update_cache: yes
+
+    - name: Generate Private and Public Key Pair
+      shell: |
+        wg genkey | tee privatekey | wg pubkey > publickey
+
+        chmod 0400 privatekey
+        chmod 0400 publickey

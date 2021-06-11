@@ -1,0 +1,51 @@
+---
+- hosts: all
+  
+  become: yes
+  tasks:
+
+  # Install Docker
+  # --
+  # 
+  - name: install prerequisites
+    apt:
+      name:
+        - apt-transport-https
+        - ca-certificates 
+        - curl 
+        - gnupg-agent
+        - software-properties-common
+      update_cache: yes
+
+  - name: add apt-key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+
+  - name: add docker repo
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu focal stable
+
+  - name: install docker 
+    apt:
+      name: 
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      update_cache: yes
+
+  - name: add userpermissions
+    shell: "usermod -aG docker {{ lookup('env','USER') }}"
+
+  # Installs Docker SDK
+  # --
+  # 
+  - name: install python package manager
+    apt:
+      name: python3-pip
+  
+  - name: install python sdk
+    become_user: "{{ lookup('env','USER') }}"
+    pip:
+      name:
+        - docker
+        - docker-compose

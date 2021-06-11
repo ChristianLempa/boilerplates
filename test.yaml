@@ -1,0 +1,7 @@
+---
+- hosts: all
+
+  tasks:
+
+  - name: checks
+    shell: echo {{ lookup('env','USER') }}

@@ -1,0 +1,18 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: install fail2ban
+    apt:
+      name:
+        - fail2ban
+      update_cache: yes
+  - name: copy fail2ban configfiles
+    copy:
+      src: configfiles/debian-sshd-default.conf
+      dest: /etc/fail2ban/jail.d/debian-sshd-default.conf
+  - name: restart fail2ban
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: fail2ban
