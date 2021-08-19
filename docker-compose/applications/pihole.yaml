@@ -13,7 +13,7 @@ services:
       - "80:80/tcp"
       - "443:443/tcp"
     environment:
-      TZ: 'America/Chicago'
+      TZ: 'Europe/Berlin'
       WEBPASSWORD: 'testtest'
     volumes:
       - etcd:/etc/pihole
