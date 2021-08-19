@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appname # Name of the deployment
+  namespace: namespace # Name of the namespace
+  labels:
+    app: appname # Name of your application
+spec:
+  selector:
+    matchLabels:
+      app: appname # Name of your application
+  replicas: 1 # Number of replicas
+  template:
+    metadata:
+      labels:
+        app: appname # Name of your application
+    spec:
+      containers:
+      # Containers are the individual pieces of your application that you want
+      # to run.
+      - name: helloworld # Name of the container
+        image: helloworld:latest # The image you want to run
+        # resources:
+        #   limits:
+        #     memory: 512Mi
+        #     cpu: "1"
+        #   requests:
+        #     memory: 256Mi
+        #     cpu: "0.2"
+        ports:
+        # Ports are the ports that your application uses.
+        - containerPort: 8080 # The port that your application uses
+        volumeMounts:
+        # VolumeMounts are the volumes that your application uses.
+        - mountPath: /var/www/html # The path that your application uses
+          name: vol0 # Name of the volume
+      volumes:
+      # Volumes are the persistent storage that your application uses.
+      - name: vol0 # Name of the volume
+        persistentVolumeClaim:
+          claimName: pvc0 # Name of the persistent volume claim

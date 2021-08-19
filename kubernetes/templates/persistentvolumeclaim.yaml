@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc0
+  namespace: namespace
+  labels:
+    app: namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  # ---
+  # Digital Ocean
+  # storageClassName: do-block-storage
+  # ---
+  # AWS
+  # storageClassName: aws-ebs
+  # ---
+  # Azure
+  # storageClassName: azure-disk
+  # ---
+  # GCE PD
+  # storageClassName: gce-pd
+  # ---
+
