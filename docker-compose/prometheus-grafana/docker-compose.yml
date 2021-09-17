@@ -28,27 +28,3 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
     restart: unless-stopped
-
-  cadvisor:
-    image: google/cadvisor:latest
-    container_name: cadvisor
-    # ports:
-    #   - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    devices:
-      - /dev/kmsg
-
-  node_exporter:
-    image: quay.io/prometheus/node-exporter:latest
-    container_name: node_exporter
-    command:
-      - '--path.rootfs=/host'
-    pid: host
-    restart: unless-stopped
-    volumes:
-      - '/:/host:ro,rslave'
