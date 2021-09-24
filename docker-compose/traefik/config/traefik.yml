@@ -18,8 +18,7 @@ global:
 # (Optional) Enable API and Dashboard
 # ---
 # api:
-#  dashboard:
-#    enabled: true
+#  dashboard: true  # true by default
 #  insecure: true  # Don't do this in production!
 
 # Entry Points configuration
