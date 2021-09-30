@@ -24,4 +24,6 @@ spec:
   # GCE PD
   # storageClassName: gce-pd
   # ---
-
+  # CIVO
+  # storageClassName: civo-volume
+  # ---
