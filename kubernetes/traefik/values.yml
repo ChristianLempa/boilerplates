@@ -1,0 +1,20 @@
+additionalArguments:
+  - --certificatesresolvers.staging.acme.email=your-email@example.com
+  - --certificatesresolvers.staging.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
+  - --certificatesresolvers.staging.acme.httpChallenge.entryPoint=web
+  - --certificatesresolvers.staging.acme.storage=/ssl-certs/acme-staging.json
+  - --certificatesresolvers.production.acme.email=your-email@example.com
+  - --certificatesresolvers.production.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
+  - --certificatesresolvers.production.acme.httpChallenge.entryPoint=web
+  - --certificatesresolvers.production.acme.storage=/ssl-certs/acme-production.json
+ports:
+  web:
+    redirectTo: websecure
+ingressRoute:
+  dashboard:
+    enabled: false
+persistence:
+  enabled: true
+  name: ssl-certs
+  size: 128Mi
+  path: /ssl-certs
