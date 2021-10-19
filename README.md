@@ -3,10 +3,10 @@ These are my templates and configurations I use in various projects and deployme
 
 I created them as free resources to be extended by you according to your specific use cases. If you're searching for detailed, in-depth tutorials on some tools or templates, check out my YouTube Channel: [The Digital Life](https://www.youtube.com/channel/UCZNhwA1B5YqiY1nLzmM0ZRg).
 
-**`ris:ErrorWarning` Warning**
+### Warning
 Please beware that products can change over time. I do my best to keep up with the latest changes and releases, but please understand that this won’t always be the case.
 
-**`ris:HandHeart` Contribution**
+### Contribution
 If you’d like to contribute to this project, reach out to me on social media, or create a pull request for the necessary changes.
 
 ## Sections
