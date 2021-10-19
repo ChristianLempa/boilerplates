@@ -6,8 +6,8 @@ I created them as free resources to be extended by you according to your specifi
 ### Warning
 Please beware that products can change over time. I do my best to keep up with the latest changes and releases, but please understand that this won’t always be the case.
 
-### Contribution
-If you’d like to contribute to this project, reach out to me on social media, or create a pull request for the necessary changes.
+### Contribution and Support
+If you’d like to contribute to this project, reach out to me on social media or [Discord](https://discord.gg/bz2SN7d), or create a pull request for the necessary changes. 
 
 ## Sections
 [Ansible](https://github.com/xcad2k/boilerplates/tree/main/ansible) - IT automation tool to configure systems, deploy software, and orchestrate IT tasks.
