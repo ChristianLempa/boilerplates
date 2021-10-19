@@ -10,17 +10,12 @@ Please beware that products can change over time. I do my best to keep up with t
 If you’d like to contribute to this project, reach out to me on social media, or create a pull request for the necessary changes.
 
 ## Sections
-[Ansible](https://github.com/xcad2k/boilerplates/tree/main/ansible)
-IT automation tool to configure systems, deploy software, and orchestrate IT tasks.
+[Ansible](https://github.com/xcad2k/boilerplates/tree/main/ansible) - IT automation tool to configure systems, deploy software, and orchestrate IT tasks.
 
-[Docker](https://github.com/xcad2k/boilerplates/tree/main/docker-compose)
-Package applications as portable container images to run in any environment.
+[Docker](https://github.com/xcad2k/boilerplates/tree/main/docker-compose) - Package applications as portable container images to run in any environment.
 
-[Kubernetes](https://github.com/xcad2k/boilerplates/tree/main/kubernetes)
-Container orchestrator to run applications in scalable environments.
+[Kubernetes](https://github.com/xcad2k/boilerplates/tree/main/kubernetes) - Container orchestrator to run applications in scalable environments.
 
-[Terraform](https://github.com/xcad2k/boilerplates/tree/main/terraform)
- Infrastructure as code software to plan, deploy and manage infrastructure.
+[Terraform](https://github.com/xcad2k/boilerplates/tree/main/terraform) - Infrastructure as code software to plan, deploy and manage infrastructure.
  
-[Vagrant](https://github.com/xcad2k/boilerplates/tree/main/vagrant)
-Automate development environments, packages, operating system configuration, users, and more.
+[Vagrant](https://github.com/xcad2k/boilerplates/tree/main/vagrant) - Automate development environments, packages, operating system configuration, users, and more.
