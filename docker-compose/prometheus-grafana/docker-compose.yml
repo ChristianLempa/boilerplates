@@ -18,7 +18,7 @@ services:
       - prometheus-data:/prometheus
     restart: unless-stopped
     command:
-      - "--config.file=/config/prometheus.yml"
+      - "--config.file=/etc/prometheus/prometheus.yml"
 
   grafana:
     image: grafana/grafana:latest
