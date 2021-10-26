@@ -4,6 +4,8 @@ version: '3'
 volumes:
   prometheus-data:
     driver: local
+  config:
+   driver: local
   grafana-data:
     driver: local
 
