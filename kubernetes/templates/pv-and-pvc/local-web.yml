@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: local-web
+  template:
+    metadata:
+      labels:
+        app: local-web
+    spec:
+      containers:
+      - name: local-web
+        image: nginx
+        ports:
+          - name: web
+            containerPort: 80
+        volumeMounts:
+          - name: local
+            mountPath: "/usr/share/nginx/html"
+      volumes:
+      - name: local
+        hostPath:
+          path: /usr/share/nginx/html
