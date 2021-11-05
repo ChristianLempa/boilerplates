@@ -20,7 +20,7 @@ spec:
             containerPort: 80
         volumeMounts:
           - name: local
-            mountPath: "/usr/share/nginx/html"
+            mountPath: /usr/share/nginx/html
       volumes:
       - name: local
         hostPath:

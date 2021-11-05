@@ -20,7 +20,7 @@ spec:
             containerPort: 80
         volumeMounts:
           - name: civo
-            mountPath: "/usr/share/nginx/html"
+            mountPath: /usr/share/nginx/html
       volumes:
       - name: civo
         persistentVolumeClaim:
