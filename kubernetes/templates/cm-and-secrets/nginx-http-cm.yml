@@ -3,6 +3,10 @@ kind: ConfigMap
 metadata:
   name: nginx-http-cm
 data:
+  # key: value
+  # file: |
+  #   content
+  # ---
   nginx.conf: |
     user nginx;
     worker_processes 1;
@@ -14,8 +18,8 @@ data:
         listen       80;
         server_name  _;
         location / {
-            root   /usr/share/nginx/html;
-            index  index.html index.htm;
+          root   /usr/share/nginx/html;
+          index  index.html index.htm;
         }
       }
     }
