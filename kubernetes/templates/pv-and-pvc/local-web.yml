@@ -24,4 +24,4 @@ spec:
       volumes:
       - name: local
         hostPath:
-          path: /usr/share/nginx/html
+          path: /var/nginxserver

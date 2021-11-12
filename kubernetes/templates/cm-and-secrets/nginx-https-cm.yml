@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-https-cm
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes 1;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      server {
+        listen       80;
+        listen       443 ssl;
+
+        server_name  _;
+
+        ssl_certificate     /etc/nginx/ssl/server-cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/server-key.pem;
+
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+      }
+    }

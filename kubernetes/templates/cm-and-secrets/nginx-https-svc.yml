@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-https-svc
+  labels:
+    app: nginx-https
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 31080
+    targetPort: 80
+    protocol: TCP
+    name: http
+  - port: 31443
+    targetPort: 443
+    protocol: TCP
+    name: https
+  selector:
+    app: nginx-https

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-http-svc
+  labels:
+    app: nginx-http
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 30080
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx-http
