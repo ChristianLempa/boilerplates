@@ -21,5 +21,8 @@ data:
           root   /usr/share/nginx/html;
           index  index.html index.htm;
         }
+        location /test {
+          return 401;
+        }
       }
     }
