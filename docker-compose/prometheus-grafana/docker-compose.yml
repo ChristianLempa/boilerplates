@@ -1,4 +1,3 @@
----
 version: '3'
 
 volumes:
@@ -21,7 +20,7 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana-oss:latest
     container_name: grafana
     ports:
       - "3000:3000"

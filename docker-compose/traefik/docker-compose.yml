@@ -1,9 +1,5 @@
 version: '3'
 
-volumes:
-  traefik-ssl-certs:
-    driver: local
-
 services:
   traefik:
     image: "traefik:v2.5"
@@ -15,5 +11,4 @@ services:
       - "8080:8080"  # Don't do this in production!
     volumes:
       - /etc/traefik:/etc/traefik
-      - traefik-ssl-certs:/ssl-certs
       - /var/run/docker.sock:/var/run/docker.sock:ro

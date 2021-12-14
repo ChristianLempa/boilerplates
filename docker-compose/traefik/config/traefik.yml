@@ -37,36 +37,37 @@ entryPoints:
   websecure:
     address: :443
 
-# Certificates configuration
+# Configure your CertificateResolver here...
 # ---
-# TODO: Custmoize your Cert Resolvers and Domain settings
-# 
-certificatesResolvers:
-# LET'S ENCRYPT:
-# ---
-# 
-  staging:
-    acme:
-      email: your-email@example.com  # TODO: Change this to your email
-      storage: /ssl-certs/acme.json
-      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
-      httpChallenge:
-        entryPoint: web
-  production:
-    acme:
-      email: your-email@example.com  # TODO: Change this to your email
-      storage: /ssl-certs/acme.json
-      caServer: "https://acme-v02.api.letsencrypt.org/directory"
-      httpChallenge:
-        entryPoint: web
-
-# Provider Configuration
-# ---
-# TODO: Customize your Provider Settings if needed
-# 
-providers:
-# DOCKER:
-# ---
+# certificatesResolvers:
+#   staging:
+#     acme:
+#       email: your-email@example.com
+#       storage: /etc/traefik/certs/acme.json
+#       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+#       httpChallenge:
+#         entryPoint: web
 #
+#   production:
+#     acme:
+#       email: your-email@example.com
+#       storage: /etc/traefik/certs/acme.json
+#       caServer: "https://acme-v02.api.letsencrypt.org/directory"
+#       httpChallenge:
+#         entryPoint: webproviders:
+
+# (Optional) Overwrite Default Certificates
+# tls:
+#   stores:
+#     default:
+#       defaultCertificate:
+#         certFile: /etc/traefik/certs/cert.pem
+#         keyFile: /etc/traefik/certs/cert-key.pem
+
+providers:
   docker:
     exposedByDefault: false  # Default is true
+  file:
+    # watch for dynamic configuration changes
+    directory: /etc/traefik
+    watch: true
