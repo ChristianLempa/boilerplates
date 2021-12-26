@@ -29,7 +29,7 @@ entryPoints:
     # (Optional) Redirect to HTTPS
     # ---
     # http:
-    #   redirections:
+    #   redirection:
     #     entryPoint:
     #       to: websecure
     #       scheme: https
