@@ -1,7 +1,4 @@
-# Installing
-
-
-# Customization
+# Installation
 
 ## Data Persistence
 ... Storing Data in the `/etc/traefik` directory on the host, passing through...
@@ -24,7 +21,7 @@ tls:
 Replace the `/etc/traefik/certs/cert.pem` with your certificate file, and the `/etc/traefik/certs/cert-key.pem` with your certificate key.
 
 
-# Best-Practices
+# Best-Practices & Post-Installation
 
 ```yaml
 providers:
