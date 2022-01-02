@@ -9,6 +9,7 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
     # # Automatically setup influxdb
+    # TODO: no tested...
     # environment:
     #   - DOCKER_INFLUXDB_INIT_MODE=setup
     #   - DOCKER_INFLUXDB_INIT_USERNAME=my-user
@@ -20,5 +21,4 @@ services:
     # # (optional) Admin Token
     #   - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token
     # # (optional) Configure TLS
-    # TODO: no tested
     # command: influxd --tls-cert=/etc/ssl/cert.pem --tls-key=/etc/ssl/cert-key.pem

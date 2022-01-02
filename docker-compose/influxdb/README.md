@@ -1,6 +1,14 @@
 # Installation
 
-TODO: ...
+## Deployment
+
+Copy the `docker-compose.yml` template into your project folder and start the container.
+
+## Configuration
+
+The initial configuration can be done automatically through docker instructions, or post-installation via the InfluxDB UI or CLI setup.
+
+*For more info visit:* [Official InfluxDB Installation Documentation](ttps://docs.influxdata.com/influxdb/v2.1/install/)
 
 # Best-Practices & Post-Installation
 
