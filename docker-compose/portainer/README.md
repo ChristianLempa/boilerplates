@@ -1,5 +1,7 @@
 # Installation
 
+TODO: ...
+
 ## Manage local environment
 
 Allows Portainer to manage the local Docker Environment
@@ -16,6 +18,10 @@ Storing Data in a `portainer-data` volume on docker
       - portainer-data:/data
 ```
 # Best-Practices & Post-Installation
+
+## Disable HTTP
+
+It's not secure to expose Portainer via the HTTP protocol. Follow these steps to enable HTTPS only.
 
 ### (Option 1): Upload custom certificates
 
