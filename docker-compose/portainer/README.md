@@ -1,8 +1,10 @@
 # Installation
 
-TODO: ...
+## Deployment
 
-## Manage local environment
+1. Copy the `docker-compose.yml` template into your project folder and start the container.
+
+### Manage local environment
 
 Allows Portainer to manage the local Docker Environment
 ```yaml
@@ -10,13 +12,18 @@ Allows Portainer to manage the local Docker Environment
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-## Data Persistence
+### Data Persistence
 
 Storing Data in a `portainer-data` volume on docker
 ```yaml
     volumes:
       - portainer-data:/data
 ```
+
+## Configuration
+
+
+
 # Best-Practices & Post-Installation
 
 ## Disable HTTP

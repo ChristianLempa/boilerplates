@@ -8,6 +8,7 @@ services:
       - '8086:8086'
     volumes:
       - influxdb-data:/var/lib/influxdb2
+      - /etc/influxdb2:/etc/influxdb2
     # # Automatically setup influxdb
     # TODO: no tested...
     # environment:
