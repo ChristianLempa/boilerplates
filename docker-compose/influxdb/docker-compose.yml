@@ -9,6 +9,9 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
       - /etc/influxdb2:/etc/influxdb2
+      # # (optional) If you're using self-signed certs
+      # - /etc/ssl/cert.pem/:/etc/ssl/cert.pem
+      # - /etc/ssl/cert-key.pem/:/etc/ssl/cert-key.pem
     # # Automatically setup influxdb
     # TODO: no tested...
     # environment:
@@ -21,5 +24,5 @@ services:
     #   - DOCKER_INFLUXDB_INIT_RETENTION=1w
     # # (optional) Admin Token
     #   - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token
-    # # (optional) Configure TLS
+    # # (optional) If you're using self-signed certs
     # command: influxd --tls-cert=/etc/ssl/cert.pem --tls-key=/etc/ssl/cert-key.pem
