@@ -54,7 +54,7 @@ entryPoints:
 #       storage: /etc/traefik/certs/acme.json
 #       caServer: "https://acme-v02.api.letsencrypt.org/directory"
 #       httpChallenge:
-#         entryPoint: webproviders
+#         entryPoint: web
 
 # (Optional) Overwrite Default Certificates
 # tls:
