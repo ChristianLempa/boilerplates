@@ -18,14 +18,14 @@ It's not secure to expose InfluxDB via the HTTP protocol. Follow these steps to 
 
 ### (Option 1): Upload custom certificates
 
-TODO: Not tested in Docker-Compose...
+TODO: #15 Test Docker-Compose for InfluxDB2
 
 - [ ] Run the container with tls parameters
 `influxd --tls-cert=/etc/ssl/cert.pem --tls-key=/etc/ssl/cert-key.pem`
 
 ### (Option 2): Use a Reverse Proxy
 
-- [] Use a Reverse Proxy to securely expose administrative services.
+- [ ] Use a Reverse Proxy to securely expose administrative services.
 
 # Additional Referfences
 

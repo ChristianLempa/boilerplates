@@ -18,7 +18,7 @@ It's not secure to expose Grafana via the HTTP protocol.
 
 ### Use a Reverse Proxy
 
-- [] Use a Reverse Proxy to securely expose administrative services.
+- [ ] Use a Reverse Proxy to securely expose administrative services.
 
 # Additional Referfences
 

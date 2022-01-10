@@ -39,7 +39,7 @@ It's not secure to expose Portainer via the HTTP protocol. Follow these steps to
 
 ### (Option 2): Use a Reverse Proxy
 
-- [] Use a Reverse Proxy to securely expose administrative services.
+- [ ] Use a Reverse Proxy to securely expose administrative services.
 
 # Additional Referfences
 
