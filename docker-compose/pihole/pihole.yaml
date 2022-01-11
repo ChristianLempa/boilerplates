@@ -1,8 +1,6 @@
----
 version: '3'
 
 services:
-
   pihole:
     container_name: pihole
     image: pihole/pihole:latest
@@ -14,7 +12,7 @@ services:
       - "443:443/tcp"
     environment:
       TZ: 'Europe/Berlin'
-      WEBPASSWORD: 'testtest'
+      WEBPASSWORD: 'your-secret-password'
     volumes:
       - etcd:/etc/pihole
       - dnsmasq:/etc/dnsmasq.d

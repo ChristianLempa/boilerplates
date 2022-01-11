@@ -1,5 +1,7 @@
 # Installation
 
+TODO: #21 Improve traefik docu
+
 ## Data Persistence
 ... Storing Data in the `/etc/traefik` directory on the host, passing through...
 ```yaml
