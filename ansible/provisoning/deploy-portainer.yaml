@@ -15,7 +15,7 @@
   #   
   - name: Deploy Portainer
     community.docker.docker_container:
-      container_name: portainer
+      name: portainer
       image: "docker.io/portainer/portainer-ce"
       ports:
         - "8000:8000"
