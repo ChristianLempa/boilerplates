@@ -1,5 +1,9 @@
 version: '3'
 
+volumes:
+  portainer-data:
+    driver: local
+    
 services:
   app:
     container_name: portainer
