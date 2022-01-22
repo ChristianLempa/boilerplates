@@ -21,7 +21,7 @@
 ## Deployment
 
 1. Modify the prometheus configuration template  `/etc/prometheus/prometheus.yml` location.
-# job for nvidia DCGM exporter
+# Job for Nvidia DCGM exporter in prometheus config file
         - job_name: 'nvidia_exporter'
           static_configs:
             - targets: ['nvidia_exporter:9400'] # if nvidia_exporter container is not on same docker network , change this line to "- targets: ['whichever ip your host is:9400']"
@@ -29,6 +29,7 @@
 # Additional Referfences
 [Official DCGM Documentations](https://github.com/NVIDIA/DCGM)
 [Nvidia container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#install-guide)
-[Nvidia DCGM exporter Documentation](https://github.com/NVIDIA/dcgm-exporter) and (https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/dcgm-exporter.html)
+[Nvidia DCGM exporter Documentation](https://github.com/NVIDIA/dcgm-exporter)
+[Nvidia DCGM exporter Documentation-2](https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/dcgm-exporter.html)
 [Official Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)
 [Some grafana dashboard, not perfect, old, but configurable](https://grafana.com/grafana/dashboards/11578)
