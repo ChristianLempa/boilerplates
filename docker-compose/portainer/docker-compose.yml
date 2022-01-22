@@ -4,6 +4,7 @@ services:
   app:
     container_name: portainer
     image: 'portainer/portainer-ce:latest'
+    restart: always
     ports:
       - '9000:9000'
       - '9443:9443'
@@ -11,3 +12,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nginx.entrypoints=web,websecure
+      - traefik.http.routers.nginx.rule=Host(\`portainer.pival.lan\`)
+      - traefik.http.routers.nginx.tls=true
+      - traefik.http.routers.nginx.tls.certresolver=staging
+    networks:
+      - traefik
