@@ -1,11 +1,23 @@
 version: '3'
 
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true
+
 services:
   homer:
     image: b4bz/homer:latest
     container_name: homer
-    ports:
-      - "8080:8080"
+    networks:
+      - traefik_default
     volumes:
-      - /etc/homer/assets/:/www/assets
+      - ./assets/:/www/assets
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.homer.rule=Host(`pival.lan`)
+      - traefik.http.routers.homer.entrypoints=web, websecure
+      - traefik.http.routers.homer.tls=true
+      - traefik.http.routers.homer.service=homer
+      - traefik.http.services.homer.loadbalancer.server.port=8080
