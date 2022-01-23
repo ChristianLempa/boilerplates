@@ -1,1 +1,5 @@
 docker-compose/traefik/ssl/
+
+# Homer
+docker-compose/homer/assets/
+!docker-compose/homer/assets/*.config.yml
