@@ -4,10 +4,9 @@ global:
 
 # (Optional) Log information
 # ---
-# log:
-#  level: ERROR  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-#   format: common  # common, json, logfmt
-#   filePath: /var/log/traefik/traefik.log
+logLevel: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+#  format: common  # common, json, logfmt
+#  filePath: /var/log/traefik/traefik.log
 
 # (Optional) Accesslog
 # ---
@@ -21,6 +20,10 @@ api:
  dashboard: true  # true by default
  insecure: true  # Don't do this in production!
 
+log:
+  filePath: "/etc/traefik/applog.log"
+  level: INFO
+
 # Entry Points configuration
 # ---
 entryPoints:
@@ -28,32 +31,46 @@ entryPoints:
     address: :80
     # (Optional) Redirect to HTTPS
     # ---
-    http:
-     redirections:
-       entryPoint:
-         to: websecure
-         scheme: https
-
+    #http:
+    # redirections:
+    #   entryPoint:
+    #     to: websecure
+    #     scheme: https
   websecure:
     address: :443
+  #dnsovertls:
+  #  address: :853
+  #dns:
+  #  address: ":53"
+  #udpdns:
+  #  address: ":53/udp"
 
 # Configure your CertificateResolver here...
 # ---
-certificatesResolvers:
-  staging:
-    acme:
-      email: valentin.rudloff.perso@gmail.com
-      storage: /etc/traefik/certs/acme.json
-      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
-      httpChallenge:
-        entryPoint: web
-  production:
-    acme:
-      email: valentin.rudloff.perso@gmail.com
-      storage: /etc/traefik/certs/acme.json
-      caServer: "https://acme-v02.api.letsencrypt.org/directory"
-      httpChallenge:
-        entryPoint: web
+#certificatesResolvers:
+#  staging:
+#    acme:
+#      email: valentin.rudloff.perso@gmail.com
+#      storage: /etc/traefik/certs/acme.json
+#      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+#      httpChallenge:
+#        entryPoint: web
+#  production:
+#    acme:
+#      email: valentin.rudloff.perso@gmail.com
+#      storage: /etc/traefik/certs/acme.json
+#      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+#      httpChallenge:
+#        entryPoint: web
+#  myresolver:
+#    acme:
+#      email: "valentin.rudloff.perso@gmail.com"
+#      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+#      storage: "acme.json"
+#      keyType: "EC384"
+#      httpChallenge:
+#        # used during the challenge
+#        entryPoint: web
 
 # (Optional) Overwrite Default Certificates
 # tls:
@@ -65,8 +82,10 @@ certificatesResolvers:
 
 providers:
   docker:
-    exposedByDefault: false  # Default is true
+    endpoint: unix:///var/run/docker.sock
+    watch: true
+    exposedByDefault: false
   file:
     # watch for dynamic configuration changes
-    directory: /etc/traefik
+    directory: /etc/traefik/dynamic
     watch: true
