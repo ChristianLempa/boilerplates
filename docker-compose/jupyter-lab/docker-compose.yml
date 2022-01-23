@@ -12,8 +12,6 @@ services:
     restart: always
     networks:
       - traefik_default
-    ports:
-      - "192.168.1.34:8888:8888"
     environment:
       #- "GEN_CERT=yes"
       - "JUPYTER_ENABLE_LAB=yes"
@@ -25,6 +23,5 @@ services:
       - traefik.http.routers.jupyter.rule=Host(`jupyter.pival.lan`)
       - traefik.http.routers.jupyter.entrypoints=web, websecure
       - traefik.http.routers.jupyter.tls=true
-      - traefik.http.routers.jupyter.tls.certresolver=staging
       - traefik.http.routers.jupyter.service=jupyter
       - traefik.http.services.jupyter.loadbalancer.server.port=8888
