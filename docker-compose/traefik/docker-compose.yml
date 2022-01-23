@@ -1,23 +1,52 @@
-version: '3'
-
-volumes:
-  traefik-ssl-certs:
-    driver: local
+version: '3.9'
 
 services:
   traefik:
     image: "traefik:v2.5"
     container_name: "traefik"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik_default
+    command:
+      - --api.dashboard=:true
+      - --api.insecure=:true # Don't do this in production!
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.file.directory=/etc/traefik/dynamic_conf
     ports:
-      - "80:80"
-      - "443:443"
-      # (Optional) Expose Dashboard
-      - "8080:8080"  # Don't do this in production!
+      - 80:80
+      - 443:443
+      #- 53:53
+      #- 53:53/udp
+      #- 853:853
+      - 8080:8080
+    env_file:
+      - ./.env
     volumes:
-      - /mnt/data/workspace/boilerplates/docker-compose/traefik/config/traefik.yml:/etc/traefik
-      - traefik-ssl-certs:/ssl-certs
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/ssl/traefik
+    labels:      
+      - "traefik.enable=true"
+      # Utilise la configuration du routeur "traefik" définie dans le fichier de configuration dynamique : ./traefik/config.yml
+      - "traefik.http.routers.traefik=true"
+
+  # Will create auto signed ssl certificates
+  reverse-proxy-https-helper:
+    build: generate-ssl
+    container_name: tls-proxy-helper
+    command: "-cert-file /etc/ssl/traefik/local-cert.pem -key-file /etc/ssl/traefik/local-key.pem 'pival.lan' '*.pival.lan'"
+    volumes:
+      - certs:/etc/ssl/traefik
+    networks:
+      - traefik_default
+
+volumes:
+  certs:
 
 networks:
-  traefik:
+  traefik_default:
     external: true
