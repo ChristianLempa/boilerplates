@@ -1,0 +1,46 @@
+version: "3.9"
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true
+
+services:
+  netdata:
+    image: netdata/netdata:v1.32
+    container_name: netdata
+    hostname: cergy-server
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro 
+      - /etc/os-release:/host/etc/os-release:ro
+    command: -u valentin
+    networks:
+      - traefik_default
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.netdata.rule=Host(`netdata.pival.lan`)
+      - traefik.http.routers.netdata.entrypoints=web, websecure
+      - traefik.http.routers.netdata.tls=true
+      - traefik.http.routers.netdata.tls.certresolver=staging
+      - traefik.http.routers.netdata.service=netdata
+      - traefik.http.services.netdata.loadbalancer.server.port=19999
+    environment:
+      - NETDATA_CLAIM_TOKEN=kkIaa90Vjs-8MfxNTWwspWGQ0YPDCvEz05RwC6WxvWoaDeI7lXu_DCJPZMjlTKLb5zKV7ZD2c8ootrEXI2V8uDr8cA9Yx9m2S00Lh3N2VH38WdfMXgkWUPmr3PNQEz8jtIL06dY
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=5823aab7-ed01-4695-8949-741f58b6de14
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
