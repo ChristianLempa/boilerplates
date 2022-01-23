@@ -1,0 +1,41 @@
+version: '3.7'
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true  
+
+services:
+  pihole:
+    restart: unless-stopped
+    hostname: pihole
+    image: pihole/pihole:latest
+    environment:
+      TZ: "Europe/Paris"
+      VIRTUAL_HOST: pihole.pival.lan
+      WEBPASSWORD: "pouetpouet"
+    volumes:
+      - datapihole:/etc/pihole/
+      - datadnsmasqd:/etc/dnsmasq.d/
+    ports:
+      - "8081:80"
+      - "9443:443"
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    labels:
+      traefik.enable: true
+      traefik.http.routers.pihole-http.rule: Host(`pihole.pival.lan`)
+      traefik.http.routers.pihole-http.entrypoints: web
+      traefik.http.services.pihole.loadbalancer.server.port: 80
+      traefik.tcp.routers.pihole-dns.entrypoints: dns
+      traefik.tcp.routers.pihole-dns.service: pihole
+      traefik.udp.routers.pihole-udp.entrypoints: udpdns
+      traefik.udp.routers.pihole-udp.service: pihole
+      traefik.udp.services.pihole.loadbalancer.server.port: 53
+    networks:
+      - traefik_default
+
+volumes:
+  datapihole:
+  datadnsmasqd:
