@@ -1,0 +1,16 @@
+---
+
+http:
+  routers:
+    netdata-paybill:
+      service: netdata-paybill-service
+      rule: "Host(`netdata-paybill.pival.lan`)"
+      entryPoints:
+        - websecure
+      tls:
+        certresolver: staging
+  services:
+    netdata-paybill-service:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.3:19999

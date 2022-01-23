@@ -1,0 +1,16 @@
+---
+http:
+  routers:
+    traefik:
+      rule: "Host(`traefik.pival.lan`)"
+      service: "api@internal"
+      tls:
+        domains:
+          - main: "pival.lan"
+            sans:
+              - "*.pival.lan"
+
+tls:
+  certificates:
+    - certFile: "/etc/ssl/traefik/local-cert.pem"
+      keyFile: "/etc/ssl/traefik/local-key.pem"
