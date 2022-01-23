@@ -1,0 +1,30 @@
+version: "3.9"
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true  
+
+services:
+  jupyter-notebooks:
+    image: jupyter/datascience-notebook
+    container_name: jupyter-notebooks
+    restart: always
+    networks:
+      - traefik_default
+    ports:
+      - "192.168.1.34:8888:8888"
+    environment:
+      #- "GEN_CERT=yes"
+      - "JUPYTER_ENABLE_LAB=yes"
+      - "RESTARTABLE=yes"
+    volumes:
+      - /mnt/data/workspace/notebooks:/home/jovyan/work
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jupyter.rule=Host(`jupyter.pival.lan`)
+      - traefik.http.routers.jupyter.entrypoints=web, websecure
+      - traefik.http.routers.jupyter.tls=true
+      - traefik.http.routers.jupyter.tls.certresolver=staging
+      - traefik.http.routers.jupyter.service=jupyter
+      - traefik.http.services.jupyter.loadbalancer.server.port=8888

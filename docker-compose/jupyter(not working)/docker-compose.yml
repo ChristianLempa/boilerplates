@@ -1,0 +1,43 @@
+version: '3'
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true  
+
+services:
+  jupyterhub:
+    build: jupyterhub
+    image: jupyterhub_img
+    networks:
+      - traefik_default
+    container_name: jupyterhub
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jupyterhub_data:/srv/jupyterhub
+    environment:
+      - DOCKER_JUPYTER_CONTAINER=jupyterlab_img
+      - DOCKER_NETWORK_NAME=traefik_default
+      - HUB_IP=jupyterhub
+      - HOST
+      - JUPYTER_ENABLE_LAB=yes
+      - RESTARTABLE=yes
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jupyter.rule=Host(`jupyter.pival.lan`)
+      - traefik.http.routers.jupyter.entrypoints=web, websecure
+      - traefik.http.routers.jupyter.tls=true
+      - traefik.http.routers.jupyter.tls.certresolver=staging
+      - traefik.http.routers.jupyter.service=jupyter
+      - traefik.http.services.jupyter.loadbalancer.server.port=8888
+    restart: on-failure
+
+  jupyterlab:
+    build: jupyterlab
+    image: jupyterlab_img
+    container_name: jupyterlab-throaway
+    network_mode: none
+    command: echo
+
+volumes:
+  jupyterhub_data:
