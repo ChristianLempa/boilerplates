@@ -17,3 +17,7 @@ services:
       - /mnt/data/workspace/boilerplates/docker-compose/traefik/config/traefik.yml:/etc/traefik
       - traefik-ssl-certs:/ssl-certs
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+networks:
+  traefik:
+    external: true
