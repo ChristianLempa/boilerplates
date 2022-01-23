@@ -1,22 +1,36 @@
 version: '3'
 
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true  
+
 services:
   app:
-    container_name: portainer
+    container_name: portainer-host
     image: 'portainer/portainer-ce:latest'
     restart: always
-    ports:
-      - '9000:9000'
-      - '9443:9443'
-      - '8000:8000'
+    hostname: portainer
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
     labels:
       - traefik.enable=true
-      - traefik.http.routers.nginx.entrypoints=web,websecure
-      - traefik.http.routers.nginx.rule=Host(\`portainer.pival.lan\`)
-      - traefik.http.routers.nginx.tls=true
-      - traefik.http.routers.nginx.tls.certresolver=staging
+      - traefik.http.routers.portainer.rule=Host(`portainer.pival.lan`)
+      - traefik.http.routers.portainer.entrypoints=web, websecure
+      - traefik.http.routers.portainer.tls=true
+      - traefik.http.routers.portainer.tls.certresolver=staging
+      - traefik.http.routers.portainer.service=portainer
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+
+      # Edge
+      #- traefik.http.routers.edge.rule=Host(`edge.yourdomain.com`)
+      #- traefik.http.routers.edge.entrypoints=websecure
+      #- traefik.http.services.edge.loadbalancer.server.port=8000
+      #- traefik.http.routers.edge.service=edge
+      #- traefik.http.routers.edge.tls.certresolver=leresolver
     networks:
-      - traefik
+      - traefik_default
+
+volumes:
+  portainer-data: 
