@@ -11,24 +11,15 @@ services:
     image: jekyll/jekyll:3.8
     restart: always
     hostname: blog
+    networks:
+      - traefik_default
     command: jekyll serve --watch --force_polling --verbose --trace
     volumes:
       - /mnt/data/workspace/gamma-software.github.io:/srv/jekyll
-    deploy:
-      placement:
-        constraints: [node.role == worker]
-      replicas: 1
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-      labels:
+    labels:
         traefik.enable: true
         traefik.http.routers.jekyll.rule: Host(`blog.pival.lan`)
         traefik.http.routers.jekyll.tls: true
         traefik.http.routers.jekyll.tls.certresolver: staging
-        traefik.http.routers.jekyll.entrypoints: websecure
+        traefik.http.routers.jekyll.entrypoints: web, websecure
         traefik.http.services.jekyll.loadbalancer.server.port: 4000
-    networks:
-      - traefik_default
