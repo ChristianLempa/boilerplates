@@ -8,3 +8,5 @@ docker-compose/homer/assets/
 
 docker-compose/bitwarden/nginx-config/
 docker-compose/bitwarden/docker-compose.yml
+
+*.pem
