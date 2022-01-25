@@ -1,0 +1,27 @@
+version: '3'
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true
+
+services:
+  matrix-irc:
+    image: ghcr.io/bubuntux/element-web
+    container_name: element
+    networks:
+      - traefik_default
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.matrix-lan.rule=Host(`matrix.pival.lan`)
+      - traefik.http.routers.matrix-lan.entrypoints=web, websecure
+      - traefik.http.routers.matrix-lan.tls=true
+      - traefik.http.routers.matrix-lan.service=matrix-lan
+      - traefik.http.services.matrix-lan.loadbalancer.server.port=80
+
+      - traefik.http.routers.matrix-ext.rule=Host(`matrix.duckdns.org`)
+      - traefik.http.routers.matrix-ext.entrypoints=web, websecure
+      - traefik.http.routers.matrix-ext.tls=true
+      - traefik.http.routers.matrix-ext.service=matrix-ext
+      - traefik.http.services.matrix-ext.loadbalancer.server.port=80
