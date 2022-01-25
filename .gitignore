@@ -5,3 +5,6 @@ docker-compose/homer/assets/
 !docker-compose/homer/assets/*.config.yml
 
 .env
+
+docker-compose/bitwarden/nginx-config/
+docker-compose/bitwarden/docker-compose.yml
