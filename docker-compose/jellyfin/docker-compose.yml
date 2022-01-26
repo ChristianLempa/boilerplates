@@ -1,0 +1,36 @@
+---
+version: '3'
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true
+
+services:
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    networks:
+      - traefik_default
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    #  - JELLYFIN_PublishedServerUrl=192.168.1.52 #optional
+    volumes:
+      - /AmberPRO/jellyfin/config:/config
+      - /AmberPRO/jellyfin/tvshows:/data/tvshows # TODO
+      - /AmberPRO/jellyfin/movies:/data/movies # TODO
+    #ports:
+    #  - 8096:8096
+    #  - 8920:8920 #optional
+    #  - 7359:7359/udp #optional
+    #  - 1900:1900/udp #optional
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jellyfin.rule=Host(`jellyfin.pival.lan`)
+      - traefik.http.routers.jellyfin.entrypoints=web, websecure
+      - traefik.http.routers.jellyfin.tls=true
+      - traefik.http.routers.jellyfin.service=jellyfin
+      - traefik.http.services.jellyfin.loadbalancer.server.port=8096
