@@ -1,0 +1,25 @@
+
+global:
+  logLevel: 2  # default: 2
+
+replicaCount: 1  # default: 1
+
+installCRDs: true  # default: false
+
+extraArgs: []
+
+extraEnv: []
+
+resources: {}
+
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: false
+    prometheusInstance: default
+    targetPort: 9402
+    path: /metrics
+    interval: 60s
+    scrapeTimeout: 30s
+    labels: {}
+    honorLabels: false
