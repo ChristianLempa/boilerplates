@@ -1,0 +1,68 @@
+version: '3'
+
+volumes:
+  guacamole-db:
+  guacd-data:
+  guacd-conf:
+
+networks:
+  frontend:
+    external: true
+  backend:
+    external: true
+
+services:
+  guacamole-mysql-db:
+    image: mysql
+    container_name: guacamole-mysql-db
+    volumes:
+      - guacamole-db:/var/lib/mysql
+    env_file:
+      - .env # stores the MYSQL_PASSWORD=****
+    networks:
+      - backend
+
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    restart: always
+    volumes:
+      - guacd-data:/data
+      - guacd-conf:/conf:ro
+    expose:
+      - "4822"
+    ports:
+      - "4822:4822"
+    networks:
+      - backend
+
+  guacamole:
+    image: guacamole/guacamole
+    container_name: guacamole
+    depends_on:
+      - guacd
+      - guacamole-mysql-db
+    volumes:
+      - "guacd-data:/data"
+      - "guacd-conf:/conf:ro"
+    networks:
+      - backend
+      - frontend
+    expose:
+      - "8080"
+    ports:
+      - 5080:8080
+    links:
+      - guacamole-mysql-db:database
+      - guacd:guacd
+    env_file:
+      - .env # stores the MYSQL_PASSWORD=****
+    environment:
+      - "GUACD_HOSTNAME=guacd"
+      - "GUACD_PORT=4822"
+      - "MYSQL_HOSTNAME=guacamole-mysql-db"
+      - "MYSQL_PORT=3306"
+      - "MYSQL_DATABASE=guacamole"
+      - "GUACAMOLE_HOME=/data"
+
+# Execute `docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --mysql > initdb.sql` prior to running this
