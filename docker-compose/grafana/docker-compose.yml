@@ -4,10 +4,16 @@ volumes:
   grafana-data:
     driver: local
 
+networks:
+  frontend:
+    external: true
+
 services:
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana
+    networks:
+      - frontend
     ports:
       - "3000:3000"
     volumes:
