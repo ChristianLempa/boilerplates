@@ -1,0 +1,27 @@
+
+version: '3'
+
+volumes:
+  uptimekuma-data:
+    driver: local
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true
+
+services:
+  uptimekuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptimekuma
+    networks: ["traefik_default"]
+    volumes:
+      - uptimekuma-data:/app/data
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.uptime.rule=Host(`uptime.pival.lan`)
+      - traefik.http.routers.uptime.entrypoints=web, websecure
+      - traefik.http.routers.uptime.tls=true
+      - traefik.http.routers.uptime.service=uptime
+      - traefik.http.services.uptime.loadbalancer.server.port=3001

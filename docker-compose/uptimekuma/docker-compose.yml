@@ -5,12 +5,17 @@ volumes:
   uptimekuma-data:
     driver: local
 
+# Connect to the existing traefik network
+networks:
+  frontend:
+    external: true
+
 services:
   uptimekuma:
     image: louislam/uptime-kuma:latest
     container_name: uptimekuma
-    ports:
-      - "3001:3001"
+    networks:
+      - frontend
     volumes:
       - uptimekuma-data:/app/data
     restart: unless-stopped
