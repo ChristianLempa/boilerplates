@@ -1,0 +1,25 @@
+version: "3.9"
+
+# Connect to the existing traefik network
+networks:
+  traefik_default:
+    external: true  
+
+services:
+  blog:
+    container_name: blog
+    image: jekyll/jekyll:3.8
+    restart: always
+    hostname: blog
+    networks:
+      - traefik_default
+    command: jekyll serve --watch --force_polling --verbose --trace
+    volumes:
+      - /mnt/data/workspace/gamma-software.github.io:/srv/jekyll
+    labels:
+        traefik.enable: true
+        traefik.http.routers.jekyll.rule: Host(`blog.pival.lan`)
+        traefik.http.routers.jekyll.tls: true
+        traefik.http.routers.jekyll.tls.certresolver: staging
+        traefik.http.routers.jekyll.entrypoints: web, websecure
+        traefik.http.services.jekyll.loadbalancer.server.port: 4000
