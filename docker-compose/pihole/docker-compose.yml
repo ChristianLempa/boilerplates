@@ -2,17 +2,17 @@ version: '3.9'
 
 # Connect to the existing traefik network
 networks:
-  traefik_default:
-    external: true  
+  frontend:
+    external: true
 
 services:
   pihole:
     restart: unless-stopped
+    container_name: pihole
     image: pihole/pihole:latest
     hostname: pival-pihole
     environment:
       TZ: "Europe/Paris"
-      VIRTUAL_HOST: pihole.pival.lan
       WEBPASSWORD: "pouetpouet"
     volumes:
       - datapihole:/etc/pihole/
@@ -26,33 +26,8 @@ services:
       - 127.0.0.1
       - 8.8.8.8
       - 1.1.1.1
-    labels:
-      traefik.enable: true
-      traefik.http.routers.pihole.rule: Host(`pihole.pival.lan`)
-      traefik.http.routers.pihole.entrypoints: websecure
-      traefik.http.routers.pihole.tls: true
-      traefik.http.routers.pihole.tls.certresolver: staging
-      traefik.http.routers.pihole.service: pihole
-      traefik.http.services.pihole.loadbalancer.server.port: 80
-
-      # DNS-over-TLS
-      traefik.tcp.routers.dnsovertls.rule: HostSNI(`pihole.pival.lan`)
-      traefik.tcp.routers.dnsovertls.entrypoints: dnsovertls
-      traefik.tcp.routers.dnsovertls.tls.certresolver: mytlschallenge
-      traefik.tcp.routers.dnsovertls.service: pihole
-      
-      traefik.tcp.routers.dns.rule: HostSNI(`pihole.pival.lan`)
-      traefik.tcp.routers.dns.entrypoints: dns
-      traefik.tcp.routers.dns.service: pihole
-
-      # recieves traffic from both the TLS and non-TLS traefik routers
-      traefik.tcp.services.pihole.loadbalancer.server.port: 53
-      
-      traefik.udp.routers.udpdns.entrypoints: udpdns
-      traefik.udp.routers.udpdns.service: pihole
-      traefik.udp.services.pihole.loadbalancer.server.port: 53
     networks:
-      - traefik_default
+      - frontend
 
 volumes:
   datapihole:
