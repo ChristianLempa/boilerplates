@@ -1,0 +1,43 @@
+version: '3'
+
+volumes:
+  db:
+
+networks:
+  nextcloud-backend:
+  frontend:
+    external: true
+
+services:
+
+  nextcloud-app:
+    image: nextcloud
+    container_name: nextcloud-app
+    restart: always
+    volumes:
+      - /mnt/main_backup/nextcloud:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=margera
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=nextcloud-db
+    ports:
+      - "9080:80"
+    networks:
+      - nextcloud-backend
+      - frontend
+
+  nextcloud-db:
+    image: mariadb
+    container_name: nextcloud-db
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb_read_only_compressed=OFF
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=margera
+      - MYSQL_PASSWORD=margera
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+    networks:
+      - nextcloud-backend
