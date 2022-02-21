@@ -63,6 +63,10 @@ entryPoints:
 #       defaultCertificate:
 #         certFile: /etc/traefik/certs/cert.pem
 #         keyFile: /etc/traefik/certs/cert-key.pem
+# (Optional) Disable TLS version 1.0 and 1.1
+#   options:
+#     default:
+#       minVersion: VersionTLS12
 
 providers:
   docker:
