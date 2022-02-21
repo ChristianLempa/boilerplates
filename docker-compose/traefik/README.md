@@ -25,6 +25,11 @@ Replace the `/etc/traefik/certs/cert.pem` with your certificate file, and the `/
 
 # Best-Practices & Post-Installation
 
+
+## MinTLS Version
+TLS 1.0 and 1.1 are not longer secure! Consider disabling it in the Traefik Configuration.
+
+
 ```yaml
 providers:
   docker:
