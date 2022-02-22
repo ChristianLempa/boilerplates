@@ -25,7 +25,7 @@ spec:
     # Configure DNS or HTTP Challenge here...
     # ---
     # DNS Challenge:
-    - dns01:
+    # - dns01:
         # Configure your DNS Provider here...
         # ---
         # cloudflare:
