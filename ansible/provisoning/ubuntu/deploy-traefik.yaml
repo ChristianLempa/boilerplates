@@ -1,0 +1,46 @@
+---
+- hosts: all
+  
+  become: yes
+
+  tasks:
+
+  # Create Directory
+  # ---
+  #
+  # - name: Create directory
+  #   file:
+  #     path: /etc/traefik
+  #     state: directory
+      
+  # Create Directory
+  # ---
+  #
+  # - name: Create directory2
+  #   file:
+  #     path: /etc/traefik/certs
+  #     state: directory
+
+  # Copy File
+  # ---
+  #
+  # - name: Copy config file
+  #   ansible.builtin.copy:
+  #     src: config/traefik.yaml
+  #     dest: /etc/traefik/traefik.yaml
+
+  # Deploy Traefik
+  # --
+  #   
+  - name: Deploy Traefik
+    become_user: "{{ lookup('env','USER') }}"
+    community.docker.docker_container:
+      name: traefik
+      image: "traefik:v2.5"
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /etc/traefik:/etc/traefik
+      restart_policy: always

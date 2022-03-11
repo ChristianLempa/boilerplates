@@ -1,0 +1,27 @@
+---
+- hosts: all
+  
+  become: yes
+  become_user: "{{ lookup('env','USER') }}"
+  tasks:
+
+  # Create Portainer Volume
+  # --
+  # 
+  - name: Create new Volume
+    community.docker.docker_volume:
+      name: portainer-data
+
+  # Deploy Portainer
+  # --
+  #   
+  - name: Deploy Portainer
+    community.docker.docker_container:
+      name: portainer
+      image: "docker.io/portainer/portainer-ce"
+      ports:
+        - "9443:9443"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - portainer-data:/data
+      restart_policy: always
