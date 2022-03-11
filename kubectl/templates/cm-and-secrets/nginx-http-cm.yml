@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-http-cm
+data:
+  # key: value
+  # file: |
+  #   content
+  # ---
+  nginx.conf: |
+    user nginx;
+    worker_processes 1;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      server {
+        listen       80;
+        server_name  _;
+        location / {
+          root   /usr/share/nginx/html;
+          index  index.html index.htm;
+        }
+        location /test {
+          return 401;
+        }
+      }
+    }

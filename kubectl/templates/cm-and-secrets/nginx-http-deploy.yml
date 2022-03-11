@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-http
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: nginx-http
+  template:
+    metadata:
+      labels:
+        app: nginx-http
+    spec:
+      containers:
+      - name: nginx-http
+        image: nginx
+        ports:
+        - name: web
+          containerPort: 80
+        volumeMounts:
+        - name: nginx-http-cm
+          mountPath: /etc/nginx
+        - name: nginx-http-vol
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nginx-http-cm
+        configMap:
+          name: nginx-http-cm
+      - name: nginx-http-vol
+        hostPath:
+          path: /var/nginxserver
