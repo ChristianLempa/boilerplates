@@ -1,24 +1,26 @@
-resource "cloudflare_record" "clcreative-main-cluster" {
-    zone_id = "your-zone-id"
-    name = "nginx1.your-domain"
-    value =  data.civo_loadbalancer.traefik_lb.public_ip
-    type = "A"
-    proxied = false
-}
+# NGINX 1 Test Deployment
+#
+# TODO: Change your-domain according to your DNS record that you want to create
+# TODO: Change your-zone-id according to your DNS zone ID in Cloudflare
+# ---
 
 resource "kubernetes_namespace" "nginx1" {
 
-    depends_on = [time_sleep.wait_for_kubernetes]
+    depends_on = [
+        time_sleep.wait_for_kubernetes
+    ]
 
     metadata {
         name = "nginx1"
     }
-
 }
+
 
 resource "kubernetes_deployment" "nginx1" {
 
-    depends_on = [kubernetes_namespace.nginx1]
+    depends_on = [
+        kubernetes_namespace.nginx1
+    ]
 
     metadata {
         name = "nginx1"
@@ -58,9 +60,12 @@ resource "kubernetes_deployment" "nginx1" {
     }
 }
 
+
 resource "kubernetes_service" "nginx1" {
 
-    depends_on = [kubernetes_namespace.nginx1]
+    depends_on = [
+        kubernetes_namespace.nginx1
+    ]
 
     metadata {
         name = "nginx1"
@@ -78,6 +83,7 @@ resource "kubernetes_service" "nginx1" {
     }
 }
 
+
 resource "kubectl_manifest" "nginx1-certificate" {
 
     depends_on = [kubernetes_namespace.nginx1, time_sleep.wait_for_clusterissuer]
@@ -94,9 +100,10 @@ spec:
     name: cloudflare-prod
     kind: ClusterIssuer
   dnsNames:
-  - 'nginx1.your-domain'   
+  - 'your-domain'   
     YAML
 }
+
 
 resource "kubernetes_ingress_v1" "nginx1" {
 
@@ -110,7 +117,7 @@ resource "kubernetes_ingress_v1" "nginx1" {
     spec {
         rule {
 
-            host = "nginx1.your-domain"
+            host = "your-domain"
 
             http {
 
@@ -132,7 +139,15 @@ resource "kubernetes_ingress_v1" "nginx1" {
 
         tls {
           secret_name = "nginx1"
-          hosts = ["nginx1.your-domain"]
+          hosts = ["your-domain"]
         }
     }
+}
+
+resource "cloudflare_record" "clcreative-main-cluster" {
+    zone_id = "your-zone-id"
+    name = "your-domain"
+    value =  data.civo_loadbalancer.traefik_lb.public_ip
+    type = "A"
+    proxied = false
 }

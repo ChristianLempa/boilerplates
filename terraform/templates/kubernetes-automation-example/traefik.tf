@@ -1,22 +1,26 @@
-resource "kubernetes_namespace" "traefik" {
+# Traefik Deployment
 
-    depends_on = [time_sleep.wait_for_kubernetes]
+resource "kubernetes_namespace" "traefik" {
+    
+    depends_on = [
+        time_sleep.wait_for_kubernetes
+    ]
 
     metadata {
         name = "traefik"
     }
-
 }
 
 resource "helm_release" "traefik" {
-    
-    depends_on = [kubernetes_namespace.traefik]
+    depends_on = [
+        kubernetes_namespace.traefik
+    ]
 
     name = "traefik"
     namespace = "traefik"
 
     repository = "https://helm.traefik.io/traefik"
-    chart      = "traefik"
+    chart = "traefik"
 
     # Set Traefik as the Default Ingress Controller
     set {

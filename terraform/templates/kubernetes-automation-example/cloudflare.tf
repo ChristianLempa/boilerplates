@@ -1,7 +1,11 @@
+# Cloudflare DNS records and API Secret
+
 resource "kubernetes_secret" "cloudflare_api_key_secret" {
-  
-    depends_on = [kubernetes_namespace.certmanager]
-    
+
+    depends_on = [
+        kubernetes_namespace.certmanager
+    ]
+
     metadata {
         name = "cloudflare-api-key-secret"
         namespace = "certmanager"
@@ -13,3 +17,4 @@ resource "kubernetes_secret" "cloudflare_api_key_secret" {
 
     type = "Opaque"
 }
+
