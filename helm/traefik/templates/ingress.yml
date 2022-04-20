@@ -28,3 +28,7 @@ spec:
             name: your-service-name  # The name of the service
             port:
               number: 80  # Service Portnumber
+  # tls:
+  # - hosts:
+  #   - your-hostname.com  # Your hostname
+  #   secretName: your-secret  # Your TLS Secret
