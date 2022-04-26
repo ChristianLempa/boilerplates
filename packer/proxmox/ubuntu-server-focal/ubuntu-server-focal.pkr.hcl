@@ -53,7 +53,7 @@ source "proxmox" "ubuntu-server-focal" {
         format = "qcow2"
         storage_pool = "local-lvm"
         storage_pool_type = "lvm"
-        type = "sata"
+        type = "virtio"
     }
 
     # VM CPU Settings

@@ -1,6 +1,6 @@
-# Ubuntu Server Focal Docker
+# Ubuntu Server jammy
 # ---
-# Packer Template to create an Ubuntu Server (Focal) with Docker on Proxmox
+# Packer Template to create an Ubuntu Server (jammy) on Proxmox
 
 # Variable Definitions
 variable "proxmox_api_url" {
@@ -17,7 +17,7 @@ variable "proxmox_api_token_secret" {
 }
 
 # Resource Definiation for the VM Template
-source "proxmox" "ubuntu-server-focal-docker" {
+source "proxmox" "ubuntu-server-jammy" {
  
     # Proxmox Connection Settings
     proxmox_url = "${var.proxmox_api_url}"
@@ -29,16 +29,16 @@ source "proxmox" "ubuntu-server-focal-docker" {
     # VM General Settings
     node = "your-proxmox-node"
     vm_id = "100"
-    vm_name = "ubuntu-server-focal-docker"
-    template_description = "Ubuntu Server Focal Image with Docker pre-installed"
+    vm_name = "ubuntu-server-jammy"
+    template_description = "Ubuntu Server jammy Image"
 
     # VM OS Settings
     # (Option 1) Local ISO File
-    # iso_file = "local:iso/ubuntu-20.04.2-live-server-amd64.iso"
+    # iso_file = "local:iso/ubuntu-22.04-live-server-amd64.iso"
     # - or -
     # (Option 2) Download ISO
-    # iso_url = "https://releases.ubuntu.com/20.04/ubuntu-20.04.3-live-server-amd64.iso"
-    # iso_checksum = "f8e3086f3cea0fb3fefb29937ab5ed9d19e767079633960ccb50e76153effc98"
+    # iso_url = "https://releases.ubuntu.com/22.04/ubuntu-22.04-live-server-amd64.iso"
+    # iso_checksum = "84aeaf7823c8c61baa0ae862d0a06b03409394800000b3235854a6b38eb4856f"
     iso_storage_pool = "local"
     unmount_iso = true
 
@@ -75,11 +75,12 @@ source "proxmox" "ubuntu-server-focal-docker" {
 
     # PACKER Boot Commands
     boot_command = [
-        "<esc><wait><esc><wait>",
-        "<f6><wait><esc><wait>",
-        "<bs><bs><bs><bs><bs>",
-        "autoinstall ds=nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ",
-        "--- <enter>"
+        "<esc><wait>",
+        "e<wait>",
+        "<down><down><down><end>",
+        "<bs><bs><bs><bs><wait>",
+        "autoinstall ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ---<wait>",
+        "<f10><wait>"
     ]
     boot = "c"
     boot_wait = "5s"
@@ -106,8 +107,8 @@ source "proxmox" "ubuntu-server-focal-docker" {
 # Build Definition to create the VM Template
 build {
 
-    name = "ubuntu-server-focal-docker"
-    sources = ["source.proxmox.ubuntu-server-focal-docker"]
+    name = "ubuntu-server-jammy"
+    sources = ["source.proxmox.ubuntu-server-jammy"]
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #1
     provisioner "shell" {
