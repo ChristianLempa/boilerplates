@@ -1,6 +1,6 @@
 # Boilerplates for Automation and Deployment
 
-These are my templates and configurations I use in various projects and deployment scenarios. They are based on automation and deployment tools such as [Ansible](https://github.com/xcad2k/boilerplates/tree/main/ansible), [Docker](https://github.com/xcad2k/boilerplates/tree/main/docker-compose), [Terraform](https://github.com/xcad2k/boilerplates/tree/main/terraform), and much more.
+These are my templates and configurations I use in various projects and deployment scenarios. They are based on automation and deployment tools such as Ansible, Docker, Terraform, and much more.
 
 I created them as free resources to be extended by you according to your specific use cases. If you're searching for detailed, in-depth tutorials on some tools or templates, check out my YouTube Channel: [The Digital Life](https://www.youtube.com/channel/UCZNhwA1B5YqiY1nLzmM0ZRg).
 
