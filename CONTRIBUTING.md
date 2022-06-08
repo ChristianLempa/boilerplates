@@ -22,4 +22,4 @@ Once you find an issue to work on, you are welcome to open a PR with a fix.
 
 ## Your PR is merged!
 Once reviewed and accepted, your PR would be merged and available publicly.
-Congratulations 🎉🎉 and thank you ✨.
+Congratulations 🎉🎉 and thank you for playing your part ✨.
