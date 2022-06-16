@@ -36,6 +36,9 @@
   - name: add user permissions
     shell: "usermod -aG docker {{ ansible_env.SUDO_USER }}"
 
+  - name: Reset ssh connection for changes to take effect
+    meta: "reset_connection"
+
   # Installs Docker SDK
   # --
   # 
