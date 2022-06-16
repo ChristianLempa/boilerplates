@@ -34,7 +34,7 @@
       update_cache: yes
 
   - name: add user permissions
-    shell: "usermod -aG docker {{ ansible_env.USER }}"
+    shell: "usermod -aG docker {{ ansible_env.SUDO_USER }}"
 
   # Installs Docker SDK
   # --
@@ -44,7 +44,7 @@
       name: python3-pip
   
   - name: install python sdk
-    become_user: "{{ ansible_env.USER }}"
+    become_user: "{{ ansible_env.SUDO_USER }}"
     pip:
       name:
         - docker
