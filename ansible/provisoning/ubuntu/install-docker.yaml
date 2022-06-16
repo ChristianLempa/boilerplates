@@ -33,8 +33,8 @@
         - containerd.io
       update_cache: yes
 
-  - name: add userpermissions
-    shell: "usermod -aG docker {{ lookup('env','USER') }}"
+  - name: add user permissions
+    shell: "usermod -aG docker {{ ansible_env.USER }}"
 
   # Installs Docker SDK
   # --
@@ -44,7 +44,7 @@
       name: python3-pip
   
   - name: install python sdk
-    become_user: "{{ lookup('env','USER') }}"
+    become_user: "{{ ansible_env.USER }}"
     pip:
       name:
         - docker
