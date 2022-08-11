@@ -3,7 +3,9 @@ version: '3'
 
 services:
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.45.0 # latest tag is not updated...
+                                            # https://github.com/google/cadvisor/issues/3066    
+                                            # To manual check versions: https://github.com/google/cadvisor/releases      
     container_name: cadvisor
     # ports:
     #   - "8080:8080"
