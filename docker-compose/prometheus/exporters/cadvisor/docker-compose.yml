@@ -9,6 +9,7 @@ services:
     container_name: cadvisor
     # ports:
     #   - "8080:8080"
+    network_mode: host
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
