@@ -9,7 +9,7 @@ services:
     # ports:
     #   - 3306:3306
     environment:
-      MARIADB_ROOT_PASSWORD: example
+      MARIADB_ROOT_PASSWORD: your-root-password
     volumes:
       - mariadb-data:/var/lib/mysql
     restart: always
