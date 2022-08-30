@@ -11,9 +11,7 @@ services:
       - '8086:8086'
     volumes:
       - influxdb-data:/var/lib/influxdb2
-      
-      # (Optional) Config Directory 
-      # - /etc/influxdb2:/etc/influxdb2
+      - /etc/influxdb2:/etc/influxdb2
       
       # (Optional) If you're using self-signed certs
       # - /etc/ssl/cert.pem/:/etc/ssl/cert.pem
