@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+
+  mariadb:
+    container_name: mariadb
+    image: mariadb:latest
+    # (Optional) Expose Container outside
+    # ports:
+    #   - 3306:3306
+    environment:
+      MARIADB_ROOT_PASSWORD: example
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    restart: always
