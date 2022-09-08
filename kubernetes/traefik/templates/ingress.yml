@@ -5,30 +5,31 @@ metadata:
   namespace: wp-clcreative
   annotations:
     # (Optional): Annotations for the Ingress Controller
-    # ---
-    # General:
+    # -- ingress class is needed when traefik is not the default
     # kubernetes.io/ingress.class: traefik
-    # 
-    # TLS configuration:
+    # ---
+    # -- entrypoint and tls configurations
     # traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
     # traefik.ingress.kubernetes.io/router.tls: "true"
-    # 
-    # Middleware:
+    # ---
+    # -- optional middlewares
     # traefik.ingress.kubernetes.io/router.middlewares:your-middleware@kubernetescrd
+    # ---
 spec:
   rules:
-  - host: "your-hostname.com"  # Your hostname
+  - host: "your-hostname"
     http:
       paths:
-      # Path-based routing settings:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: your-service-name  # The name of the service
+            name: your-service-name 
             port:
-              number: 80  # Service Portnumber
+              number: 80
+  # (Optional) TLS settings
   # tls:
   # - hosts:
   #   - your-hostname.com  # Your hostname
   #   secretName: your-secret  # Your TLS Secret
+  # ---
