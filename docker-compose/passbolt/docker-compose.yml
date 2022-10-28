@@ -13,17 +13,26 @@ services:
 
   passbolt:
     image: passbolt/passbolt:latest-ce
-    #Alternatively you can use rootless:
-    #image: passbolt/passbolt:latest-ce-non-root
+    # Alternatively you can use rootless:
+    # image: passbolt/passbolt:latest-ce-non-root
     restart: unless-stopped
     depends_on:
       - db
     environment:
+      # Replace API_FULL_BASE_URL with your real FQDN
       APP_FULL_BASE_URL: https://passbolt.local
       DATASOURCES_DEFAULT_HOST: "db"
       DATASOURCES_DEFAULT_USERNAME: "passbolt"
       DATASOURCES_DEFAULT_PASSWORD: "P4ssb0lt"
       DATASOURCES_DEFAULT_DATABASE: "passbolt"
+      # Replace with your mail server config
+      # EMAIL_DEFAULT_FROM_NAME: "Passbolt"
+      # EMAIL_DEFAULT_FROM: "you@passbolt.local"
+      # EMAIL_TRANSPORT_DEFAULT_HOST: your-mail-server
+      # EMAIL_TRANSPORT_DEFAULT_PORT: 587
+      # EMAIL_TRANSPORT_DEFAULT_USERNAME: your-mail-username
+      # EMAIL_TRANSPORT_DEFAULT_PASSWORD: your-mail-password
+      # EMAIL_TRANSPORT_DEFAULT_TLS: true
     volumes:
       - gpg_volume:/etc/passbolt/gpg
       - jwt_volume:/etc/passbolt/jwt
@@ -31,7 +40,7 @@ services:
     ports:
       - 80:80
       - 443:443
-    #Alternatively for non-root images:
+    # Alternatively for non-root images:
     # - 80:8080
     # - 443:4433
 
