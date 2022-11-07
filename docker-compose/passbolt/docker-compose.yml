@@ -1,4 +1,10 @@
 version: '3.9'
+
+volumes:
+  passbolt-db:
+  passbolt-gpg:
+  passbolt-jwt:
+  
 services:
   db:
     image: mariadb:10.3
@@ -9,7 +15,7 @@ services:
       MYSQL_USER: $MYSQL_USER
       MYSQL_PASSWORD: $MYSQL_PASSWORD
     volumes:
-      - database_volume:/var/lib/mysql
+      - passbolt-db:/var/lib/mysql
 
   passbolt:
     image: passbolt/passbolt:latest-ce
@@ -34,8 +40,8 @@ services:
       # EMAIL_TRANSPORT_DEFAULT_PASSWORD: $EMAIL_TRANSPORT_DEFAULT_PASSWORD
       # EMAIL_TRANSPORT_DEFAULT_TLS: true
     volumes:
-      - gpg_volume:/etc/passbolt/gpg
-      - jwt_volume:/etc/passbolt/jwt
+      - passbolt-gpg:/etc/passbolt/gpg
+      - passbolt-jwt:/etc/passbolt/jwt
     command: ["/usr/bin/wait-for.sh", "-t", "0", "db:3306", "--", "/docker-entrypoint.sh"]
     ports:
       - 80:80
@@ -43,8 +49,3 @@ services:
     # Alternatively for non-root images:
     # - 80:8080
     # - 443:4433
-
-volumes:
-  database_volume:
-  gpg_volume:
-  jwt_volume:
