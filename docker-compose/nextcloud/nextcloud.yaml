@@ -4,17 +4,11 @@ volumes:
   nextcloud-data:
   nextcloud-db:
 
-networks:
-  frontend:
-    # add this if the network is already existing!
-    # external: true
-  backend:
-
 services:
 
   nextcloud-app:
-    image: nextcloud
-    restart: always
+    image: nextcloud:latest
+    restart: unless-stopped
     volumes:
       - nextcloud-data:/var/www/html
     environment:
@@ -22,13 +16,10 @@ services:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=nextcloud-db
-    networks:
-      - frontend
-      - backend
 
   nextcloud-db:
-    image: mariadb
-    restart: always
+    image: mariadb:latest
+    restart: unless-stopped
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
       - nextcloud-db:/var/lib/mysql
@@ -37,5 +28,3 @@ services:
       - MYSQL_PASSWORD=replace-with-secure-password
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
-    networks:
-      - backend
