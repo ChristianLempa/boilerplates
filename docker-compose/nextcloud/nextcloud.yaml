@@ -12,10 +12,12 @@ services:
     volumes:
       - nextcloud-data:/var/www/html
     environment:
-      - MYSQL_PASSWORD=replace-with-secure-password
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
       - MYSQL_HOST=nextcloud-db
+    ports:
+      - 80:80
 
   nextcloud-db:
     image: mariadb:latest
@@ -24,7 +26,7 @@ services:
     volumes:
       - nextcloud-db:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=replace-with-secure-password
-      - MYSQL_PASSWORD=replace-with-secure-password
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
