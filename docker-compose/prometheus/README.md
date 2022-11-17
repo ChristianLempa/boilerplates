@@ -11,6 +11,15 @@ Configure your settings in the `/etc/prometheus/prometheus.yml` file.
 
 *For more info visit:* [Official Prometheus Installation Documentation](https://prometheus.io/docs/prometheus/latest/installation/)
 
+# Exporters
+
+TODO: WIP
+
+- cadvisor
+- nodeexporter
+- nvidiadgcm
+- nvidiasmi
+
 # Best-Practices & Post-Installation
 
 ## Disable HTTP
@@ -19,7 +28,7 @@ It's not secure to expose Prometheus via the HTTP protocol.
 
 ### Use a Reverse Proxy
 
-- [] Use a Reverse Proxy to securely expose administrative services.
+- [ ] Use a Reverse Proxy to securely expose administrative services.
 
 # Additional Referfences
 
