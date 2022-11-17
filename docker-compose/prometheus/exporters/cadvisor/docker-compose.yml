@@ -3,12 +3,11 @@ version: '3'
 
 services:
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.45.0 # latest tag is not updated...
-                                            # https://github.com/google/cadvisor/issues/3066    
-                                            # To manual check versions: https://github.com/google/cadvisor/releases      
+    # TODO: latest tag is not updated, check latest release https://github.com/google/cadvisor/releases 
+    image: gcr.io/cadvisor/cadvisor:v0.45.0     
     container_name: cadvisor
-    # ports:
-    #   - "8080:8080"
+    ports:
+      - "8080:8080"
     network_mode: host
     volumes:
       - /:/rootfs:ro
@@ -19,3 +18,4 @@ services:
     devices:
       - /dev/kmsg
     restart: unless-stopped
+    privileged: true
