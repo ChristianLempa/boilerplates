@@ -1,0 +1,52 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: acme-issuer
+  # (Optional) Metadata
+  # ---
+  # namespace: your-namespace
+spec:
+  acme:
+    # Configure your email here...
+    # ---
+    # email: your-email@address
+
+    # Configure your server here...
+    # ---
+    # Letsencrypt Production
+    # server: https://acme-v02.api.letsencrypt.org/directory
+    # - or -
+    # Letsencrypt Staging
+    # server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    privateKeySecretRef:
+      name: example-issuer-account-key
+    solvers:
+    # Configure DNS or HTTP Challenge here...
+    # ---
+    # DNS Challenge:
+    # - dns01:
+        # Configure your DNS Provider here...
+        # ---
+        # cloudflare:
+        #   email: your-email@address
+        # API Key:
+        #   apiKeySecretRef:
+        #     name: cloudflare-api-key-secret
+        #     key: api-key
+        # - or -
+        # API Token:
+        #   apiTokenSecretRef:
+        #     name: cloudflare-api-token-secret
+        #     key: api-token        
+      # (Optional) Add DNS selectors
+      # ---
+      # selector:
+      #   dnsNames:
+      #   - 'your-domain'
+      #   - '*.your-domain'
+
+    # HTTP Challenge:
+    # - http01:
+    #    ingress:
+    #      class: traefik
