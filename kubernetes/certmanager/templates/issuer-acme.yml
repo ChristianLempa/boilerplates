@@ -42,9 +42,8 @@ spec:
       # (Optional) Add DNS selectors
       # ---
       # selector:
-      #   dnsNames:
+      #   dnsZones:
       #   - 'your-domain'
-      #   - '*.your-domain'
 
     # HTTP Challenge:
     # - http01:
