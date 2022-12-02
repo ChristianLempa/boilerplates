@@ -2,50 +2,41 @@ version: '3.9'
 
 volumes:
   passbolt-db:
-  passbolt-gpg:
-  passbolt-jwt:
-  
+  passbolt-data-gpg:
+  passbolt-data-jwt:
+
 services:
-  db:
+  passbolt-db:
+    container_name: passbolt-db
     image: mariadb:10.3
     restart: unless-stopped
     environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: "true"
-      MYSQL_DATABASE: $MYSQL_DATABASE
-      MYSQL_USER: $MYSQL_USER
-      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_DATABASE=$PASSBOLT_DB_NAME
+      - MYSQL_USER=$PASSBOLT_DB_USER
+      - MYSQL_PASSWORD=$PASSBOLT_DB_PASS
     volumes:
       - passbolt-db:/var/lib/mysql
 
   passbolt:
+    container_name: passbolt-app
     image: passbolt/passbolt:latest-ce
-    # Alternatively you can use rootless:
-    # image: passbolt/passbolt:latest-ce-non-root
     restart: unless-stopped
     depends_on:
-      - db
+      - passbolt-db
     environment:
-      # Replace API_FULL_BASE_URL with your real FQDN
-      APP_FULL_BASE_URL: $APP_FULL_BASE_URL
-      DATASOURCES_DEFAULT_HOST: $DATASOURCES_DEFAULT_HOST
-      DATASOURCES_DEFAULT_USERNAME: $DATASOURCES_DEFAULT_USERNAME
-      DATASOURCES_DEFAULT_PASSWORD: $DATASOURCES_DEFAULT_PASSWORD
-      DATASOURCES_DEFAULT_DATABASE: $DATASOURCES_DEFAULT_DATABASE
-      # Replace with your mail server config
-      # EMAIL_DEFAULT_FROM_NAME: $EMAIL_DEFAULT_FROM_NAME
-      # EMAIL_DEFAULT_FROM: $EMAIL_DEFAULT_FROM
-      # EMAIL_TRANSPORT_DEFAULT_HOST: $EMAIL_TRANSPORT_DEFAULT_HOST
-      # EMAIL_TRANSPORT_DEFAULT_PORT: 587
-      # EMAIL_TRANSPORT_DEFAULT_USERNAME: $EMAIL_TRANSPORT_DEFAULT_USERNAME
-      # EMAIL_TRANSPORT_DEFAULT_PASSWORD: $EMAIL_TRANSPORT_DEFAULT_PASSWORD
-      # EMAIL_TRANSPORT_DEFAULT_TLS: true
+      - APP_FULL_BASE_URL=https://passbolt.domain.tld
+      - DATASOURCES_DEFAULT_HOST=passbolt-db
+      - DATASOURCES_DEFAULT_USERNAME=$PASSBOLT_DB_USER
+      - DATASOURCES_DEFAULT_PASSWORD=$PASSBOLT_DB_PASS
+      - DATASOURCES_DEFAULT_DATABASE=$PASSBOLT_DB_NAME
+      - EMAIL_TRANSPORT_DEFAULT_HOST=your-mail-server
+      - EMAIL_TRANSPORT_DEFAULT_PORT=587
+      - EMAIL_TRANSPORT_DEFAULT_USERNAME=$EMAIL_TRANSPORT_DEFAULT_USERNAME
+      - EMAIL_TRANSPORT_DEFAULT_PASSWORD=$EMAIL_TRANSPORT_DEFAULT_PASSWORD
+      - EMAIL_TRANSPORT_DEFAULT_TLS=true
+      - EMAIL_DEFAULT_FROM=no-reply@domain.tld
     volumes:
-      - passbolt-gpg:/etc/passbolt/gpg
-      - passbolt-jwt:/etc/passbolt/jwt
+      - passbolt-data-gpg:/etc/passbolt/gpg
+      - passbolt-data-jwt:/etc/passbolt/jwt
     command: ["/usr/bin/wait-for.sh", "-t", "0", "db:3306", "--", "/docker-entrypoint.sh"]
-    ports:
-      - 80:80
-      - 443:443
-    # Alternatively for non-root images:
-    # - 80:8080
-    # - 443:4433
