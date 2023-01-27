@@ -4,38 +4,29 @@ volumes:
   nextcloud-data:
   nextcloud-db:
 
-networks:
-  frontend:
-    # add this if the network is already existing!
-    # external: true
-  backend:
-
 services:
 
   nextcloud-app:
-    image: nextcloud
-    restart: always
+    image: nextcloud:latest
+    restart: unless-stopped
     volumes:
       - nextcloud-data:/var/www/html
     environment:
-      - MYSQL_PASSWORD=replace-with-secure-password
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
       - MYSQL_HOST=nextcloud-db
-    networks:
-      - frontend
-      - backend
+    ports:
+      - 80:80
 
   nextcloud-db:
-    image: mariadb
-    restart: always
+    image: mariadb:latest
+    restart: unless-stopped
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
       - nextcloud-db:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=replace-with-secure-password
-      - MYSQL_PASSWORD=replace-with-secure-password
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-    networks:
-      - backend
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
