@@ -44,8 +44,6 @@ docker build -t <image-name> .
 
 And run the container using the following command
 
-bash
-
 ```bash
 docker run -it --rm -p 5901:5901 -v $(pwd):/code <image-name>
 ```
