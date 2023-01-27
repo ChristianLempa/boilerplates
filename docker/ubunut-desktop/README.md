@@ -7,8 +7,11 @@ An example of a Dockerfile that can be used to create an image with Ubuntu deskt
 - Visual Studio Code
 - Python 3.10
 
-```text
+Dockerfile
+
 Copy code
+
+```text
 FROM ubuntu:20.04
 
 # Update and install dependencies
