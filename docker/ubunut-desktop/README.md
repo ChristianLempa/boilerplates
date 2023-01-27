@@ -9,8 +9,6 @@ An example of a Dockerfile that can be used to create an image with Ubuntu deskt
 
 Dockerfile
 
-Copy code
-
 ```text
 FROM ubuntu:20.04
 
@@ -40,8 +38,6 @@ CMD ["code", "."]
 
 You can then build the image using the following command:
 
-Copy code
-
 ```bash
 docker build -t <image-name> .
 ```
@@ -49,7 +45,6 @@ docker build -t <image-name> .
 And run the container using the following command
 
 bash
-Copy code
 
 ```bash
 docker run -it --rm -p 5901:5901 -v $(pwd):/code <image-name>
