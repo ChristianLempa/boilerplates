@@ -6,6 +6,7 @@ An example of a Dockerfile that can be used to create an image with Ubuntu deskt
 
 - Visual Studio Code
 - Python 3.10
+- git
 
 Dockerfile
 
@@ -14,6 +15,7 @@ FROM ubuntu:20.04
 
 # Update and install dependencies
 RUN apt-get update && apt-get install -y \
+    git \
     python3.10 \
     python3-pip \
     python3-venv \
