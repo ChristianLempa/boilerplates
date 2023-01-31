@@ -1,6 +1,6 @@
 # Quick Start
 
-After the container starts use http://IP_OF_DOCKER_HOST:8080 to access. http://127.0.0.1:8080 12 if local.
+After the container starts use [http://IP_OF_DOCKER_HOST:8080] to access. [http://127.0.0.1:8080] 12 if local.
 
 ## Bash
 

@@ -1,6 +1,6 @@
 # Quick Start
 
-After the container starts use http://IP_OF_DOCKER_HOST, https://IP_OF_DOCKER_HOST to access. 
+After the container starts use [http://IP_OF_DOCKER_HOST], [https://IP_OF_DOCKER_HOST] to access.
 SSH IP_OF_DOCKER_HOST .
 
 ## Bash
@@ -43,6 +43,6 @@ Format cleanup
 Full Changelog: v0.0.2…v0.0.3 21
 Source: sytone/obsidian-remote: Run Obsidian.md in a browser via a docker container. (github.com) 243
 
-## Reference :
+## Reference
 
-[Gitlab docker install](https://docs.gitlab.com/ee/install/docker.html)
+- [Gitlab docker install](https://docs.gitlab.com/ee/install/docker.html)
