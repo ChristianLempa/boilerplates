@@ -1,11 +1,12 @@
 # Quick Start
 
-After the container starts use http://IP_OF_DOCKER_HOST:8080 to access. http://127.0.0.1:8080 12 if local.
+After the container starts use http://IP_OF_DOCKER_HOST, https://IP_OF_DOCKER_HOST to access. 
+SSH IP_OF_DOCKER_HOST .
 
 ## Bash
 
 ```bash
-sudo docker run --detach \
+docker run --detach \
   --hostname gitlab.example.com \
   --env GITLAB_OMNIBUS_CONFIG="external_url 'http://my.domain.com/'; gitlab_rails['lfs_enabled'] = true;" \
   --publish 443:443 --publish 80:80 --publish 22:22 \
@@ -21,11 +22,17 @@ sudo docker run --detach \
 ## PowerShell
 
 ```powershell
-docker run --rm -it `
-  -v D:/ob/vaults:/vaults `
-  -v D:/ob/config:/config `
-  -p 8080:8080 `
-  ghcr.io/sytone/obsidian-remote:latest
+docker run --detach \
+  --hostname gitlab.example.com \
+  --env GITLAB_OMNIBUS_CONFIG="external_url 'http://my.domain.com/'; gitlab_rails['lfs_enabled'] = true;" \
+  --publish 443:443 --publish 80:80 --publish 22:22 \
+  --name gitlab \
+  --restart always \
+  --volume $GITLAB_HOME/config:/etc/gitlab \
+  --volume $GITLAB_HOME/logs:/var/log/gitlab \
+  --volume $GITLAB_HOME/data:/var/opt/gitlab \
+  --shm-size 256m \
+  gitlab/gitlab-ee:latest
 ```
 
 ## Latest Release: Obsidian Remote v0.0.3
