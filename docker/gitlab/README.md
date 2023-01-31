@@ -35,7 +35,7 @@ docker run --detach \
   gitlab/gitlab-ee:latest
 ```
 
-## Latest Release: Obsidian Remote v0.0.3
+## Latest Release: Gitlab 15.8
 
 Updated menu so you can reopen Obsidian after closing it in the browser.
 Added clip showing close and restart of Obsidian in browser
@@ -43,6 +43,6 @@ Format cleanup
 Full Changelog: v0.0.2…v0.0.3 21
 Source: sytone/obsidian-remote: Run Obsidian.md in a browser via a docker container. (github.com) 243
 
-## Reference:
+## Reference :
 
-[https://forum.obsidian.md/t/self-hosted-docker-instance/3788/9](Original Thread 35)
+[Gitlab docker install](https://docs.gitlab.com/ee/install/docker.html)
