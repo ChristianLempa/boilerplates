@@ -32,4 +32,5 @@ Source: sytone/obsidian-remote: Run Obsidian.md in a browser via a docker contai
 
 ## Reference
 
-[https://forum.obsidian.md/t/self-hosted-docker-instance/3788/9](Original Thread 35)
+- [https://github.com/sytone/obsidian-remote](Github Obsidian-Remote)
+- [https://forum.obsidian.md/t/self-hosted-docker-instance/3788/9](Original Thread 35)
