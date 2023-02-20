@@ -1,0 +1,5 @@
+fastapi[all]
+uvicorn
+redis
+healthpy
+requests
