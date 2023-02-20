@@ -1,8 +1,8 @@
 #!/bin/bash
-cd "$(dirname "$0")"
-clear
-echo $(pwd)
+# Bash File for use local docker 
 
+clear
+cd $(pwd)
 #app config
 app=fastapi
 
@@ -12,9 +12,9 @@ then
    echo " cleanup..."
    docker stop $app-container
    docker rm $app-container
-   #docker rmi $app-image
-   #echo " building image..."
-   #docker build -t $-image $(pwd)
+   docker image prune -f
+   echo $(pwd)
+   docker build -t $-image .
 fi
 echo " starting container..."
 docker run --name $app-container -v .:/code -p 8080:8080 $app-image
