@@ -1,10 +1,10 @@
 # Modern Python UI
 
-Sample scripts showing the ability to crate morne UI interfaces in pyhton using the TKinter/CustomTKinter library
+Sample scripts showing the ability to create modern UI interfaces in pyhton using the TKinter/CustomTKinter libraries
 
 ## Requirements
 
-> sudo apt install python3.8-tk
+> sudo apt install python3.8-tk\
 > pip3 install tk customtkinter
 
 ## Examples

@@ -1,4 +1,4 @@
-fastapi[all]
+fastapi
 uvicorn
 redis
 healthpy
