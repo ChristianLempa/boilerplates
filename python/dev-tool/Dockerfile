@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.8-slim
 
 WORKDIR /code
 
@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir --proxy="http://cloudproxy.zf-world.com:8080" --u
 
 COPY ./ /code
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]docker images
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.1", "--port", "8080", "--reload"]

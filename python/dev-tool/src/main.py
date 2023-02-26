@@ -1,52 +1,107 @@
-from fastapi import FastAPI
-from datetime import datetime
-import redis
+# Content Points
+# * Simple Endpoint
+# * Automatic Documentation
+# * Data Validation (Path Parameters, Query Parameters, Request Body)
+# * Query Parameters required or optional
+# * Enumerated parameters
+# * POST Endpoint with request body documentation & validation
+# * Browser Cookies
+# * Request Headers
+# * Typed Response
+# * Explicit Status Codes
+# * Throw HTTP Errors
+# * Background Tasks
+# * Cross Origin Requests (CORS)
 
-version = "1.0.0"
-title = "FastAPI Container-based Code Example"
-description = """
-FastAPI Container-based example
+import time
 
-## ITEMS
+from enum import Enum
+from typing import List
+from typing import Optional
+from urllib import response
 
-You can see **hit** counts and some stats
+import uvicorn
+from fastapi import Cookie, FastAPI, Header, status, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 
-## USERS
+from pydantic import BaseModel, Field
 
-You will be able to:
 
-* **See hello-world**
-* **See number of hits**
-* **See Latest-hit**
-"""
-contact ="info@vmlab.be"
+class Notification(BaseModel):
+    email: str
+    notification_type: int
 
-app = FastAPI(
-    title = "FastAPI Container-based Code Example",
-    description= description,
-    version = "1.0.0",
-    contact={
-      "name": "VMLAB",
-      "url": "https://vmlab.be",
-      "email": "info@vmlab.be",
-    },
+
+class Department(str, Enum):
+    MATH = "math"
+    ENGLISH = "english"
+    CHEMISTRY = "chemistry"
+    COMPUTER_SCIENCE = "computer_science"
+
+
+class Employee(BaseModel):
+    id: int = Field(description="Employee ID")
+    department: Department = Field(
+        description="The department the employee belongs to.",
+    )
+    age: int = Field(description="The age of the employee")
+    gender: str = Field(max_length=1, description="The gender of the employee")
+
+
+fake_employees_db = []
+
+app = FastAPI(debug=True)
+
+origins = [
+    "http://localhost:5000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-r = redis.Redis(host="redis", port=6379)
 
-@app.get("/")
-def read_root():
-    r.incr("hits")
-    return {"Hello": "World!"}
+@app.get("/status")
+async def check_status():
+    return "Hello World"
 
-@app.get("/hits")
-def read_root():
-    dt = datetime.now().strftime('%Y-%m-%d@%H:%M:%S.%f')
-    r.incr("hits")
-    r.set("latest_hit", dt) 
-    print(dt)
-    return {"Hits": r.get("hits")}
 
-@app.get("/latest")
-def read_root():
-    return {"Latest Hit was": r.get("latest_hit")}
+@app.get(
+    "/employees/{employee_id}", response_model=Employee, status_code=status.HTTP_200_OK
+)
+async def get_employees(
+    employee_id: int, age: int, department: Department, gender: str = None
+):
+    return [{"id": 1, "name": "Bob"}, {"id": 2, "name": "Mike"}]
+
+
+@app.post("/employees", response_model=Employee, status_code=status.HTTP_201_CREATED)
+async def create_employee(employee: Employee):
+    print(employee)
+    return employee
+
+
+def send_notification(email: str):
+    time.sleep(10)
+    print(f"Sending email to {email}")
+
+
+@app.post("/send_email")
+async def send_email(
+    background_tasks: BackgroundTasks,
+    notification_payload: Notification,
+    token: Optional[str] = Cookie(None),
+    user_agent: Optional[str] = Header(None),
+):
+    if notification_payload.email in ["fake_email"]:
+        raise HTTPException(status_code=400, detail="Fake email detected")
+
+    background_tasks.add_task(send_notification, notification_payload.email)
+    return {"cookie_received": token, "user_agent_from_header": user_agent}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080, reload=False)
