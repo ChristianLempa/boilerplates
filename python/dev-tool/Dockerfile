@@ -1,11 +1,11 @@
-FROM python:3.9-slim
+FROM python:3.8-slim
 
 WORKDIR /code
 
 COPY ./requirements.txt /code/requirements.txt
 
-RUN python -m pip install --upgrade pip
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN python -m pip install --proxy="http://cloudproxy.zf-world.com:8080" --upgrade pip
+RUN pip install --no-cache-dir --proxy="http://cloudproxy.zf-world.com:8080" --upgrade -r /code/requirements.txt
 
 COPY ./ /code
 

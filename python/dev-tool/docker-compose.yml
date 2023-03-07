@@ -4,10 +4,10 @@ services:
   app:
     build: .
     container_name: python-server
-    command: "uvicorn src.mai:app --host 0.0.0.0 --port 8080 --reload"
+    command: "uvicorn src.main:app --host 0.0.0.0 --port 8080 --reload"
     working_dir: /code
     ports:
-      - 8080:8080
+      - 8088:8080
       - 5678:5678
     volumes:
       - ./:/code
