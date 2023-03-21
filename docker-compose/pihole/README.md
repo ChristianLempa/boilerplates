@@ -6,10 +6,8 @@ Copy the `docker-compose.yml` template into your project folder and start the co
 
 ## Configuration
 
-
-# Best-Practices & Post-Installation
+## Best-Practices & Post-Installation
 
 ## Disable HTTP
 
-# Additional Referfences
-
+## Additional Referfences
