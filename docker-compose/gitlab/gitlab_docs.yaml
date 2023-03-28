@@ -1,0 +1,7 @@
+version: '3.6'
+services:
+  gitlab_docs:
+    image: registry.gitlab.com/gitlab-org/gitlab-docs:14.5
+    hostname: 'https://docs.gitlab.example.com:4000'
+    ports:
+      - '4000:4000'

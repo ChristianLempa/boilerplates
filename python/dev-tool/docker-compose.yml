@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    container_name: python-server
+    command: "uvicorn src.main:app --host 0.0.0.0 --port 8080 --reload"
+    working_dir: /code
+    ports:
+      - 8088:8080
+      - 5678:5678
+    volumes:
+      - ./:/code
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"

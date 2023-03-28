@@ -26,4 +26,4 @@ To enable passwordless feature remove the **(Optional) Passwordless Authenticati
 
 To get a trusted SSL cert from Letsnecrypt remove the **(Optional) ACME** statements from the `config/teleport.yml` file and re-start the container.
 
-*Note, you need a public DNS Record that points to your-server-url.*
+*Note, you need a public DNS Record that points to your-server-url.
