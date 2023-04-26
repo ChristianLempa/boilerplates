@@ -1,0 +1,31 @@
+name: Update Docker Compose File
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker-compose.yml'
+
+env:
+  YOUR-ENV-SECRET: ${{ secrets.YOUR-ENV-SECRET }}
+  YOUR-ENV-VAR: ${{ vars.YOUR-ENV-VAR }}
+jobs:
+  deploy:
+    runs-on: your-runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Restart Docker Container
+        uses: fifsky/ssh-action@master
+        with:
+          user: your-user
+          host: your-host
+          key: ${{ secrets.your-private-ssh-key }}
+          command: |
+            cd your-compose-project-directory
+            export YOUR-ENV-SECRET=${{ secrets.YOUR-ENV-SECRET }}
+            export YOUR-ENV-VAR=${{ vars.YOUR-ENV-VAR }}
+            docker-compose up -d --force-recreate

@@ -1,0 +1,26 @@
+name: copy config files to remote machine
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/**'
+
+jobs:
+  deploy:
+    runs-on: your-runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Upload new Config Files
+        uses: appleboy/scp-action@master
+        with:
+          username: your-username
+          host: your-host
+          key: ${{ secrets.your-private-ssh-key }}
+          source: './config/*'
+          target: '/target/path/'
+          strip_components: 1   # remove the top level directory

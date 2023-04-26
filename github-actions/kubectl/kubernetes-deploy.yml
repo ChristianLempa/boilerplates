@@ -1,0 +1,22 @@
+name: Kubernetes Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+jobs:
+  deploy:
+    runs-on: your-runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Deploy Manifest
+        uses: actions-hub/kubectl@master
+        with:
+          args: apply -f your-manifest.yml
