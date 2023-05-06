@@ -39,4 +39,4 @@ services:
     volumes:
       - passbolt-data-gpg:/etc/passbolt/gpg
       - passbolt-data-jwt:/etc/passbolt/jwt
-    command: ["/usr/bin/wait-for.sh", "-t", "0", "db:3306", "--", "/docker-entrypoint.sh"]
+    command: ["/usr/bin/wait-for.sh", "-t", "0", "passbolt-db:3306", "--", "/docker-entrypoint.sh"]
