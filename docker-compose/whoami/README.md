@@ -1,1 +1,0 @@
-# TODO: #20 Insert whoami readme

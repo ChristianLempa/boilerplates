@@ -1,0 +1,16 @@
+---
+services:
+  nvidia_smi_exporter:
+    image: utkuozdemir/nvidia_gpu_exporter:0.3.0
+    container_name: nvidia_smi_exporter
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ports:
+      - "9835:9835"
+    volumes:
+      - /usr/bin/nvidia-smi:/usr/bin/nvidia-smi
+      - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+      - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+    restart: unless-stopped

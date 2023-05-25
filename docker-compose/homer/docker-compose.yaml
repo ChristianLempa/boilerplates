@@ -1,0 +1,10 @@
+---
+services:
+  homer:
+    image: b4bz/homer:v23.05.1
+    container_name: homer
+    ports:
+      - "8080:8080"
+    volumes:
+      - /etc/homer/assets/:/www/assets
+    restart: unless-stopped

@@ -1,1 +1,0 @@
-TODO: #14 Insert Authelia Readme

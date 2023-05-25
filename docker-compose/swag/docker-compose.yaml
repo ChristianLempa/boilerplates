@@ -1,0 +1,36 @@
+---
+services:
+  mariadb:
+    image: linuxserver/mariadb
+    container_name: mariadb
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - MYSQL_ROOT_PASSWORD=mariadbpassword
+      - TZ=Europe/Berlin
+      - MYSQL_DATABASE=WP_database
+      - MYSQL_USER=WP_dbuser
+      - MYSQL_PASSWORD=WP_dbpassword
+    volumes:
+      - /opt/webserver_swag/config/mariadb:/config
+    restart: unless-stopped
+  swag:
+    image: linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Europe/Berlin
+      - URL=do-test-1.the-digital-life.com
+      - SUBDOMAINS=
+      - VALIDATION=http
+    volumes:
+      - /opt/webserver_swag/config:/config
+    ports:
+      - 443:443
+      - 80:80  # optional
+    depends_on:
+      - mariadb
+    restart: unless-stopped
