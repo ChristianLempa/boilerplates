@@ -1,0 +1,24 @@
+---
+volumes:
+  influxdb-data:
+services:
+  influxdb:
+    container_name: influxdb
+    image: influxdb:2.1-alpine
+    ports:
+      - '8086:8086'
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - /etc/influxdb2:/etc/influxdb2
+      # - /etc/ssl/cert.pem/:/etc/ssl/cert.pem  # (optional) if you're using self-signed certs
+      # - /etc/ssl/cert-key.pem/:/etc/ssl/cert-key.pem  # (optional) if you're using self-signed certs
+    # command: influxd --tls-cert=/etc/ssl/cert.pem --tls-key=/etc/ssl/cert-key.pem  # (optional) if you're using self-signed certs
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=my-user
+      - DOCKER_INFLUXDB_INIT_PASSWORD=my-password
+      - DOCKER_INFLUXDB_INIT_ORG=my-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=my-bucket
+    #   - DOCKER_INFLUXDB_INIT_RETENTION=1w  # (optional) configure data retention 1 week
+    #   - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token  # (optional) set admin token
+    restart: unless-stopped

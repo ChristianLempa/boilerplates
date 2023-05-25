@@ -1,0 +1,12 @@
+---
+services:
+  bind9:
+    image: ubuntu/bind9:latest
+    container_name: bind9
+    ports:
+      - "53:53"
+    volumes:
+      - /etc/bind/:/etc/bind/
+      - /var/cache/bind:/var/cache/bind
+      - /var/lib/bind:/var/lib/bind
+    restart: unless-stopped

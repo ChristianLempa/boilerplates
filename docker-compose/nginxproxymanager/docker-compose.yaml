@@ -1,32 +1,30 @@
-version: '3'
-
+---
 volumes:
   nginxproxymanager-data:
   nginxproxymanager-ssl:
   nginxproxymanager-db:
-
 services:
   nginxproxymanager:
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: jc21/nginx-proxy-manager:2.10.3
     ports:
-      - '80:80'
-      - '81:81'
-      - '443:443'
+      - 80:80
+      - 81:81
+      - 443:443
     environment:
-      DB_MYSQL_HOST: "nginxproxymanager-db"
-      DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "npm"
-      DB_MYSQL_PASSWORD: "npm"
-      DB_MYSQL_NAME: "npm"
+      - DB_MYSQL_HOST=nginxproxymanager-db
+      - DB_MYSQL_PORT=3306
+      - DB_MYSQL_USER=npm
+      - DB_MYSQL_PASSWORD=npm
+      - DB_MYSQL_NAME=npm
     volumes:
       - nginxproxymanager-data:/data
       - nginxproxymanager-ssl:/etc/letsencrypt
   nginxproxymanager-db:
-    image: 'jc21/mariadb-aria:latest'
+    image: jc21/mariadb-aria:10.4.15
     environment:
-      MYSQL_ROOT_PASSWORD: 'npm'
-      MYSQL_DATABASE: 'npm'
-      MYSQL_USER: 'npm'
-      MYSQL_PASSWORD: 'npm'
+      - MYSQL_ROOT_PASSWORD=npm
+      - MYSQL_DATABASE=npm
+      - MYSQL_USER=npm
+      - MYSQL_PASSWORD=npm
     volumes:
       - nginxproxymanager-db:/var/lib/mysql
