@@ -1,0 +1,11 @@
+---
+- name: install microk8s
+  hosts: "{{ hosts }}"
+  become: yes
+  tasks:
+    - name: install microk8s
+      snap:
+        classic: yes
+        name: microk8s
+    - name: add userpermissions
+      shell: "usermod -aG microk8s {{ lookup('env','USER') }}"

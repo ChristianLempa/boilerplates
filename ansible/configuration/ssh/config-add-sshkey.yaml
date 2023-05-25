@@ -1,21 +1,13 @@
 ---
-- hosts: all
-
+- name: add ssh key
+  hosts: "{{ hosts }}"
   become: yes
   tasks:
-
-  # Installs public key
-  # --
-  #
   - name: install public keys
     ansible.posix.authorized_key:
       user: "{{ lookup('env','USER') }}"
       state: present
       key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-
-  # (Optional)
-  # Set all sudoers to no password
-  # --
   - name: change sudoers file
     lineinfile:
       path: /etc/sudoers
