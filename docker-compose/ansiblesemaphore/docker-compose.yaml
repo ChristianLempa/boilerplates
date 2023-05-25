@@ -2,7 +2,6 @@
 version: '3.9'
 services:
   mysql:
-    restart: unless-stopped
     image: mysql:8.0
     hostname: mysql
     volumes:
@@ -12,10 +11,10 @@ services:
       - MYSQL_DATABASE=semaphore
       - MYSQL_USER=semaphore
       - MYSQL_PASSWORD=your-db-password  # change to your db password
+    restart: unless-stopped
   semaphore:
     container_name: ansiblesemaphore
     image: semaphoreui/semaphore:v2.8.90
-    restart: unless-stopped
     ports:
       - 3000:3000
     environment:
@@ -36,5 +35,6 @@ services:
       - ./inventory/:/inventory:ro
       - ./authorized-keys/:/authorized-keys:ro
       - ./config/:/etc/semaphore:rw
+    restart: unless-stopped
     depends_on:
       - mysql
