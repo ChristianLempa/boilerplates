@@ -19,7 +19,7 @@ services:
     image: semaphoreui/semaphore:v2.8.90
     user: "${UID}:${GID}"
     ports:
-      - 3001:3000
+      - 3000:3000
     environment:
       - SEMAPHORE_DB_USER=semaphore
       - SEMAPHORE_DB_PASS=secret-password  # change!
