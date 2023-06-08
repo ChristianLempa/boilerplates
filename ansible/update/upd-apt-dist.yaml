@@ -1,0 +1,33 @@
+- hosts: "{{ hosts }}"
+  become: true
+  tasks:
+    - name: Update cache and upgrade apt packages
+      ansible.builtin.apt:
+        update_cache: true # Equivalent to 'sudo apt update' to update the cache
+        upgrade: dist # Equivalent to 'sudo apt dist-upgrade -y' to update any packages and the Linux kernel
+        autoremove: yes # Runs with the '--autoremove' flag to remove orphaned dependencies
+    - name: Check if system reboot is required
+      become: true
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+    - name: Print reboot message
+      ansible.builtin.debug:
+        msg: "System reboot is required. Preparing to reboot..."
+      when: reboot_required.stat.exists
+    - name: Reboot the machine if required
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
+      when: reboot_required.stat.exists == true
+      register: system_rebooted
+    # You can put an 'ansible.builtin.uri' task here to send a Discord notification if the system was rebooted successfully
+    # - name: Send Discord message when reboot was completed
+    #   uri:
+    #     url: "your-webhook"
+    #     method: POST
+    #     body_format: json
+    #     body: '{"content": "{{ inventory_hostname }} has had its distro upgraded and was rebooted successfully."}'
+    #     headers:
+    #       Content-Type: application/json
+    #     status_code: 204
+    #   when: system_rebooted.changed
