@@ -1,0 +1,20 @@
+---
+- name: check disk space
+  hosts: "{{ hosts }}"
+  tasks:
+    - name: get disk usage
+      command: df -h
+      register: disk_usage
+    - name: check disk space available
+      shell: df -h / | awk 'NR==2 {print $5}'
+      register: disk_usage
+    # - name: send discord message when disk space is over 80%
+    #   uri:
+    #     url: "your-webhook"
+    #     method: POST
+    #     body_format: json
+    #     body: '{"content": "Disk space on {{ inventory_hostname }} is above 80%!"}'
+    #     headers:
+    #       Content-Type: application/json
+    #     status_code: 204
+    #   when: disk_usage.stdout[:-1]|int > 80

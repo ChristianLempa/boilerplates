@@ -1,17 +1,14 @@
 ---
-- hosts: all
-  
+- name: install wireguard
+  hosts: "{{ hosts }}"
   become: yes
-
   tasks:
-    - name: Install WireGuard
+    - name: install wireguard
       apt:
         name: wireguard
         update_cache: yes
-
-    - name: Generate Private and Public Key Pair
+    - name: generate private and public keypair
       shell: |
         wg genkey | tee privatekey | wg pubkey > publickey
-
         chmod 0400 privatekey
         chmod 0400 publickey
