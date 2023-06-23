@@ -20,4 +20,8 @@
     pip:
       name:
         - docker
-        - docker-compose
+  # Verify that the Docker Engine installation is successful by running the hello-world image.
+  - name: check installation
+    community.docker.docker_container:
+      name: hello-world
+      image: "hello-world"
