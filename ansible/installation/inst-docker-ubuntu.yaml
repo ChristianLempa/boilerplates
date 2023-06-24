@@ -1,0 +1,34 @@
+---
+- name: install docker
+  hosts: "{{ hosts }}"
+  become: yes
+  tasks:
+    - name: install docker dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        update_cache: yes
+    - name: add docker gpg key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+        keyring: /etc/apt/keyrings/docker.gpg
+    - name: add docker repository
+      apt_repository:
+        filename: docker 
+        repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename|lower }} stable
+        state: present
+    - name: install docker engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-scan-plugin
+          - docker-compose-plugin
+        update_cache: yes
