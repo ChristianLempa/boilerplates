@@ -1,0 +1,23 @@
+---
+services:
+  refactr-runner:
+    container_name: factory-runnerpool-prod-1
+    image: refactr/runner-pool
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config.json:/etc/runner-agent.json
+    # stdin_open: true
+    # tty: true
+    environment:
+      - ENVIRONMENT=eval
+      - LOG_LEVEL=debug
+      - RUNNER_MANAGER_ID=${RUNNER_MANAGER_ID}
+      - RUNNER_MANAGER_KEY=${RUNNER_MANAGER_KEY}
+      - CONFIG_PATH=/etc/runner-agent.json
+      - NEW_RELIC_ENABLED=false
+      - NEW_RELIC_APP_NAME=factory-runnerpool-prod-1
+      - RUNNER_LOCAL_DOCKER_IMAGE_REGISTRY=docker.io
+      - RUNNER_LOCAL_DOCKER_IMAGE_REPOSITORY=refactr/runner
+      - RUNNER_LOCAL_DOCKER_IMAGE_TAG=latest
+    restart: unless-stopped
