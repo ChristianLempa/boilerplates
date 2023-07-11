@@ -1,0 +1,12 @@
+---
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:2023.6"
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+    # devices:
+    #   - /dev/ttyACMO  # (optional) Add serial devices to the container
+    privileged: true
+    restart: unless-stopped
