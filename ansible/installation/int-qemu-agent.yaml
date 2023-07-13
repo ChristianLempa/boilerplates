@@ -1,0 +1,10 @@
+---
+- name: Install qemu-guest-agent package
+  hosts: all
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Install qemu-guest-agent
+      apt:
+        name: qemu-guest-agent
+        state: present
