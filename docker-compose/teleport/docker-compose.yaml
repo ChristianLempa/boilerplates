@@ -1,19 +1,30 @@
 ---
-volumes:
-  teleport-data:
+networks:
+  frontend:
+    external: true
 services:
   teleport:
-    image: quay.io/gravitational/teleport:10.0.2
-    user: 1000:1000
+    image: public.ecr.aws/gravitational/teleport-distroless:13
     container_name: teleport
-    entrypoint: /bin/sh
-    command: -c "/usr/bin/dumb-init teleport start -d -c /etc/teleport/teleport.yml"
     ports:
-      - 3023:3023
-      - 3024:3024
-      - 3025:3025
-      - 443:443
+      - "3080:3080"
+      - "3023:3023"
+      - "3024:3024"
+      - "3025:3025"
     volumes:
-      - .config:/etc/teleport
-      - teleport-data:/var/lib/teleport
+      - ./config:/etc/teleport
+      - ./data:/var/lib/teleport
+    labels: {}
+      # -- (Optional) Traefik example configuration
+      # traefik.enable: "true"
+      # traefik.http.services.teleport.loadbalancer.server.port: "3080"
+      # traefik.http.services.teleport.loadbalancer.server.scheme: "https"
+      # traefik.http.routers.teleport-http.entrypoints: "web"
+      # traefik.http.routers.teleport-http.rule: "Host(`your-server-url`)"
+      # traefik.http.routers.teleport-https.entrypoints: "websecure"
+      # traefik.http.routers.teleport-https.rule: "Host(`your-server-url`)"
+      # traefik.http.routers.teleport-https.tls: "true"
+      # traefik.http.routers.teleport-https.tls.certresolver: "your-certresolver"
+    networks:
+      - frontend
     restart: unless-stopped
