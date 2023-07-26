@@ -47,7 +47,13 @@ entryPoints:
 #       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
 #       httpChallenge:
 #         entryPoint: web
-#
+#       -- or pick dns challenge
+#       dnsChallenge:
+#         provider: your-resolver (e.g. cloudflare)
+#         resolvers:
+#           - "1.1.1.1:53"
+#           - "8.8.8.8:53"
+
 #   production:
 #     acme:
 #       email: your-email@example.com
@@ -55,6 +61,12 @@ entryPoints:
 #       caServer: "https://acme-v02.api.letsencrypt.org/directory"
 #       httpChallenge:
 #         entryPoint: web
+#       -- or pick dns challenge
+#       dnsChallenge:
+#         provider: your-resolver (e.g. cloudflare)
+#         resolvers:
+#           - "1.1.1.1:53"
+#           - "8.8.8.8:53"
 
 # (Optional) Overwrite Default Certificates
 # tls:
