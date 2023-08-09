@@ -16,15 +16,17 @@ services:
       - ./data:/var/lib/teleport
     labels: {}
       # -- (Optional) Traefik example configuration
-      # traefik.enable: "true"
-      # traefik.http.services.teleport.loadbalancer.server.port: "3080"
-      # traefik.http.services.teleport.loadbalancer.server.scheme: "https"
-      # traefik.http.routers.teleport-http.entrypoints: "web"
-      # traefik.http.routers.teleport-http.rule: "Host(`your-server-url`)"
-      # traefik.http.routers.teleport-https.entrypoints: "websecure"
-      # traefik.http.routers.teleport-https.rule: "Host(`your-server-url`)"
-      # traefik.http.routers.teleport-https.tls: "true"
-      # traefik.http.routers.teleport-https.tls.certresolver: "your-certresolver"
+      # - "traefik.enable=true"
+      # - "traefik.http.services.teleport-demo-1.loadbalancer.server.port=3080"
+      # - "traefik.http.services.teleport-demo-1.loadbalancer.server.scheme=https"
+      # - "traefik.http.routers.teleport-demo-1-http.entrypoints=web"
+      # - "traefik.http.routers.teleport-demo-1-http.rule=HostRegexp(`your-serverurl`, `{subhost:[a-z]+}.your-serverurl`)"
+      # - "traefik.http.routers.teleport-demo-1-https.entrypoints=websecure"
+      # - "traefik.http.routers.teleport-demo-1-https.rule=HostRegexp(`your-serverurl`, `{subhost:[a-z]+}.your-serverurl`)"
+      # - "traefik.http.routers.teleport-demo-1-https.tls=true"
+      # - "traefik.http.routers.teleport-demo-1-https.tls.certresolver=your-certresolver"
+      # - "traefik.http.routers.teleport-demo-1-https.tls.domains[0].main=your-serverurl"
+      # - "traefik.http.routers.teleport-demo-1-https.tls.domains[0].sans=*.your-serverurl"
     networks:
       - frontend
     restart: unless-stopped
