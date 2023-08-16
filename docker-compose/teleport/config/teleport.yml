@@ -7,38 +7,44 @@ teleport:
     severity: INFO
     format:
       output: text
-  ca_pin: ""
-  diag_addr: ""
 auth_service:
   enabled: "yes"
   listen_addr: 0.0.0.0:3025
   proxy_listener_mode: multiplex
   cluster_name: your-server-url
-  # ---
-  # (Optional) Passwordless Authentication
+  # -- (Optional) Passwordless Authentication
   # authentication:
   #   type: local
   #   second_factor: on
   #   webauthn:
   #     rp_id: your-server-url
   #   connector_name: passwordless
-  # ---
+  # -- (Optional) Teleport Assist
+  # assist:
+  #   openai:
+  #     api_token_path: /etc/teleport/openai_key
 ssh_service:
-  enabled: "yes"
-  commands:
-  - name: hostname
-    command: [hostname]
-    period: 1m0s
+  enabled: "no"
 proxy_service:
   enabled: "yes"
-  web_listen_addr: 0.0.0.0:443
-  public_addr: your-server-url
+  web_listen_addr: 0.0.0.0:3080
+  # -- (Optional) when using reverse proxy
+  # public_addr: ['your-server-url:443']
   https_keypairs: []
   acme: {}
-  # ---
-  # (Optional) ACME
+  # --(Optional) ACME
   # acme:
   #   enabled: "yes"
   #   email: your-email-address
-  # ---
-
+  # -- (Optional) Teleport Assist
+  # assist:
+  #   openai:
+  #     api_token_path: /etc/teleport/openai_key
+app_service:
+  enabled: no
+  # -- (Optional) App Service
+  # enabled: yes
+  # apps:
+  #   - name: "portainer"
+  #     uri: "http://your-app-url"
+  #     insecure_skip_verify: false
