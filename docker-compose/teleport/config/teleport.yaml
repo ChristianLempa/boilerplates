@@ -7,6 +7,7 @@ teleport:
     severity: INFO
     format:
       output: text
+
 auth_service:
   enabled: "yes"
   listen_addr: 0.0.0.0:3025
@@ -23,8 +24,10 @@ auth_service:
   # assist:
   #   openai:
   #     api_token_path: /etc/teleport/openai_key
+
 ssh_service:
   enabled: "no"
+
 proxy_service:
   enabled: "yes"
   web_listen_addr: 0.0.0.0:3080
@@ -40,6 +43,7 @@ proxy_service:
   # assist:
   #   openai:
   #     api_token_path: /etc/teleport/openai_key
+
 app_service:
   enabled: no
   # -- (Optional) App Service
