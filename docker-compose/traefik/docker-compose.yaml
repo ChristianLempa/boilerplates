@@ -13,7 +13,7 @@ services:
       # -- (Optional) Enable Dashboard, don't do in production
       # - 8080:8080
     volumes:
-      - /etc/traefik:/etc/traefik
+      - ./config:/etc/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
     # -- (Optional) When using Cloudflare as Cert Resolver
     # environment:
