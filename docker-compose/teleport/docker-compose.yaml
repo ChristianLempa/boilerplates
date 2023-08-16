@@ -16,8 +16,8 @@ services:
     volumes:
       - ./config:/etc/teleport
       - ./data:/var/lib/teleport
-    labels: {}
-      # -- (Optional) Traefik example configuration
+    # -- (Optional) Traefik example configuration
+    # labels:
       # - "traefik.enable=true"
       # - "traefik.http.services.teleport.loadbalancer.server.port=3080"
       # - "traefik.http.services.teleport.loadbalancer.server.scheme=https"
@@ -29,6 +29,6 @@ services:
       # - "traefik.http.routers.teleport-https.tls.certresolver=your-certresolver"
       # - "traefik.http.routers.teleport-https.tls.domains[0].main=your-server-url"
       # - "traefik.http.routers.teleport-https.tls.domains[0].sans=*.your-server-url"
-    networks:
-      - frontend
+    # networks:
+    #   - your-traefik-network
     restart: unless-stopped
