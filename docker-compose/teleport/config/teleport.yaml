@@ -49,6 +49,6 @@ app_service:
   # -- (Optional) App Service
   # enabled: yes
   # apps:
-  #   - name: "portainer"
+  #   - name: "yourapp"
   #     uri: "http://your-app-url"
   #     insecure_skip_verify: false
