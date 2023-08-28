@@ -7,7 +7,7 @@ I take the security of my projects seriously. If you discover any security vulne
 To report a security vulnerability, please follow these steps:
 
 1. Go to the **Security** tab of this repository on GitHub.
-2. Click on **"Report a vulernability"**.
+2. Click on **"Report a vulnerability"**.
 3. Provide a clear description of the vulnerability and its potential impact. Be as detailed as possible.
 4. If applicable, include steps or a PoC (Proof of Concept) to reproduce the vulnerability.
 5. Submit the report.
