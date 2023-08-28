@@ -4,13 +4,17 @@ I take the security of my projects seriously. If you discover any security vulne
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability, please email [christian.lempa@clcreative.de](mailto:christian.lempa@clcreative.de) with the following details:
+To report a security vulnerability, please follow these steps:
 
-- A clear description of the vulnerability and its potential impact.
-- Steps or a PoC (Proof of Concept) to reproduce the vulnerability.
-- Any additional information or supporting materials that can help in understanding and addressing the issue.
+1. Go to the **Security** tab of this repository on GitHub.
+2. Click on **"Report a vulernability"**.
+3. Provide a clear description of the vulnerability and its potential impact. Be as detailed as possible.
+4. If applicable, include steps or a PoC (Proof of Concept) to reproduce the vulnerability.
+5. Submit the report.
 
-Please do not disclose any potential vulnerabilities in public repositories, issue trackers, or forums until I have had a chance to review and address the issue.
+Once I receive the private report notification, I will promptly investigate and assess the reported vulnerability.
+
+Please do not disclose any potential vulnerabilities in public repositories, issue trackers, or forums until we have had a chance to review and address the issue.
 
 ## Scope
 
