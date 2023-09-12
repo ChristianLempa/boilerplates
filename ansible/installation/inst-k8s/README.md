@@ -10,7 +10,7 @@
 
 ### References
 
-**Documentation** - https://kubernetes.io/docs/setup/
+**Documentation** - [https://kubernetes.io/docs/setup/](https://kubernetes.io/docs/setup/)
 
 ## Prerequisites
 
