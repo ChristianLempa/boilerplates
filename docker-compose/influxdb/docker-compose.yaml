@@ -1,17 +1,23 @@
 ---
+# (Optional) when using custom network
+# networks:
+#   yournetwork:
+#     external: true
 volumes:
   influxdb-data:
 services:
   influxdb:
     container_name: influxdb
-    image: influxdb:2.1-alpine
+    image: influxdb:2.7.1-alpine
     ports:
       - '8086:8086'
     volumes:
       - influxdb-data:/var/lib/influxdb2
       - /etc/influxdb2:/etc/influxdb2
+      # (Optional) when using certificate
       # - /etc/ssl/cert.pem/:/etc/ssl/cert.pem  # (optional) if you're using self-signed certs
       # - /etc/ssl/cert-key.pem/:/etc/ssl/cert-key.pem  # (optional) if you're using self-signed certs
+    # (Optional) when using certificate
     # command: influxd --tls-cert=/etc/ssl/cert.pem --tls-key=/etc/ssl/cert-key.pem  # (optional) if you're using self-signed certs
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
@@ -19,6 +25,20 @@ services:
       - DOCKER_INFLUXDB_INIT_PASSWORD=my-password
       - DOCKER_INFLUXDB_INIT_ORG=my-org
       - DOCKER_INFLUXDB_INIT_BUCKET=my-bucket
+    # (Optional) change retention time
     #   - DOCKER_INFLUXDB_INIT_RETENTION=1w  # (optional) configure data retention 1 week
+    # (Optional) add admin token
     #   - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token  # (optional) set admin token
+    # (Optional) when using traefik
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.services.influxdb.loadbalancer.server.port=8086
+    #   - traefik.http.services.influxdb.loadbalancer.server.scheme=https
+    #   - traefik.http.routers.influxdb-https.entrypoints=websecure
+    #   - traefik.http.routers.influxdb-https.rule=Host(`your-server-url`)
+    #   - traefik.http.routers.influxdb-https.tls=true
+    #   - traefik.http.routers.influxdb-https.tls.certresolver=your-certresolver
+    # (Optional) when using custom network
+    # networks:
+    #   - yournetwork
     restart: unless-stopped
