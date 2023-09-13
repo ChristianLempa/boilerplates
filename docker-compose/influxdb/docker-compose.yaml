@@ -9,6 +9,7 @@ services:
   influxdb:
     container_name: influxdb
     image: influxdb:2.7.1-alpine
+    # (Optional) remove this section when using traefik
     ports:
       - '8086:8086'
     volumes:
