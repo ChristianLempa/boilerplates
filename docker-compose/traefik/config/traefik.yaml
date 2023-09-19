@@ -7,8 +7,8 @@ global:
 #     - format [common, json, logfmt]
 # log:
 #  level: ERROR
-#   format: common
-#   filePath: /var/log/traefik/traefik.log
+#  format: common
+#  filePath: /var/log/traefik/traefik.log
 
 # -- (Optional) Enable Accesslog and change Format here...
 #     - format [common, json, logfmt]
