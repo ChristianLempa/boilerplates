@@ -18,7 +18,7 @@ If you’d like to contribute to this project, reach out to me on social media o
 
 ## Other Resources
 
-- [Dotfiles](https://github.com/christianlempa/dotfiles) - My personal configuration files on mac OS
+- [Dotfiles](https://github.com/christianlempa/dotfiles) - My personal configuration files on macOS
 - [Cheat-Sheets](https://github.com/christianlempa/cheat-sheets) - Command Reference for various tools and technologies
 - [Videos](https://github.com/christianlempa/videos) - Documentation and project files for all my video tutorials on YouTube
 - [Homelab](https://github.com/christianlempa/homelab) - This is my entire Homelab documentation, and configurations for infrastructure, applications, networking, and more.
