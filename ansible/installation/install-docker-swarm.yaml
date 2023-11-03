@@ -54,3 +54,21 @@
       debug:
         msg: "Join command for workers: {{ join_command }}"
       when: join_command is defined
+    
+- name: Execute Join Command on Worker Nodes
+  hosts: dev_docker_swarm_worker
+  become: yes  # To run tasks as root
+
+  tasks:
+    - name: Check if Docker Swarm is already initialized
+      command: docker info
+      register: docker_info
+      changed_when: false  # Treat this task as non-changing
+
+    - name: Execute Join Command
+      command: "{{ join_command }}"
+      when: "'Swarm: active' not in docker_info.stdout"
+
+    - name: Print Status
+      debug:
+        msg: "Node status after join: {{ swarm_status.stdout }}"
