@@ -1,0 +1,61 @@
+---
+- name: Create Docker Swarm Cluster
+  hosts: dev_docker_swarm_manager
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Initialize Docker Swarm
+      command: docker swarm init
+      args:
+        creates: /etc/docker/.swarm_initialized
+      environment:
+        DOCKER_CLI_ACI: 1
+      register: swarm_init_result
+      changed_when: "'This node joined a swarm' in swarm_init_result.stdout"
+
+    - name: Get Swarm Join Token
+      command: docker swarm join-token -q worker
+      register: swarm_token
+      when: "'This node joined a swarm' in swarm_init_result.stdout"
+
+  handlers:
+    - name: Save Swarm Initialized State
+      copy:
+        content: "Swarm Initialized"
+        dest: /etc/docker/.swarm_initialized
+        mode: 0644
+      notify: Restart Docker
+      when: "'This node joined a swarm' in swarm_init_result.stdout"
+
+- name: Join Docker Swarm Worker Nodes
+  hosts: dev_docker_swarm_worker
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Join Docker Swarm as a Worker
+      command: "docker swarm join --token {{ hostvars['manager1']['swarm_token']['stdout'] }} {{ hostvars['manager1']['ansible_ssh_host'] }}:2377"
+      when: "'This node joined a swarm' not in swarm_init_result.stdout"
