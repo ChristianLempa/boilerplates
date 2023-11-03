@@ -72,8 +72,8 @@
 
   tasks:
     - name: Read external vars file
-        include_vars:
-          file: external_vars.yml
+      include_vars:
+        file: external_vars.yml
 
     - name: Check if Docker Swarm is already initialized
       command: docker info
