@@ -18,27 +18,23 @@
 
     - name: Initialize Docker Swarm
       command: docker swarm init
-      args:
-        creates: /etc/docker/.swarm_initialized
-      environment:
-        DOCKER_CLI_ACI: 1
-      register: swarm_init_result
-      ignore_errors: yes
-      changed_when: "'This node joined a swarm' in swarm_init_result.stdout"
+      register: swarm_init_output
+      ignore_errors: yes  # Ignore error if the swarm is already initialized
 
-    - name: Get Swarm Join Token
-      command: docker swarm join-token -q worker
-      register: swarm_token
-      when: "'This node joined a swarm' in swarm_init_result.stdout"
+    - name: Get Swarm Manager Token
+      shell: "docker swarm join-token manager -q"
+      register: manager_token
+      when: swarm_init_output.rc == 0
 
-  handlers:
-    - name: Save Swarm Initialized State
-      copy:
-        content: "Swarm Initialized"
-        dest: /etc/docker/.swarm_initialized
-        mode: 0644
-      notify: Restart Docker
-      when: "'This node joined a swarm' in swarm_init_result.stdout"
+    - name: Get Swarm Worker Token
+      shell: "docker swarm join-token worker -q"
+      register: worker_token
+      when: swarm_init_output.rc == 0
+
+    - name: Print Swarm Tokens
+      debug:
+        msg: "Manager Token: {{ manager_token.stdout }}\nWorker Token: {{ worker_token.stdout }}"
+      when: swarm_init_output.rc == 0
 
 - name: Join Docker Swarm Worker Nodes
   hosts: dev_docker_swarm_worker
@@ -59,4 +55,4 @@
 
     - name: Join Docker Swarm as a Worker
       command: "docker swarm join --token {{ hostvars['manager1']['swarm_token']['stdout'] }} {{ hostvars['manager1']['ansible_ssh_host'] }}:2377"
-      when: "'This node joined a swarm' not in swarm_init_result.stdout"
+      when: "'This node joined a swarm' not in swarm_init_output.stdout"
