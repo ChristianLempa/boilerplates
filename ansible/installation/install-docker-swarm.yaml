@@ -24,10 +24,12 @@
 - name: Initialize Docker Swarm and Get Join Token
   hosts: dev_docker_swarm_manager
   become: yes  # To run tasks as root
-  vars_files:
-    - ./external_vars.yml
 
   tasks:
+    - name: Read external vars file
+      include_vars:
+        file: external_vars.yml
+
     - name: Check if Docker Swarm is already initialized
       command: docker info
       register: docker_info
@@ -51,6 +53,11 @@
       set_fact:
         join_command: "{{ join_worker_command.stdout | regex_search('(docker swarm join .+)', '\\1') }}"
       when: join_worker_command is defined
+    
+    - name: Save the updated variable back to the file
+      copy:
+        content: "{{ join_command }}"
+        dest: external_vars.yml
 
     - name: Print Join Command
       debug:
@@ -61,10 +68,13 @@
 - name: Execute Join Command on Worker Nodes
   hosts: dev_docker_swarm_worker
   become: yes  # To run tasks as root
-  vars_files:
-    - ./external_vars.yml
+  
 
   tasks:
+    - name: Read external vars file
+        include_vars:
+          file: external_vars.yml
+
     - name: Check if Docker Swarm is already initialized
       command: docker info
       register: docker_info
