@@ -26,10 +26,6 @@
   become: yes  # To run tasks as root
 
   tasks:
-    - name: Read external vars file
-      include_vars:
-        file: external_vars.yml
-
     - name: Check if Docker Swarm is already initialized
       command: docker info
       register: docker_info
@@ -53,12 +49,6 @@
       set_fact:
         join_command: "{{ join_worker_command.stdout | regex_search('(docker swarm join .+)', '\\1') }}"
       when: join_worker_command is defined
-    
-    - name: Create a file with a value on the control node
-      copy:
-        content: "{{ join_command }}"
-        dest: /tmp/join_command_worker.sh
-      delegate_to: localhost
 
     - name: Print Join Command
       debug:
@@ -69,14 +59,8 @@
 - name: Execute Join Command on Worker Nodes
   hosts: dev_docker_swarm_worker
   become: yes  # To run tasks as root
-  
 
-  tasks:
-    - name: Copy the file to target hosts
-      copy:
-        src: /tmp/join_command_worker.sh
-        dest: /tmp/join_command_worker.sh
-    
+  tasks:    
     - name: Print Join Command
       debug:
         msg: "Join command for workers: {{ join_command }}"
