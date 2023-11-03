@@ -1,78 +1,24 @@
 ---
-- name: Set up a Docker Swarm Cluster
-  hosts: dev_docker_swarm_manager
-  become: yes
+- name: Install Docker and Docker Compose
+  hosts: all
+  become: yes  # To run tasks as root
+
   tasks:
-    - name: Install Docker
+    - name: Update apt package cache (for Debian/Ubuntu)
       apt:
-        name: docker.io
+        update_cache: yes
+      when: ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
+
+    - name: Install required packages
+      package:
+        name: 
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - docker.io
+          - docker-compose
         state: present
-      tags:
-        - docker
+      when: ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
 
-    - name: Start Docker service
-      service:
-        name: docker
-        state: started
-        enabled: yes
-      tags:
-        - docker
 
-    - name: Initialize Docker Swarm
-      command: docker swarm init --advertise-addr {{ ansible_default_ipv4.address }}
-      register: swarm_init_output
-      ignore_errors: yes
-      changed_when: "'Swarm initialized' in swarm_init_output.stdout"
-      tags:
-        - swarm
-
-    - name: Retrieve Join Token for Workers
-      command: docker swarm join-token -q worker
-      register: worker_join_token
-      changed_when: false
-      tags:
-        - swarm
-
-    - name: Retrieve Join Token for Managers
-      command: docker swarm join-token -q manager
-      register: manager_join_token
-      changed_when: false
-      tags:
-        - swarm
-
-    - name: Save Join Tokens to Files
-      copy:
-        content: "{{ worker_join_token.stdout }}\n"
-        dest: /tmp/worker_join_token
-      tags:
-        - swarm
-
-    - copy:
-        content: "{{ manager_join_token.stdout }}\n"
-        dest: /tmp/manager_join_token
-      tags:
-        - swarm
-
-- name: Join Workers to Swarm Cluster
-  hosts: dev_docker_swarm_worker
-  become: yes
-  tasks:
-    - name: Install Docker
-      apt:
-        name: docker.io
-        state: present
-      tags:
-        - docker
-
-    - name: Start Docker service
-      service:
-        name: docker
-        state: started
-        enabled: yes
-      tags:
-        - docker
-
-    - name: Join Workers to Swarm Cluster
-      command: "docker swarm join --token $(cat /tmp/worker_join_token) {{ hostvars['swarm_manager'].ansible_default_ipv4.address }}:2377"
-      tags:
-        - swarm
