@@ -54,24 +54,6 @@
       debug:
         msg: "Join command for workers: {{ join_command }}"
       when: join_command is defined
-    
-    
-# - name: Execute Join Command on Worker Nodes
-#   hosts: dev_docker_swarm_worker
-#   become: yes  # To run tasks as root
-
-#   tasks:    
-#     - name: Print Join Command
-#       debug:
-#         msg: "Join command for workers: {{ join_command }}"
-#       when: join_command is defined
-
-    - name: Check if Docker Swarm is already initialized
-      command: docker info
-      register: docker_info
-      delegate_to: "{{ item }}"
-      with_items: "{{ groups['dev_docker_swarm_worker'] }}"
-      changed_when: false  # Treat this task as non-changing
 
     - name: Execute Join Command
       command: "{{ join_command }}"
