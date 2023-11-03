@@ -1,6 +1,6 @@
 ---
 - name: Install Docker and Docker Compose
-  hosts: all
+  hosts: dev_docker_swarm_manager:dev_docker_swarm_worker
   become: yes  # To run tasks as root
 
   tasks:
