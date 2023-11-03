@@ -69,8 +69,8 @@
     - name: Check if Docker Swarm is already initialized
       command: docker info
       register: docker_info
-      delegate_to: dev_docker_swarm_worker
-      run_once: yes
+      delegate_to: "{{ item }}"
+      with_items: "{{ groups['dev_docker_swarm_worker'] }}"
       changed_when: false  # Treat this task as non-changing
 
     - name: Execute Join Command
