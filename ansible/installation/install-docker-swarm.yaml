@@ -56,6 +56,6 @@
       when: join_command is defined
 
     - name: Execute Join Command
-      command: "{{ join_command }}"
+      shell: "{{ join_command }}"
       delegate_to: "{{ item }}"
       with_items: "{{ groups['dev_docker_swarm_worker'] }}"
