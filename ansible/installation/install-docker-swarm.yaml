@@ -27,20 +27,20 @@
 
   tasks:
     - name: Check if Docker Swarm is already initialized
-      command: docker info
-      register: docker_info
+      shell: docker info --format '{{.Swarm.LocalNodeState}}'
+      register: swarm_status
       changed_when: false  # Treat this task as non-changing
 
     - name: Initialize Docker Swarm
       command: docker swarm init
-      when: "'Swarm: active' not in docker_info.stdout"
+      when: swarm_status.stdout != "active"
 
     - name: Extract Join Token for Workers
-      command: docker swarm join-token worker
+      command: docker swarm join-token worker -q
       register: join_worker_command
-      when: "'Swarm: active' in docker_info.stdout"
+      when: swarm_status.stdout == "active"
 
     - name: Print Join Token for Workers
       debug:
         msg: "Join token for worker nodes: {{ join_worker_command.stdout }}"
-      when: "'Swarm: active' in docker_info.stdout"
+      when: swarm_status.stdout == "active"
