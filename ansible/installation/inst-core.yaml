@@ -5,6 +5,12 @@
   - name: install core packages
     apt:
       name:
-        - prometheus-node-exporter
+        - htop
         - nfs-common
+        - vim
+        - tmux
+        - ncdu
+        - docker.io
+        - docker-compose
+        - samba
       update_cache: yes
