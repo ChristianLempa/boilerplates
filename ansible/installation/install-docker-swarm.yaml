@@ -59,10 +59,3 @@
       command: "{{ join_command }}"
       delegate_to: "{{ item }}"
       with_items: "{{ groups['dev_docker_swarm_worker'] }}"
-      when: "'Swarm: active' not in docker_info.stdout"
-
-    - name: Print Status
-      debug:
-        msg: "Node status after join: {{ swarm_status.stdout }}"
-      delegate_to: "{{ item }}"
-      with_items: "{{ groups['dev_docker_swarm_worker'] }}"
