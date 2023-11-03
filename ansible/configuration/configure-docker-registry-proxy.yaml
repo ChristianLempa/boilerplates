@@ -1,0 +1,67 @@
+---
+- name: Configure Docker Registry Proxy Certificate
+  hosts: {{ hosts }}
+  become: yes
+  tasks:
+    - name: Install and Configure Docker Registry Proxy Certificate
+      copy:
+        content: |
+          #!/bin/bash
+          set -e # Exit on any error
+          PROXY_IP="172.16.16.223"
+          PROXY_PORT="3128"
+          
+          setup_docker_proxy() {
+              mkdir -p /etc/systemd/system/docker.service.d
+              cat << EOD > /etc/systemd/system/docker.service.d/http-proxy.conf
+          [Service]
+          Environment="HTTP_PROXY=http://${PROXY_IP}:${PROXY_PORT}/"
+          Environment="HTTPS_PROXY=http://${PROXY_IP}:${PROXY_PORT}/"
+          EOD
+              echo "Docker proxy configuration set."
+          }
+          
+          trust_ca_ubuntu() {
+              curl -fsSL http://${PROXY_IP}:${PROXY_PORT}/ca.crt -o /usr/share/ca-certificates/docker_registry_proxy.crt
+              curl -fsSL http://${PROXY_IP}:${PROXY_PORT}/ca.crt -o /usr/local/share/ca-certificates/docker_registry_proxy.crt
+              echo "docker_registry_proxy.crt" >> /etc/ca-certificates.conf
+              update-ca-certificates --fresh
+              echo "CA certificate trusted for Ubuntu."
+          }
+          
+          trust_ca_centos() {
+              curl -fsSL http://${PROXY_IP}:${PROXY_PORT}/ca.crt -o /etc/pki/ca-trust/source/anchors/docker_registry_proxy.crt
+              update-ca-trust
+              echo "CA certificate trusted for CentOS."
+          }
+          
+          reload_system() {
+              systemctl daemon-reload
+              systemctl restart docker.service
+              echo "Systemd reloaded and Docker restarted."
+          }
+          
+          if [[ $EUID -ne 0 ]]; then
+              echo "Please run this script as root or use sudo."
+              exit 1
+          fi
+          
+          setup_docker_proxy
+          if grep -qi "ubuntu" /etc/os-release; then
+              trust_ca_ubuntu
+          elif grep -qi "centos" /etc/os-release; then
+              trust_ca_centos
+          elif grep -qi "debian" /etc/os-release; then
+              trust_ca_ubuntu
+          else
+              echo "Unsupported OS. Exiting."
+              exit 1
+          fi
+          reload_system
+          echo "Setup complete."
+        dest: /usr/local/bin/configure_docker_proxy.sh
+        mode: 0755
+
+    - name: Run Docker Registry Proxy Certificate Configuration Script
+      command: /usr/local/bin/configure_docker_proxy.sh
+      ignore_errors: yes
