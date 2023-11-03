@@ -55,11 +55,6 @@
         msg: "Join command for workers: {{ join_command }}"
       when: join_command is defined
     
-    - name: Save Join Command to a file
-      copy:
-        content: "{{ join_command }}"
-        dest: /tmp/join_command.txt
-      when: join_command is defined
     
 - name: Execute Join Command on Worker Nodes
   hosts: dev_docker_swarm_worker
@@ -71,15 +66,9 @@
       register: docker_info
       changed_when: false  # Treat this task as non-changing
 
-    - name: Read Join Command from File
-      slurp:
-        src: /tmp/join_command.txt
-      register: join_command_file
-      when: "'Swarm: active' not in docker_info.stdout"
-
     - name: Execute Join Command
-      command: "{{ join_command_file['content'] | b64decode }}"
-      when: join_command_file is defined
+      command: "{{ join_command }}"
+      when: "'Swarm: active' not in docker_info.stdout"
 
     - name: Print Status
       debug:
