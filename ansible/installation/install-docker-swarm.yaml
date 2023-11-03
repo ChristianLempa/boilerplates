@@ -26,16 +26,21 @@
   become: yes  # To run tasks as root
 
   tasks:
+    - name: Check if Docker Swarm is already initialized
+      command: docker info --format '{{.Swarm.LocalNodeState}}'
+      register: swarm_status
+      changed_when: false  # Treat this task as non-changing
+
     - name: Initialize Docker Swarm
       command: docker swarm init
-      register: swarm_init_result
+      when: swarm_status.stdout != "active"
 
     - name: Extract Join Token for Workers
       set_fact:
-        join_worker_command: "{{ swarm_init_result.stdout_lines[-1] }}"
-      when: swarm_init_result.rc == 0
+        join_worker_command: "{{ lookup('pipe', 'docker swarm join-token worker') }}"
+      when: swarm_status.stdout == "active"
 
     - name: Print Join Token for Workers
       debug:
         msg: "Join token for worker nodes: {{ join_worker_command }}"
-      when: swarm_init_result.rc == 0
+      when: swarm_status.stdout == "active"
