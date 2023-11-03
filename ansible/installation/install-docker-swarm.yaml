@@ -23,6 +23,7 @@
       environment:
         DOCKER_CLI_ACI: 1
       register: swarm_init_result
+      ignore_errors: yes
       changed_when: "'This node joined a swarm' in swarm_init_result.stdout"
 
     - name: Get Swarm Join Token
