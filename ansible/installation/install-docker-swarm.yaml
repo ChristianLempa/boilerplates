@@ -21,4 +21,22 @@
         state: present
       when: ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
 
+---
+- name: Initialize Docker Swarm and Get Join Token
+  hosts: dev_docker_swarm_manager
+  become: yes  # To run tasks as root
 
+  tasks:
+    - name: Initialize Docker Swarm
+      command: docker swarm init
+      register: swarm_init_result
+
+    - name: Extract Join Token for Workers
+      set_fact:
+        join_worker_command: "{{ swarm_init_result.stdout_lines[-1] }}"
+      when: swarm_init_result.rc == 0
+
+    - name: Print Join Token for Workers
+      debug:
+        msg: "Join token for worker nodes: {{ join_worker_command }}"
+      when: swarm_init_result.rc == 0
