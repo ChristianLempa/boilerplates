@@ -54,11 +54,11 @@
         join_command: "{{ join_worker_command.stdout | regex_search('(docker swarm join .+)', '\\1') }}"
       when: join_worker_command is defined
     
-    - name: Modify external vars file
-      lineinfile:
-        path: external_vars.yml
-        regexp: '^join_command:'
-        line: 'join_command: {{ join_command }}'
+    - name: Create a file with a value on the control node
+      copy:
+        content: "{{ join_command }}"
+        dest: /tmp/join_command_worker.sh
+      delegate_to: localhost
 
     - name: Print Join Command
       debug:
@@ -72,9 +72,10 @@
   
 
   tasks:
-    - name: Read external vars file
-      include_vars:
-        file: external_vars.yml
+    - name: Copy the file to target hosts
+      copy:
+        src: /tmp/join_command_worker.sh
+        dest: /tmp/join_command_worker.sh
     
     - name: Print Join Command
       debug:
