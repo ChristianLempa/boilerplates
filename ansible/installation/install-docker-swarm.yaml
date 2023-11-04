@@ -1,26 +1,38 @@
 ---
-- name: Initialisation d'un cluster Docker Swarm
-  hosts: dev_docker_swarm_manager  # Remplacez ceci par le groupe d'hôtes de gestionnaires Swarm
+- name: Initialize a docker swarm cluster
+  hosts: dev_docker_swarm_manager
   become: yes
 
   tasks:
-    - name: Initialisation du Swarm
+    - name: Initialize the swarm on the leader node
       docker_swarm:
         state: present
       register: swarm_initialized
 
-    - name: Récupération du token de travailleur
+    - name: Get the join tokens for workers and managers
       debug:
-        var: swarm_initialized.swarm_facts.JoinTokens.Worker
+        var: swarm_initialized.swarm_facts.JoinTokens
 
-- name: Rejoindre le cluster Swarm en tant que travailleur
-  hosts: dev_docker_swarm_worker  # Remplacez ceci par le groupe d'hôtes de travailleurs Swarm
+- name: Join workers to the cluster
+  hosts: dev_docker_swarm_worker
   become: yes
 
   tasks:
-    - name: Rejoindre le cluster Swarm en tant que travailleur
+    - name: Join workers node to the cluster
       docker_swarm:
         state: join
         join_token: "{{ hostvars[item].swarm_initialized.swarm_facts.JoinTokens.Worker }}"
         remote_addrs: "{{ hostvars[item].inventory_hostname }}:2377"
       with_items: "{{ groups['dev_docker_swarm_manager'] }}"
+
+- name: Join managers to the cluster
+  hosts: dev_docker_swarm_managers
+  become: yes
+
+  tasks:
+    - name: Join managers node to the cluster
+      docker_swarm:
+        state: join
+        join_token: "{{ hostvars[item].swarm_initialized.swarm_facts.JoinTokens.manager }}"
+        remote_addrs: "{{ hostvars[item].inventory_hostname }}:2377"
+      with_items: "{{ groups['dev_docker_swarm_managers'] }}"
