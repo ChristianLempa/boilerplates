@@ -2,11 +2,8 @@ version: "3.0"
 
 volumes:
   nginxproxymanager-data:
-    external: true
   nginxproxymanager-ssl:
-    external: true
   nginxproxymanager-db:
-    external: true
 services:
   nginxproxymanager:
     image: jc21/nginx-proxy-manager:2.10.3
