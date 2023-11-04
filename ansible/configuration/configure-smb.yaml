@@ -1,6 +1,8 @@
 ---
 - name: Mount Samba Share and Make It Persistent
   hosts: "{{ hosts }}"
+  become: yes
+  
   tasks:
     - name: Ensure mount directory exists
       file:
