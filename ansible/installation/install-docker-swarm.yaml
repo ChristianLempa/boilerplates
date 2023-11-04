@@ -1,61 +1,25 @@
 ---
-- name: Install Docker and Docker Compose
-  hosts: dev_docker_swarm_manager:dev_docker_swarm_worker
-  become: yes  # To run tasks as root
+- name: Initialisation d'un cluster Docker Swarm
+  hosts: dev_docker_swarm_manager  # Remplacez ceci par le groupe d'hôtes de gestionnaires Swarm
+  become: yes
 
   tasks:
-    - name: Update apt package cache (for Debian/Ubuntu)
-      apt:
-        update_cache: yes
-      when: ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
-
-    - name: Install required packages
-      package:
-        name: 
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - software-properties-common
-          - docker.io
-          - docker-compose
+    - name: Initialisation du Swarm
+      docker_swarm:
         state: present
-      when: ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
+      register: swarm_initialized
 
-- name: Initialize Docker Swarm and Get Join Token
-  hosts: dev_docker_swarm_manager
-  become: yes  # To run tasks as root
+    - name: Récupération du token de travailleur
+      debug:
+        var: swarm_initialized.swarm_info.WorkerTokens
+
+- name: Rejoindre le cluster Swarm en tant que travailleur
+  hosts: dev_docker_swarm_worker  # Remplacez ceci par le groupe d'hôtes de travailleurs Swarm
+  become: yes
 
   tasks:
-    - name: Check if Docker Swarm is already initialized
-      command: docker info
-      register: docker_info
-      changed_when: false  # Treat this task as non-changing
-
-    - name: Initialize Docker Swarm
-      command: docker swarm init
-      when: "'Swarm: active' not in docker_info.stdout"
-
-    - name: Extract Join Token for Workers
-      command: docker swarm join-token worker
-      register: join_worker_command
-      when: "'Swarm: active' in docker_info.stdout"
-
-    - name: Print Join Token for Workers
-      debug:
-        msg: "Join token for worker nodes: {{ join_worker_command.stdout }}"
-      when: "'Swarm: active' in docker_info.stdout"
-
-    - name: Extract Join Command
-      set_fact:
-        join_command: "{{ join_worker_command.stdout | regex_search('(docker swarm join .+)', '\\1') }}"
-      when: join_worker_command is defined
-
-    - name: Print Join Command
-      debug:
-        msg: "Join command for workers: {{ join_command }}"
-      when: join_command is defined
-
-    - name: Execute Join Command
-      shell: "{{ join_command }}"
-      delegate_to: "{{ item }}"
-      with_items: "{{ groups['dev_docker_swarm_worker'] }}"
+    - name: Rejoindre le cluster Swarm en tant que travailleur
+      docker_swarm:
+        state: joined
+        join_token: "{{ hostvars['manager_node'].swarm_initialized.swarm_info.WorkerTokens }}"
+        manager_address: "{{ hostvars['manager_node'].inventory_hostname }}"
