@@ -1,0 +1,22 @@
+---
+- name: Mount Samba Share and Make It Persistent
+  hosts: "{{ hosts }}"
+  tasks:
+    - name: Ensure mount directory exists
+      file:
+        path: /mnt/nas
+        state: directory
+
+    - name: Mount the Samba share
+      mount:
+        name: /mnt/nas
+        src: //172.16.16.3/docker-volumes
+        fstype: cifs
+        opts: "username=root,password=60214464"
+        state: mounted
+
+    - name: Add the Samba share to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "//172.16.16.3/docker-volumes /mnt/nas cifs username=root,password=60214464 0 0"
+        insertafter: EOF
