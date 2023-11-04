@@ -22,5 +22,5 @@
       docker_swarm:
         state: join
         join_token: "{{ hostvars[item].swarm_initialized.swarm_facts.JoinTokens.Worker }}"
-        remote_addrs: "{{ hostvars[item].inventory_hostname }}"
+        remote_addrs: "{{ hostvars[item].inventory_hostname }}:2377"
       with_items: "{{ groups['dev_docker_swarm_manager'] }}"
