@@ -1,6 +1,6 @@
 ---
 - name: Configure Docker Registry Proxy Certificate
-  hosts: {{ hosts }}
+  hosts: "{{ hosts }}"
   become: yes
   tasks:
     - name: Install and Configure Docker Registry Proxy Certificate
