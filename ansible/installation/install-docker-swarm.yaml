@@ -11,7 +11,7 @@
 
     - name: Récupération du token de travailleur
       debug:
-        var: swarm_initialized.swarm_info.WorkerTokens
+        var: swarm_initialized.swarm_info
 
 - name: Rejoindre le cluster Swarm en tant que travailleur
   hosts: dev_docker_swarm_worker  # Remplacez ceci par le groupe d'hôtes de travailleurs Swarm
