@@ -21,5 +21,11 @@
     - name: Rejoindre le cluster Swarm en tant que travailleur
       docker_swarm:
         state: joined
-        join_token: "{{ hostvars['dev_docker_swarm_manager'].swarm_initialized.swarm_facts.JoinTokens.Worker }}"
-        manager_address: "{{ hostvars['dev_docker_swarm_manager'].inventory_hostname }}"
+        join_token: 
+          {% for host in groups['dev_docker_swarm_manager'] %}
+          "{{ hostvars['host'].swarm_initialized.swarm_facts.JoinTokens.Worker }}"
+          {% endfor %}
+        manager_address: 
+          {% for host in groups['dev_docker_swarm_manager'] %}
+          "{{ hostvars['host'].inventory_hostname }}"
+          {% endfor %}
