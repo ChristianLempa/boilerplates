@@ -1,6 +1,6 @@
 ---
 - name: Initialize a docker swarm cluster
-  hosts: dev_docker_swarm_manager
+  hosts: dev_leader
   become: yes
 
   tasks:
@@ -14,7 +14,7 @@
         var: swarm_initialized.swarm_facts.JoinTokens
 
 - name: Join workers to the cluster
-  hosts: dev_docker_swarm_worker
+  hosts: dev_workers
   become: yes
 
   tasks:
@@ -26,7 +26,7 @@
       with_items: "{{ groups['dev_docker_swarm_manager'] }}"
 
 - name: Join managers to the cluster
-  hosts: dev_docker_swarm_managers
+  hosts: dev_managers
   become: yes
 
   tasks:
