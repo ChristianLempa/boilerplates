@@ -2,7 +2,7 @@
 - name: deploy portainer-ee latest
   hosts: "{{ hosts }}"
   become: yes
-  become_user: "{{ lookup('env','USER') }}"
+  #become_user: "{{ lookup('env','USER') }}"
   tasks:
   - name: create new volume
     community.docker.docker_volume:
