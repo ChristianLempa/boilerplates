@@ -8,6 +8,8 @@
         name: "{{ item }}"
         update_cache: yes
       loop:
+        - curl
+        - wget
         - htop
         - nfs-common
         - vim
