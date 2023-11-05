@@ -1,10 +1,13 @@
+---
 - name: install core packages
   hosts: "{{ hosts }}"
   become: yes
   tasks:
-  - name: install core packages
-    apt:
-      name:
+    - name: Install "{{ item }}"
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
         - htop
         - nfs-common
         - vim
@@ -13,4 +16,9 @@
         - docker.io
         - docker-compose
         - samba
-      update_cache: yes
+      register: package_results
+
+    - name: Log package installation results
+      debug:
+        msg: "{{ item.item }} package installed: {{ item.changed }}"
+      loop: "{{ package_results.results }}"
