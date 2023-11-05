@@ -3,13 +3,16 @@
   hosts: "{{ hosts }}"
   become: yes
   tasks:
-  - name: install packages
+  - name: Install "{{ item }}"
     apt:
-      name:
-        - prometheus-node-exporter
-        - nfs-common
-        - qemu-guest-agent
+      name: "{{ item }}"
       update_cache: yes
+    loop:
+      - prometheus-node-exporter
+      - nfs-common
+      - qemu-guest-agent
+    register: package_results
+    
   - name: start guest qemu-guest-agent
     service:
       name: qemu-guest-agent
