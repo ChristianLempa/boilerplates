@@ -1,5 +1,5 @@
 ---
-- name: deploy portainer-ce latest
+- name: deploy portainer-ee latest
   hosts: "{{ hosts }}"
   become: yes
   become_user: "{{ lookup('env','USER') }}"
@@ -10,7 +10,7 @@
   - name: deploy portainer
     community.docker.docker_container:
       name: portainer
-      image: "docker.io/portainer/portainer-ce"
+      image: "docker.io/portainer/portainer-ee"
       ports:
         - "9443:9443"
       volumes:
