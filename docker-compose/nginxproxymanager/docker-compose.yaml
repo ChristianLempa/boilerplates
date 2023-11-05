@@ -18,7 +18,7 @@ services:
       - DB_MYSQL_PASSWORD=${DB_MYSQL_PASSWORD}
       - DB_MYSQL_NAME=npm
     deploy:
-      replicas: 3
+      replicas: 1
       placement:
         constraints: [node.role == worker]
 
