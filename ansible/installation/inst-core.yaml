@@ -19,8 +19,3 @@
         - docker-compose
         - samba
       register: package_results
-
-    - name: Log package installation results
-      debug:
-        msg: "{{ item.item }} package installed: {{ item.changed }}"
-      loop: "{{ package_results.results }}"
