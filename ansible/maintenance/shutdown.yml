@@ -1,0 +1,7 @@
+---
+- name: Shutdown Linux Servers
+  hosts: "{{ hosts }}"
+  become: yes  # Use sudo for privilege escalation if necessary
+  tasks:
+    - name: Shutdown the servers
+      command: init 0
