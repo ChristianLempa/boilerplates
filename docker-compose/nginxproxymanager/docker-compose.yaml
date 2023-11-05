@@ -1,9 +1,4 @@
-version: "3.0"
-
-volumes:
-  nginxproxymanager-data:
-  nginxproxymanager-ssl:
-  nginxproxymanager-db:
+version: '3.8'
 services:
   nginxproxymanager:
     image: jc21/nginx-proxy-manager:2.10.3
@@ -11,21 +6,41 @@ services:
       - 80:80
       - 81:81
       - 443:443
+    volumes:
+      - nginxproxymanager-data:/data
+      - nginxproxymanager-ssl:/etc/letsencrypt
+    networks:
+      - nginxproxymanager-network
     environment:
       - DB_MYSQL_HOST=nginxproxymanager-db
       - DB_MYSQL_PORT=3306
       - DB_MYSQL_USER=npm
-      - DB_MYSQL_PASSWORD=npm
+      - DB_MYSQL_PASSWORD=${DB_MYSQL_PASSWORD}
       - DB_MYSQL_NAME=npm
-    volumes:
-      - nginxproxymanager-data:/data
-      - nginxproxymanager-ssl:/etc/letsencrypt
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
   nginxproxymanager-db:
     image: jc21/mariadb-aria:10.4.15
     environment:
       - MYSQL_ROOT_PASSWORD=npm
       - MYSQL_DATABASE=npm
       - MYSQL_USER=npm
-      - MYSQL_PASSWORD=npm
+      - MYSQL_PASSWORD=${DB_MYSQL_PASSWORD}
     volumes:
       - nginxproxymanager-db:/var/lib/mysql
+    networks:
+      - nginxproxymanager-network
+  
+networks:
+  nginxproxymanager-network:
+    external: true
+volumes:
+  nginxproxymanager-data:
+    external: true
+  nginxproxymanager-ssl:
+    external: true
+  nginxproxymanager-db:
+    external: true
