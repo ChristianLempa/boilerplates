@@ -3,7 +3,7 @@
   hosts: "{{ hosts }}"
   become: yes
   tasks:
-    - name: Install "{{ item }}"
+    - name: Install packages
       apt:
         name: "{{ item }}"
         update_cache: yes
