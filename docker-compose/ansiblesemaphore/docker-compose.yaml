@@ -12,6 +12,7 @@ volumes:
 services:
   mysql:
     image: mysql:8.0
+    container_name: mysql
     hostname: mysql
     volumes:
       - semaphore-mysql:/var/lib/mysql
