@@ -13,7 +13,6 @@
 
 volumes:
   semaphore-mysql:
-    driver: local
     external: true
   semaphore-inventory:
     external: true
