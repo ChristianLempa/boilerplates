@@ -12,7 +12,7 @@ volumes:
 services:
   mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: mysqld
     hostname: mysql
     volumes:
       - semaphore-mysql:/var/lib/mysql
@@ -31,7 +31,7 @@ services:
     environment:
       - SEMAPHORE_DB_USER=semaphore
       - SEMAPHORE_DB_PASS=${MYSQL_PASSWORD}  # change!
-      - SEMAPHORE_DB_HOST=172.17.0.1
+      - SEMAPHORE_DB_HOST=mysql
       - SEMAPHORE_DB_PORT=3306
       - SEMAPHORE_DB_DIALECT=mysql
       - SEMAPHORE_DB=semaphore
