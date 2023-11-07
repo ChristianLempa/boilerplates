@@ -1,14 +1,27 @@
 ---
 #Values to define:
-#MYSQL_PASSWORD
-#SEMAPHORE_ADMIN_PASSWORD
-#SEMAPHORE_ADMIN_NAME
-#SEMAPHORE_ADMIN_EMAIL
-#SEMAPHORE_ACCESS_KEY_ENCRYPTION
+# MYSQL_PASSWORD
+# SEMAPHORE_ADMIN_PASSWORD
+# SEMAPHORE_ADMIN_NAME
+# SEMAPHORE_ADMIN_EMAIL
+# SEMAPHORE_ACCESS_KEY_ENCRYPTION
+#Volumes to be created
+# semaphore-inventory
+# semaphore-authorized-keys
+# semaphore-config
+# semaphore-playbooks
 
 volumes:
   semaphore-mysql:
     driver: local
+  semaphore-inventory:
+    external: true
+  semaphore-authorized-keys:
+    external: true
+  semaphore/config:
+    external: true
+  semaphore-playbooks:
+    external: true
 services:
   mysql:
     image: mysql:8.0
@@ -43,10 +56,10 @@ services:
       - SEMAPHORE_ACCESS_KEY_ENCRYPTION=${SEMAPHORE_ACCESS_KEY_ENCRYPTION}  # add to your access key encryption !
       - ANSIBLE_HOST_KEY_CHECKING=false  # (optional) change to true if you want to enable host key checking
     volumes:
-      - /DATA/AppData/semaphore/inventory/:/inventory:ro
-      - /DATA/AppData/semaphore/authorized-keys/:/authorized-keys:ro
-      - /DATA/AppData/semaphore/config/:/etc/semaphore:rw
-      - /DATA/AppData/semaphore/semaphore-playbooks:/tmp/semaphore
+      - semaphore-inventory:/inventory:ro
+      - semaphore-authorized-keys:/authorized-keys:ro
+      - semaphore/config:/etc/semaphore:rw
+      - semaphore-playbooks:/tmp/semaphore
     restart: unless-stopped
     depends_on:
       - mysql
