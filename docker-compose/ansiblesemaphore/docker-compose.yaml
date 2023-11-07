@@ -59,7 +59,7 @@ services:
     volumes:
       - semaphore-inventory:/inventory:ro
       - semaphore-authorized-keys:/authorized-keys:ro
-      - semaphore/config:/etc/semaphore:rw
+      - semaphore-config:/etc/semaphore:rw
       - semaphore-playbooks:/tmp/semaphore
     restart: unless-stopped
     depends_on:
