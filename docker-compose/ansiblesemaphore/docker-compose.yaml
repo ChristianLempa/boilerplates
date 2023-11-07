@@ -19,7 +19,7 @@ volumes:
     external: true
   semaphore-authorized-keys:
     external: true
-  semaphore/config:
+  semaphore-config:
     external: true
   semaphore-playbooks:
     external: true
