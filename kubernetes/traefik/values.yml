@@ -41,7 +41,8 @@ ports:
 # Configure your entrypoints here...
   web:
     # (optional) Permanent Redirect to HTTPS
-    # redirectTo: websecure
+    # redirectTo:
+    #   port: websecure
   websecure:
     tls:
       enabled: true
