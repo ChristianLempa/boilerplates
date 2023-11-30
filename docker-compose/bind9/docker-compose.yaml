@@ -3,10 +3,14 @@ services:
   bind9:
     image: ubuntu/bind9:latest
     container_name: bind9
+    environment:
+      - BIND9_USER=bind
     ports:
-      - "53:53"
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '127.0.0.1:953:953/tcp'
     volumes:
-      - /etc/bind/:/etc/bind/
-      - /var/cache/bind:/var/cache/bind
-      - /var/lib/bind:/var/lib/bind
+      - './config:/etc/bind:ro'
+      - './cache:/var/cache/bind:rw'
+      - './records:/var/lib/bind:rw'
     restart: unless-stopped
