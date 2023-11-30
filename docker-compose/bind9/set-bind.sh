@@ -4,7 +4,6 @@
 #:/# grep bind /etc/passwd
 #bind:x:100:101::/var/cache/bind:/usr/sbin/nologin
 #
-sudo rndc-confgen >./config/rndc.key
 chown 100:101 -R cache
 chown 100:101 -R config
 chown 100:101 -R records
