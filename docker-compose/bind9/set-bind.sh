@@ -7,3 +7,6 @@
 chown 100:101 -R cache
 chown 100:101 -R config
 chown 100:101 -R records
+chmod 775 cache
+chmod 775 config
+chmod 775 records
