@@ -7,7 +7,7 @@ volumes:
   mariadb-data:
 services:
   mariadb:
-    container_name: mariadb:11.1.2
+    # (Recommended) replace "latest" with specific version
     image: mariadb:latest
     # (Optional) remove this section when you don't want to expose
     ports:
