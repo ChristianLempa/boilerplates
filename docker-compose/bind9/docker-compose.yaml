@@ -1,12 +1,14 @@
----
+version: '3'
+
 services:
   bind9:
     image: ubuntu/bind9:latest
     container_name: bind9
     ports:
-      - "53:53"
+      - "53:53/tcp"
+      - "53:53/udp"
     volumes:
-      - /etc/bind/:/etc/bind/
-      - /var/cache/bind:/var/cache/bind
-      - /var/lib/bind:/var/lib/bind
+      - ./config:/etc/bind/
+      - ./cache:/var/cache/bind
+      - ./records:/var/lib/bind
     restart: unless-stopped
