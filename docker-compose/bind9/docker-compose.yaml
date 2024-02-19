@@ -1,12 +1,13 @@
-version: '3'
-
+---
 services:
   bind9:
-    image: ubuntu/bind9:latest
     container_name: bind9
+    image: ubuntu/bind9:9.18-23.04_edge
     ports:
       - "53:53/tcp"
       - "53:53/udp"
+      # (optional) allow DNS over TLS, used by RNDC
+      # - "953:953/tcp"
     volumes:
       - ./config:/etc/bind/
       - ./cache:/var/cache/bind

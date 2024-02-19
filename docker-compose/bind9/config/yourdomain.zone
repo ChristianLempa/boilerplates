@@ -1,0 +1,15 @@
+$TTL   300  ; 5 minutes
+$ORIGIN yourdomain.home.
+@       IN      SOA     yourdomain.home. (
+                       2024021700      ; serial
+                       12h             ; refresh
+                       15m             ; retry
+                       3w              ;expire
+                       2h              ;minimum ttl
+                       )
+                       
+       IN      NS      ns.yourdomain.home.
+
+ns     IN      A       192.168.14.2
+
+yourserver             IN      A       192.168.14.3
