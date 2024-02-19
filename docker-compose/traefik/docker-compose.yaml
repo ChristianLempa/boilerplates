@@ -5,7 +5,7 @@
 #     external: true
 services:
   traefik:
-    image: traefik:v2.10.4
+    image: traefik:v2.10.5
     container_name: traefik
     ports:
       - 80:80
@@ -13,8 +13,10 @@ services:
       # -- (Optional) Enable Dashboard, don't do in production
       # - 8080:8080
     volumes:
-      - ./config:/etc/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./config/conf/:/etc/traefik/conf/
+      - ./config/certs/:/etc/traefik/certs/
     # -- (Optional) When using Cloudflare as Cert Resolver
     # environment:
     #   - CF_DNS_API_TOKEN=your-cloudflare-api-token
