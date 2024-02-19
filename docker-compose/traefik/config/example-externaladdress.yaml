@@ -1,0 +1,16 @@
+http:
+  routers:
+    your-local-router:
+      rule: "Host(`your-local-service.your-domain.com`) && PathPrefix(`/`)"
+      service: your-local-service
+      priority: 1000
+      entryPoints:
+        - web
+        # (optional) Permanent Redirect to HTTPS
+        # - websecure
+
+  services:
+    your-local-service:
+      loadBalancer:
+        servers:
+          - url: "http://your-local-service:port"
