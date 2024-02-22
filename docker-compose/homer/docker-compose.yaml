@@ -1,7 +1,7 @@
 ---
 services:
   homer:
-    image: b4bz/homer:v23.05.1
+    image: b4bz/homer:v23.10.1
     container_name: homer
     ports:
       - "8080:8080"
