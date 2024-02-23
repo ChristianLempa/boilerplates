@@ -1,5 +1,5 @@
 - name: install core packages
-  hosts: "{{ hosts }}"
+  hosts: "{{ my_hosts | d([]) }}"
   become: yes
   tasks:
   - name: install core packages

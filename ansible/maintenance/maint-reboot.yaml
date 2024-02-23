@@ -1,6 +1,6 @@
 ---
 - name: reboot machine
-  hosts: "{{ hosts }}"
+  hosts: "{{ my_hosts | d([]) }}"
   become: yes
   tasks:
   - name: reboot machine
