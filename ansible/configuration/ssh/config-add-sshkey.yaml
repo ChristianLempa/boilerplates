@@ -9,7 +9,7 @@
       state: present
       key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
   - name: change sudoers file
-    lineinfile:
+    ansible.builtin.lineinfile:
       path: /etc/sudoers
       state: present
       regexp: '^%sudo'

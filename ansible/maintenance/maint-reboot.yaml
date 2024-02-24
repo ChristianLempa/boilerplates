@@ -4,5 +4,5 @@
   become: yes
   tasks:
   - name: reboot machine
-    reboot:
+    ansible.builtin.reboot:
       reboot_timeout: 3600

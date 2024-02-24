@@ -3,7 +3,7 @@
   hosts: "{{ hosts }}"
   tasks:
     - name: send discord message
-      uri:
+      ansible.builtin.uri:
         url: "your-webhook"
         method: POST
         body_format: json
