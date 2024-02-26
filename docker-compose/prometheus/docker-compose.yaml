@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   prometheus:
-    image: prom/prometheus:v2.50.0
+    image: prom/prometheus:v2.50.1
     container_name: prometheus
     ports:
       - 9090:9090
