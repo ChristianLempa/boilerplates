@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   uptimekuma:
-    image: louislam/uptime-kuma:latest
+    image: louislam/uptime-kuma:1.23.11
     container_name: uptimekuma
     ports:
       - 3001:3001

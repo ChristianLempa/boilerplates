@@ -3,6 +3,6 @@
   become: yes
   tasks:
   - name: install cockpit
-    apt:
+    ansible.builtin.apt:
       name: cockpit
       update_cache: yes

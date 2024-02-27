@@ -3,7 +3,7 @@
   become: yes
   tasks:
   - name: install core packages
-    apt:
+    ansible.builtin.apt:
       name:
         - prometheus-node-exporter
         - nfs-common

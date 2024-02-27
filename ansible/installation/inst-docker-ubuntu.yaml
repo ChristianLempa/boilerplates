@@ -4,7 +4,7 @@
   become: yes
   tasks:
     - name: install docker dependencies
-      apt:
+      ansible.builtin.apt:
         name:
           - apt-transport-https
           - ca-certificates
@@ -13,17 +13,17 @@
           - software-properties-common
         update_cache: yes
     - name: add docker gpg key
-      apt_key:
+      ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
         keyring: /etc/apt/keyrings/docker.gpg
     - name: add docker repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         filename: docker 
         repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename|lower }} stable
         state: present
     - name: install docker engine
-      apt:
+      ansible.builtin.apt:
         name:
           - docker-ce
           - docker-ce-cli

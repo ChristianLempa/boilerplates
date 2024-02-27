@@ -3,10 +3,10 @@
   hosts: "{{ hosts }}"
   tasks:
     - name: get disk usage
-      command: df -h
+      ansible.builtin.command: df -h
       register: disk_usage
     - name: check disk space available
-      shell: df -Ph / | awk 'NR==2 {print $5}'
+      ansible.builtin.shell: df -Ph / | awk 'NR==2 {print $5}'
       register: disk_usage
     # - name: send discord message when disk space is over 80%
     #   uri:

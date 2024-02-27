@@ -1,4 +1,11 @@
+---
 version: '3'
+
+volumes:
+  dnsmasq:
+    driver: local
+  etcd:
+    driver: local
 
 services:
   pihole:
@@ -14,6 +21,6 @@ services:
       - TZ=Europe/Berlin
       - WEBPASSWORD=your-secret-password
     volumes:
-      - etcd:/etc/pihole
       - dnsmasq:/etc/dnsmasq.d
+      - etcd:/etc/pihole
     restart: unless-stopped

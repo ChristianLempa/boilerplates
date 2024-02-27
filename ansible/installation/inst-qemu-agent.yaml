@@ -5,6 +5,6 @@
   become_method: sudo
   tasks:
     - name: Install qemu-guest-agent
-      apt:
+      ansible.builtin.apt:
         name: qemu-guest-agent
         state: present
