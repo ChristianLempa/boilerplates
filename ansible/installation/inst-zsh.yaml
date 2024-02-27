@@ -4,7 +4,7 @@
   become: yes
   tasks:
     - name: install zsh
-      apt:
+      ansible.builtin.apt:
         name: zsh
         state: present
         update_cache: true

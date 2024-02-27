@@ -4,11 +4,11 @@
   become: yes
   tasks:
     - name: install wireguard
-      apt:
+      ansible.builtin.apt:
         name: wireguard
         update_cache: yes
     - name: generate private and public keypair
-      shell: |
+      ansible.builtin.shell: |
         wg genkey | tee privatekey | wg pubkey > publickey
         chmod 0400 privatekey
         chmod 0400 publickey

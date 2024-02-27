@@ -4,8 +4,8 @@
   become: yes
   tasks:
     - name: install microk8s
-      snap:
+      community.general.snap:
         classic: yes
         name: microk8s
     - name: add userpermissions
-      shell: "usermod -aG microk8s {{ lookup('env','USER') }}"
+      ansible.builtin.shell: "usermod -aG microk8s {{ lookup('env','USER') }}"
