@@ -6,7 +6,7 @@ services:
     image: docker.io/library/postgres:16.2
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
       # (Optional) when creating a new database
       # - POSTGRES_DB=${POSTGRES_DB}
     ports:
@@ -16,6 +16,8 @@ services:
     #
     # networks:
     #   - yournetwork
+    secrets:
+      - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -26,6 +28,10 @@ services:
 # networks:
 #   yournetwork:
 #     external: true
+
+secrets:
+  postgres_password:
+    file: secret.postgres_password.txt
 
 volumes:
   postgres_data:
