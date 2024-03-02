@@ -1,10 +1,6 @@
 ---
-# (Optional) when using custom network
-# networks:
-#   yournetwork:
-#     external: true
-volumes:
-  postgres-data:
+version: "3.8"
+
 services:
   postgres:
     # (Recommended) replace "latest" with specific version
@@ -20,5 +16,13 @@ services:
     # networks:
     #   - yournetwork
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+
+# (Optional) when using custom network
+# networks:
+#   yournetwork:
+#     external: true
+
+volumes:
+  postgres_data:
