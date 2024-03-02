@@ -5,6 +5,7 @@ services:
   postgres:
     image: docker.io/library/postgres:16.2
     environment:
+      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS---data-checksums}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
       # (Optional) when creating a new database
