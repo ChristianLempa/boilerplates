@@ -11,6 +11,7 @@ services:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
       # (Optional) when creating a new database
       # - POSTGRES_DB=${POSTGRES_DB}
+      - TZ=${TZ:-UTC}
     ports:
       - 5432:5432
     # (Optional) when using custom network, see also
