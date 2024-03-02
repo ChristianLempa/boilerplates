@@ -3,8 +3,7 @@ version: "3.8"
 
 services:
   postgres:
-    # (Recommended) replace "latest" with specific version
-    image: postgres:latest
+    image: docker.io/library/postgres:16.2
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
