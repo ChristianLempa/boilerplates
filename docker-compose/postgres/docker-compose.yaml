@@ -11,14 +11,18 @@ services:
       # - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - 5432:5432
-    # (Optional) when using custom network
+    # (Optional) when using custom network, see also
+    # https://docs.docker.com/compose/compose-file/compose-file-v3/#networks
+    #
     # networks:
     #   - yournetwork
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-# (Optional) when using custom network
+# (Optional) when using custom network, see also
+# https://docs.docker.com/compose/compose-file/compose-file-v3/#network-configuration-reference
+#
 # networks:
 #   yournetwork:
 #     external: true
