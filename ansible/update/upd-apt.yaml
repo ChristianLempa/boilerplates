@@ -12,7 +12,7 @@
       when: ansible_pkg_mgr == 'yum'
       ansible.builtin.yum:
         name: '*'
-        state: latest
+        state: latest # noqa: package-latest
 
     - name: Upgrade packages with apt
       when: ansible_pkg_mgr == 'apt'
@@ -23,5 +23,5 @@
       when: ansible_pkg_mgr == 'yum'
       ansible.builtin.yum:
         name: '*'
-        state: latest
+        state: latest # noqa: package-latest
         exclude: kernel*
