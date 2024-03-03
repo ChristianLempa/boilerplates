@@ -10,10 +10,13 @@
           - fail2ban
         update_cache: true
 
-    - name: Copy fail2ban configfiles
+    - name: Copy fail2ban config file
       ansible.builtin.copy:
         src: configfiles/debian-sshd-default.conf
         dest: /etc/fail2ban/jail.d/debian-sshd-default.conf
+        mode: '0644'
+        owner: root
+        group: root
 
     - name: Restart fail2ban
       ansible.builtin.systemd_service:
