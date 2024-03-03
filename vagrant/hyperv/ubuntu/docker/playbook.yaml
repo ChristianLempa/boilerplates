@@ -6,8 +6,8 @@
       ansible.builtin.apt:
         name:
           - apt-transport-https
-          - ca-certificates 
-          - curl 
+          - ca-certificates
+          - curl
           - gnupg-agent
           - software-properties-common
         update_cache: yes
@@ -17,9 +17,9 @@
     - name: add docker repo
       ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu focal stable
-    - name: install docker 
+    - name: install docker
       ansible.builtin.apt:
-        name: 
+        name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
