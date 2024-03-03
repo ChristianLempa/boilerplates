@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Install Cockpit
+  hosts: all
   become: true
 
   tasks:
