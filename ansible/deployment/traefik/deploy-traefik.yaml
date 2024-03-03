@@ -1,10 +1,10 @@
 ---
-- name: deploy traefik v2.5
+- name: Deploy traefik v2.5
   hosts: "{{ my_hosts | d([]) }}"
   become: true
 
   tasks:
-    - name: deploy traefik
+    - name: Deploy traefik
       become_user: "{{ lookup('env','USER') }}"
       community.docker.docker_container:
         name: traefik

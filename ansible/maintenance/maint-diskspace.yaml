@@ -1,17 +1,17 @@
 ---
-- name: check disk space
+- name: Check disk space
   hosts: "{{ my_hosts | d([]) }}"
 
   tasks:
-    - name: get disk usage
+    - name: Get disk usage
       ansible.builtin.command: df -h
       register: disk_usage
 
-    - name: check disk space available
+    - name: Check disk space available
       ansible.builtin.shell: df -Ph / | awk 'NR==2 {print $5}'
       register: disk_usage
 
-    # - name: send discord message when disk space is over 80%
+    # - name: Send discord message when disk space is over 80%
     #   uri:
     #     url: "your-webhook"
     #     method: POST

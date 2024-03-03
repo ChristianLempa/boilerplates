@@ -4,7 +4,7 @@
   become: true
 
   tasks:
-    - name: install cockpit
+    - name: Install cockpit
       ansible.builtin.apt:
         name: cockpit
         update_cache: true

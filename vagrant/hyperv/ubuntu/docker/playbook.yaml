@@ -4,7 +4,7 @@
   become: true
 
   tasks:
-    - name: install prerequisites
+    - name: Install prerequisites
       ansible.builtin.apt:
         name:
           - apt-transport-https
@@ -14,15 +14,15 @@
           - software-properties-common
         update_cache: true
 
-    - name: add apt-key
+    - name: Add apt-key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
 
-    - name: add docker repo
+    - name: Add docker repo
       ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu focal stable
 
-    - name: install docker
+    - name: Install docker
       ansible.builtin.apt:
         name:
           - docker-ce
@@ -31,5 +31,5 @@
           - docker-compose
         update_cache: true
 
-    - name: add userpermissions
+    - name: Add user permissions
       ansible.builtin.shell: "usermod -aG docker vagrant"

@@ -1,15 +1,15 @@
 ---
-- name: deploy portainer-ce latest
+- name: Deploy portainer-ce latest
   hosts: "{{ my_hosts | d([]) }}"
   become: true
   become_user: "{{ lookup('env','USER') }}"
 
   tasks:
-    - name: create new volume
+    - name: Create new volume
       community.docker.docker_volume:
         name: portainer-data
 
-    - name: deploy portainer
+    - name: Deploy portainer
       community.docker.docker_container:
         name: portainer
         image: "docker.io/portainer/portainer-ce"

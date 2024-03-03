@@ -1,15 +1,15 @@
 ---
-- name: install wireguard
+- name: Install wireguard
   hosts: "{{ my_hosts | d([]) }}"
   become: true
 
   tasks:
-    - name: install wireguard
+    - name: Install wireguard
       ansible.builtin.apt:
         name: wireguard
         update_cache: true
 
-    - name: generate private and public keypair
+    - name: Generate private and public keypair
       ansible.builtin.shell: |
         wg genkey | tee privatekey | wg pubkey > publickey
         chmod 0400 privatekey
