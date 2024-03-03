@@ -1,6 +1,6 @@
 ---
 - name: install docker
-  hosts: "{{ hosts }}"
+  hosts: "{{ my_hosts | d([]) }}"
   become: yes
   tasks:
     - name: install docker dependencies

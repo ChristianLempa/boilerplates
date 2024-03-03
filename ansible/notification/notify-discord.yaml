@@ -11,7 +11,7 @@
 
 - name: notify discord
 
-  hosts: "{{ hosts }}"
+  hosts: "{{ my_hosts | d([]) }}"
 
   vars:
     # The name that will be shown as sender of the notification. Note
