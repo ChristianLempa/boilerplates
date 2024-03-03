@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  become: yes
+  become: true
   tasks:
     - name: install prerequisites
       ansible.builtin.apt:
@@ -10,7 +10,7 @@
           - curl
           - gnupg-agent
           - software-properties-common
-        update_cache: yes
+        update_cache: true
     - name: add apt-key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -24,6 +24,6 @@
           - docker-ce-cli
           - containerd.io
           - docker-compose
-        update_cache: yes
+        update_cache: true
     - name: add userpermissions
       ansible.builtin.shell: "usermod -aG docker vagrant"

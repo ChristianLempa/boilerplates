@@ -1,7 +1,7 @@
 ---
 - name: add ssh key
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
   tasks:
     - name: install public keys
       ansible.posix.authorized_key:

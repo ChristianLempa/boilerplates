@@ -1,7 +1,7 @@
 ---
 - name: install docker
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
   tasks:
     - name: install docker dependencies
       ansible.builtin.apt:
@@ -11,7 +11,7 @@
           - curl
           - gnupg-agent
           - software-properties-common
-        update_cache: yes
+        update_cache: true
     - name: add docker gpg key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -31,4 +31,4 @@
           - docker-buildx-plugin
           - docker-scan-plugin
           - docker-compose-plugin
-        update_cache: yes
+        update_cache: true

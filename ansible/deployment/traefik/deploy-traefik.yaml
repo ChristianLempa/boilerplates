@@ -1,7 +1,7 @@
 ---
 - name: deploy traefik v2.5
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
   tasks:
     - name: deploy traefik
       become_user: "{{ lookup('env','USER') }}"

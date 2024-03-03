@@ -1,7 +1,7 @@
 ---
 - name: deploy portainer-ce latest
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
   become_user: "{{ lookup('env','USER') }}"
   tasks:
     - name: create new volume

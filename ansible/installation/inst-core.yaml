@@ -1,11 +1,11 @@
 ---
 - name: install core packages
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
   tasks:
     - name: install core packages
       ansible.builtin.apt:
         name:
           - prometheus-node-exporter
           - nfs-common
-        update_cache: yes
+        update_cache: true
