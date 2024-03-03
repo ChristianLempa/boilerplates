@@ -1,11 +1,9 @@
 ---
 - name: Deploy traefik v2.5
   hosts: "{{ my_hosts | d([]) }}"
-  become: true
 
   tasks:
     - name: Deploy traefik
-      become_user: "{{ lookup('env', 'USER') }}"
       community.docker.docker_container:
         name: traefik
         image: "traefik:v2.5"
@@ -16,3 +14,5 @@
           - /var/run/docker.sock:/var/run/docker.sock
           - /etc/traefik:/etc/traefik
         restart_policy: unless-stopped
+      become: true
+      become_user: "{{ lookup('env', 'USER') }}"
