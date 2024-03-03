@@ -31,5 +31,8 @@
           - docker-compose
         update_cache: true
 
-    - name: Add user permissions
-      ansible.builtin.shell: "usermod -aG docker vagrant"
+    - name: Add user vagrant to group docker
+      ansible.builtin.user:
+        name: vagrant
+        groups: docker
+        append: true

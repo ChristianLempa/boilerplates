@@ -9,5 +9,8 @@
         classic: true
         name: microk8s
 
-    - name: Add user permissions
-      ansible.builtin.shell: "usermod -aG microk8s vagrant"
+    - name: Add user vagrant to group microk8s
+      ansible.builtin.user:
+        name: vagrant
+        groups: microk8s
+        append: true
