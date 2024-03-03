@@ -2,10 +2,10 @@
 - hosts: all
   become: yes
   tasks:
-  - name: install microk8s
-    community.general.snap:
-      classic: yes
-      name: microk8s
-  - name: add userpermissions
-    ansible.builtin.shell: "usermod -aG microk8s vagrant"
+    - name: install microk8s
+      community.general.snap:
+        classic: yes
+        name: microk8s
+    - name: add userpermissions
+      ansible.builtin.shell: "usermod -aG microk8s vagrant"
 

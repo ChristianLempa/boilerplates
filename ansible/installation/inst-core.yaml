@@ -3,9 +3,9 @@
   hosts: "{{ my_hosts | d([]) }}"
   become: yes
   tasks:
-  - name: install core packages
-    ansible.builtin.apt:
-      name:
-        - prometheus-node-exporter
-        - nfs-common
-      update_cache: yes
+    - name: install core packages
+      ansible.builtin.apt:
+        name:
+          - prometheus-node-exporter
+          - nfs-common
+        update_cache: yes
