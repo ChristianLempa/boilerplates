@@ -1,3 +1,4 @@
+---
 - name: install core packages
   hosts: "{{ my_hosts | d([]) }}"
   become: yes
