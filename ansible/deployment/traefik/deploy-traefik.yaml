@@ -5,7 +5,7 @@
 
   tasks:
     - name: Deploy traefik
-      become_user: "{{ lookup('env','USER') }}"
+      become_user: "{{ lookup('env', 'USER') }}"
       community.docker.docker_container:
         name: traefik
         image: "traefik:v2.5"

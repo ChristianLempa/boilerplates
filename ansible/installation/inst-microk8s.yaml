@@ -10,4 +10,4 @@
         name: microk8s
 
     - name: Add user permissions
-      ansible.builtin.shell: "usermod -aG microk8s {{ lookup('env','USER') }}"
+      ansible.builtin.shell: "usermod -aG microk8s {{ lookup('env', 'USER') }}"
