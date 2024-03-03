@@ -2,12 +2,14 @@
 - name: add ssh key
   hosts: "{{ my_hosts | d([]) }}"
   become: true
+
   tasks:
     - name: install public keys
       ansible.posix.authorized_key:
         user: "{{ lookup('env','USER') }}"
         state: present
         key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
     - name: change sudoers file
       ansible.builtin.lineinfile:
         path: /etc/sudoers

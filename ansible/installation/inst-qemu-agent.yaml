@@ -3,6 +3,7 @@
   hosts: all
   become: true
   become_method: sudo
+
   tasks:
     - name: Install qemu-guest-agent
       ansible.builtin.apt:

@@ -3,10 +3,12 @@
   hosts: "{{ my_hosts | d([]) }}"
   become: true
   become_user: "{{ lookup('env','USER') }}"
+
   tasks:
     - name: create new volume
       community.docker.docker_volume:
         name: portainer-data
+
     - name: deploy portainer
       community.docker.docker_container:
         name: portainer

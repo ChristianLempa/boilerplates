@@ -2,6 +2,7 @@
 - name: install core packages
   hosts: "{{ my_hosts | d([]) }}"
   become: true
+
   tasks:
     - name: install core packages
       ansible.builtin.apt:

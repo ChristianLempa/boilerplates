@@ -1,6 +1,7 @@
 ---
 - hosts: all
   become: true
+
   tasks:
     - name: install cockpit
       ansible.builtin.apt:

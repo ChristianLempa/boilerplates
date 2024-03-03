@@ -2,6 +2,7 @@
 - name: install zsh
   hosts: "{{ my_hosts | d([]) }}"
   become: true
+
   tasks:
     - name: install zsh
       ansible.builtin.apt:

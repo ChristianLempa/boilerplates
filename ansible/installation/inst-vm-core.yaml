@@ -2,6 +2,7 @@
 - name: install core packages for virtual machines
   hosts: "{{ my_hosts | d([]) }}"
   become: true
+
   tasks:
     - name: install packages
       ansible.builtin.apt:
@@ -10,6 +11,7 @@
           - nfs-common
           - qemu-guest-agent
         update_cache: true
+
     - name: start guest qemu-guest-agent
       ansible.builtin.service:
         name: qemu-guest-agent

@@ -2,10 +2,12 @@
 - name: install microk8s
   hosts: "{{ my_hosts | d([]) }}"
   become: true
+
   tasks:
     - name: install microk8s
       community.general.snap:
         classic: true
         name: microk8s
+
     - name: add userpermissions
       ansible.builtin.shell: "usermod -aG microk8s {{ lookup('env','USER') }}"
