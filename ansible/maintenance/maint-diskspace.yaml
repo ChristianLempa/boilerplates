@@ -4,7 +4,11 @@
 
   tasks:
     - name: Check disk space available
-      ansible.builtin.shell: df -Ph / | awk 'NR==2 {print $5}'
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          df -Ph / | awk 'NR==2 {print $5}'
+        executable: /bin/bash
       register: disk_usage
 
     # - name: Send discord message when disk space is over 80%
