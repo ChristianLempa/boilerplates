@@ -9,7 +9,7 @@
 # In order to generate a webhook, please see
 # https://support.discord.com/hc/en-us/articles/360045093012-Server-Integrations-Page
 
-- name: notify discord
+- name: Notify discord
 
   hosts: "{{ my_hosts | d([]) }}"
 
@@ -62,7 +62,7 @@
     notify_discord_send_from_host: localhost
 
   tasks:
-    - name: send discord message
+    - name: Send Discord message
       community.general.discord:
         username: "{{ notify_discord_username }}"
         webhook_id: "{{ notify_discord_webhook_id }}"

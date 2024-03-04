@@ -1,9 +1,10 @@
 ---
-- name: install zsh
+- name: Install zsh
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
+
   tasks:
-    - name: install zsh
+    - name: Install zsh
       ansible.builtin.apt:
         name: zsh
         state: present

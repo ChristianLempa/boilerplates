@@ -1,8 +1,10 @@
 ---
-- hosts: all
-  become: yes
+- name: Install Cockpit
+  hosts: all
+  become: true
+
   tasks:
-  - name: install cockpit
-    ansible.builtin.apt:
-      name: cockpit
-      update_cache: yes
+    - name: Install cockpit
+      ansible.builtin.apt:
+        name: cockpit
+        update_cache: true

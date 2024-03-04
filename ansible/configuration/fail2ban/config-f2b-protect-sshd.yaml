@@ -1,19 +1,25 @@
 ---
-- name: install fail2ban and configure sshd
+- name: Install fail2ban and configure sshd
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
+
   tasks:
-  - name: install fail2ban
-    ansible.builtin.apt:
-      name:
-        - fail2ban
-      update_cache: yes
-  - name: copy fail2ban configfiles
-    ansible.builtin.copy:
-      src: configfiles/debian-sshd-default.conf
-      dest: /etc/fail2ban/jail.d/debian-sshd-default.conf
-  - name: restart fail2ban
-    ansible.builtin.systemd_service:
-      state: restarted
-      daemon_reload: yes
-      name: fail2ban
+    - name: Install fail2ban
+      ansible.builtin.apt:
+        name:
+          - fail2ban
+        update_cache: true
+
+    - name: Copy fail2ban config file
+      ansible.builtin.copy:
+        src: configfiles/debian-sshd-default.conf
+        dest: /etc/fail2ban/jail.d/debian-sshd-default.conf
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Restart fail2ban
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: true
+        name: fail2ban

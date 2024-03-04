@@ -1,5 +1,4 @@
 ---
-
 - name: Setup Prerequisites To Install Kubernetes
   hosts: instance
   become: true

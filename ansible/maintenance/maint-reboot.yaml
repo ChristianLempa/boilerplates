@@ -1,8 +1,9 @@
 ---
-- name: reboot machine
+- name: Reboot machine
   hosts: "{{ my_hosts | d([]) }}"
-  become: yes
+  become: true
+
   tasks:
-  - name: reboot machine
-    ansible.builtin.reboot:
-      reboot_timeout: 3600
+    - name: Reboot machine
+      ansible.builtin.reboot:
+        reboot_timeout: 3600
