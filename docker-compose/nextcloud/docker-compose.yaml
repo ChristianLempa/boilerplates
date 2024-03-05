@@ -17,7 +17,9 @@ services:
       - MYSQL_HOST=nextcloud-db
     restart: unless-stopped
   nextcloud-db:
-    image: mariadb:latest
+    # See compatibility matrix for Nextcloud 28
+    # https://docs.nextcloud.com/server/28/admin_manual/installation/system_requirements.html
+    image: docker.io/library/mariadb:10.6.17
     container_name: nextcloud-db
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
