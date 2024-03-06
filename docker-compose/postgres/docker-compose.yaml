@@ -1,6 +1,4 @@
 ---
-version: "3.8"
-
 services:
   postgres:
     image: docker.io/library/postgres:16.2
