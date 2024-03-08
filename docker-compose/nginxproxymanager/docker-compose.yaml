@@ -5,7 +5,7 @@ volumes:
   nginxproxymanager-db:
 services:
   nginxproxymanager:
-    image: jc21/nginx-proxy-manager:2.10.3
+    image: docker.io/jc21/nginx-proxy-manager:2.11.1
     ports:
       - 80:80
       - 81:81
