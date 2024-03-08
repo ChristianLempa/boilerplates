@@ -2,10 +2,11 @@
 services:
   homeassistant:
     container_name: homeassistant
-    image: "ghcr.io/home-assistant/home-assistant:2023.6"
+    image: ghcr.io/home-assistant/home-assistant:2024.3.0
     volumes:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
     # devices:
     #   - /dev/ttyACMO  # (optional) Add serial devices to the container
     privileged: true
