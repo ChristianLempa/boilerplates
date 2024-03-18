@@ -1,17 +1,18 @@
 ---
-- name: deploy traefik v2.5
-  hosts: "{{ hosts }}"
-  become: yes
+- name: Deploy traefik v2.5
+  hosts: "{{ my_hosts | d([]) }}"
+
   tasks:
-  - name: deploy traefik
-    become_user: "{{ lookup('env','USER') }}"
-    community.docker.docker_container:
-      name: traefik
-      image: "traefik:v2.5"
-      ports:
-        - "80:80"
-        - "443:443"
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - /etc/traefik:/etc/traefik
-      restart_policy: unless-stopped
+    - name: Deploy traefik
+      community.docker.docker_container:
+        name: traefik
+        image: "traefik:v2.5"
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - /etc/traefik:/etc/traefik
+        restart_policy: unless-stopped
+      become: true
+      become_user: "{{ lookup('env', 'USER') }}"

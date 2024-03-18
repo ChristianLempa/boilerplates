@@ -1,17 +1,19 @@
 ---
-- name: add ssh key
-  hosts: "{{ hosts }}"
-  become: yes
+- name: Add ssh key
+  hosts: "{{ my_hosts | d([]) }}"
+  become: true
+
   tasks:
-  - name: install public keys
-    ansible.posix.authorized_key:
-      user: "{{ lookup('env','USER') }}"
-      state: present
-      key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-  - name: change sudoers file
-    lineinfile:
-      path: /etc/sudoers
-      state: present
-      regexp: '^%sudo'
-      line: '%sudo ALL=(ALL) NOPASSWD: ALL'
-      validate: /usr/sbin/visudo -cf %s
+    - name: Install public keys
+      ansible.posix.authorized_key:
+        user: "{{ lookup('env', 'USER') }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+    - name: Change sudoers file
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: /usr/sbin/visudo -cf %s

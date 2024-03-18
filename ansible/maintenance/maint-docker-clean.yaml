@@ -1,8 +1,9 @@
 ---
-- name: clean docker
-  hosts: "{{ hosts }}"
+- name: Clean docker
+  hosts: "{{ my_hosts | d([]) }}"
+
   tasks:
-    - name: prune non-dangling images
+    - name: Prune non-dangling images
       community.docker.docker_prune:
         containers: false
         images: true
