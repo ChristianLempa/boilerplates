@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:8.3
     hostname: mysql
     volumes:
       - semaphore-mysql:/var/lib/mysql
