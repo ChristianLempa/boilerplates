@@ -23,5 +23,4 @@ jobs:
 
     - name: Lint YAML files
       run: |
-       find . -name '*.y*ml'' | xargs yamllint
-
+       find . -name '*.y*ml' -exec yamllint -p {} \+
