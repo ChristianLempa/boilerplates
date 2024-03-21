@@ -6,8 +6,8 @@ services:
     environment:
       - LOG_LEVEL=info
     # (Optional) Run as a specific user
-    #   PUID: $PUID
-    #   PGID: $PGID
+    #   - PUID=your-user-id
+    #   - PGID=your-group-id
     ports:
       - 3000:3000
     volumes:
