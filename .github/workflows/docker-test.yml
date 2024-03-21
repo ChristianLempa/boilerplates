@@ -1,10 +1,12 @@
 name: Docker Compose Validation
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    paths:
-      - '**/*.yml'
-      - '**/*.yaml'
+    branches:
+      - main
 
 jobs:
   build:
