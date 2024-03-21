@@ -27,7 +27,7 @@ jobs:
           set -e
 
           # Validate Docker Compose file
-          find . -name 'docker-compose.yml' -exec docker-compose -f {} config \;
+          find . -name 'docker-compose.y*ml' -exec docker-compose -f {} config \;
 
           # Check for incorrect image tags
           if grep -q '::' docker-compose.yml; then
