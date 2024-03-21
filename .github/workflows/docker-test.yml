@@ -29,8 +29,5 @@ jobs:
           # Validate Docker Compose file
           find . -name 'docker-compose.y*ml' -exec docker-compose -f {} config \;
 
-          # Check for incorrect image tags
-          find . -name 'docker-compose.y*ml' -exec if grep -q '::' ; then
-            echo "Error: Docker Compose file contains incorrect image tags"
-            exit 1
-          fi
+          # Find all docker-compose.yml files and check for incorrect image tags
+          find . -name 'docker-compose.yml' -exec grep -q '::' {} \; -exec echo "Error: Docker Compose file contains incorrect image tags" \; -exec false \;
