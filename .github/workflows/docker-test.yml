@@ -29,14 +29,7 @@ jobs:
           # Validate Docker Compose file
           find . -name 'docker-compose.y*ml' -exec docker-compose -f {} config \;
 
-      - name: Validate Docker Compose File for incorrect image tags
-        run: |
-          set -e
-
-          # Find all docker-compose files and check for incorrect image tags
-          find . -name 'docker-compose.y*ml' -exec grep -q '::' {} \; -exec echo "Error: Docker Compose file contains incorrect image tags" \; -exec false \;
-
-      - name: Validate Docker Compose File for incorrect image tags 2
+      - name: Validate Docker Compose File for incorrect image tags 
         run: |
           set -e
           # Find all Docker Compose files and check for incorrect image tags
