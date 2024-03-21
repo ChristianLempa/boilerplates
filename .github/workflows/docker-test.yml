@@ -30,7 +30,7 @@ jobs:
           find . -name 'docker-compose.y*ml' -exec docker-compose -f {} config \;
 
           # Check for incorrect image tags
-          if grep -q '::' find . -name 'docker-compose.y*ml'; then
+          find . -name 'docker-compose.y*ml' -exec if grep -q '::' ; then
             echo "Error: Docker Compose file contains incorrect image tags"
             exit 1
           fi
