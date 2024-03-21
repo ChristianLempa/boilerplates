@@ -22,11 +22,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-
-      - name: Lint YAML files
-          run: |
-           find . -name 'docker-compose.yml' -exec  -p {} \+
-
       - name: Validate Docker Compose File
         run: |
           set -e
