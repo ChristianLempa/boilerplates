@@ -25,4 +25,4 @@ jobs:
 
     - name: Run KubeLinter
       run: |
-        find kubernetes/ -name '*.y*ml' -exec kube-linter lint --add-all-built-in -p {} \+
+        find kubernetes/ -name '*.y*ml' -exec kube-linter lint --add-all-built-in {} \+
