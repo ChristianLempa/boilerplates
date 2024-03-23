@@ -23,5 +23,4 @@ jobs:
 
     - name: Lint YAML files
       run: |
-        yamllint --version  # Checking yamllint version
-        find . -type f \( -name '*.yaml' -o -name '*.yml' \) | grep -v '/ansible/' | xargs yamllint
+        find . -type f -name '*.yaml' -o -name '*.yml' ! -path "./ansible/*" -exec yamllint {} \+
