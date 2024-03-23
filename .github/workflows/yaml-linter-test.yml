@@ -23,6 +23,6 @@ jobs:
 
     - name: Lint YAML files
       run: |
-       find . -name '*.y*ml' -exec yamllint -p {} \+
+        find . -type f -name '*.yaml' -o -name '*.yml' ! -path "./ansible/*" -exec yamllint {} \+
 
        

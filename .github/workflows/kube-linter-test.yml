@@ -25,4 +25,4 @@ jobs:
 
     - name: Run KubeLinter
       run: |
-        kube-linter lint --output-format=table --exit-with-error --config-path=.kubelinter.yaml
+        find kubernetes/ -name '*.y*ml' -exec kube-linter lint --add-all-built-in -p {} \+
