@@ -24,3 +24,7 @@ jobs:
       run: |
         find . -name '*.y*ml' -exec ansible-lint -p {} \+
 
+    - name: Lint Ansible playbooks
+      run: |
+        find ansible/ -name '*.y*ml' -exec ansible-lint -p {} \+
+
