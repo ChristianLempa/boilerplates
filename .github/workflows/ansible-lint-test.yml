@@ -20,9 +20,9 @@ jobs:
       run: |
         pip install ansible-lint
 
-    - name: Lint Ansible playbooks
-      run: |
-        find . -name '*.y*ml' -exec ansible-lint -p {} \+
+ #   - name: Lint Ansible playbooks
+ #     run: |
+ #       find . -name '*.y*ml' -exec ansible-lint -p {} \+
 
     - name: Lint Ansible playbooks
       run: |
