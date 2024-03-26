@@ -1,14 +1,8 @@
 ---
-# (Optional) when using custom network
-# networks:
-#   yournetwork:
-#     external: true
-volumes:
-  postgres-data:
 services:
   postgres:
-    # (Recommended) replace "latest" with specific version
-    image: postgres:latest
+    image: postgres:16.2
+    container_name: postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -16,9 +10,9 @@ services:
       # - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - 5432:5432
-    # (Optional) when using custom network
-    # networks:
-    #   - yournetwork
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
+
+volumes:
+  postgres-data:

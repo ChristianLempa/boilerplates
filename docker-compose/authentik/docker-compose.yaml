@@ -1,0 +1,95 @@
+---
+services:
+  postgres:
+    image: postgres:16.2
+    container_name: authentik-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+  redis:
+    image: redis:7.2.4
+    container_name: authentik-redis
+    command: --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+  server:
+    image: ghcr.io/goauthentik/server:2024.2.2
+    container_name: authentik-server
+    command: server
+    environment:
+      - AUTHENTIK_REDIS__HOST=authentik-redis
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER}
+      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+      # (Required)  To generate a secret key run the following command:
+      #             echo $(openssl rand -base64 32)
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      # (Optional)  Enable Error Reporting
+      # - AUTHENTIK_ERROR_REPORTING__ENABLED=true
+      # (Optional)  Enable Email Sending
+      # - AUTHENTIK_EMAIL__HOST=localhost
+      # - AUTHENTIK_EMAIL__PORT=25
+      # - AUTHENTIK_EMAIL__USERNAME=${EMAIL_USERNAME}
+      # - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD}
+      # - AUTHENTIK_EMAIL__USE_TLS=false
+      # - AUTHENTIK_EMAIL__USE_SSL=false
+      # - AUTHENTIK_EMAIL__TIMEOUT=10
+      # - AUTHENTIK_EMAIL__FROM=authentik@localhost  # replace with your email address
+    ports:
+      - 9000:9000
+      - 9443:9443
+    volumes:
+      - ./media:/media
+      - ./custom-templates:/templates
+    depends_on:
+      - postgresql
+      - redis
+    restart: unless-stopped
+  worker:
+    image: ghcr.io/goauthentik/server:2024.2.2
+    container_name: authentik-worker
+    command: worker
+    environment:
+      - AUTHENTIK_REDIS__HOST=authentik-redis
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
+      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER}
+      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+    # (Optional)  When using the docker socket integration
+    #             See more for the docker socket integration here:
+    #             https://goauthentik.io/docs/outposts/integrations/docker
+    # user: root
+    volumes:
+      # (Optional)  When using the docker socket integration
+      # - /var/run/docker.sock:/var/run/docker.sock
+      - ./media:/media
+      - ./certs:/certs
+      - ./custom-templates:/templates
+    depends_on:
+      - postgresql
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
