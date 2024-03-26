@@ -1,0 +1,33 @@
+---
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage::v0.8.9
+    container_name: homepage
+    environment:
+      - LOG_LEVEL=info
+    # (Optional) Run as a specific user
+    #   - PUID=your-user-id
+    #   - PGID=your-group-id
+    # (Optional) For secret variables
+    #   - HOMEPAGE_VAR_YOURSECRET=your-secret-key
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config:/app/config
+      - ./images:/app/images  # for custom background images
+      - ./icons:/app/icons  # for custom icons
+    restart: unless-stopped
+  # (Optional) For secure docker socket integration
+  # dockerproxy:
+  #   image: ghcr.io/tecnativa/docker-socket-proxy:v0.1.1
+  #   container_name: homepage-demo-1-dockerproxy
+  #   environment:
+  #     - CONTAINERS=1 # Allow access to viewing containers
+  #     - SERVICES=1 # Allow access to viewing services (necessary when using Docker Swarm)
+  #     - TASKS=1 # Allow access to viewing tasks (necessary when using Docker Swarm)
+  #     - POST=0 # Disallow any POST operations (effectively read-only)
+  #   ports:
+  #     - 127.0.0.1:2375:2375
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
+  #   restart: unless-stopped
