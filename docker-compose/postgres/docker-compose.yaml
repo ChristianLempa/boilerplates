@@ -1,7 +1,8 @@
 ---
 services:
   postgres:
-    image: docker.io/library/postgres:16.2
+    image: postgres:16.2
+    container_name: postgres
     environment:
       - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS---data-checksums}
       - POSTGRES_HOST_AUTH_METHOD=${POSTGRES_HOST_AUTH_METHOD-}
@@ -17,8 +18,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-    # (Optional) when using custom network, see also
-    # https://docs.docker.com/compose/compose-file/compose-file-v3/#networks
+    # (Optional)  When using custom network, see also
+    #             https://docs.docker.com/compose/compose-file/compose-file-v3/#networks
     #
     # networks:
     #   - yournetwork
@@ -28,8 +29,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-# (Optional) when using custom network, see also
-# https://docs.docker.com/compose/compose-file/compose-file-v3/#network-configuration-reference
+# (Optional)  When using custom network, see also
+#             https://docs.docker.com/compose/compose-file/compose-file-v3/#network-configuration-reference
 #
 # networks:
 #   yournetwork:
