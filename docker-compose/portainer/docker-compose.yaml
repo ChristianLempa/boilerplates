@@ -5,7 +5,7 @@ volumes:
 services:
   app:
     container_name: portainer
-    image: portainer/portainer-ce:latest
+    image: docker.io/portainer/portainer-ce:latest
     ports:
       - 9000:9000
       - 9443:9443

@@ -1,7 +1,7 @@
 ---
 services:
   mariadb:
-    image: linuxserver/mariadb
+    image: docker.io/linuxserver/mariadb
     container_name: mariadb
     environment:
       - PUID=1001
@@ -15,7 +15,7 @@ services:
       - /opt/webserver_swag/config/mariadb:/config
     restart: unless-stopped
   swag:
-    image: linuxserver/swag
+    image: docker.io/linuxserver/swag
     container_name: swag
     cap_add:
       - NET_ADMIN

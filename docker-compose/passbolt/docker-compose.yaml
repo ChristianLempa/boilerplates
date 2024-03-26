@@ -6,7 +6,7 @@ volumes:
 services:
   passbolt-db:
     container_name: passbolt-db
-    image: mariadb:11.3
+    image: docker.io/library/mariadb:11.3
     environment:
       - MYSQL_RANDOM_ROOT_PASSWORD=true
       - MYSQL_DATABASE=$PASSBOLT_DB_NAME
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
   passbolt:
     container_name: passbolt-app
-    image: passbolt/passbolt:latest-ce
+    image: docker.io/passbolt/passbolt:latest-ce
     depends_on:
       - passbolt-db
     environment:
