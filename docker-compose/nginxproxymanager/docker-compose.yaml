@@ -20,7 +20,7 @@ services:
       - nginxproxymanager-data:/data
       - nginxproxymanager-ssl:/etc/letsencrypt
   nginxproxymanager-db:
-    image: jc21/mariadb-aria:10.11.5
+    image: docker.io/jc21/mariadb-aria:10.11.5
     environment:
       - MYSQL_ROOT_PASSWORD=npm
       - MYSQL_DATABASE=npm

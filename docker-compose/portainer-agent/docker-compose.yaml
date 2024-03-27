@@ -4,7 +4,7 @@ services:
     container_name: portainer-agent
     deploy:
       mode: global
-    image: portainer/agent:latest
+    image: docker.io/portainer/agent:latest
     ports:
       - 9001:9001
     volumes:
