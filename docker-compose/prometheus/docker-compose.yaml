@@ -11,5 +11,5 @@ services:
     command: "--config.file=/etc/prometheus/prometheus.yaml"
     volumes:
       - ./config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
-      - ./data:/prometheus
+      - prometheus-data:/prometheus
     restart: unless-stopped
