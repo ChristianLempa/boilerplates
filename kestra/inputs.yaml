@@ -59,4 +59,6 @@ inputs:
     type: STRING
 
 tasks:
-  # your-tasks
+  - id: using_inputs
+    type: io.kestra.core.tasks.log.Log
+    message: "{{ inputs.string }}"
