@@ -8,7 +8,7 @@
 #   curl http://your-kestra-instance/api/v1/executions/webhook/your-namespace/your-task-id/your-secret-key
 
 id: webhook
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
   # your-tasks
@@ -16,4 +16,4 @@ tasks:
 triggers:
   - id: webhook
     type: io.kestra.core.models.triggers.types.Webhook
-    key: # your-secret-key, keep this secret!
+    key:  # your-secret-key, keep this secret!

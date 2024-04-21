@@ -6,7 +6,7 @@
 #
 
 id: docker-git-build
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
 

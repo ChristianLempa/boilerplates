@@ -6,7 +6,7 @@
 #
 
 id: variables
-namespace: # your-namespace
+namespace:  # your-namespace
 
 variables:
   variable-name: "variable-value"

@@ -6,7 +6,7 @@
 #
 
 id: inputs
-namespace: # your-namespace
+namespace:  # your-namespace
 
 inputs:
   - id: string

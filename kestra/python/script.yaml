@@ -6,7 +6,7 @@
 #
 
 id: python-script
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
 

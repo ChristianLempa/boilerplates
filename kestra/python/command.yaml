@@ -9,7 +9,7 @@
 #   if you're running Kestra in Docker, use a volume to mount the file/directory.
 
 id: python-command
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
 
