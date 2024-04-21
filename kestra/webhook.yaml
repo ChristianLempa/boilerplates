@@ -11,7 +11,7 @@ id: webhook
 namespace:  # your-namespace
 
 tasks:
-  # your-tasks
+# - your-tasks
 
 triggers:
   - id: webhook
