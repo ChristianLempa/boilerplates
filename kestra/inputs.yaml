@@ -1,11 +1,12 @@
+---
 # Kestra Inputs Template
 # ---
-# 
-# Inputs is a list of dynamic values passed to the flow at runtime. 
-# 
+#
+# Inputs is a list of dynamic values passed to the flow at runtime.
+#
 
 id: inputs
-namespace: # your-namespace
+namespace:  # your-namespace
 
 inputs:
   - id: string

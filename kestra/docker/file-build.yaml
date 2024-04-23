@@ -1,11 +1,12 @@
+---
 # Kestra Docker File Build Template
 # ---
-# 
+#
 # Build a Docker image from a File.
 #
 
 id: docker-file-build
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
 
@@ -29,7 +30,7 @@ tasks:
       - id: build
         type: io.kestra.plugin.docker.Build
         dockerfile: "src/Dockerfile"
-        tags: 
+        tags:
           - your-username/your-repository:your-tag
         push: true
         credentials:

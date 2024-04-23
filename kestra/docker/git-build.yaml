@@ -1,11 +1,12 @@
+---
 # Kestra Docker Git Build Template
 # ---
-# 
+#
 # Build a Docker image from a Git repository.
 #
 
 id: docker-git-build
-namespace: # your-namespace
+namespace:  # your-namespace
 
 tasks:
 
@@ -20,7 +21,7 @@ tasks:
       - id: build
         type: io.kestra.plugin.docker.Build
         dockerfile: "src/Dockerfile"
-        tags: 
+        tags:
           - your-username/your-repository:your-tag
         push: true
         credentials:
