@@ -4,7 +4,7 @@ volumes:
   nextcloud-db:
 services:
   nextcloud-app:
-    image: docker.io/library/nextcloud:28.0.4-apache
+    image: docker.io/library/nextcloud:29.0.0-apache
     container_name: nextcloud-app
     ports:
       - 80:80
@@ -17,9 +17,9 @@ services:
       - MYSQL_HOST=nextcloud-db
     restart: unless-stopped
   nextcloud-db:
-    # See compatibility matrix for Nextcloud 28
-    # https://docs.nextcloud.com/server/28/admin_manual/installation/system_requirements.html
-    image: docker.io/library/mariadb:11.3.2
+    # See compatibility matrix for Nextcloud 29
+    # https://docs.nextcloud.com/server/29/admin_manual/installation/system_requirements.html
+    image: docker.io/library/mariadb:10.6.17
     container_name: nextcloud-db
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
