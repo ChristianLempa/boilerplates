@@ -1,0 +1,13 @@
+---
+services:
+  nginx:
+    image: docker.io/library/nginx:1.26.0-alpine
+    container_name: nginx
+    ports:
+      - 80:80
+      # (optional) uncomment the line below to enable HTTPS
+      # - 443:443
+    volumes:
+      - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data:/usr/share/nginx/html:ro
+    restart: unless-stopped
