@@ -3,8 +3,8 @@
   "labels": ["renovate"],
   "packageRules": [
     {
-      "depTypeList": [ "devDependencies", "require-dev" ],
-      "updateTypes": [ "patch", "minor", "digest"],
+      "matchDepTypes": [ "devDependencies", "require-dev" ],
+      "matchUpdateTypes": [ "patch", "minor", "digest"],
       "groupName": "devDependencies (non-major)"
     }
   ],
