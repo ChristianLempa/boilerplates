@@ -23,6 +23,20 @@
         "minor",
         "patch"
       ]
+    },
+    {
+      "enabled": false,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*(mariadb|mysql)(:.*)?$"
+      ]
     }
   ]
 }
