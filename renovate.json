@@ -1,19 +1,42 @@
- {
+{
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "labels": ["renovate"],
-  "packageRules": [
-    {
-      "depTypeList": [ "devDependencies", "require-dev" ],
-      "updateTypes": [ "patch", "minor", "digest"],
-      "groupName": "devDependencies (non-major)"
-    }
-  ],
   "extends": [
     "config:base",
-    ":preserveSemverRanges",
     ":dependencyDashboard",
-    ":rebaseStalePrs",
     ":enableVulnerabilityAlertsWithLabel('security')",
+    ":preserveSemverRanges",
+    ":rebaseStalePrs",
     "group:recommended"
+  ],
+  "labels": [
+    "renovate"
+  ],
+  "packageRules": [
+    {
+      "groupName": "devDependencies (non-major)",
+      "matchDepTypes": [
+        "devDependencies",
+        "require-dev"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ]
+    },
+    {
+      "enabled": false,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*(mariadb|mysql)(:.*)?$"
+      ]
+    }
   ]
 }
