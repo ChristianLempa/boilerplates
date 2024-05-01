@@ -38,5 +38,6 @@
         "^([^/]+\\/)*(mariadb|mysql)(:.*)?$"
       ]
     }
-  ]
+  ],
+  "separateMinorPatch": true
 }
