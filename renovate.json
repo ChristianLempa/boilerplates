@@ -35,7 +35,7 @@
         "minor"
       ],
       "packagePatterns": [
-        "^([^/]+\\/)*(mariadb|mysql)(:.*)?$"
+        "^([^/]+\\/)*(mariadb|mysql)(:.+)?$"
       ]
     },
     {
@@ -53,7 +53,7 @@
         "patch"
       ],
       "packagePatterns": [
-        "^([^/]+\\/)*mariadb(:.*)?$"
+        "^([^/]+\\/)*mariadb(:.+)?$"
       ]
     }
   ],
