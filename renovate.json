@@ -37,6 +37,24 @@
       "packagePatterns": [
         "^([^/]+\\/)*(mariadb|mysql)(:.*)?$"
       ]
+    },
+    {
+      "enabled": true,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchFileNames": [
+        "docker-compose/mariadb/**"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*mariadb(:.*)?$"
+      ]
     }
   ],
   "separateMinorPatch": true
