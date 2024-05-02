@@ -55,6 +55,16 @@
       "packagePatterns": [
         "^([^/]+\\/)*mariadb(:.+)?$"
       ]
+    },
+    {
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*heimdall(:.+)?$"
+      ],
+      "versioning": "regex:^(?<major>(?!2021)\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
     }
   ],
   "separateMinorPatch": true
