@@ -64,7 +64,7 @@
       "packagePatterns": [
         "^([^/]+\\/)*heimdall(:.+)?$"
       ],
-      "versioning": "regex:^(?<major>(?!2021)\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
+      "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
     }
   ],
   "separateMinorPatch": true
