@@ -39,13 +39,27 @@
       ]
     },
     {
+      "enabled": false,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major",
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*postgres(:.+)?$"
+      ]
+    },
+    {
       "enabled": true,
       "managers": [
         "docker-compose",
         "dockerfile"
       ],
       "matchFileNames": [
-        "docker-compose/mariadb/**"
+        "docker-compose/mariadb/**",
+        "docker-compose/postgres/**"
       ],
       "matchUpdateTypes": [
         "major",
@@ -53,7 +67,7 @@
         "patch"
       ],
       "packagePatterns": [
-        "^([^/]+\\/)*mariadb(:.+)?$"
+        "^([^/]+\\/)*(mariadb|postgres)(:.+)?$"
       ]
     },
     {
