@@ -19,7 +19,7 @@ services:
   nextcloud-db:
     # See compatibility matrix for Nextcloud 29
     # https://docs.nextcloud.com/server/29/admin_manual/installation/system_requirements.html
-    image: docker.io/library/mariadb:10.6.17
+    image: docker.io/library/mariadb:10.6.18
     container_name: nextcloud-db
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
