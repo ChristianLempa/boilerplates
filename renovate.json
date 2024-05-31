@@ -89,7 +89,7 @@
       "packagePatterns": [
         "^([^/]+\\/)*nginx(:.+)?$"
       ],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
     }
   ],
   "separateMinorPatch": true
