@@ -79,6 +79,17 @@
         "^([^/]+\\/)*heimdall(:.+)?$"
       ],
       "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
+    },
+    {
+      "description": "Nginx container images, track stable releases only",
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*nginx(:.+)?$"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
     }
   ],
   "separateMinorPatch": true
