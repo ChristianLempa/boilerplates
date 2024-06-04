@@ -16,6 +16,6 @@
         ports:
           - "9443:9443"
         volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
+          - /run/docker.sock:/var/run/docker.sock
           - portainer-data:/data
         restart_policy: unless-stopped
