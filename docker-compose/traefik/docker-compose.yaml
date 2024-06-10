@@ -5,7 +5,7 @@
 #     external: true
 services:
   traefik:
-    image: docker.io/library/traefik:v3.0.1
+    image: docker.io/library/traefik:v3.0.2
     container_name: traefik
     ports:
       - 80:80
