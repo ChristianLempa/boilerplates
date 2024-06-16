@@ -10,7 +10,7 @@ volumes:
 services:
   pihole:
     container_name: pihole
-    image: docker.io/pihole/pihole:2024.05.0
+    image: docker.io/pihole/pihole:2024.06.0
     ports:
       - 53:53/tcp
       - 53:53/udp
