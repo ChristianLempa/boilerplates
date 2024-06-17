@@ -94,4 +94,3 @@ deployment:
 ingressClass:
   enabled: true
   isDefaultClass: true
-

@@ -1,6 +1,6 @@
 ---
 - name: Install core packages for virtual machines
-  hosts: "{{ my_hosts | d([]) }}"
+  hosts: all
   become: true
 
   tasks:

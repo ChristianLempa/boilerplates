@@ -1,6 +1,6 @@
 ---
 - name: Install zsh
-  hosts: "{{ my_hosts | d([]) }}"
+  hosts: all
   become: true
 
   tasks:

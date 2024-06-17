@@ -1,6 +1,6 @@
 ---
 - name: Add ssh key
-  hosts: "{{ my_hosts | d([]) }}"
+  hosts: all
   become: true
 
   tasks:

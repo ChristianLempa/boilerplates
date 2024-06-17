@@ -1,6 +1,6 @@
 ---
 - name: Install wireguard
-  hosts: "{{ my_hosts | d([]) }}"
+  hosts: all
   become: true
 
   tasks:
