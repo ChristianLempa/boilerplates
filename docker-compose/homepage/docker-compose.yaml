@@ -29,5 +29,5 @@ services:
   #   ports:
   #     - 127.0.0.1:2375:2375
   #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
+  #     - /run/docker.sock:/run/docker.sock:ro # Mounted as read-only
   #   restart: unless-stopped

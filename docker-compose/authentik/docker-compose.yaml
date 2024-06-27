@@ -94,7 +94,7 @@ services:
     # user: root
     volumes:
       # (Optional)  When using the docker socket integration
-      # - /var/run/docker.sock:/var/run/docker.sock
+      # - /run/docker.sock:/run/docker.sock
       - ./media:/media
       - ./certs:/certs
       - ./custom-templates:/templates

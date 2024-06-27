@@ -11,7 +11,7 @@
           - "80:80"
           - "443:443"
         volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
+          - /run/docker.sock:/run/docker.sock
           - /etc/traefik:/etc/traefik
         restart_policy: unless-stopped
       become: true
