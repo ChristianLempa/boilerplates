@@ -100,7 +100,7 @@
       "packagePatterns": [
         "^([^/]+\\/)*semaphore(:.+)?$"
       ],
-      "allowedVersions": "!/^2\\.19\\.10$/"
+      "allowedVersions": "!/^v?2\\.19\\.10$/"
     }
   ],
   "separateMinorPatch": true
