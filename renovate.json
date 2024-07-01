@@ -103,5 +103,6 @@
       "allowedVersions": "!/^v?2\\.19\\.10$/"
     }
   ],
-  "separateMinorPatch": true
+  "separateMinorPatch": true,
+  "stopUpdatingLabel": "renovate/stop_updating"
 }
