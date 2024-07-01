@@ -90,6 +90,17 @@
         "^([^/]+\\/)*nginx(:.+)?$"
       ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
+    },
+    {
+      "description": "Semaphore container images, ignore erroneous version tags",
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*semaphore(:.+)?$"
+      ],
+      "allowedVersions": "!/^2\\.19\\.10$/"
     }
   ],
   "separateMinorPatch": true
