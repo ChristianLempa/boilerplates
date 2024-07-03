@@ -8,7 +8,7 @@ services:
     ports:
       - 9001:9001
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/volumes:/var/lib/docker/volumes
     networks:
       - portainer-agent_default

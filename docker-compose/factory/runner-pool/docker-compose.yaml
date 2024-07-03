@@ -5,7 +5,7 @@ services:
     image: docker.io/refactr/runner-pool:v0.147.2
     user: root
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /run/docker.sock:/run/docker.sock
       - ./config.json:/etc/runner-agent.json
     # stdin_open: true
     # tty: true
