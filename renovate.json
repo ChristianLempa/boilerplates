@@ -25,6 +25,7 @@
       ]
     },
     {
+      "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibilty with an application",
       "enabled": false,
       "managers": [
         "docker-compose",
@@ -39,6 +40,7 @@
       ]
     },
     {
+      "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibilty with an application",
       "enabled": false,
       "managers": [
         "docker-compose",
@@ -52,6 +54,7 @@
       ]
     },
     {
+      "description": "Update MariaDB or PostgreSQL to the most recent release if they are standalone and not part of an application stack",
       "enabled": true,
       "managers": [
         "docker-compose",
@@ -71,6 +74,7 @@
       ]
     },
     {
+      "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
       "managers": [
         "docker-compose",
         "dockerfile"
@@ -81,7 +85,7 @@
       "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
     },
     {
-      "description": "Nginx container images, track stable releases only",
+      "description": "Track stable releases of Nginx only",
       "managers": [
         "docker-compose",
         "dockerfile"
@@ -92,7 +96,7 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
     },
     {
-      "description": "Semaphore container images, ignore erroneous version tags",
+      "description": "Ignore erroneous version tags of Semaphore",
       "managers": [
         "docker-compose",
         "dockerfile"
