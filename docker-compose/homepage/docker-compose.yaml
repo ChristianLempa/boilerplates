@@ -1,7 +1,7 @@
 ---
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v0.9.2
+    image: ghcr.io/gethomepage/homepage:v0.9.3
     container_name: homepage
     environment:
       - LOG_LEVEL=info
