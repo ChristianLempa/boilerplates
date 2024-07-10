@@ -25,6 +25,6 @@ tasks:
         env:
           "ANSIBLE_HOST_KEY_CHECKING": "false"
         commands:
-        # Apk command only required if use ssh passwords.
-          - apk add sshpass   
-          - ansible-playbook -i inventory.ini myplaybook.yml
+          # Apk command only required if use ssh passwords.
+          - apk add sshpass
+          - ansible-playbook -i inventory.ini myplaybook.yaml
