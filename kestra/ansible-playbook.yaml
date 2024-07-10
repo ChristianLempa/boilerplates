@@ -1,0 +1,30 @@
+---
+# Kestra ansible-playbook Template
+# ---
+#
+# Run an ansible playbook which has been uploaded to the server.
+#
+id: ansible_job
+namespace: # your-namespace
+
+tasks:
+  - id: ansible
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: ansible_task
+        namespaceFiles:
+          enabled: true
+          # Files are to be uploaded to the kestra data directory for the namespace in
+          # <docker volume for kestra-data>/<namespace>/_files/
+          include:
+          - inventory.ini
+          - myplaybook.yaml
+        type: io.kestra.plugin.ansible.cli.AnsibleCLI
+        docker:
+          image: cytopia/ansible:latest-tools
+        env:
+          "ANSIBLE_HOST_KEY_CHECKING": "false"
+        commands:
+        # Apk command only required if use ssh passwords.
+          - apk add sshpass   
+          - ansible-playbook -i inventory.ini myplaybook.yml
