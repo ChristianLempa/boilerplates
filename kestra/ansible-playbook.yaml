@@ -17,8 +17,8 @@ tasks:
           # Files are to be uploaded to the kestra data directory for the namespace in
           # <docker volume for kestra-data>/<namespace>/_files/
           include:
-          - inventory.ini
-          - myplaybook.yaml
+            - inventory.ini
+            - myplaybook.yaml
         type: io.kestra.plugin.ansible.cli.AnsibleCLI
         docker:
           image: cytopia/ansible:latest-tools
