@@ -27,7 +27,7 @@ tasks:
           # <--
         type: io.kestra.plugin.ansible.cli.AnsibleCLI
         docker:
-          image: cytopia/ansible:latest-tools
+          image: docker.io/cytopia/ansible:latest-tools
           user: "1000"  # required to set ssh key permissions
         env:
           "ANSIBLE_HOST_KEY_CHECKING": "false"
