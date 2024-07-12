@@ -21,11 +21,11 @@ tasks:
             ---
             - hosts: srv-demo-1.home.clcreative.de
               tasks:
-              - name: upgrade apt packages
-                become: true
-                apt:
-                  upgrade: yes
-                  update_cache: yes
+                - name: upgrade apt packages
+                  become: true
+                  apt:
+                    upgrade: yes
+                    update_cache: yes
           # <--
           id_rsa: "{{ secret('SSH_KEY') }}"
       - id: ansible_task
