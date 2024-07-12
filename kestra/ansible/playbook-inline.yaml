@@ -17,21 +17,21 @@ tasks:
           inventory.ini: |
             srv-demo-1.home.clcreative.de
           # --> replace with your playbook
-          myplaybook.yml: |
+          myplaybook.yaml: |
             ---
             - hosts: srv-demo-1.home.clcreative.de
               tasks:
-              - name: upgrade apt packages
-                become: true
-                apt:
-                  upgrade: yes
-                  update_cache: yes
+                - name: upgrade apt packages
+                  become: true
+                  ansible.builtin.apt:
+                    upgrade: true
+                    update_cache: true
           # <--
           id_rsa: "{{ secret('SSH_KEY') }}"
       - id: ansible_task
         type: io.kestra.plugin.ansible.cli.AnsibleCLI
         docker:
-          image: cytopia/ansible:latest-tools
+          image: docker.io/cytopia/ansible:latest-tools
           user: "1000"  # required to set ssh key permissions
         env:
           "ANSIBLE_HOST_KEY_CHECKING": "false"
