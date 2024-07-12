@@ -23,7 +23,7 @@ tasks:
               tasks:
                 - name: upgrade apt packages
                   become: true
-                  apt:
+                  ansible.builtin.apt:
                     upgrade: yes
                     update_cache: yes
           # <--
