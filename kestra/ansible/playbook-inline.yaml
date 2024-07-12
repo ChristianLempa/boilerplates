@@ -17,7 +17,7 @@ tasks:
           inventory.ini: |
             srv-demo-1.home.clcreative.de
           # --> replace with your playbook
-          myplaybook.yml: |
+          myplaybook.yaml: |
             ---
             - hosts: srv-demo-1.home.clcreative.de
               tasks:
