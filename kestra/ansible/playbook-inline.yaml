@@ -24,8 +24,8 @@ tasks:
                 - name: upgrade apt packages
                   become: true
                   ansible.builtin.apt:
-                    upgrade: yes
-                    update_cache: yes
+                    upgrade: true
+                    update_cache: true
           # <--
           id_rsa: "{{ secret('SSH_KEY') }}"
       - id: ansible_task
