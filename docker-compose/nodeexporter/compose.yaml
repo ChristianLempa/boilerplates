@@ -1,7 +1,7 @@
 ---
 services:
   node_exporter:
-    image: quay.io/prometheus/node-exporter:v1.8.1
+    image: quay.io/prometheus/node-exporter:v1.8.2
     container_name: node_exporter
     command: "--path.rootfs=/host"
     pid: host
