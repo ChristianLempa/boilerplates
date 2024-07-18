@@ -1,0 +1,13 @@
+---
+services:
+  frpc:
+    build: .
+    container_name: frpc
+    ports:
+      - 7400:7400
+    environment:
+      FRP_AUTH_TOKEN: ${FRP_AUTH_TOKEN}
+      FRP_DASHBOARD_PASSWORD: ${FRP_DASHBOARD_PASSWORD}
+    volumes:
+      - ./frpc.toml:/frp/frpc.toml
+    restart: unless-stopped

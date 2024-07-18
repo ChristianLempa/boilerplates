@@ -1,0 +1,12 @@
+---
+services:
+  frps:
+    build: .
+    container_name: frps
+    network_mode: host
+    environment:
+      FRP_AUTH_TOKEN: ${FRP_AUTH_TOKEN}
+      FRP_DASHBOARD_PASSWORD: ${FRP_DASHBOARD_PASSWORD}
+    volumes:
+      - ./frps.toml:/frp/frps.toml
+    restart: unless-stopped
