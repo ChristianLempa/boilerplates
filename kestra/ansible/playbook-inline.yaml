@@ -1,0 +1,42 @@
+---
+# Kestra ansible-playbook Template
+# ---
+#
+# Run an ansible playbook defined inline the kestra flow.
+#
+id: ansible_job
+namespace: # your-namespace
+
+tasks:
+  - id: ansible
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: local_files
+        type: io.kestra.core.tasks.storages.LocalFiles
+        inputs:
+          inventory.ini: |
+            srv-demo-1.home.clcreative.de
+          # --> replace with your playbook
+          myplaybook.yaml: |
+            ---
+            - hosts: srv-demo-1.home.clcreative.de
+              tasks:
+                - name: upgrade apt packages
+                  become: true
+                  ansible.builtin.apt:
+                    upgrade: true
+                    update_cache: true
+          # <--
+          id_rsa: "{{ secret('SSH_KEY') }}"
+      - id: ansible_task
+        type: io.kestra.plugin.ansible.cli.AnsibleCLI
+        docker:
+          image: docker.io/cytopia/ansible:latest-tools
+          user: "1000"  # required to set ssh key permissions
+        env:
+          "ANSIBLE_HOST_KEY_CHECKING": "false"
+          # --> (optional) when using a different remote user
+          # "ANSIBLE_REMOTE_USER": "your-remote-user"
+          # <--
+        commands:
+          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml

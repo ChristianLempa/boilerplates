@@ -1,0 +1,17 @@
+---
+# Kestra Variable Template
+# ---
+#
+#
+#
+
+id: variables
+namespace:  # your-namespace
+
+variables:
+  variable-name: "variable-value"
+
+tasks:
+  - id: using_variables
+    type: io.kestra.core.tasks.log.Log
+    message: "{{ vars.variable-name }}"

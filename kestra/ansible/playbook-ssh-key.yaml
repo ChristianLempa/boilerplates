@@ -1,0 +1,38 @@
+---
+# Kestra ansible-playbook Template
+# ---
+#
+# Run an ansible playbook which has been uploaded to the server, using 
+# ssh key authentication.
+#
+id: ansible_job
+namespace: # your-namespace
+
+tasks:
+  - id: ansible
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: load_ssh_key
+        type: io.kestra.core.tasks.storages.LocalFiles
+        inputs:
+          id_rsa: "{{ secret('SSH_KEY') }}"
+      - id: ansible_task
+        namespaceFiles:
+          enabled: true
+          # --> upload your files to the kestra data directory for the namespace in
+          #     <docker volume for kestra-data>/<namespace>/_files/
+          include:
+            - inventory.ini
+            - myplaybook.yaml
+          # <--
+        type: io.kestra.plugin.ansible.cli.AnsibleCLI
+        docker:
+          image: docker.io/cytopia/ansible:latest-tools
+          user: "1000"  # required to set ssh key permissions
+        env:
+          "ANSIBLE_HOST_KEY_CHECKING": "false"
+          # --> (optional) when using a different remote user
+          # "ANSIBLE_REMOTE_USER": "your-remote-user"
+          # <--
+        commands:
+          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml

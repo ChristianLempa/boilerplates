@@ -1,0 +1,30 @@
+---
+# Kestra Docker Git Build Template
+# ---
+#
+# Build a Docker image from a Git repository.
+#
+
+id: docker-git-build
+namespace:  # your-namespace
+
+tasks:
+
+  - id: git
+    type: io.kestra.core.tasks.flows.WorkingDirectory
+    tasks:
+      - id: clone
+        type: io.kestra.plugin.git.Clone
+        url: https://your-git-repo-url
+        branch: your-branch
+
+      - id: build
+        type: io.kestra.plugin.docker.Build
+        dockerfile: "src/Dockerfile"
+        tags:
+          - your-username/your-repository:your-tag
+        push: true
+        credentials:
+          registry: https://index.docker.io/v1/
+          username: "{{ secret('YOUR_USERNAME') }}"
+          password: "{{ secret('YOUR_PASSWORD') }}"

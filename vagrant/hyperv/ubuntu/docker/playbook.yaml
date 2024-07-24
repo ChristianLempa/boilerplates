@@ -1,29 +1,38 @@
 ---
-- hosts: all
-  become: yes
+- name: Install Docker
+  hosts: all
+  become: true
+
   tasks:
-    - name: install prerequisites
-      apt:
+    - name: Install prerequisites
+      ansible.builtin.apt:
         name:
           - apt-transport-https
-          - ca-certificates 
-          - curl 
+          - ca-certificates
+          - curl
           - gnupg-agent
           - software-properties-common
-        update_cache: yes
-    - name: add apt-key
-      apt_key:
+        update_cache: true
+
+    - name: Add apt-key
+      ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
-    - name: add docker repo
-      apt_repository:
+
+    - name: Add docker repo
+      ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu focal stable
-    - name: install docker 
-      apt:
-        name: 
+
+    - name: Install docker
+      ansible.builtin.apt:
+        name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
           - docker-compose
-        update_cache: yes
-    - name: add userpermissions
-      shell: "usermod -aG docker vagrant"
+        update_cache: true
+
+    - name: Add user vagrant to group docker
+      ansible.builtin.user:
+        name: vagrant
+        groups: docker
+        append: true

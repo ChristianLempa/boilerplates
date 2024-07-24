@@ -1,0 +1,26 @@
+---
+# -- (Optional) When using a custom network
+# networks:
+#   your-traefik-network:
+#     external: true
+services:
+  traefik:
+    image: docker.io/library/traefik:v3.1.0
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+      # -- (Optional) Enable Dashboard, don't do in production
+      # - 8080:8080
+    volumes:
+      - /run/docker.sock:/run/docker.sock:ro
+      - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./config/conf/:/etc/traefik/conf/
+      - ./config/certs/:/etc/traefik/certs/
+    # -- (Optional) When using Cloudflare as Cert Resolver
+    # environment:
+    #   - CF_DNS_API_TOKEN=your-cloudflare-api-token
+    # -- (Optional) When using a custom network
+    # networks:
+    #   - your-traefik-network
+    restart: unless-stopped

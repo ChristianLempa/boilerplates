@@ -1,0 +1,12 @@
+---
+services:
+  bind9:
+    image: docker.io/ubuntu/bind9:9.18-23.10_edge
+    container_name: bind9
+    ports:
+      - "53:53"
+    volumes:
+      - /etc/bind/:/etc/bind/
+      - /var/cache/bind:/var/cache/bind
+      - /var/lib/bind:/var/lib/bind
+    restart: unless-stopped

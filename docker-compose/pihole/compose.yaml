@@ -1,0 +1,26 @@
+---
+version: '3'
+
+volumes:
+  dnsmasq:
+    driver: local
+  etcd:
+    driver: local
+
+services:
+  pihole:
+    container_name: pihole
+    image: docker.io/pihole/pihole:2024.07.0
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/udp
+      - 80:80/tcp
+      - 443:443/tcp
+    environment:
+      - TZ=Europe/Berlin
+      - WEBPASSWORD=your-secret-password
+    volumes:
+      - dnsmasq:/etc/dnsmasq.d
+      - etcd:/etc/pihole
+    restart: unless-stopped

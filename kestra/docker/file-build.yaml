@@ -1,0 +1,39 @@
+---
+# Kestra Docker File Build Template
+# ---
+#
+# Build a Docker image from a File.
+#
+
+id: docker-file-build
+namespace:  # your-namespace
+
+tasks:
+
+  - id: file
+    type: io.kestra.core.tasks.flows.WorkingDirectory
+    tasks:
+      - id: createFiles
+        type: io.kestra.core.tasks.storages.LocalFiles
+        inputs:
+          Dockerfile: |
+            FROM alpine:latest
+            WORKDIR /app
+            COPY . /app
+            RUN apk add --update python3
+            CMD [ "python", "main.py"]
+          main.py: |
+            if __name__ == "__main__":
+              print("Hello from Docker!")
+              exit(0)
+
+      - id: build
+        type: io.kestra.plugin.docker.Build
+        dockerfile: "src/Dockerfile"
+        tags:
+          - your-username/your-repository:your-tag
+        push: true
+        credentials:
+          registry: https://index.docker.io/v1/
+          username: "{{ secret('YOUR_USERNAME') }}"
+          password: "{{ secret('YOUR_PASSWORD') }}"

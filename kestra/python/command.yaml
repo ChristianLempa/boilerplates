@@ -1,0 +1,20 @@
+---
+# Kestra Python Command Template
+# ---
+#
+# This template is a simple Python script.
+#
+# usage:
+#   make sure the Kestra instance can access the /app/scripts/your-python-script.py file
+#   if you're running Kestra in Docker, use a volume to mount the file/directory.
+
+id: python-command
+namespace:  # your-namespace
+
+tasks:
+
+  - id: python_command
+    type: io.kestra.plugin.scripts.python.Commands
+    commands:
+      - python /app/scripts/your-python-script.py
+    runner: PROCESS  # or DOCKER (might be deprecated in the future) use TaskRunner instead

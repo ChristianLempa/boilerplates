@@ -1,0 +1,112 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":enableVulnerabilityAlertsWithLabel('security')",
+    ":preserveSemverRanges",
+    ":rebaseStalePrs",
+    "group:recommended"
+  ],
+  "labels": [
+    "renovate"
+  ],
+  "packageRules": [
+    {
+      "groupName": "devDependencies (non-major)",
+      "matchDepTypes": [
+        "devDependencies",
+        "require-dev"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ]
+    },
+    {
+      "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibilty with an application",
+      "enabled": false,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*(mariadb|mysql)(:.+)?$"
+      ]
+    },
+    {
+      "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibilty with an application",
+      "enabled": false,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*postgres(:.+)?$"
+      ]
+    },
+    {
+      "description": "Update MariaDB or PostgreSQL to the most recent release if they are standalone and not part of an application stack",
+      "enabled": true,
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchFileNames": [
+        "docker-compose/mariadb/**",
+        "docker-compose/postgres/**"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*(mariadb|postgres)(:.+)?$"
+      ]
+    },
+    {
+      "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*heimdall(:.+)?$"
+      ],
+      "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
+    },
+    {
+      "description": "Track stable releases of Nginx only",
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*nginx(:.+)?$"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
+    },
+    {
+      "description": "Ignore erroneous version tags of Semaphore",
+      "managers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "packagePatterns": [
+        "^([^/]+\\/)*semaphore(:.+)?$"
+      ],
+      "allowedVersions": "!/^v?2\\.19\\.10$/"
+    }
+  ],
+  "separateMinorPatch": true,
+  "stopUpdatingLabel": "renovate/stop_updating"
+}

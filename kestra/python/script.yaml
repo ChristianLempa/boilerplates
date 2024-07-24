@@ -1,0 +1,29 @@
+---
+# Kestra Python Command Template
+# ---
+#
+# This template is a simple Python script that can be used to make a request to a website and log the status code.
+#
+
+id: python-script
+namespace:  # your-namespace
+
+tasks:
+
+  - id: python_script
+    type: io.kestra.plugin.scripts.python.Script
+    runner: DOCKER  # (might be deprecated in the future) use TaskRunner instead
+    script: |
+        from kestra import Kestra
+        import requests
+
+        response = requests.get('{{inputs.website}}')
+        print(response.status_code)
+
+        Kestra.outputs({'status': response.status_code, 'text': response.text})
+    beforeCommands:
+      - pip install requests kestra
+
+  - id: log
+    type: io.kestra.core.tasks.log.Log
+    message: "StatusCode: {{outputs.pythonscript.vars.status}}"

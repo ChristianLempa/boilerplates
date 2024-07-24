@@ -1,0 +1,65 @@
+---
+# Kestra Inputs Template
+# ---
+#
+# Inputs is a list of dynamic values passed to the flow at runtime.
+#
+
+id: inputs
+namespace:  # your-namespace
+
+inputs:
+  - id: string
+    type: STRING
+
+  - id: optional
+    type: STRING
+    required: false
+
+  - id: int
+    type: INT
+
+  - id: bool
+    type: BOOLEAN
+
+  - id: float
+    type: FLOAT
+
+  - id: instant
+    type: DATETIME
+
+  - id: date
+    type: DATE
+
+  - id: time
+    type: TIME
+
+  - id: duration
+    type: DURATION
+
+  - id: file
+    type: FILE
+
+  - id: optionalFile
+    type: FILE
+
+  - id: instantDefaults
+    type: DATETIME
+    defaults: "2013-08-09T14:19:00Z"
+
+  - id: json
+    type: JSON
+
+  - id: uri
+    type: URI
+
+  - id: secret
+    type: SECRET
+
+  - id: nested.string
+    type: STRING
+
+tasks:
+  - id: using_inputs
+    type: io.kestra.core.tasks.log.Log
+    message: "{{ inputs.string }}"
