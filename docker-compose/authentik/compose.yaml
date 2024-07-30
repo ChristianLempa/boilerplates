@@ -18,7 +18,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
   redis:
-    image: docker.io/library/redis:7.2.5
+    image: docker.io/library/redis:7.4.0
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     healthcheck:
