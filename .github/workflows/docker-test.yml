@@ -1,0 +1,39 @@
+name: Docker Compose Validation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Validate Docker Compose File
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Download Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Validate Docker Compose File
+        run: |
+          set -e
+
+          # Validate Docker Compose file
+          find . -name 'docker-compose.y*ml' -exec docker-compose -f {} config \;
+
+      - name: Validate Docker Compose File for incorrect image tags 
+        run: |
+          set -e
+          # Find all Docker Compose files and check for incorrect image tags
+          if find . -name 'docker-compose.y*ml' -exec grep -q '::' {} \;; then
+            echo "Error: Docker Compose file contains incorrect image tags"
+            exit 1
+          fi
