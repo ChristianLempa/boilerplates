@@ -1,6 +1,6 @@
-# Ubuntu Server Focal
+# Ubuntu Server Noble (24.04.x)
 # ---
-# Packer Template to create an Ubuntu Server (Focal) on Proxmox
+# Packer Template to create an Ubuntu Server (Noble 24.04.x) on Proxmox
 
 # Variable Definitions
 variable "proxmox_api_url" {
@@ -75,32 +75,36 @@ source "proxmox-iso" "ubuntu-server-noble" {
 
     # PACKER Boot Commands
     boot_command = [
-        "c<wait>",
-        "linux /casper/vmlinuz --- autoinstall ds=\"nocloud-net;seedfrom=http://{{.HTTPIP}}:{{.HTTPPort}}/\"",
-        "<enter><wait>",
-        "initrd /casper/initrd",
-        "<enter><wait>",
-        "boot","<enter>"]
+        "<esc><wait>",
+        "e<wait>",
+        "<down><down><down><end>",
+        "<bs><bs><bs><bs><wait>",
+        "autoinstall ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ---<wait>",
+        "<f10><wait>"
+    ]
 
-    boot_wait = "10s"
+    boot                    = "c"
+    boot_wait               = "10s"
+    communicator            = "ssh"
 
     # PACKER Autoinstall Settings
-    http_directory = "http" 
+    http_directory          = "http" 
     # (Optional) Bind IP Address and Port
-    # http_bind_address = "0.0.0.0"
-    # http_port_min = 8802
-    # http_port_max = 8802
+    # http_bind_address       = "0.0.0.0"
+    # http_port_min           = 8802
+    # http_port_max           = 8802
 
-    ssh_username = "your-user-name"
+    ssh_username            = "your-user-name"
 
     # (Option 1) Add your Password here
-    # ssh_password = "your-password"
+    # ssh_password        = "your-password"
     # - or -
     # (Option 2) Add your Private SSH KEY file here
-    # ssh_private_key_file = "~/.ssh/id_rsa"
+    # ssh_private_key_file    = "~/.ssh/id_rsa"
 
     # Raise the timeout, when installation takes longer
-    ssh_timeout = "20m"
+    ssh_timeout             = "30m"
+    ssh_pty                 = true
 }
 
 # Build Definition to create the VM Template
@@ -115,11 +119,12 @@ build {
             "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
             "sudo rm /etc/ssh/ssh_host_*",
             "sudo truncate -s 0 /etc/machine-id",
-            "sudo apt-get -y autoremove --purge",
-            "sudo apt-get -y clean",
-            "sudo apt-get -y autoclean",
+            "sudo apt -y autoremove --purge",
+            "sudo apt -y clean",
+            "sudo apt -y autoclean",
             "sudo cloud-init clean",
             "sudo rm -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg",
+            "sudo rm -f /etc/netplan/00-installer-config.yaml",
             "sudo sync"
         ]
     }
