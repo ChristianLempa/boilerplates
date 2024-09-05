@@ -1,0 +1,27 @@
+---
+services:
+  dockge:
+    container_name: dockge-demo-1
+    image: louislam/dockge:1.3.3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockge-data:/app/data
+      - /home/xcad:/home/xcad
+    environment:
+      - DOCKGE_STACKS_DIR=/home/xcad
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dockge-demo-1-http.entrypoints=web
+      - traefik.http.routers.dockge-demo-1-http.rule=Host(`dockge-demo-1.srv-demo-1.home.clcreative.de`)
+      - traefik.http.routers.dockge-demo-1-https.entrypoints=websecure
+      - traefik.http.routers.dockge-demo-1-https.rule=Host(`dockge-demo-1.srv-demo-1.home.clcreative.de`)
+      - traefik.http.routers.dockge-demo-1-https.tls=true
+      - traefik.http.routers.dockge-demo-1-https.tls.certresolver=cloudflare
+    networks:
+      - frontend
+    restart: unless-stopped
+volumes:
+  dockge-data:
+networks:
+  frontend:
+    external: true
