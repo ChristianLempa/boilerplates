@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: nginx-app
+  template:
+    metadata:
+      labels:
+        app: nginx-app
+    spec:
+      containers:
+      - name: nginx-app
+        image: nginx:1.25.5-alpine
+        ports:
+          - name: web
+            containerPort: 80
+        volumeMounts:
+          - name: nginx-data
+            mountPath: /usr/share/nginx/html
+          - name: nginx-config
+            mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: nginx-data
+        persistentVolumeClaim:
+          claimName: nginx-data-claim
+      - name: nginx-config
+        configMap:
+          name: nginx-configmap
