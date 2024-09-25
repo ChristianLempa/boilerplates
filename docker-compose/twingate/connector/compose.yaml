@@ -7,7 +7,7 @@
 services:
   twingate_connector:
     container_name: twingate_connector
-    image: docker.io/twingate/connector:1.69.0
+    image: docker.io/twingate/connector:1.70.0
     environment:
       - TWINGATE_NETWORK=your-twingate-network
       - TWINGATE_ACCESS_TOKEN=${TWINGATE_ACCESS_TOKEN}
