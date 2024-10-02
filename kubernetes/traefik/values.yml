@@ -84,7 +84,7 @@ deployment:
     # The "volume-permissions" init container is required if you run into permission issues.
     # Related issue: https://github.com/containous/traefik/issues/6972
     - name: volume-permissions
-      image: busybox:1.36.1
+      image: busybox:1.37.0
       command: ["sh", "-c", "chmod -Rv 600 /ssl-certs/*"]
       volumeMounts:
         - name: ssl-certs
