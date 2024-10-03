@@ -5,7 +5,7 @@ terraform {
     required_providers {
         civo = {
             source = "civo/civo"
-            version = "~> 1.0.13"
+            version = "~> 1.1.0"
         }
         helm = {
             source = "hashicorp/helm"
