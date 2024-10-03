@@ -1,7 +1,7 @@
 ---
 services:
   authentik_proxy:
-    image: ghcr.io/goauthentik/proxy:2024.8.0
+    image: ghcr.io/goauthentik/proxy:2024.8.3
     container_name: authentik-outpost
     environment:
       - AUTHENTIK_HOST=${AUTHENTIK_HOST:?error}
