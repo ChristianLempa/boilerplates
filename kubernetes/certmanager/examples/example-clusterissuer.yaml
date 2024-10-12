@@ -3,6 +3,10 @@ kind: ClusterIssuer
 metadata:
   name: acme-issuer
 spec:
+  # -- (Choice) Self-signed Issuer
+  # selfSigned: {}
+  # -- or --
+  # -- (Choice) ACME Issuer
   acme:
     # Configure your email here...
     # ---

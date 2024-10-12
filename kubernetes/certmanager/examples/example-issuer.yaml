@@ -6,6 +6,10 @@ metadata:
   # ---
   # namespace: your-namespace
 spec:
+  # -- (Choice) Self-signed Issuer
+  # selfSigned: {}
+  # -- or --
+  # -- (Choice) ACME Issuer
   acme:
     # Configure your email here...
     # ---
