@@ -11,6 +11,9 @@
   "labels": [
     "renovate"
   ],
+  "kubernetes": {
+    "fileMatch": ["(^|/)kubernetes/.+\/[^\/]+\\.ya?ml$"]
+  },
   "packageRules": [
     {
       "groupName": "devDependencies (non-major)",
