@@ -54,7 +54,7 @@ entryPoints:
 #         resolvers:
 #           - "1.1.1.1:53"
 #           - "8.8.8.8:53"
-#   cloudflare-production:
+#   cloudflare:
 #     acme:
 #       email: your-email@example.com
 #       storage: /var/traefik/certs/cloudflare-acme.json
