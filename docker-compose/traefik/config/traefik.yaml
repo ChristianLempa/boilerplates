@@ -40,7 +40,7 @@ entryPoints:
 
 # -- Configure your CertificateResolver here...
 # certificatesResolvers:
-#   staging:
+#   cloudflare-staging:
 #     acme:
 #       email: your-email@example.com
 #       storage: /var/traefik/certs/cloudflare-acme.json
@@ -54,7 +54,7 @@ entryPoints:
 #         resolvers:
 #           - "1.1.1.1:53"
 #           - "8.8.8.8:53"
-#   production:
+#   cloudflare-production:
 #     acme:
 #       email: your-email@example.com
 #       storage: /var/traefik/certs/cloudflare-acme.json
