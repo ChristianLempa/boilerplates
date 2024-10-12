@@ -43,7 +43,7 @@ entryPoints:
 #   staging:
 #     acme:
 #       email: your-email@example.com
-#       storage: /etc/traefik/certs/acme.json
+#       storage: /var/traefik/certs/cloudflare-acme.json
 #       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
 #       -- (Optional) Remove this section, when using DNS Challenge
 #       httpChallenge:
@@ -57,7 +57,7 @@ entryPoints:
 #   production:
 #     acme:
 #       email: your-email@example.com
-#       storage: /etc/traefik/certs/acme.json
+#       storage: /var/traefik/certs/cloudflare-acme.json
 #       caServer: "https://acme-v02.api.letsencrypt.org/directory"
 #       -- (Optional) Remove this section, when using DNS Challenge
 #       httpChallenge:
