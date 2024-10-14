@@ -1,11 +1,11 @@
-# Portainer Helm Chart Template
+# Portainer Helm Chart Values Template
 # ---
-replicas: 1  # Number of replicas
-
 image:
   repository: portainer/portainer-ce
   tag: 2.22.0
   pullPolicy: IfNotPresent
+
+replicas: 1  # Number of replicas
 
 # (Choice) LoadBalancer or ClusterIP with optional Ingress
 service:
