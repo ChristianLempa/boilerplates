@@ -1,0 +1,28 @@
+name: KubeLinter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install KubeLinter
+      run: |
+        curl -sSLo kubelinter.tar.gz https://github.com/stackrox/kube-linter/releases/latest/download/kube-linter-linux.tar.gz
+        tar xvzf kubelinter.tar.gz kube-linter
+        sudo mv kube-linter /usr/local/bin/
+        rm kubelinter.tar.gz
+
+    - name: Run KubeLinter
+      run: |
+        find kubernetes/ -name '*.y*ml' -exec kube-linter lint --add-all-built-in {} \+
