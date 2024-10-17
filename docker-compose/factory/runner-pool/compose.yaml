@@ -2,7 +2,7 @@
 services:
   refactr-runner:
     container_name: factory-runnerpool-prod-1
-    image: docker.io/refactr/runner-pool:v0.150.2
+    image: docker.io/refactr/runner-pool:v0.151.0
     user: root
     volumes:
       - /run/docker.sock:/run/docker.sock
