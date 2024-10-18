@@ -4,7 +4,7 @@ volumes:
   nextcloud-db:
 services:
   nextcloud-app:
-    image: docker.io/library/nextcloud:30.0.0-apache
+    image: docker.io/library/nextcloud:30.0.1-apache
     container_name: nextcloud-app
     ports:
       - 80:80
