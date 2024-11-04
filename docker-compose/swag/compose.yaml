@@ -1,7 +1,7 @@
 ---
 services:
   mariadb:
-    image: docker.io/linuxserver/mariadb:10.11.8
+    image: docker.io/linuxserver/mariadb:10.11.10
     container_name: mariadb
     environment:
       - PUID=1001
