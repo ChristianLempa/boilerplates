@@ -1,0 +1,13 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: longhorn-certificate
+  namespace: longhorn-system
+spec:
+  secretName: longhorn-certificate-secret
+  dnsNames:
+    - your-fqdn  # <-- Replace with your FQDN
+  issuerRef:
+    name: cloudflare-clusterissuer
+    kind: ClusterIssuer
