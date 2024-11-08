@@ -1,6 +1,6 @@
 image:
   repository: traefik
-  version: v3.1.4
+  version: v3.2.0
   pullPolicy: IfNotPresent
 
 # --> (Optional) Change log settings here...
