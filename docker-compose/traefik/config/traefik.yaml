@@ -2,93 +2,57 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 
-# -- (Optional) Change log level and format here ...
+# --> (Optional) Change log level and format here ...
 #     - level: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
-#     - format: [common, json]
 # log:
 #  level: ERROR
-#  format: common
-#  filePath: /var/log/traefik/traefik.log
+# <--
 
-# -- (Optional) Enable accesslog and change format here ...
-#     - format: [common, json]
-# accesslog:
-#   format: common
-#   filePath: /var/log/traefik/access.log
+# --> (Optional) Enable accesslog here ...
+# accesslog: {}
+# <--
 
-# -- (Optional) Enable API and Dashboard here, don't do in production
+# --> (Optional) Enable API and Dashboard here, don't do in production
 # api:
 #   dashboard: true
-#   disableDashboardAd: true
 #   insecure: true
+# <--
 
 # -- Change EntryPoints here...
 entryPoints:
   web:
     address: :80
-    # -- (Optional) Redirect all HTTP to HTTPS
+    # --> (Optional) Redirect all HTTP to HTTPS
     # http:
     #   redirections:
     #     entryPoint:
     #       to: websecure
     #       scheme: https
+    # <--
   websecure:
     address: :443
-  # -- (Optional) Add custom Entrypoint
-  # custom:
-  #   address: :8081
 
 # -- Configure your CertificateResolver here...
-# certificatesResolvers:
-#   cloudflare-staging:
-#     acme:
-#       email: your-email@example.com
-#       storage: /var/traefik/certs/cloudflare-acme.json
-#       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
-#       -- (Optional) Remove this section, when using DNS Challenge
-#       httpChallenge:
-#         entryPoint: web
-#       -- (Optional) Configure DNS Challenge
-#       dnsChallenge:
-#         provider: your-resolver (e.g. cloudflare)
-#         resolvers:
-#           - "1.1.1.1:53"
-#           - "8.8.8.8:53"
-#   cloudflare:
-#     acme:
-#       email: your-email@example.com
-#       storage: /var/traefik/certs/cloudflare-acme.json
-#       caServer: "https://acme-v02.api.letsencrypt.org/directory"
-#       -- (Optional) Remove this section, when using DNS Challenge
-#       httpChallenge:
-#         entryPoint: web
-#       -- (Optional) Configure DNS Challenge
-#       dnsChallenge:
-#         provider: your-resolver (e.g. cloudflare)
-#         resolvers:
-#           - "1.1.1.1:53"
-#           - "8.8.8.8:53"
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: your-email@example.com  # <-- Change this to your email
+      storage: /var/traefik/certs/cloudflare-acme.json
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      dnsChallenge:
+        provider: cloudflare # <-- (Optional) Change this to your DNS provider
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
-# -- (Optional) Disable TLS Cert verification check
+# --> (Optional) Disable TLS Cert verification check
 # serversTransport:
 #   insecureSkipVerify: true
-
-# -- (Optional) Overwrite Default Certificates
-# tls:
-#   stores:
-#     default:
-#       defaultCertificate:
-#         certFile: /etc/traefik/certs/cert.pem
-#         keyFile: /etc/traefik/certs/cert-key.pem
-# -- (Optional) Disable TLS version 1.0 and 1.1
-#   options:
-#     default:
-#       minVersion: VersionTLS12
+# <--
 
 providers:
   docker:
-    # -- (Optional) Enable this, if you want to expose all containers automatically
-    exposedByDefault: false
+    exposedByDefault: false  # <-- (Optional) Change this to true if you want to expose all services
   file:
     directory: /etc/traefik
     watch: true
