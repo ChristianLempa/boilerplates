@@ -1,0 +1,17 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: portainer-ingressroute
+  namespace: portainer
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`your-fqdn`)  # <-- Replace with your FQDN
+      kind: Rule
+      services:
+        - name: portainer
+          port: 9000
+  tls:
+    secretName: portainer-certificate-secret

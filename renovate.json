@@ -110,6 +110,29 @@
       "allowedVersions": "!/^v?2\\.19\\.10$/"
     }
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Longhorn images in Helm",
+      "fileMatch": ["(^|/)helm/longhorn/.+\\.yaml$"],
+      "matchStrings": [
+        "engine:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "manager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "ui:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "instanceManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "shareManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "backingImageManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "supportBundleKit:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "attacher:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "provisioner:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "nodeDriverRegistrar:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "resizer:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "snapshotter:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
+        "livenessProbe:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
   "separateMinorPatch": true,
   "stopUpdatingLabel": "renovate/stop_updating"
 }
