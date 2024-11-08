@@ -2,7 +2,7 @@
 services:
   dockge:
     container_name: dockge
-    image: louislam/dockge:1.3.3
+    image: louislam/dockge:1.4.2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - dockge-data:/app/data
