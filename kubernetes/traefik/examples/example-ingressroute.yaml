@@ -1,7 +1,7 @@
 apiVersion: traefik.io/v1alpha1
-kind: IngressRouteTCP
+kind: IngressRoute
 metadata:
-  name: ingressroutetcp
+  name: ingressroute
   # (Optional) Namespace
   # namespace: your-namespace
   # ---
@@ -10,12 +10,11 @@ spec:
   - web
   - websecure
   routes:
-  - match: HostSNI(`your-hostname-sni`)
-    priority: 10
+  - match: Host(`your-hostname`)
+    kind: Rule
     services:
     - name: your-service
       port: 80
-  # (Optional) TLS Passthrough
+  # (Optional) TLS
   # tls:
-  #   passthrough: true
-  # ---
+  #   secretName: your-tls-secret

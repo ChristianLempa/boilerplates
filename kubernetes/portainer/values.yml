@@ -14,13 +14,13 @@ service:
   # type: ClusterIP
 
 # (Optional) Add Ingress, when using ClusterIP
-# ingress:
-#   enabled: true
-#   hosts:
-#     - host: "portainer-test-1.kube-prod-2.home.clcreative.de"
-#       paths: 
-#         - path: "/"
-#           port: "9000"
+ingress:
+  enabled: true
+  hosts:
+    - host: "portainer-test-1.kube-prod-2.home.clcreative.de"
+      paths: 
+        - path: "/"
+          port: "9000"
 # -- end
 
 persistence:
