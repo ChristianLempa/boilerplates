@@ -1,5 +1,4 @@
-# Cert-Manager Helm Chart Values Template
-# ---
+---
 image:
   repository: quay.io/jetstack/cert-manager-controller
   tag: v1.16.0
@@ -11,12 +10,8 @@ cainjector:
   image:
     repository: quay.io/jetstack/cert-manager-cainjector
     tag: v1.16.0
-
-# Enable the CRD install job
 crds: 
   enabled: true
-
-# Add DNS01 recursive nameserver configuration
 extraArgs:
   - --dns01-recursive-nameservers-only
   - --dns01-recursive-nameservers=1.1.1.1:53,1.0.0.1:53
