@@ -1,7 +1,7 @@
 ---
 services:
   postgres:
-    image: docker.io/library/postgres:16.4
+    image: docker.io/library/postgres:16.5
     container_name: authentik-db
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-authentik}
