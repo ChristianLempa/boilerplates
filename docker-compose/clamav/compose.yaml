@@ -1,0 +1,22 @@
+---
+services:
+  clamav:
+    image: clamav/clamav:latest
+    container_name: clamav
+    volumes:
+      - ./scandir:/scandir:rw
+      - ./config/clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./config/freshclam.conf:/etc/clamav/freshclam.conf:ro
+      - clamav-data:/var/lib/clamav
+    logging:
+      driver: syslog
+      options:
+        tag: "clamd/{{.ID}}"
+    networks:
+      - frontend
+    restart: unless-stopped
+volumes:
+  clamav-data:
+networks:
+  frontend:
+    external: true
