@@ -1,0 +1,12 @@
+relayhost = [your-smtp-server-url]:587  ; Replace [your-smtp-server-url] with your SMTP server URL
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_use_tls = yes
+smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
+mydestination = localhost
+myhostname = postfix
+mynetworks = 0.0.0.0/0
+smtp_tls_security_level = may
+smtpd_tls_security_level = none
