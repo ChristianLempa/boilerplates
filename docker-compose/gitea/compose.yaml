@@ -24,15 +24,6 @@ services:
       # -- (Optional) Change your server settings here...
       - GITEA__server__SSH_PORT=2221  # <-- (Optional) Replace with your desired SSH port
       - GITEA__server__ROOT_URL=http://your-fqdn  # <-- Replace with your FQDN
-      # --> (Optional) Change mailer settings here...
-      # - GITEA__mailer__ENABLED=true
-      # - GITEA__mailer__FROM=${MAILER_FROM:?MAILER_FROM not set}
-      # - GITEA__mailer__PROTOCOL=smtps
-      # - GITEA__mailer__SMTP_ADDR=${MAILER_SMTP_ADDR:?MAILER_SMTP_ADDR not set}
-      # - GITEA__mailer__SMTP_PORT=${MAILER_SMTP_PORT:?MAILER_SMTP_PORT not set}
-      # - GITEA__mailer__USER=${MAILER_USER:-apikey}
-      # - GITEA__mailer__PASSWD="""${MAILER_PASSWORD:?MAILER_PASSWORD not set}"""
-      # <--
     # --> (Optional) When using traefik...
     # networks:
     #   - frontend
