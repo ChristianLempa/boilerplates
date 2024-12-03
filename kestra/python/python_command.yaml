@@ -1,4 +1,3 @@
----
 # Kestra Python Command Template
 # ---
 #
@@ -8,14 +7,13 @@
 #   make sure the Kestra instance can access the /app/scripts/your-python-script.py file
 #   if you're running Kestra in Docker, use a volume to mount the file/directory.
 #
-
-id: python-command  # <- Replace with your task id...
-namespace: your-namespace  # <- Replace with your namespace...
-
+id: python_command
+namespace: your_namespace  # <-- Replace with your namespace...
 tasks:
-
-  - id: python_command
+  - id: python_job
     type: io.kestra.plugin.scripts.python.Commands
     commands:
       - python /app/scripts/your-python-script.py
-    runner: PROCESS  # or DOCKER (might be deprecated in the future) use TaskRunner instead
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+      
