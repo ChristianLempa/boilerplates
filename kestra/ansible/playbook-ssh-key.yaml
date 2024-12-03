@@ -5,25 +5,25 @@
 # Run an ansible playbook which has been uploaded to the server, using 
 # ssh key authentication.
 #
-id: ansible_job
-namespace: # your-namespace
+id: ansible_job  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
 
 tasks:
-  - id: ansible
+  - id: ansible  # <- Replace with your task id...
     type: io.kestra.plugin.core.flow.WorkingDirectory
     tasks:
-      - id: load_ssh_key
-        type: io.kestra.core.tasks.storages.LocalFiles
+      - id: load_ssh_key  # <- Replace with your task id...
+        type: io.kestra.plugin.core.storage.LocalFiles
         inputs:
-          id_rsa: "{{ secret('SSH_KEY') }}"
+          id_rsa: "{{ secret('SSH_KEY') }}"  # <- Replace with your secret key...
       - id: ansible_task
         namespaceFiles:
           enabled: true
           # --> upload your files to the kestra data directory for the namespace in
           #     <docker volume for kestra-data>/<namespace>/_files/
           include:
-            - inventory.ini
-            - myplaybook.yaml
+            - inventory.ini  # <- Replace with your inventory file...
+            - myplaybook.yaml  # <- Replace with your playbook file...
           # <--
         type: io.kestra.plugin.ansible.cli.AnsibleCLI
         docker:
@@ -35,4 +35,4 @@ tasks:
           # "ANSIBLE_REMOTE_USER": "your-remote-user"
           # <--
         commands:
-          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml
+          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml  # <- Replace with your inventory and playbook files...

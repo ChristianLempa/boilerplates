@@ -5,8 +5,8 @@
 # This template is a simple Python script that can be used to make a request to a website and log the status code.
 #
 
-id: python-script
-namespace:  # your-namespace
+id: python-script  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
 
 tasks:
 
