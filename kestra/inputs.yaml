@@ -5,61 +5,61 @@
 # Inputs is a list of dynamic values passed to the flow at runtime.
 #
 
-id: inputs
-namespace:  # your-namespace
+id: inputs  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
 
 inputs:
-  - id: string
+  - id: string  # <- Replace with your input name...
     type: STRING
 
-  - id: optional
+  - id: optional  # <- Replace with your input name...
     type: STRING
     required: false
 
-  - id: int
+  - id: int  # <- Replace with your input name...
     type: INT
 
-  - id: bool
+  - id: bool  # <- Replace with your input name...
     type: BOOLEAN
 
-  - id: float
+  - id: float  # <- Replace with your input name...
     type: FLOAT
 
-  - id: instant
+  - id: instant  # <- Replace with your input name...
     type: DATETIME
 
-  - id: date
+  - id: date  # <- Replace with your input name...
     type: DATE
 
-  - id: time
+  - id: time  # <- Replace with your input name...
     type: TIME
 
-  - id: duration
+  - id: duration  # <- Replace with your input name...
     type: DURATION
 
-  - id: file
+  - id: file  # <- Replace with your input name...
     type: FILE
 
-  - id: optionalFile
+  - id: optionalFile  # <- Replace with your input name...
     type: FILE
 
-  - id: instantDefaults
+  - id: instantDefaults  # <- Replace with your input name...
     type: DATETIME
-    defaults: "2013-08-09T14:19:00Z"
+    defaults: "2013-08-09T14:19:00Z"  # <- Replace with your default value...
 
-  - id: json
+  - id: json  # <- Replace with your input name...
     type: JSON
 
-  - id: uri
+  - id: uri  # <- Replace with your input name...
     type: URI
 
-  - id: secret
+  - id: secret  # <- Replace with your input name...
     type: SECRET
 
-  - id: nested.string
+  - id: nested.string  # <- Replace with your input name...
     type: STRING
 
 tasks:
   - id: using_inputs
-    type: io.kestra.core.tasks.log.Log
+    type: io.kestra.plugin.core.log.Log
     message: "{{ inputs.string }}"

@@ -4,20 +4,20 @@
 #
 # Run an ansible playbook defined inline the kestra flow.
 #
-id: ansible_job
-namespace: # your-namespace
 
+id: ansible_job  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
+ 
 tasks:
-  - id: ansible
+  - id: ansible  # <- Replace with your task id...
     type: io.kestra.plugin.core.flow.WorkingDirectory
     tasks:
-      - id: local_files
-        type: io.kestra.core.tasks.storages.LocalFiles
+      - id: local_files  # <- Replace with your task id...
+        type: io.kestra.plugin.core.storage.LocalFiles
         inputs:
-          inventory.ini: |
+          inventory.ini: |  # <- Replace with your inventory file content...
             srv-demo-1.home.clcreative.de
-          # --> replace with your playbook
-          myplaybook.yaml: |
+          myplaybook.yaml: |  # <- Replace with your playbook file content...
             ---
             - hosts: srv-demo-1.home.clcreative.de
               tasks:
@@ -27,8 +27,8 @@ tasks:
                     upgrade: true
                     update_cache: true
           # <--
-          id_rsa: "{{ secret('SSH_KEY') }}"
-      - id: ansible_task
+          id_rsa: "{{ secret('SSH_KEY') }}"  # <- Replace with your secret key...
+      - id: ansible_task  # <- Replace with your task id...
         type: io.kestra.plugin.ansible.cli.AnsibleCLI
         docker:
           image: docker.io/cytopia/ansible:latest-tools
@@ -39,4 +39,4 @@ tasks:
           # "ANSIBLE_REMOTE_USER": "your-remote-user"
           # <--
         commands:
-          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml
+          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml  # <- Replace with your inventory and playbook files...
