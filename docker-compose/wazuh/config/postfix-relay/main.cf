@@ -1,4 +1,4 @@
-relayhost = [your-smtp-server-addr]:587  ; Replace [your-smtp-server-addr] with your SMTP server URL
+relayhost = [your-smtp-server-addr]:587  ; Replace [your-smtp-server-addr] with your SMTP server address
 smtp_sasl_auth_enable = yes
 smtp_sasl_security_options = noanonymous
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
