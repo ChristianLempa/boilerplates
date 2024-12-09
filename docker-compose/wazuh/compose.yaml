@@ -136,7 +136,7 @@ services:
   #     - POSTFIX_myhostname=postfix
   #   volumes:
   #     - ./config/postfix-relay/main.cf:/etc/postfix/main.cf:ro
-  #     - ./config/postfix-relay/sasl_passwd:/etc/postfix/sasl_passwd:rw
+  #     - ./config/postfix-relay/sasl_passwd:/etc/postfix/sasl_passwd:rw  # <-- (Optional) Remove when using inline credentials
   #     - postfix_data:/etc/postfix
   #   networks:
   #     - backend

@@ -1,1 +1,1 @@
-[your-smtp-server-url]:587  username:password  ; Replace [your-smtp-server-url] with your SMTP server URL, and username:password with your SMTP server credentials
+[your-smtp-server-addr]:587  username:password  ; Replace [your-smtp-server-addr] with your SMTP server address, and username:password with your SMTP server credentials
