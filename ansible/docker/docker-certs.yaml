@@ -1,11 +1,11 @@
 ---
 - name: "Docker Certs"
-  hosts: "{{ target_hosts | default('all') }}"
+  hosts: "{{ my_hosts | d([]) }}"
   become: true
   vars:
     certs_path: "/root/docker-certs"
     cert_validity_days: 3650
-    cn_domain: "clcreative.de"
+    cn_domain: "your-domain.tld"
 
   tasks:
     - name: Check if docker certs are existing

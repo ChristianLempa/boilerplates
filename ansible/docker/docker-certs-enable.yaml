@@ -1,6 +1,6 @@
 ---
 - name: "Docker Certs enable"
-  hosts: "{{ target_hosts | default('all') }}"
+  hosts: "{{ my_hosts | d([]) }}"
   become: true
   vars:
     certs_path: "/root/docker-certs"
