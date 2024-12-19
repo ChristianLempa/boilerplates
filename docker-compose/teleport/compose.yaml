@@ -5,7 +5,7 @@
 #     external: true
 services:
   teleport:
-    image: public.ecr.aws/gravitational/teleport-distroless:16.4.11
+    image: public.ecr.aws/gravitational/teleport-distroless:16.4.12
     container_name: teleport
     ports:
       # -- (Optional) Remove this section, when using Traefik
