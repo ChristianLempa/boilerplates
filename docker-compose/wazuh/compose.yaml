@@ -1,6 +1,6 @@
 services:
   wazuh.manager:
-    image: wazuh/wazuh-manager:4.9.2
+    image: docker.io/wazuh/wazuh-manager:4.9.2
     container_name: wazuh-prod-1-manager
     hostname: wazuh.manager
     ulimits:
@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   wazuh.indexer:
-    image: wazuh/wazuh-indexer:4.9.2
+    image: docker.io/wazuh/wazuh-indexer:4.9.2
     container_name: wazuh-prod-1-indexer
     hostname: wazuh.indexer
     ports:
@@ -87,7 +87,7 @@ services:
     restart: unless-stopped
 
   wazuh.dashboard:
-    image: wazuh/wazuh-dashboard:4.9.2
+    image: docker.io/wazuh/wazuh-dashboard:4.9.2
     container_name: wazuh-prod-1-dashboard
     hostname: wazuh.dashboard
     # --> (Optional) Remove the port mapping when using traefik
@@ -131,7 +131,7 @@ services:
 
   # --> (Optional) When you need to use an SMTP relay for email notifications, and authentication is required
   # postfix:
-  #   image: mwader/postfix-relay:1.1.39
+  #   image: docker.io/mwader/postfix-relay:1.1.39
   #   environment:
   #     - POSTFIX_myhostname=postfix
   #   volumes:
