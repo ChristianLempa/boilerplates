@@ -7,7 +7,6 @@ volumes:
   mariadb-data:
 services:
   mariadb:
-    # (Recommended) replace "latest" with specific version
     image: docker.io/library/mariadb:11.6.2
     # (Optional) remove this section when you don't want to expose
     ports:
