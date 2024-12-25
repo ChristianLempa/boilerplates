@@ -1,3 +1,4 @@
+---
 version: v2
 teleport:
   nodename: your-server-name
@@ -9,7 +10,7 @@ teleport:
       output: text
 
 auth_service:
-  enabled: "yes"
+  enabled: true
   listen_addr: 0.0.0.0:3025
   proxy_listener_mode: multiplex
   cluster_name: your-server-url
@@ -26,10 +27,10 @@ auth_service:
   #     api_token_path: /etc/teleport/openai_key
 
 ssh_service:
-  enabled: "no"
+  enabled: false
 
 proxy_service:
-  enabled: "yes"
+  enabled: true
   web_listen_addr: 0.0.0.0:3080
   # -- (Optional) when using reverse proxy
   # public_addr: ['your-server-url:443']
@@ -37,7 +38,7 @@ proxy_service:
   acme: {}
   # --(Optional) ACME
   # acme:
-  #   enabled: "yes"
+  #   enabled: true
   #   email: your-email-address
   # -- (Optional) Teleport Assist
   # assist:
@@ -45,9 +46,9 @@ proxy_service:
   #     api_token_path: /etc/teleport/openai_key
 
 app_service:
-  enabled: no
+  enabled: false
   # -- (Optional) App Service
-  # enabled: yes
+  # enabled: true
   # apps:
   #   - name: "yourapp"
   #     uri: "http://your-app-url"

@@ -15,10 +15,10 @@ services:
       - ./data/certs/:/var/traefik/certs/:rw
       - ./config/conf.d/:/etc/traefik/conf.d/:ro
     environment:
-      - CF_DNS_API_TOKEN=your-cloudflare-api-token # <-- Change this to your Cloudflare API Token
+      - CF_DNS_API_TOKEN=your-cloudflare-api-token  # <-- Change this to your Cloudflare API Token
     networks:
       - frontend
     restart: unless-stopped
 networks:
   frontend:
-    external: true # <-- (Optional) Change this to false if you want to create a new network
+    external: true  # <-- (Optional) Change this to false if you want to create a new network

@@ -1,3 +1,4 @@
+---
 services:
   wazuh.manager:
     image: docker.io/wazuh/wazuh-manager:4.9.2

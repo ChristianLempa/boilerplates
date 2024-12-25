@@ -1,3 +1,4 @@
+---
 global:
   checkNewVersion: false
   sendAnonymousUsage: false
@@ -40,7 +41,7 @@ certificatesResolvers:
       storage: /var/traefik/certs/cloudflare-acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
-        provider: cloudflare # <-- (Optional) Change this to your DNS provider
+        provider: cloudflare  # <-- (Optional) Change this to your DNS provider
         resolvers:
           - "1.1.1.1:53"
           - "8.8.8.8:53"
