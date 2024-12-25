@@ -1,3 +1,4 @@
+---
 global:
   checkNewVersion: false
   sendAnonymousUsage: false

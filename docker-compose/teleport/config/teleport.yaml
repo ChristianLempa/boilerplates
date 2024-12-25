@@ -1,3 +1,4 @@
+---
 version: v2
 teleport:
   nodename: your-server-name
