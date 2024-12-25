@@ -13,7 +13,7 @@ services:
       - GITEA__database__NAME=${POSTGRES_DB:?POSTGRES_DB not set}
       - GITEA__database__USER=${POSTGRES_USER:?POSTGRES_USER not set}
       - GITEA__database__PASSWD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
-      # <-- 
+      # <--
       # --> OR MySQL
       # - GITEA__database__DB_TYPE=mysql
       # - GITEA__database__HOST=db:3306
