@@ -1,0 +1,19 @@
+---
+name: Lint
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Linters
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - run: yamllint --strict -- $(git ls-files '*.yaml' '*.yml')
