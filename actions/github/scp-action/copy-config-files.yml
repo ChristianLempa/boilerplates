@@ -1,6 +1,7 @@
+---
 name: copy config files to remote machine
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - main

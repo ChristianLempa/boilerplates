@@ -14,4 +14,4 @@ spec:
         - name: longhorn-frontend
           port: 80
   tls:
-      secretName: longhorn-certificate-secret
+    secretName: longhorn-certificate-secret

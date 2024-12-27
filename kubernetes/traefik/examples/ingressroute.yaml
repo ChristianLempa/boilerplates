@@ -1,19 +1,20 @@
+---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: your-ingressroute # <-- Replace with your IngressRoute name
+  name: your-ingressroute  # <-- Replace with your IngressRoute name
   namespace: your-namespace  # <-- Replace with your namespace
 spec:
   entryPoints:
-  - web
-  - websecure
+    - web
+    - websecure
   routes:
-  - match: Host(`your-fqdn`)  # <-- Replace with your FQDN
-    kind: Rule
-    services:
-    - name: your-service  # <-- Replace with your service name
-      port: 80
-  # --> (Optional) Add certificate secret
-  # tls:
-  #   secretName: your-certificate-secret
-  # <--
+    - match: Host(`your-fqdn`)  # <-- Replace with your FQDN
+      kind: Rule
+      services:
+        - name: your-service  # <-- Replace with your service name
+          port: 80
+# --> (Optional) Add certificate secret
+# tls:
+#     secretName: your-certificate-secret
+# <--
