@@ -54,6 +54,7 @@ certificatesResolvers:
 providers:
   docker:
     exposedByDefault: false  # <-- (Optional) Change this to true if you want to expose all services
+    network: frontend # <-- Specify discovery network - This ensures correct name resolving and possible issues with containers, that are in multiple networks. E.g. Database container in a seperate network and a container in the frontend and database network.
   file:
     directory: /etc/traefik
     watch: true
