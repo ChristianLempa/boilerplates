@@ -14,10 +14,10 @@ services:
       - ./logs:/var/log/gitlab
       - gitlab-data:/var/opt/gitlab
     ports:
-    # --> (Optional) Remove when using traefik...
+      # --> (Optional) Remove when using traefik...
       - "80:80"
       - "443:443"
-    # <--
+      # <--
       - '2424:22'
     # --> (Optional) When using traefik...
     # labels:

@@ -6,7 +6,7 @@
 #
 # usage:
 #   curl http://your-kestra-instance/api/v1/executions/webhook/your-namespace/your-task-id/your-secret-key
-# 
+#
 
 id: webhook  # <- Replace with your task id...
 namespace: your-namespace  # <- Replace with your namespace...

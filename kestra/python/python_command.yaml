@@ -1,3 +1,4 @@
+---
 # Kestra Python Command Template
 # ---
 #
@@ -16,4 +17,3 @@ tasks:
       - python /app/scripts/your-python-script.py
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
-      

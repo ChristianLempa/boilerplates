@@ -36,11 +36,11 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
-    # --> (Optional) Remove when using traefik...
+      # --> (Optional) Remove when using traefik...
       - "3000:3000"
-    # <--
+      # <--
       - "2221:22"  # <-- (Optional) Replace with your desired SSH port
-    # --> (Optional) When using internal database...
+      # --> (Optional) When using internal database...
     # depends_on:
     #   - db
     # <--
@@ -56,28 +56,28 @@ services:
     # <--
     restart: unless-stopped
 
-  # --> When using internal database
-  # db:
-  #   image: postgres:14
-  #   container_name: gitea-db
-  #   environment:
-  #     - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER not set}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
-  #     - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB not set}
-  #   networks:
-  #     - backend
-  #   volumes:
-  #     - gitea-db:/var/lib/postgresql/data
-  #   restart: unless-stopped
-  # <--
+# --> When using internal database
+# db:
+#   image: postgres:14
+#   container_name: gitea-db
+#   environment:
+#     - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER not set}
+#     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
+#     - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB not set}
+#   networks:
+#     - backend
+#   volumes:
+#     - gitea-db:/var/lib/postgresql/data
+#   restart: unless-stopped
+# <--
 
 volumes:
   gitea-data:
     driver: local
-  # --> When using internal database
-  # gitea-db:
-  #   driver: local
-  # <--
+# --> When using internal database
+# gitea-db:
+#   driver: local
+# <--
 
 # --> (Optional) When using traefik...
 # networks:

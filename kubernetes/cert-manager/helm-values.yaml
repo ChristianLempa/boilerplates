@@ -11,7 +11,7 @@ cainjector:
     repository: quay.io/jetstack/cert-manager-cainjector
     tag: v1.16.2
 
-crds: 
+crds:
   enabled: true
 
 extraArgs:
