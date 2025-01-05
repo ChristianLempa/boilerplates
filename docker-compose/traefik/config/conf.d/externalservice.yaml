@@ -7,7 +7,10 @@ http:
       service: your-local-service  # <-- Change Service Name here...
       priority: 1000  # <-- (Optional) Change Routing Priority here...
       entryPoints:
-        - web, websecure
+        - web
+        - websecure
+      tls:
+        certResolver: cloudflare
 
   # -- Change Service Configuration here...
   services:
