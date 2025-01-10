@@ -1,7 +1,7 @@
 ---
 services:
   wazuh.manager:
-    image: docker.io/wazuh/wazuh-manager:4.9.2
+    image: docker.io/wazuh/wazuh-manager:4.10.0
     container_name: wazuh-prod-1-manager
     hostname: wazuh.manager
     ulimits:
