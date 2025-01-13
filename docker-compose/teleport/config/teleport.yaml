@@ -21,10 +21,6 @@ auth_service:
   #   webauthn:
   #     rp_id: your-server-url
   #   connector_name: passwordless
-  # -- (Optional) Teleport Assist
-  # assist:
-  #   openai:
-  #     api_token_path: /etc/teleport/openai_key
 
 ssh_service:
   enabled: false
