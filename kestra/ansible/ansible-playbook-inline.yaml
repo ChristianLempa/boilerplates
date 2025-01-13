@@ -1,0 +1,38 @@
+---
+# Kestra ansible-playbook Template
+# ---
+#
+# Run an ansible playbook defined inline the kestra flow.
+#
+id: ansible_playbook_inline
+namespace: your_namespace  # <-- Replace with your namespace...
+tasks:
+  - id: ansible_job
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    inputFiles:
+      inventory.ini: |  # <-- Replace with your inventory file content...
+        srv-demo-1.home.clcreative.de
+      myplaybook.yaml: |  # <-- Replace with your playbook file content...
+        ---
+        - hosts: srv-demo-1.home.clcreative.de
+          tasks:
+            - name: upgrade apt packages
+              become: true
+              ansible.builtin.apt:
+                upgrade: true
+                update_cache: true
+      id_rsa: "{{ secret('RSA_SSH_KEY') }}"  # <-- (Required) Replace with your secret key...
+      # id_ed25519: "{{ secret('ED25519_SSH_KEY') }}"  # <-- (Optional) Replace with your secret key, when using ED25519...
+    tasks:
+      - id: ansible_playbook
+        type: io.kestra.plugin.ansible.cli.AnsibleCLI
+        taskRunner:
+          type: io.kestra.plugin.scripts.runner.docker.Docker
+          image: docker.io/cytopia/ansible:latest-tools
+          user: "1000"  # <-- (Required) Replace with your user id...
+        env:
+          "ANSIBLE_HOST_KEY_CHECKING": "false"
+          "ANSIBLE_REMOTE_USER": "your-remote-user"  # <-- (Required) Replace with your remote user...
+        commands:
+          - ansible-playbook -i inventory.ini --key-file id_rsa myplaybook.yaml
+          # - ansible-playbook -i inventory.ini --key-file id_ed25519 myplaybook.yaml  # <-- (Optional) when using ED25519...

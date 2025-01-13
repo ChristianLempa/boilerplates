@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   mysql:
-    image: docker.io/library/mysql:8.3
+    image: docker.io/library/mysql:8.4
     hostname: mysql
     volumes:
       - semaphore-mysql:/var/lib/mysql
@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
   semaphore:
     container_name: ansiblesemaphore
-    image: docker.io/semaphoreui/semaphore:v2.10.42
+    image: docker.io/semaphoreui/semaphore:v2.11.2
     user: "${UID}:${GID}"
     ports:
       - 3000:3000

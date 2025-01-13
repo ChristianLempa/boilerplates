@@ -1,0 +1,20 @@
+---
+services:
+  clamav:
+    image: docker.io/clamav/clamav:1.4.1
+    container_name: clamav
+    volumes:
+      - ./config/clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./config/freshclam.conf:/etc/clamav/freshclam.conf:ro
+      - clamav-data:/var/lib/clamav
+      # --> (Optional) Add a directory to scan
+      # - ./scandir:/scandir:rw
+      # <--
+    # -- Change logging driver here... (required for Wazuh integration)
+    logging:
+      driver: syslog
+      options:
+        tag: "clamd"
+    restart: unless-stopped
+volumes:
+  clamav-data:

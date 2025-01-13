@@ -1,0 +1,22 @@
+# --> (Optional) When using Passbolt with Traefik...
+# http:
+#   middlewares:
+#     passbolt-middleware:
+#       headers:
+#         FrameDeny: true
+#         AccessControlAllowMethods: 'GET,OPTIONS,PUT'
+#         AccessControlAllowOriginList:
+#           - origin-list-or-null
+#         AccessControlMaxAge: 100
+#         AddVaryHeader: true
+#         BrowserXssFilter: true
+#         ContentTypeNosniff: true
+#         ForceSTSHeader: true
+#         STSIncludeSubdomains: true
+#         STSPreload: true
+#         ContentSecurityPolicy: default-src 'self' 'unsafe-inline'
+#         CustomFrameOptionsValue: SAMEORIGIN
+#         ReferrerPolicy: same-origin
+#         PermissionsPolicy: vibrate 'self'
+#         STSSeconds: 315360000
+# <--

@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
+    "config:recommended",
     ":dependencyDashboard",
     ":enableVulnerabilityAlertsWithLabel('security')",
     ":preserveSemverRanges",
@@ -12,7 +12,9 @@
     "renovate"
   ],
   "kubernetes": {
-    "fileMatch": ["(^|/)kubernetes/.+\/[^\/]+\\.ya?ml$"]
+    "fileMatch": [
+      "(^|/)kubernetes/.+/[^/]+\\.ya?ml$"
+    ]
   },
   "packageRules": [
     {
@@ -30,7 +32,7 @@
     {
       "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibilty with an application",
       "enabled": false,
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
@@ -38,28 +40,28 @@
         "major",
         "minor"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*(mariadb|mysql)(:.+)?$"
+      "matchPackageNames": [
+        "/^([^/]+\\/)*(mariadb|mysql)(:.+)?$/"
       ]
     },
     {
       "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibilty with an application",
       "enabled": false,
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
       "matchUpdateTypes": [
         "major"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*postgres(:.+)?$"
+      "matchPackageNames": [
+        "/^([^/]+\\/)*postgres(:.+)?$/"
       ]
     },
     {
       "description": "Update MariaDB or PostgreSQL to the most recent release if they are standalone and not part of an application stack",
       "enabled": true,
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
@@ -72,49 +74,51 @@
         "minor",
         "patch"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*(mariadb|postgres)(:.+)?$"
+      "matchPackageNames": [
+        "/^([^/]+\\/)*(mariadb|postgres)(:.+)?$/"
       ]
     },
     {
       "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*heimdall(:.+)?$"
-      ],
-      "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$"
+      "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$",
+      "matchPackageNames": [
+        "/^([^/]+\\/)*heimdall(:.+)?$/"
+      ]
     },
     {
       "description": "Track stable releases of Nginx only",
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*nginx(:.+)?$"
-      ],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$",
+      "matchPackageNames": [
+        "/^([^/]+\\/)*nginx(:.+)?$/"
+      ]
     },
     {
       "description": "Ignore erroneous version tags of Semaphore",
-      "managers": [
+      "matchManagers": [
         "docker-compose",
         "dockerfile"
       ],
-      "packagePatterns": [
-        "^([^/]+\\/)*semaphore(:.+)?$"
-      ],
-      "allowedVersions": "!/^v?2\\.19\\.10$/"
+      "allowedVersions": "!/^v?2\\.19\\.10$/",
+      "matchPackageNames": [
+        "/^([^/]+\\/)*semaphore(:.+)?$/"
+      ]
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Update Longhorn images in Helm",
-      "fileMatch": ["(^|/)helm/longhorn/.+\\.yaml$"],
+      "fileMatch": [
+        "(^|/)helm/longhorn/.+\\.yaml$"
+      ],
       "matchStrings": [
         "engine:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
         "manager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",

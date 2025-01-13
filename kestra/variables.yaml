@@ -2,16 +2,16 @@
 # Kestra Variable Template
 # ---
 #
-#
+# Variables is a list of static values passed to the flow at runtime.
 #
 
-id: variables
-namespace:  # your-namespace
+id: variables  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
 
 variables:
-  variable-name: "variable-value"
+  variable-name: "variable-value"  # <- Replace with your variable name and value...
 
 tasks:
   - id: using_variables
-    type: io.kestra.core.tasks.log.Log
+    type: io.kestra.plugin.core.log.Log
     message: "{{ vars.variable-name }}"

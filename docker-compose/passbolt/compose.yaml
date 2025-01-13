@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
   passbolt:
     container_name: passbolt-app
-    image: docker.io/passbolt/passbolt:4.9.1-1-ce
+    image: docker.io/passbolt/passbolt:4.10.1-1-ce
     depends_on:
       - passbolt-db
     environment:

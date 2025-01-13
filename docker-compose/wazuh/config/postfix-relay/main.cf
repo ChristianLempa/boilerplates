@@ -1,0 +1,15 @@
+relayhost = [your-smtp-server-addr]:587  ; Replace [your-smtp-server-addr] with your SMTP server address
+smtp_sasl_auth_enable = yes
+smtp_sasl_security_options = noanonymous
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_use_tls = yes
+smtpd_relay_restrictions = permit_mynetworks
+mydestination = localhost
+myhostname = postfix
+mynetworks = 127.0.0.0/8, 172.0.0.0/8, 192.168.0.0/16, 10.0.0.0/8, [::1]/128
+smtp_tls_security_level = may
+smtpd_tls_security_level = none
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd  # <-- (Optional) Remove when using inline credentials
+# --> (Optional) When using inline credentials, uncomment the following line and replace the placeholders with your SMTP server address and credentials
+# smtp_sasl_password_maps = inline:{ [your-smtp-server-addr]:587=username:password }  # <-- Replace [your-smtp-server-addr] with your SMTP server address, and username:password with your SMTP server credentials
+# <--

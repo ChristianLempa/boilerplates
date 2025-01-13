@@ -1,7 +1,7 @@
 ---
 services:
   postgres:
-    image: docker.io/library/postgres:16.5
+    image: docker.io/library/postgres:16.6
     container_name: authentik-db
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-authentik}
@@ -18,7 +18,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
   redis:
-    image: docker.io/library/redis:7.4.1
+    image: docker.io/library/redis:7.4.2
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     healthcheck:
@@ -31,7 +31,7 @@ services:
       - redis_data:/data
     restart: unless-stopped
   server:
-    image: ghcr.io/goauthentik/server:2024.10.4
+    image: ghcr.io/goauthentik/server:2024.12.2
     container_name: authentik-server
     command: server
     environment:
@@ -65,7 +65,7 @@ services:
       - redis
     restart: unless-stopped
   worker:
-    image: ghcr.io/goauthentik/server:2024.10.4
+    image: ghcr.io/goauthentik/server:2024.12.2
     container_name: authentik-worker
     command: worker
     environment:

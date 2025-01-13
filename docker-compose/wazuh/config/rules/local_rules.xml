@@ -1,0 +1,12 @@
+<!-- Custom Rules XML file for Wazuh -->
+
+<!-- (Optional) Fix false-positive reports in Wazuh ClamAV
+<group name="clamd,freshclam,">
+  <rule id="52502" level="8" overwrite="yes">
+    <if_sid>52500</if_sid>
+    <match>FOUND$</match>
+    <description>ClamAV: Virus detected</description>
+    <group>virus,pci_dss_5.1,pci_dss_5.2,pci_dss_11.4,gpg13_4.2,gdpr_IV_35.7.d,nist_800_53_SI.3,nist_800_53_SI.4,tsc_A1.2,tsc_CC6.1,tsc_CC6.8,tsc_CC7.2,tsc_CC7.3,</group>
+  </rule>
+</group>
+-->

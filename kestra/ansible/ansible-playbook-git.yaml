@@ -1,0 +1,36 @@
+---
+# Kestra ansible-playbook Template
+# ---
+#
+# Run an ansible playbook cloned from a Git Repository
+#
+id: ansible_playbook_git
+namespace: your_namespace  # <-- Replace with your namespace...
+tasks:
+  - id: ansible_job
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    inputFiles:
+      id_rsa: "{{ secret('RSA_SSH_KEY') }}"  # <-- (Required) Replace with your secret key...
+      # id_ed25519: "{{ secret('ED25519_SSH_KEY') }}"  # <-- (Optional) Replace with your secret key, when using ED25519...
+    tasks:
+      - id: git_clone
+        type: io.kestra.plugin.git.Clone
+        url: your-git-repository-url  # <-- Replace with your Git repository URL...
+        directory: ansible
+        branch: main  # <-- (Optional) Replace with your Git branch...
+        # --> (Optional) If Git repository is private, add your Git token...
+        # username: xcad
+        # password: "{{ secret('GITOKEN') }}"
+        # <--
+      - id: ansible_playbook
+        type: io.kestra.plugin.ansible.cli.AnsibleCLI
+        taskRunner:
+          type: io.kestra.plugin.scripts.runner.docker.Docker
+          image: docker.io/cytopia/ansible:latest-tools
+          user: "1000"  # <-- (Required) Replace with your user id...
+        env:
+          "ANSIBLE_HOST_KEY_CHECKING": "false"
+          "ANSIBLE_REMOTE_USER": "your-remote-user"  # <-- (Required) Replace with your remote user...
+        commands:
+          - ansible-playbook -i ansible/inventory --key-file id_rsa ansible/your-playbook.yaml
+          # - ansible-playbook -i ansible/inventory --key-file id_ed25519 ansible/your-playbook.yaml  # <-- (Optional) when using ED25519...

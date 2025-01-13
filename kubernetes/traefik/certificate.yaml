@@ -1,0 +1,14 @@
+# --> (Optional) Securely expose the Traefik dashboard...
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: traefik-web-ui-cert
+#   namespace: traefik
+# spec:
+#   secretName: traefik-web-ui-tls
+#   dnsNames:
+#     - your-traefik-dashboard-fqdn
+#   issuerRef:
+#     name: cloudflare-clusterissuer  # <-- Replace with your issuer name
+#     kind: ClusterIssuer
+# <--

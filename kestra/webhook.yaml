@@ -6,14 +6,15 @@
 #
 # usage:
 #   curl http://your-kestra-instance/api/v1/executions/webhook/your-namespace/your-task-id/your-secret-key
+#
 
-id: webhook
-namespace:  # your-namespace
+id: webhook  # <- Replace with your task id...
+namespace: your-namespace  # <- Replace with your namespace...
 
 tasks:
-# - your-tasks
+# -- Add your tasks here...
 
 triggers:
   - id: webhook
-    type: io.kestra.core.models.triggers.types.Webhook
-    key:  # your-secret-key, keep this secret!
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: your-secret-key  # <- Replace with your secret key...
