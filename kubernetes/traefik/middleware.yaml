@@ -1,3 +1,4 @@
+---
 # --> (Optional) Securely expose the Traefik dashboard...
 # apiVersion: traefik.io/v1alpha1
 # kind: Middleware

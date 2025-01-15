@@ -1,0 +1,15 @@
+---
+# --> (Example) Create a Certificate for your hostname...
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: your-certificate  # <-- Replace with your certificate name
+#   namespace: your-namespace  # <-- Replace with your namespace
+# spec:
+#   secretName: your-secret  # <-- Replace with your secret name
+#   issuerRef:
+#     name: clusterissuer  # <-- Replace with your issuer name
+#     kind: ClusterIssuer
+#   dnsNames:
+#     - your-hostname  # <-- Replace with your hostname
+# <--
