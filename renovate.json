@@ -117,7 +117,7 @@
       "customType": "regex",
       "description": "Update Longhorn images in Helm",
       "fileMatch": [
-        "(^|/)helm/longhorn/.+\\.yaml$"
+        "(^|/)kubernetes/longhorn/helm/values.yaml$"
       ],
       "matchStrings": [
         "engine:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
