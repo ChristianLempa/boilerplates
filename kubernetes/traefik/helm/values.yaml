@@ -7,8 +7,11 @@ image:
 # --> Change redirect HTTP to HTTPs by default here...
 ports:
   web:
-    redirectTo:
-      port: websecure
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true  # <-- Change this to false if you want a temporary redirect
 # <--
 
 # --> (Optional) Securely expose the Traefik dashboard...
