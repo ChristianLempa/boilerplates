@@ -88,7 +88,7 @@ services:
     restart: unless-stopped
 
   wazuh.dashboard:
-    image: docker.io/wazuh/wazuh-dashboard:4.10.0
+    image: docker.io/wazuh/wazuh-dashboard:4.10.1
     container_name: wazuh-prod-1-dashboard
     hostname: wazuh.dashboard
     # --> (Optional) Remove the port mapping when using traefik
