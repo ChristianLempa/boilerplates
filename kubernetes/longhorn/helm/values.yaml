@@ -37,7 +37,7 @@ image:
       tag: "v1.12.0"
     snapshotter:
       repository: "longhornio/csi-snapshotter"
-      tag: "v8.1.0"
+      tag: "v8.2.0"
     livenessProbe:
       repository: "longhornio/livenessprobe"
       tag: "v2.14.0"
