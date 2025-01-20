@@ -1,5 +1,6 @@
+---
 global:
-  image: 
+  image:
     repository: "ghcr.io/goauthentik/server"
     tag: "2024.12.2"
     pullPolicy: IfNotPresent
@@ -15,7 +16,7 @@ authentik:
     port: 5432
   email:
     # (Optional)  Enable Email Sending
-    #             Highly recommended to notify you about alerts and configuration issues. 
+    #             Highly recommended to notify you about alerts and configuration issues.
     host: ""
     port: 587
     username: ""

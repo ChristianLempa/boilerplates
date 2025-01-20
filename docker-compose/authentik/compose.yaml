@@ -16,7 +16,7 @@ services:
       # (Optional)  Enable Error Reporting
       - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING:-false}
       # (Optional)  Enable Email Sending
-      #             Highly recommended to notify you about alerts and configuration issues. 
+      #             Highly recommended to notify you about alerts and configuration issues.
       - AUTHENTIK_EMAIL__HOST=${EMAIL_HOST:?error}
       - AUTHENTIK_EMAIL__PORT=${EMAIL_PORT:-25}
       - AUTHENTIK_EMAIL__USERNAME=${EMAIL_USERNAME:?error}
@@ -65,7 +65,7 @@ services:
       # (Optional)  Enable Error Reporting
       - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING:-false}
       # (Optional)  Enable Email Sending
-      #             Highly recommended to notify you about alerts and configuration issues. 
+      #             Highly recommended to notify you about alerts and configuration issues.
       - AUTHENTIK_EMAIL__HOST=${EMAIL_HOST:?error}
       - AUTHENTIK_EMAIL__PORT=${EMAIL_PORT:-25}
       - AUTHENTIK_EMAIL__USERNAME=${EMAIL_USERNAME:?error}
