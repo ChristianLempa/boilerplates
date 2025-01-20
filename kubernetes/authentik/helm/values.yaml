@@ -1,0 +1,45 @@
+global:
+  image: 
+    repository: "ghcr.io/goauthentik/server"
+    tag: "2024.12.2"
+    pullPolicy: IfNotPresent
+authentik:
+  # (Required)  To generate a secret key run the following command:
+  #             echo $(openssl rand -base64 32)
+  secret_key: ""
+  postgresql:
+    host: ""
+    name: ""
+    user: ""
+    password: ""
+    port: 5432
+  email:
+    # (Optional)  Enable Email Sending
+    #             Highly recommended to notify you about alerts and configuration issues. 
+    host: ""
+    port: 587
+    username: ""
+    password: ""
+    use_tls: true
+    from: ""
+  error_reporting:
+    enabled: true
+  log_level: error
+server:
+  ingress:
+    # (Optional)  If you want to securely expose Authentik in Traefik you can enable the
+    #             Ingress settings, alternatively, you can use the template in the
+    #             `authentik/ingressroute.yaml` file to create an IngressRoute.
+    ingressClassName: traefik
+    enabled: true
+    hosts:
+      - your-authentik-fqdn
+    tls:
+      - hosts:
+          - your-authentik-fqdn
+        # (Optional)  If you want to use a custom TLS secret you can specify it here.
+        secretName: your-authentik-tls-secret
+postgresql:
+  enabled: false
+redis:
+  enabled: true
