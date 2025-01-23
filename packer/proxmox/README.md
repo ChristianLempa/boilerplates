@@ -21,7 +21,9 @@ packer {
 
 ## Running Packer
 
-```packer build -var-file ..\\credentials.pkr.hcl  ubuntu-server-noble.pkr.hcl```
+1. Navigate into the folder you want to create a template with
+2. Run ```packer build -var-file ../credentials.pkr.hcl .```
+
 
 ## Troubleshooting 
 - If you have tailscale installed, be aware that packer could grab the IP of your tailscale adapter rather than your LAN. You can either hard code the IP in the boot command or try setting the ```http_interface``` option
