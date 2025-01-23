@@ -2,7 +2,7 @@
 # ---
 # Query commonly used cloud resources from CIVO API
 
-# CIVO Instance Sizes 
+# CIVO Instance Sizes
 data "civo_size" "instance_xsmall" {
     filter {
         key = "name"

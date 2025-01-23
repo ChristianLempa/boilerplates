@@ -1,5 +1,5 @@
 resource "kubernetes_namespace" "traefik" {
-    
+
     metadata {
         name = "traefik"
     }
@@ -7,7 +7,7 @@ resource "kubernetes_namespace" "traefik" {
 }
 
 resource "helm_release" "traefik" {
-    
+
     depends_on = [kubernetes_namespace.traefik]
 
     name = "traefik"
@@ -25,7 +25,7 @@ resource "helm_release" "traefik" {
         name  = "ingressClass.isDefaultClass"
         value = "true"
     }
-    
+
     # Default Redirect
     set {
         name  = "ports.web.redirectTo"
@@ -42,5 +42,5 @@ resource "helm_release" "traefik" {
     set {
         name  = "tlsOptions.default.minVersion"
         value = "VersionTLS12"
-    }   
+    }
 }
