@@ -100,7 +100,7 @@ spec:
     name: cloudflare-prod
     kind: ClusterIssuer
   dnsNames:
-  - 'your-domain'   
+  - 'your-domain'
     YAML
 }
 
