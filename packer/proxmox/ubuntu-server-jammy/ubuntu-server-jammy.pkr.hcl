@@ -12,7 +12,7 @@ variable "proxmox_api_token_id" {
 }
 
 variable "proxmox_api_token_secret" {
-    type = string
+    type      = string
     sensitive = true
 }
 
@@ -84,8 +84,8 @@ source "proxmox-iso" "ubuntu-server-jammy" {
     cloud_init_storage_pool = ${local.disk_storage}
 
     # PACKER Boot Commands
-    boot = "c"
-    boot_wait = "5s"
+    boot         = "c"
+    boot_wait    = "5s"
     boot_command = [
         "<esc><wait>",
         "e<wait>",

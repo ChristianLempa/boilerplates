@@ -80,7 +80,7 @@ source "proxmox" "ubuntu-server-focal" {
     } 
 
     # VM Cloud-Init Settings
-    cloud_init = true
+    cloud_init              = true
     cloud_init_storage_pool = ${local.disk_storage}
 
     # PACKER Boot Commands

@@ -12,7 +12,7 @@ variable "proxmox_api_token_id" {
 }
 
 variable "proxmox_api_token_secret" {
-    type = string
+    type      = string
     sensitive = true
 }
 
@@ -139,7 +139,7 @@ build {
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #2
     provisioner "file" {
-        source = "files/99-pve.cfg"
+        source      = "files/99-pve.cfg"
         destination = "/tmp/99-pve.cfg"
     }
 
