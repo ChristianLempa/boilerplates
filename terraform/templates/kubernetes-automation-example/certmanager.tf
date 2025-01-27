@@ -7,7 +7,6 @@ resource "kubernetes_namespace" "certmanager" {
     metadata {
         name = "certmanager"
     }
-  
 }
 
 resource "helm_release" "certmanager" {
@@ -26,7 +25,7 @@ resource "helm_release" "certmanager" {
     set {
         name  = "installCRDs"
         value = "true"
-    }    
+    }
 }
 
 resource "time_sleep" "wait_for_certmanager" {

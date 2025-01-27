@@ -79,6 +79,17 @@
       ]
     },
     {
+      "description": "Do not match Canonical's Ubuntu version suffix as a compatibility hint",
+      "matchManagers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?(?:-\\d+(?:\\.\\d+)+_edge)?$",
+      "matchPackageNames": [
+        "/^([^/]+\\/)*ubuntu/bind9(:.+)?$/"
+      ]
+    },
+    {
       "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
       "matchManagers": [
         "docker-compose",

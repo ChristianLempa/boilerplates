@@ -1,7 +1,7 @@
 # Traefik Deployment
 
 resource "kubernetes_namespace" "traefik" {
-    
+
     depends_on = [
         time_sleep.wait_for_kubernetes
     ]
@@ -31,7 +31,7 @@ resource "helm_release" "traefik" {
         name  = "ingressClass.isDefaultClass"
         value = "true"
     }
-    
+
     # Default Redirect
     set {
         name  = "ports.web.redirectTo"

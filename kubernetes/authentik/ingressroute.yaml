@@ -1,0 +1,18 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: authentik
+  namespace: authentik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`your-authentik-fqdn`)
+      kind: Rule
+      services:
+        - name: authentik-server
+          port: 80
+  tls:
+    # (Optional)  If you want to use a custom TLS secret you can specify it here.
+    secretName: your-authentik-tls-secret

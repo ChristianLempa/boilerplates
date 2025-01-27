@@ -6,7 +6,7 @@ resource "kubernetes_namespace" "certmanager" {
 }
 
 resource "helm_release" "certmanager" {
-    
+
     depends_on = [kubernetes_namespace.certmanager]
 
     name = "certmanager"
@@ -24,8 +24,8 @@ resource "helm_release" "certmanager" {
 
 # (Optional) Create a Time-Sleep for Certificates and Issuer Manifests to deploy later
 # resource "time_sleep" "wait_for_certmanager" {
-# 
+#
 #     depends_on = [helm_release.certmanager]
-# 
+#
 #     create_duration = "10s"
 # }

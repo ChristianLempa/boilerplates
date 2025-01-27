@@ -1,16 +1,31 @@
 ---
-volumes:
-  portainer-data:
-    driver: local
 services:
   app:
     container_name: portainer
-    image: docker.io/portainer/portainer-ce:latest
+    image: docker.io/portainer/portainer-ce:2.26.1-alpine
     ports:
+      # --> (Optional) Remove when using traefik...
       - 9000:9000
       - 9443:9443
+      # <--
       - 8000:8000
     volumes:
       - /run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
+    # --> (Optional) When using traefik...
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.services.portainer.loadbalancer.server.port=9000
+    #   - traefik.http.routers.portainer.service=portainer
+    #   - traefik.http.routers.portainer.entrypoints=websecure
+    #   - traefik.http.routers.portainer.rule=Host(`your-portainer-fqdn`)
+    #   - traefik.http.routers.portainer.tls=true
+    #   - traefik.http.routers.portainer.tls.certresolver=cloudflare
+    # networks:
+    #   - frontend
+    # <--
     restart: unless-stopped
+
+volumes:
+  portainer-data:
+    driver: local
