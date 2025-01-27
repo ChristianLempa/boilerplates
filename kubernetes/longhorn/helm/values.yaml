@@ -9,7 +9,7 @@ image:
       tag: "v1.8.0"
     ui:
       repository: "longhornio/longhorn-ui"
-      tag: "v1.7.2"
+      tag: "v1.8.0"
     instanceManager:
       repository: "longhornio/longhorn-instance-manager"
       tag: "v1.8.0"
