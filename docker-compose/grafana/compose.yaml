@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   grafana:
-    image: docker.io/grafana/grafana-oss:11.5.0
+    image: docker.io/grafana/grafana-oss:11.5.1
     container_name: grafana
     ports:
       - "3000:3000"
