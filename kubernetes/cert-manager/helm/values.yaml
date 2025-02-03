@@ -9,7 +9,7 @@ webhook:
 cainjector:
   image:
     repository: quay.io/jetstack/cert-manager-cainjector
-    tag: v1.16.3
+    tag: v1.17.0
 
 crds:
   enabled: true
