@@ -1,7 +1,7 @@
 ---
 image:
   repository: quay.io/jetstack/cert-manager-controller
-  tag: v1.16.3
+  tag: v1.17.0
 webhook:
   image:
     repository: quay.io/jetstack/cert-manager-webhook
