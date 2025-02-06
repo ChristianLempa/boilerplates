@@ -1,0 +1,9 @@
+---
+services:
+  promtail:
+    image: grafana/promtail:3.3.2
+    command: "-config.file=/mnt/config/config.yaml"
+    volumes:
+      - ./config/config.yaml:/mnt/config/config.yaml:ro
+      - /var/log:/var/log:ro
+    restart: unless-stopped
