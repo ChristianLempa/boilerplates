@@ -4,10 +4,37 @@ services:
     image: docker.io/library/nginx:1.26.3-alpine
     container_name: nginx
     ports:
+      # --> (Optional) Remove when using traefik...
       - 80:80
-      # (optional) uncomment the line below to enable HTTPS
-      # - 443:443
+      - 443:443  # <-- (Optional) Remove to disable HTTPS
+      # <--
     volumes:
       - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data:/usr/share/nginx/html:ro
+      # --> (Example) Add additional servers for different domains
+      # - ./config/your-local-service.conf:/etc/nginx/conf.d/your-local-service.conf:ro
+      # - ./data-2:/usr/share/nginx/html-2:ro
+      # <--
+    # --> (Optional) When using traefik...
+    # labels:
+    #   - traefik.enable=true
+    #   # -- Traefik Services
+    #   - traefik.http.services.loki.loadbalancer.server.port=3100
+    #   # -- Traefik Routers
+    #   - traefik.http.routers.loki.entrypoints=websecure
+    #   - traefik.http.routers.loki.rule=Host(`loki-fqdn`)
+    #   - traefik.http.routers.loki.tls=true
+    #   - traefik.http.routers.loki.tls.certresolver=cloudflare
+    #   - traefik.http.routers.loki.service=loki
+    #   # -- (Optional) Authentication
+    #   # - traefik.http.routers.loki.middlewares=authentik-middleware@file
+    # networks:
+    #   - frontend
+    # <--
     restart: unless-stopped
+
+# --> (Optional) When using traefik...
+# networks:
+#   frontend:
+#     external: true
+# <--
