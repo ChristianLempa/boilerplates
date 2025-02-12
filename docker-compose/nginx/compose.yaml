@@ -19,15 +19,13 @@ services:
     # labels:
     #   - traefik.enable=true
     #   # -- Traefik Services
-    #   - traefik.http.services.loki.loadbalancer.server.port=3100
+    #   - traefik.http.services.nginx.loadbalancer.server.port=80
     #   # -- Traefik Routers
-    #   - traefik.http.routers.loki.entrypoints=websecure
-    #   - traefik.http.routers.loki.rule=Host(`loki-fqdn`)
-    #   - traefik.http.routers.loki.tls=true
-    #   - traefik.http.routers.loki.tls.certresolver=cloudflare
-    #   - traefik.http.routers.loki.service=loki
-    #   # -- (Optional) Authentication
-    #   # - traefik.http.routers.loki.middlewares=authentik-middleware@file
+    #   - traefik.http.routers.nginx.entrypoints=websecure
+    #   - traefik.http.routers.nginx.rule=Host(`your-web-site-fqdn`)
+    #   - traefik.http.routers.nginx.tls=true
+    #   - traefik.http.routers.nginx.tls.certresolver=cloudflare
+    #   - traefik.http.routers.nginx.service=nginx
     # networks:
     #   - frontend
     # <--
