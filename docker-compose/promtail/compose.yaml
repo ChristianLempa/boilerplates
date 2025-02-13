@@ -1,7 +1,7 @@
 ---
 services:
   promtail:
-    image: grafana/promtail:3.3.3
+    image: grafana/promtail:3.4.1
     command: "-config.file=/mnt/config/config.yaml"
     volumes:
       - ./config/config.yaml:/mnt/config/config.yaml:ro
