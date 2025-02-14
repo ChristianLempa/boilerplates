@@ -10,6 +10,6 @@ services:
       - 9090:9090
     command: "--config.file=/etc/prometheus/prometheus.yaml"
     volumes:
-      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./config:/etc/prometheus/:ro
       - prometheus-data:/prometheus
     restart: unless-stopped
