@@ -5,9 +5,22 @@ services:
     container_name: nginx
     ports:
       - 80:80
-      # (optional) uncomment the line below to enable HTTPS
-      # - 443:443
+      - 443:443
     volumes:
       - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data:/usr/share/nginx/html:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.nginx.loadbalancer.server.port=80
+      - traefik.http.routers.nginx.entrypoints=websecure
+      - traefik.http.routers.nginx.rule=Host(`example.com`)
+      - traefik.http.routers.nginx.tls=true
+      - traefik.http.routers.nginx.tls.certresolver=cloudflare
+      - traefik.http.routers.nginx.service=nginx
+    networks:
+      - frontend
     restart: unless-stopped
+
+networks:
+  frontend:
+    external: true
