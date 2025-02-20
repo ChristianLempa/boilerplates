@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
 
   wazuh.indexer:
-    image: docker.io/wazuh/wazuh-indexer:4.10.1
+    image: docker.io/wazuh/wazuh-indexer:4.11.0
     container_name: wazuh-prod-1-indexer
     hostname: wazuh.indexer
     ports:
