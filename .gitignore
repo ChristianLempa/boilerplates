@@ -5,3 +5,4 @@
 # Docker Secrets, Environment Files
 **/secret.*
 **/.env
+terraform/cloudflare/cloudflare.tfvars
