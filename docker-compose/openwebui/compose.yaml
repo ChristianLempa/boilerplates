@@ -2,9 +2,14 @@
 services:
   openwebui:
     image: ghcr.io/open-webui/open-webui:v0.5.14
+    container_name: openwebui
+    ports:
+      - "8080:8080"
     environment:
-      - OLLAMA_BASE_URL=http://10.20.0.20:11434
-      # -- Authentik SSO
+      # -- Ollama Config
+           # Set the base URL for Ollama API endpoint
+      - OLLAMA_BASE_URL=http://ollama.example.com:11434
+      # -- Authentik SSO Config
       #    Uncomment the following lines to enable SSO with Authentik OIDC / OAuth2
       # - ENABLE_OAUTH_SIGNUP=true
       # - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false
