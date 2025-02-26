@@ -6,19 +6,17 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # -- Ollama Config
-           # Set the base URL for Ollama API endpoint
+      # Ollama Config
       - OLLAMA_BASE_URL=http://ollama.example.com:11434
-      # -- Authentik SSO Config
-      #    Uncomment the following lines to enable SSO with Authentik OIDC / OAuth2
-      # - ENABLE_OAUTH_SIGNUP=true
-      # - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false
-      # - OAUTH_PROVIDER_NAME=authentik
-      # - OPENID_PROVIDER_URL=https://authentik.example.com/application/o/openwebui-slug/.well-known/openid-configuration
-      # - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
-      # - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
-      # - OAUTH_SCOPES=openid email profile
-      # - OPENID_REDIRECT_URI=https://openwebui.example.com/oauth/oidc/callback
+      # Authentik SSO Config
+      - ENABLE_OAUTH_SIGNUP=true
+      - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false
+      - OAUTH_PROVIDER_NAME=authentik
+      - OPENID_PROVIDER_URL=https://authentik.example.com/application/o/openwebui-slug/.well-known/openid-configuration
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - OAUTH_SCOPES=openid email profile
+      - OPENID_REDIRECT_URI=https://openwebui.example.com/oauth/oidc/callback
     volumes:
       - data:/app/backend/data:rw
     networks:
