@@ -2,7 +2,7 @@
 services:
   app:
     container_name: portainer
-    image: docker.io/portainer/portainer-ce:2.26.1-alpine
+    image: docker.io/portainer/portainer-ce:2.27.1-alpine
     ports:
       # --> (Optional) Remove when using traefik...
       - 9000:9000
