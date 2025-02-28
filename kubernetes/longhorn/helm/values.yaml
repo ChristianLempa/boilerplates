@@ -21,14 +21,14 @@ image:
       tag: "v1.8.0"
     supportBundleKit:
       repository: "longhornio/support-bundle-kit"
-      tag: "v0.0.49"
+      tag: "v0.0.51"
   csi:
     attacher:
       repository: "longhornio/csi-attacher"
       tag: "v4.8.0"
     provisioner:
       repository: "longhornio/csi-provisioner"
-      tag: "v5.1.0"
+      tag: "v5.2.0"
     nodeDriverRegistrar:
       repository: "longhornio/csi-node-driver-registrar"
       tag: "v2.13.0"
