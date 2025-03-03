@@ -1,41 +1,40 @@
 ---
-  services:
-    pihole:
-      container_name: pihole
-      image: docker.io/pihole/pihole:2025.02.1
-      ports:
-        - 53:53/tcp
-        - 53:53/udp
-        - 67:67/udp
-        - 8081:80/tcp
-        - 8443:443/tcp
-      environment:
-        - TZ=Europe/Berlin
-        - FTLCONF_webserver_api_password=${FTLCONF_webserver_api_password}
-        - FTLCONF_dns_upstreams=${FTLCONF_dns_upstreams:-8.8.8.8;8.8.4.4}
-      volumes:
-        - config_dnsmasq:/etc/dnsmasq.d
-        - config_pihole:/etc/pihole
-      networks:
-        - frontend
-      labels:
-        - traefik.enable=true
-        # Pihole Web Interface
-        - traefik.http.routers.pihole.rule=Host(`example.com`)
-        - traefik.http.routers.pihole.entrypoints=websecure
-        - traefik.http.routers.pihole.tls=true
-        - traefik.http.routers.pihole.tls.certresolver=cloudflare
-        - traefik.http.routers.pihole.service=pihole
-        - traefik.http.services.pihole.loadBalancer.server.port=80
-      restart: unless-stopped
-  
-  volumes:
-    config_dnsmasq:
-      driver: local
-    config_pihole:
-      driver: local
-  
-  networks:
-    frontend:
-      external: true
-  
+services:
+  pihole:
+    container_name: pihole
+    image: docker.io/pihole/pihole:2025.02.1
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/udp
+      - 8081:80/tcp
+      - 8443:443/tcp
+    environment:
+      - TZ=Europe/Berlin
+      - FTLCONF_webserver_api_password=${FTLCONF_webserver_api_password}
+      - FTLCONF_dns_upstreams=${FTLCONF_dns_upstreams:-8.8.8.8;8.8.4.4}
+    volumes:
+      - config_dnsmasq:/etc/dnsmasq.d
+      - config_pihole:/etc/pihole
+    networks:
+      - frontend
+    labels:
+      - traefik.enable=true
+      # Pihole Web Interface
+      - traefik.http.routers.pihole.rule=Host(`example.com`)
+      - traefik.http.routers.pihole.entrypoints=websecure
+      - traefik.http.routers.pihole.tls=true
+      - traefik.http.routers.pihole.tls.certresolver=cloudflare
+      - traefik.http.routers.pihole.service=pihole
+      - traefik.http.services.pihole.loadBalancer.server.port=80
+    restart: unless-stopped
+
+volumes:
+  config_dnsmasq:
+    driver: local
+  config_pihole:
+    driver: local
+
+networks:
+  frontend:
+    external: true
