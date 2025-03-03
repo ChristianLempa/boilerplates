@@ -2,7 +2,7 @@
 services:
   pihole:
     container_name: pihole
-    image: docker.io/pihole/pihole:2025.02.1
+    image: docker.io/pihole/pihole:2025.02.7
     ports:
       - 53:53/tcp
       - 53:53/udp
