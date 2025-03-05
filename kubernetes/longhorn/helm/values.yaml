@@ -12,7 +12,7 @@ image:
       tag: "v1.8.0"
     instanceManager:
       repository: "longhornio/longhorn-instance-manager"
-      tag: "v1.8.0"
+      tag: "v1.8.1"
     shareManager:
       repository: "longhornio/longhorn-share-manager"
       tag: "v1.8.0"
