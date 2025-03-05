@@ -18,7 +18,7 @@ image:
       tag: "v1.8.0"
     backingImageManager:
       repository: "longhornio/backing-image-manager"
-      tag: "v1.8.0"
+      tag: "v1.8.1"
     supportBundleKit:
       repository: "longhornio/support-bundle-kit"
       tag: "v0.0.51"
