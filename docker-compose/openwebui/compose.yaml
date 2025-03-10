@@ -1,7 +1,7 @@
 ---
 services:
   openwebui:
-    image: ghcr.io/open-webui/open-webui:v0.5.18
+    image: ghcr.io/open-webui/open-webui:0.5.20
     container_name: openwebui
     ports:
       - "8080:8080"
