@@ -34,7 +34,7 @@ image:
       tag: "v2.13.0"
     resizer:
       repository: "longhornio/csi-resizer"
-      tag: "v1.13.1"
+      tag: "v1.13.2"
     snapshotter:
       repository: "longhornio/csi-snapshotter"
       tag: "v8.2.0"
