@@ -6,7 +6,7 @@ services:
     ports:
       - "53:53"
     volumes:
-      - /etc/bind/:/etc/bind/
+      - /etc/bind:/etc/bind/
       - /var/cache/bind:/var/cache/bind
       - /var/lib/bind:/var/lib/bind
     restart: unless-stopped
