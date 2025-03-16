@@ -17,8 +17,8 @@ services:
       - MYSQL_HOST=nextcloud-db
     restart: unless-stopped
   nextcloud-db:
-    # See compatibility matrix for Nextcloud 30
-    # https://docs.nextcloud.com/server/30/admin_manual/installation/system_requirements.html
+    # See compatibility matrix for Nextcloud 31
+    # https://docs.nextcloud.com/server/31/admin_manual/installation/system_requirements.html
     image: docker.io/library/mariadb:10.11.11
     container_name: nextcloud-db
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
