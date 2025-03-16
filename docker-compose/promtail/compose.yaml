@@ -1,7 +1,7 @@
 ---
 services:
   promtail:
-    image: grafana/promtail:3.4.2
+    image: docker.io/grafana/promtail:3.4.2
     command: "-config.file=/mnt/config/config.yaml"
     volumes:
       - ./config/config.yaml:/mnt/config/config.yaml:ro
