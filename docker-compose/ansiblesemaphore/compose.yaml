@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
   semaphore:
     container_name: ansiblesemaphore
-    image: docker.io/semaphoreui/semaphore:v2.12.17
+    image: docker.io/semaphoreui/semaphore:v2.13.0
     user: "${UID}:${GID}"
     ports:
       - 3000:3000
