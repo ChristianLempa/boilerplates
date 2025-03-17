@@ -1,7 +1,7 @@
 ---
 services:
   homer:
-    image: docker.io/b4bz/homer:v25.03.2
+    image: docker.io/b4bz/homer:v25.03.3
     container_name: homer
     ports:
       - "8080:8080"
