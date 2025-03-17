@@ -1,7 +1,7 @@
 ---
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v1.0.3
+    image: ghcr.io/gethomepage/homepage:v1.0.4
     container_name: homepage
     environment:
       # (Required) See https://gethomepage.dev/installation/#homepage_allowed_hosts
