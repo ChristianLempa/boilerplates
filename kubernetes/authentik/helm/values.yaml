@@ -2,7 +2,7 @@
 global:
   image:
     repository: "ghcr.io/goauthentik/server"
-    tag: "2025.2.1"
+    tag: "2025.2.2"
     pullPolicy: IfNotPresent
 authentik:
   # (Required)  To generate a secret key run the following command:
