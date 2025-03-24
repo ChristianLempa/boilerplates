@@ -9,7 +9,7 @@ services:
       - "162:162/udp"
     environment:
       - CMK_PASSWORD=${CMK_PASSWORD:?no password set}
-    tmpfs: 
+    tmpfs:
       - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
     volumes:
       - /etc/localtime:/etc/localtime:ro
