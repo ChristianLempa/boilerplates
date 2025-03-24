@@ -23,7 +23,7 @@ resource "proxmox_vm_qemu" "your-vm" {
   # -- Hardware Settings
 
   qemu_os = "other"
-  bios = "ovmf"
+  bios = "seabios"
   cores = 2
   sockets = 1
   cpu_type = "host"
