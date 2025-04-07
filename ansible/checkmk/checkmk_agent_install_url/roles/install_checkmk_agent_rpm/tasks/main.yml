@@ -1,0 +1,5 @@
+- name: Install checkmk agent using URL (RPM)
+  ansible.builtin.dnf:
+    name: "{{ rpm_url }}"
+    state: present
+    disable_gpg_check: true

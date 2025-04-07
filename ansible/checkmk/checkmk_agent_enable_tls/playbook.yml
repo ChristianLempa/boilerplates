@@ -1,0 +1,20 @@
+# https://docs.checkmk.com/latest/en/agent_linux.html
+
+- name: Enable TLS from the client
+  hosts: all
+  become: true
+
+  vars:
+    # Change server and site to match your setup
+    checkmk_server: "checkmk.yourserver.com"
+    checkmk_site: "cmk"
+
+    # Using the built-in agent_registration account
+    checkmk_user: "agent_registration"
+
+    # Rotate the password as needed
+    # Setup > Users > agent_registration > Hit the green dice
+    checkmk_password: "CHANGE_THIS_TO_YOUR_AR_PASSWORD"
+
+  roles:
+    - checkmk_enable_tls

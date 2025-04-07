@@ -1,0 +1,15 @@
+- name: Install/update checkmk agent using checkmk URL
+  hosts: all
+  become: true
+  vars:
+    # Change these to match the URL to your server
+    # Setup > Agents > Linux
+    deb_url: "https://checkmk.yourserver.com/cmk/check_mk/agents/check-mk-agent_2.3.0p29-1_all.deb"
+    rpm_url: "https://checkmk.yourserver.com/cmk/check_mk/agents/check-mk-agent-2.3.0p29-1.noarch.rpm"
+
+  roles:
+    - role: install_checkmk_agent_deb
+      when: ansible_os_family == 'Debian'
+
+    - role: install_checkmk_agent_rpm
+      when: ansible_os_family == 'RedHat'

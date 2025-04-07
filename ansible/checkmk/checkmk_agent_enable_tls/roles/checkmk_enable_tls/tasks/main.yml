@@ -1,0 +1,10 @@
+- name: Enable Checkmk agent TLS
+  ansible.builtin.command:
+    cmd: "cmk-agent-ctl
+          register
+          -s {{ checkmk_server }}
+          -i {{ checkmk_site}}
+          -U {{ checkmk_user }}
+          -P {{ checkmk_password}}
+          -H {{ ansible_hostname }}
+          --trust-cert"

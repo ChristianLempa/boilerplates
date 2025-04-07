@@ -1,0 +1,15 @@
+- name: Copy checkmk agent installer to /tmp (DEB)
+  ansible.builtin.copy:
+    src: "{{ deb_file }}"
+    dest: "/tmp/{{ deb_file }}"
+    mode: "0644"
+
+- name: Install checkmk agent using file in /tmp (DEB)
+  ansible.builtin.apt:
+    deb: "/tmp/{{ deb_file }}"
+    state: present
+
+- name: Remove agent installer (DEB)
+  ansible.builtin.file:
+    path: "/tmp/{{ deb_file }}"
+    state: absent

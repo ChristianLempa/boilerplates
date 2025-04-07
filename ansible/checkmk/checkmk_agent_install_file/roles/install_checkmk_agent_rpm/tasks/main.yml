@@ -1,0 +1,16 @@
+- name: Copy checkmk agent installer to /tmp (RPM)
+  ansible.builtin.copy:
+    src: "{{ rpm_file }}"
+    dest: "/tmp/{{ rpm_file }}"
+    mode: "0644"
+
+- name: Install checkmk agent using file in /tmp (RPM)
+  ansible.builtin.dnf:
+    name: "/tmp/{{ rpm_file }}"
+    state: present
+    disable_gpg_check: true
+
+- name: Remove agent installer (RPM)
+  ansible.builtin.file:
+    path: "/tmp/{{ rpm_file }}"
+    state: absent

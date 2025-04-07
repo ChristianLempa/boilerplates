@@ -1,0 +1,4 @@
+- name: Install checkmk agent using server URL (DEB)
+  ansible.builtin.apt:
+    deb: "{{ deb_url }}"
+    state: present
