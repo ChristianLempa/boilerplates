@@ -48,6 +48,6 @@ image:
 # <--
 
 # --> (Optional) Change the default settings, like Backup Target here...
-# defaultSettings:
+# defaultBackupStore:
 #   backupTarget: "your-backup-target"  # <-- Replace with your backup target
 # <--
