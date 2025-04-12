@@ -1,7 +1,6 @@
 ---
 apiVersion: twingate.com/v1beta
-kind: TwingateConnector  # NOTE This requires the Twingate Kubernetes Operator
-# to be installed in your Kubernetes cluster.
+kind: TwingateConnector  # NOTE This requires the Twingate Kubernetes Operator to be installed in your Kubernetes cluster.
 metadata:
   name: twingate_connector
   namespace: twingate
