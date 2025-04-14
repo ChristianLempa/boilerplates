@@ -1,0 +1,12 @@
+---
+apiVersion: twingate.com/v1beta
+kind: TwingateConnector  # NOTE This requires the Twingate Kubernetes Operator to be installed in your Kubernetes cluster.
+metadata:
+  name: twingate_connector
+  namespace: twingate
+spec:
+  image:
+    repository: "twingate/connector"
+    tag: "1.74.0"
+  name: twingate_connector
+  hasStatusNotificationsEnabled: false
