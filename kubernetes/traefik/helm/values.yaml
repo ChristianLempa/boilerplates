@@ -1,7 +1,7 @@
 ---
 image:
   repository: traefik
-  tag: v3.3.5
+  tag: v3.3.6
   pullPolicy: IfNotPresent
 
 # --> Change redirect HTTP to HTTPs by default here...
