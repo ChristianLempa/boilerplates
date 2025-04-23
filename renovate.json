@@ -90,6 +90,17 @@
       ]
     },
     {
+      "description": "Catch a potential `security` suffix as part of the patch release as Grafana does not follow semver for security releases",
+      "matchManagers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "versioning": "regex:^(?<major>\\d+})\\.(?<minor>\\d+)\\.(?<patch>\\d+(?:-security-\\d+)?)$",
+      "matchPackageNames": [
+        "/^([^/]+\\/)*grafana/grafana-oss(:.+)?$/"
+      ]
+    },
+    {
       "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
       "matchManagers": [
         "docker-compose",
