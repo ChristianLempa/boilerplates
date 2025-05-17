@@ -1,7 +1,7 @@
 ---
 services:
   nvidia_smi_exporter:
-    image: docker.io/utkuozdemir/nvidia_gpu_exporter:1.3.1
+    image: docker.io/utkuozdemir/nvidia_gpu_exporter:1.3.2
     container_name: nvidia_smi_exporter
     runtime: nvidia
     environment:
