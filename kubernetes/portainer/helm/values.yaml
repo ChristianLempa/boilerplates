@@ -1,7 +1,7 @@
 ---
 image:
   repository: portainer/portainer-ce
-  tag: 2.29.2
+  tag: 2.30.0
   pullPolicy: IfNotPresent
 
 service:
