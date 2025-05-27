@@ -1,0 +1,21 @@
+serverAddr = "your-frps-server.com"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "{{ .Envs.FRP_AUTH_TOKEN }}"
+
+webServer.addr = "0.0.0.0"
+webServer.port = 7400
+
+webServer.user = "admin"
+webServer.password = "{{ .Envs.FRP_DASHBOARD_PASSWORD }}"
+
+
+# Now your (local!) portainer will be avaliable at your-frps-server.com:9000
+# (assuming you run frps on your server of course)
+[[proxies]]
+name = "portainer"
+type = "tcp"
+localIP = "host.docker.internal"
+localPort = 9000
+remotePort = 9000
