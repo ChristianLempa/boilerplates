@@ -37,8 +37,8 @@ source "proxmox-iso" "ubuntu-server-noble" {
     # iso_file = "local:iso/ubuntu-24.04-live-server-amd64.iso"
     # - or -
     # (Option 2) Download ISO
-    # iso_url = "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso"
-    # iso_checksum = "8762f7e74e4d64d72fceb5f70682e6b069932deedb4949c6975d0f0fe0a91be3"
+    # iso_url = "https://releases.ubuntu.com/24.04/ubuntu-24.04.2-live-server-amd64.iso"
+    # iso_checksum = "d6dab0c3a657988501b4bd76f1297c053df710e06e0c3aece60dead24f270b4d"
     iso_storage_pool = "local"
     unmount_iso = true
 
