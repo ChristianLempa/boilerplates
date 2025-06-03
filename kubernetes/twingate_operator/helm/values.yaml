@@ -2,7 +2,7 @@
 image:
   repository: twingate/kubernetes-operator
   pullPolicy: IfNotPresent
-  tag: "0.20.0"
+  tag: "0.20.2"
 twingateOperator:
   network: ""  # FIXME Add your Twingate network name here
   remoteNetworkId: ""  # FIXME Add your Twingate remote network ID here
