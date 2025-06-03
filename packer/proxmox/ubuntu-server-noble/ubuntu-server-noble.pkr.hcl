@@ -12,8 +12,12 @@ variable "proxmox_api_token_id" {
 }
 
 variable "proxmox_api_token_secret" {
-    type = string
+    type      = string
     sensitive = true
+}
+
+locals {
+    disk_storage = "local-lvm"
 }
 
 # Resource Definiation for the VM Template
@@ -21,26 +25,33 @@ source "proxmox-iso" "ubuntu-server-noble" {
 
     # Proxmox Connection Settings
     proxmox_url = "${var.proxmox_api_url}"
-    username = "${var.proxmox_api_token_id}"
-    token = "${var.proxmox_api_token_secret}"
+    username    = "${var.proxmox_api_token_id}"
+    token       = "${var.proxmox_api_token_secret}"
     # (Optional) Skip TLS Verification
     # insecure_skip_tls_verify = true
 
     # VM General Settings
-    node = "your-proxmox-node"
-    vm_id = "100"
-    vm_name = "ubuntu-server-noble"
+    node                 = "your-proxmox-node"
+    vm_id                = "100"
+    vm_name              = "ubuntu-server-noble"
     template_description = "Ubuntu Server Noble Image"
 
     # VM OS Settings
     # (Option 1) Local ISO File
-    # iso_file = "local:iso/ubuntu-24.04-live-server-amd64.iso"
-    # - or -
+    # boot_iso {
+    #     type         = "scsi"
+    #     iso_file     = "local:iso/ubuntu-24.04-live-server-amd64.iso"
+    #     unmount      = true
+    #     iso_checksum = "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9"
+    # }
     # (Option 2) Download ISO
-    # iso_url = "https://releases.ubuntu.com/24.04/ubuntu-24.04.2-live-server-amd64.iso"
-    # iso_checksum = "d6dab0c3a657988501b4bd76f1297c053df710e06e0c3aece60dead24f270b4d"
-    iso_storage_pool = "local"
-    unmount_iso = true
+    # boot_iso {
+    #     type             = "scsi"
+    #     iso_url          = "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso"
+    #     unmount          = true
+    #     iso_storage_pool = "local"
+    #     iso_checksum     = "file:https://releases.ubuntu.com/noble/SHA256SUMS"
+    # }
 
     # VM System Settings
     qemu_agent = true
@@ -49,11 +60,10 @@ source "proxmox-iso" "ubuntu-server-noble" {
     scsi_controller = "virtio-scsi-pci"
 
     disks {
-        disk_size = "20G"
-        format = "raw"
-        storage_pool = "local-lvm"
-        storage_pool_type = "lvm"
-        type = "virtio"
+        disk_size         = "25G"
+        format            = "qcow2"
+        storage_pool      = ${local.disk_storage}
+        type              = "virtio"
     }
 
     # VM CPU Settings
@@ -64,16 +74,19 @@ source "proxmox-iso" "ubuntu-server-noble" {
 
     # VM Network Settings
     network_adapters {
-        model = "virtio"
-        bridge = "vmbr0"
+        model    = "virtio"
+        bridge   = "vmbr0"
         firewall = "false"
     }
 
     # VM Cloud-Init Settings
-    cloud_init = true
-    cloud_init_storage_pool = "local-lvm"
+    cloud_init              = true
+    cloud_init_storage_pool = ${local.disk_storage}
 
     # PACKER Boot Commands
+    boot         = "c"
+    boot_wait    = "10s"
+    communicator = "ssh"
     boot_command = [
         "<esc><wait>",
         "e<wait>",
@@ -82,13 +95,14 @@ source "proxmox-iso" "ubuntu-server-noble" {
         "autoinstall ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ---<wait>",
         "<f10><wait>"
     ]
+    # Useful for debugging
+    # Sometimes lag will require this
+    # boot_key_interval = "500ms"
 
-    boot                    = "c"
-    boot_wait               = "10s"
-    communicator            = "ssh"
 
     # PACKER Autoinstall Settings
     http_directory          = "http"
+
     # (Optional) Bind IP Address and Port
     # http_bind_address       = "0.0.0.0"
     # http_port_min           = 8802
@@ -110,7 +124,7 @@ source "proxmox-iso" "ubuntu-server-noble" {
 # Build Definition to create the VM Template
 build {
 
-    name = "ubuntu-server-noble"
+    name    = "ubuntu-server-noble"
     sources = ["source.proxmox-iso.ubuntu-server-noble"]
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #1
@@ -131,7 +145,7 @@ build {
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox #2
     provisioner "file" {
-        source = "files/99-pve.cfg"
+        source      = "files/99-pve.cfg"
         destination = "/tmp/99-pve.cfg"
     }
 
