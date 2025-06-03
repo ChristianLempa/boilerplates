@@ -3,38 +3,38 @@ image:
   longhorn:
     engine:
       repository: "longhornio/longhorn-engine"
-      tag: "v1.8.0"
+      tag: "v1.9.0"
     manager:
       repository: "longhornio/longhorn-manager"
-      tag: "v1.8.0"
+      tag: "v1.9.0"
     ui:
       repository: "longhornio/longhorn-ui"
-      tag: "v1.7.2"
+      tag: "v1.9.0"
     instanceManager:
       repository: "longhornio/longhorn-instance-manager"
-      tag: "v1.8.0"
+      tag: "v1.9.0"
     shareManager:
       repository: "longhornio/longhorn-share-manager"
-      tag: "v1.7.2"
+      tag: "v1.9.0"
     backingImageManager:
       repository: "longhornio/backing-image-manager"
-      tag: "v1.8.0"
+      tag: "v1.9.0"
     supportBundleKit:
       repository: "longhornio/support-bundle-kit"
-      tag: "v0.0.49"
+      tag: "v0.0.55"
   csi:
     attacher:
       repository: "longhornio/csi-attacher"
-      tag: "v4.8.0"
+      tag: "v4.8.1"
     provisioner:
       repository: "longhornio/csi-provisioner"
-      tag: "v5.1.0"
+      tag: "v5.2.0"
     nodeDriverRegistrar:
       repository: "longhornio/csi-node-driver-registrar"
       tag: "v2.13.0"
     resizer:
       repository: "longhornio/csi-resizer"
-      tag: "v1.13.1"
+      tag: "v1.13.2"
     snapshotter:
       repository: "longhornio/csi-snapshotter"
       tag: "v8.2.0"
@@ -48,6 +48,6 @@ image:
 # <--
 
 # --> (Optional) Change the default settings, like Backup Target here...
-# defaultSettings:
+# defaultBackupStore:
 #   backupTarget: "your-backup-target"  # <-- Replace with your backup target
 # <--

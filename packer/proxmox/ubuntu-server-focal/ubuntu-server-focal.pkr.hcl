@@ -22,14 +22,14 @@ locals {
 
 # Resource Definiation for the VM Template
 source "proxmox" "ubuntu-server-focal" {
- 
+
     # Proxmox Connection Settings
     proxmox_url = "${var.proxmox_api_url}"
     username    = "${var.proxmox_api_token_id}"
     token       = "${var.proxmox_api_token_secret}"
     # (Optional) Skip TLS Verification
     # insecure_skip_tls_verify = true
-    
+
     # VM General Settings
     node                 = "your-proxmox-node"
     vm_id                = "100"
@@ -68,16 +68,16 @@ source "proxmox" "ubuntu-server-focal" {
 
     # VM CPU Settings
     cores = "1"
-    
+
     # VM Memory Settings
-    memory = "2048" 
+    memory = "2048"
 
     # VM Network Settings
     network_adapters {
         model    = "virtio"
         bridge   = "vmbr0"
         firewall = "false"
-    } 
+    }
 
     # VM Cloud-Init Settings
     cloud_init              = true
@@ -98,7 +98,7 @@ source "proxmox" "ubuntu-server-focal" {
     # boot_key_interval = "500ms"
 
     # PACKER Autoinstall Settings
-    http_directory = "http" 
+    http_directory = "http"
     # (Optional) Bind IP Address and Port
     # http_bind_address = "0.0.0.0"
     # http_port_min     = 8802

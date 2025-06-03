@@ -1,0 +1,25 @@
+concurrent = 10
+log_level = "warning"
+log_format = "json"
+check_interval = 5
+
+[[runners]]
+  name = "gitlab-runner-1"
+  url = "gitlab.example.com"  # FIXME Change to your GitLab instance URL
+  executor = "docker"
+  token = ""  # FIXME Add your registration token here
+  limit = 0
+  # FIXME To increase rate limits, when pulling down images from the Docker Hub you might want to authenticate:
+  # 1. Create a Docker Hub account and generate a personal access token
+  # 2. Encode the username and token in base64
+  #    Example: echo -n 'username:token' | base64
+  # 3. Replace the <BASE64_ENCODED_AUTH> with the base64 encoded string
+  environment = ["DOCKER_AUTH_CONFIG={\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"<BASE64_ENCODED_AUTH>\"}}}"]
+  [runners.docker]
+    tls_verify = false
+    image = "alpine:latest"
+    privileged = true
+    disable_cache = false
+    volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+  [runners.cache]
+    Insecure = false

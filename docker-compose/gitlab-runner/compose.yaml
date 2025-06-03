@@ -1,0 +1,9 @@
+---
+services:
+  gitlab-runner:
+    image: docker.io/gitlab/gitlab-runner:alpine-v17.9.1
+    container_name: gitlab-runner-1
+    volumes:
+      - ./config/config.toml:/etc/gitlab-runner/config.toml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped

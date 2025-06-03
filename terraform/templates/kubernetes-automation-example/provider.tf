@@ -13,7 +13,7 @@ terraform {
         }
         kubernetes = {
             source = "hashicorp/kubernetes"
-            version = "2.35.1"     
+            version = "2.37.1"
         }
         kubectl = {
             source = "gavinbunney/kubectl"
@@ -40,7 +40,7 @@ variable "cloudflare_api_key" {
 
 provider "civo" {
     token = var.civo_token
-    
+
     # TODO: (optional) change region to your desired datacenter location
     # ---
     # region = "FRA1"

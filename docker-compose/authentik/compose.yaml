@@ -1,7 +1,7 @@
 ---
 services:
   server:
-    image: ghcr.io/goauthentik/server:2024.12.2
+    image: ghcr.io/goauthentik/server:2025.4.1
     container_name: authentik-server
     command: server
     environment:
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: ghcr.io/goauthentik/server:2024.12.2
+    image: ghcr.io/goauthentik/server:2025.4.1
     container_name: authentik-worker
     command: worker
     environment:
@@ -88,7 +88,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: docker.io/library/redis:7.4.2
+    image: docker.io/library/redis:8.0.2
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     healthcheck:
@@ -106,7 +106,7 @@ services:
     #   Alternatively, you can host your PostgreSQL database externally, and
     #   change the connection settings in the `authentik-server` and
     #   `authentik-worker`.
-    image: docker.io/library/postgres:17.2
+    image: docker.io/library/postgres:17.5
     container_name: authentik-db
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-authentik}
