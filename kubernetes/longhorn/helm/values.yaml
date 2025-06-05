@@ -21,7 +21,7 @@ image:
       tag: "v1.9.0"
     supportBundleKit:
       repository: "longhornio/support-bundle-kit"
-      tag: "v0.0.55"
+      tag: "v0.0.56"
   csi:
     attacher:
       repository: "longhornio/csi-attacher"
