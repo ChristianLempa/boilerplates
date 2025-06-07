@@ -40,7 +40,7 @@ image:
       tag: "v8.2.0"
     livenessProbe:
       repository: "longhornio/livenessprobe"
-      tag: "v2.15.0"
+      tag: "v2.16.0"
 
 # --> (Optional) Reduce the number of replicas of Longhorn UI
 # longhornUI:
