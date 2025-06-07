@@ -25,7 +25,7 @@ image:
   csi:
     attacher:
       repository: "longhornio/csi-attacher"
-      tag: "v4.8.1"
+      tag: "v4.9.0"
     provisioner:
       repository: "longhornio/csi-provisioner"
       tag: "v5.2.0"
