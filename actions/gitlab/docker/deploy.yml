@@ -1,0 +1,80 @@
+---
+spec:
+  inputs:
+    as:
+      default: deploy-docker
+    stage:
+      default: deploy
+
+    root_dir:
+      default: ${CI_PROJECT_DIR}
+      description: 'Root directory for the Docker Compose project.'
+    project_file:
+      default: 'compose.yaml'
+      description: 'Docker Compose file to use.'
+
+    remote_host:
+      description: 'Remote host'
+    remote_user:
+      description: 'Remote user'
+    remote_ssh:
+      description: 'Remote ssh'
+
+    remote_dir:
+      default: ${CI_PROJECT_DIR}
+      description: 'Directory on the remote server for the Docker Compose project.'
+
+    docker_login:
+      default: 'true'
+      description: 'Login to Docker on the remote server?'
+    docker_user:
+      default: ${DOCKER_USER}
+      description: 'Docker user on the remote server'
+    docker_password:
+      default: ${DOCKER_PASSWORD}
+      description: 'Docker group on the remote server'
+
+---
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image: docker:latest
+  variables:
+    PROJECT_DIR: "$[[ inputs.root_dir ]]"
+    PROJECT_FILE: "$[[ inputs.project_file ]]"
+    SSH_KEY: "$[[ inputs.remote_ssh ]]"
+    REMOTE_HOST: "$[[ inputs.remote_host ]]"
+    REMOTE_USER: "$[[ inputs.remote_user ]]"
+    REMOTE_PATH: "$[[ inputs.remote_dir ]]"
+    DOCKER_LOGIN: "$[[ inputs.docker_login ]]"
+    DOCKER_USER: "$[[ inputs.docker_user ]]"
+    DOCKER_PASSWORD: "$[[ inputs.docker_password ]]"
+  before_script: |
+    echo "Before → Executing..."
+    cd $PROJECT_DIR
+    echo "Before → Installing dependencies"
+    apk add --no-cache openssh-client
+    echo "Before → Adding ssh key"
+    echo "$SSH_KEY" > id_rsa && chmod 600 id_rsa
+    eval $(ssh-agent -s)
+    ssh-add id_rsa
+  script: |
+    echo "Script → Executing..."
+    echo "Script → Copying docker compose file to remote host"
+    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p $REMOTE_PATH"
+    scp -o StrictHostKeyChecking=no $PROJECT_FILE $REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH
+    echo "Script → Executing remote commands"
+    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST<<EOF
+      if [ '$DOCKER_LOGIN' = 'true' ]; then
+        echo "Script → Logging into docker hub"
+        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+      fi
+      echo "Script → Pulling and restarting services"
+      docker compose -f $REMOTE_PATH/$PROJECT_FILE pull -q
+      docker compose -f $REMOTE_PATH/$PROJECT_FILE down --remove-orphans
+      docker compose -f $REMOTE_PATH/$PROJECT_FILE up -d
+    EOF
+    echo "Script ✓ Done"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      changes:
+        - '$[[ inputs.root_dir ]]/$[[ inputs.project_file ]]'

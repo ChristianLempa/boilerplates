@@ -1,0 +1,35 @@
+---
+spec:
+  inputs:
+    as:
+      default: test-docker
+    stage:
+      default: test
+
+    root_dir:
+      default: ${CI_PROJECT_DIR}
+      description: 'Root directory for the Docker Compose project.'
+    project_file:
+      default: 'compose.yaml'
+      description: 'Docker Compose file to use.'
+
+---
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image: docker:latest
+  variables:
+    PROJECT_DIR: "$[[ inputs.root_dir ]]"
+    PROJECT_FILE: "$[[ inputs.project_file ]]"
+  before_script:
+    - cd $PROJECT_DIR
+  script:
+    - docker compose -f $PROJECT_FILE config --quiet
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      changes:
+        - '$[[ inputs.root_dir ]]/$[[ inputs.project_file ]]'
+    - if: |
+        $CI_PIPELINE_SOURCE == "push" ||
+        $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - '$[[ inputs.root_dir ]]/$[[ inputs.project_file ]]'

@@ -1,0 +1,39 @@
+---
+spec:
+  inputs:
+    as:
+      default: test-ansible
+    stage:
+      default: test
+
+    root_dir:
+      default: ${CI_PROJECT_DIR}/ansible
+      description: 'Root directory for the Ansible config and playbooks.'
+    project_file:
+      description: 'Ansible Playbook to run.'
+
+---
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image:
+    name: alpine:latest
+    entrypoint: [""]
+  variables:
+    ANSIBLE_DIR: "$[[ inputs.root_dir ]]"
+    PROJECT_FILE: "$[[ inputs.project_file ]]"
+  before_script: |
+    echo "Before → Executing..."
+    echo "Before → Enter Ansible root directory"
+    cd ${ANSIBLE_DIR}
+  script: |
+    echo "Script → Executing..."
+    echo "Before → Installing dependencies"
+    apk add --no-cache ansible-core
+    echo "Script → Test Ansible Playbooks"
+    ansible-lint ${PROJECT_FILE}
+  rules:
+    - if: |
+        $CI_PIPELINE_SOURCE == "push" ||
+        $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - '$[[ inputs.root_dir ]]/**'
