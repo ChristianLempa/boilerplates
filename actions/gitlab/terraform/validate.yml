@@ -1,0 +1,51 @@
+---
+spec:
+  inputs:
+    as:
+      default: validate-terraform
+    stage:
+      default: test
+
+    root_dir:
+      default: ${CI_PROJECT_DIR}/terraform
+      description: 'Root directory for the OpenTofu project.'
+    state_name:
+      default: default
+      description: 'Remote OpenTofu state name.'
+
+---
+variables:
+  TF_ROOT: "$[[ inputs.root_dir ]]"
+  TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/$[[ inputs.state_name ]]
+  TF_USERNAME: gitlab-ci-token
+  TF_PASSWORD: ${CI_JOB_TOKEN}
+
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image:
+    name: ghcr.io/opentofu/opentofu:latest
+    entrypoint: [""]
+  before_script: |
+    echo "Before → Executing..."
+    echo "Before → Enter TF root directory"
+    cd ${TF_ROOT}
+  script: |
+    echo "Script → Executing..."
+    echo "Script → Initialize Terraform backend"
+    tofu init \
+     -backend-config=address=${TF_ADDRESS} \
+     -backend-config=lock_address=${TF_ADDRESS}/lock \
+     -backend-config=unlock_address=${TF_ADDRESS}/lock \
+     -backend-config=username=${TF_USERNAME} \
+     -backend-config=password=${TF_PASSWORD} \
+     -backend-config=lock_method=POST \
+     -backend-config=unlock_method=DELETE \
+     -backend-config=retry_wait_min=5
+    echo "Script → Validate Terraform"
+    tofu validate
+  rules:
+    - if: |
+        $CI_PIPELINE_SOURCE == "push" ||
+        $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - '$[[ inputs.root_dir ]]/**'

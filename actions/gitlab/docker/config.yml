@@ -1,0 +1,73 @@
+---
+spec:
+  inputs:
+    as:
+      default: config-docker
+    stage:
+      default: config
+
+    config_dir:
+      default: ${CI_PROJECT_DIR}
+      description: 'Config directory to copy.'
+    project_file:
+      default: 'compose.yaml'
+      description: 'Docker Compose file to use.'
+
+    remote_host:
+      description: 'Remote host'
+    remote_user:
+      description: 'Remote user'
+    remote_ssh:
+      description: 'Remote ssh'
+
+    remote_config:
+      default: ${CI_PROJECT_DIR}
+      description: 'Target directory on the remote server for the config.'
+    remote_dir:
+      default: ${CI_PROJECT_DIR}
+      description: 'Directory on the remote server for the Docker Compose project.'
+
+
+    restart:
+      default: 'false'
+      description: 'Restart the remote compose project after config update?'
+
+---
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image: alpine:latest
+  variables:
+    CONFIG_DIR: "$[[ inputs.config_dir ]]"
+    PROJECT_FILE: "$[[ inputs.project_file ]]"
+    SSH_KEY: "$[[ inputs.remote_ssh ]]"
+    REMOTE_HOST: "$[[ inputs.remote_host ]]"
+    REMOTE_USER: "$[[ inputs.remote_user ]]"
+    REMOTE_CONFIG: "$[[ inputs.remote_config ]]"
+    REMOTE_PATH: "$[[ inputs.remote_dir ]]"
+    RESTART: "$[[ inputs.restart ]]"
+  before_script: |
+    echo "Before → Executing..."
+    echo "Before → Installing dependencies"
+    apk add --no-cache openssh-client
+    echo "Before → Adding ssh key"
+    echo "$SSH_KEY" > id_rsa && chmod 600 id_rsa
+    eval $(ssh-agent -s)
+    ssh-add id_rsa
+  script: |
+    echo "Script → Executing..."
+    echo "Script → Copying config file to remote host"
+    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "mkdir -p $REMOTE_CONFIG"
+    scp -o StrictHostKeyChecking=no $CONFIG_DIR/* $REMOTE_USER@$REMOTE_HOST:$REMOTE_CONFIG
+    echo "Script → Executing remote commands"
+    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST<<EOF
+      if [ '$RESTART' = 'true' ]; then
+        echo "Script → Restarting services"
+        docker compose -f $REMOTE_PATH/$PROJECT_FILE down --remove-orphans
+        docker compose -f $REMOTE_PATH/$PROJECT_FILE up -d
+      fi
+    EOF
+    echo "Script ✓ Done"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      changes:
+        - '$[[ inputs.config_dir ]]/**'

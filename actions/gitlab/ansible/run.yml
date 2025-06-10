@@ -1,0 +1,51 @@
+---
+spec:
+  inputs:
+    as:
+      default: run-ansible
+    stage:
+      default: ansible
+
+    root_dir:
+      default: ${CI_PROJECT_DIR}/ansible
+      description: 'Root directory for the Ansible config and playbooks.'
+    project_file:
+      description: 'Ansible Playbook to run.'
+    inventory_file:
+      default: ${CI_PROJECT_DIR}/ansible/inventory
+      description: 'Ansible Inventory File'
+
+    remote_ssh:
+      description: 'Remote ssh'
+
+---
+'$[[ inputs.as ]]':
+  stage: '$[[ inputs.stage ]]'
+  image:
+    name: alpine:latest
+    entrypoint: [""]
+  variables:
+    PROJECT_DIR: "$[[ inputs.root_dir ]]"
+    PROJECT_FILE: "$[[ inputs.project_file ]]"
+    INVENTORY_FILE: "$[[ inputs.inventory_file ]]"
+    SSH_KEY: "$[[ inputs.remote_ssh ]]"
+  before_script: |
+    echo "Before → Executing..."
+    echo "Before → Installing dependencies"
+    apk add --no-cache openssh-client ansible-core
+    echo "Before → Enter Ansible root directory"
+    cd ${PROJECT_DIR}
+    echo "Before → Adding ssh key"
+    echo "${SSH_KEY}" > id_rsa && chmod 600 id_rsa
+    eval $(ssh-agent -s)
+    ssh-add id_rsa
+    echo "Before → Setting additional environment variables"
+    export ANSIBLE_HOST_KEY_CHECKING=false
+  script: |
+    echo "Script → Executing..."
+    echo "Script → Run Ansible Playbooks"
+    ansible-playbook -i ${INVENTORY_FILE} ${PROJECT_FILE}
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      changes:
+        - '$[[ inputs.root_dir ]]/$[[ inputs.project_file ]]'
