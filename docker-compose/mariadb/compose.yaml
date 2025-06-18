@@ -7,7 +7,7 @@ volumes:
   mariadb-data:
 services:
   mariadb:
-    image: docker.io/library/mariadb:11.7.2
+    image: docker.io/library/mariadb:11.8.2
     # (Optional) remove this section when you don't want to expose
     ports:
       - 3306:3306
