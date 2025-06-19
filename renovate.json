@@ -159,6 +159,8 @@
       "datasourceTemplate": "docker"
     }
   ],
+  "prConcurrentLimit": 30,
+  "prHourlyLimit": 5,
   "separateMinorPatch": true,
   "stopUpdatingLabel": "renovate/stop_updating"
 }
