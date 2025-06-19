@@ -1,7 +1,7 @@
 ---
 services:
   server:
-    image: ghcr.io/goauthentik/server:2025.4.2
+    image: ghcr.io/goauthentik/server:2025.6.2
     container_name: authentik-server
     command: server
     environment:
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: ghcr.io/goauthentik/server:2025.4.2
+    image: ghcr.io/goauthentik/server:2025.6.2
     container_name: authentik-worker
     command: worker
     environment:
