@@ -1,0 +1,17 @@
+---
+- name: "Install Checkmk agent on all hosts"
+  hosts: "{{ my_hosts | d([]) }}"
+  roles:
+    - checkmk.general.agent
+  vars:
+    checkmk_agent_version: "2.4.0p4"
+    checkmk_agent_server: "checkmk.home.arpa"
+    checkmk_agent_server_protocol: https
+    checkmk_agent_site: "cmk"
+    checkmk_agent_auto_activate: true
+    checkmk_agent_tls: "true"  # NOTE: Register Agent to enable TLS
+    checkmk_agent_user: "{{ automation_user }}"
+    checkmk_agent_pass: "{{ automation_secret }}"
+    checkmk_agent_host_name: "{{ ansible_hostname }}"  # NOTE: Required to replace FQDN with hostname only
+  vars_files:
+    - secrets.yaml

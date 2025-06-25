@@ -1,0 +1,19 @@
+---
+- name: "Activate Checkmk changes"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - secrets.yaml
+  vars:
+    server_url: "checkmk.home.arpa"
+    site: "cmk"
+
+  tasks:
+    - name: "Start activation on a specific site"
+      checkmk.general.activation:
+        server_url: "{{ server_url }}"
+        site: "{{ site }}"
+        automation_user: "{{ automation_user }}"
+        automation_secret: "{{ automation_secret }}"
+        sites:
+          - "{{ site }}"
