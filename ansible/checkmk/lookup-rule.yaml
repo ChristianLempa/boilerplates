@@ -1,0 +1,25 @@
+---
+- name: "Manage Checkmk rules"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - secrets.yaml
+  vars:
+    server_url: "checkmk.home.arpa"
+    site: "cmk"
+
+  tasks:
+    - name: Get a rule with a particular rule id
+      ansible.builtin.debug:
+        msg: "Rule: {{ extensions | to_nice_yaml }}"
+      vars:
+        extensions: "{{
+          lookup('checkmk.general.rule',
+            rule_id='checkmk-rule-id',
+            server_url=server_url,
+            site=site,
+            automation_user=automation_user,
+            automation_secret=automation_secret,
+            validate_certs=False
+            )
+          }}"

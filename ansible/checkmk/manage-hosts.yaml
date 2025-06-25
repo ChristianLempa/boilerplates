@@ -1,0 +1,22 @@
+---
+- name: "Manage Checkmk hosts"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - secrets.yaml
+  vars:
+    server_url: "checkmk.home.arpa"
+    site: "cmk"
+
+  tasks:
+    - name: "Create host"
+      checkmk.general.host:
+        server_url: "{{ server_url }}"
+        site: "{{ site }}"
+        automation_user: "{{ automation_user }}"
+        automation_secret: "{{ automation_secret }}"
+        name: "your-host-name"
+        attributes:
+          ipaddress: "host-ip-address"
+        folder: "/"
+        state: "present"
