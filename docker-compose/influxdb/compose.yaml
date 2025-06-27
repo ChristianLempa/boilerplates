@@ -8,7 +8,7 @@ volumes:
 services:
   influxdb:
     container_name: influxdb
-    image: docker.io/library/influxdb:2.7.11-alpine
+    image: docker.io/library/influxdb:2.7.12-alpine
     # (Optional) remove this section when using traefik
     ports:
       - '8086:8086'
