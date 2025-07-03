@@ -31,7 +31,7 @@ image:
       tag: "v5.2.0"
     nodeDriverRegistrar:
       repository: "longhornio/csi-node-driver-registrar"
-      tag: "v2.13.0"
+      tag: "v2.14.0"
     resizer:
       repository: "longhornio/csi-resizer"
       tag: "v1.13.2"
