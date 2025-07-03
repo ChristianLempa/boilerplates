@@ -5,7 +5,7 @@ image:
 webhook:
   image:
     repository: quay.io/jetstack/cert-manager-webhook
-    tag: v1.17.3
+    tag: v1.18.2
 cainjector:
   image:
     repository: quay.io/jetstack/cert-manager-cainjector
