@@ -2,7 +2,7 @@
 # and also study of: https://sleeplessbeastie.eu/2024/03/18/how-to-utilize-ntfy-notifications-from-gitlab-pipelines/
 # Base component structure can be credited to https://www.youtube.com/watch?v=pwRWXCdbDVo
 # Suggested component description:
-# Provides the ability to send push notifications as a stage within GitLab CI/CD runs via the ntfy cli of a remote ssh target.
+# CI/CD component to provide ntfy web-push notifications as a stage within GitLab runs.
 ---
 spec:
   inputs:
