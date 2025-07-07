@@ -88,7 +88,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: docker.io/library/redis:8.0.2
+    image: docker.io/library/redis:8.0.3
     container_name: authentik-redis
     command: --save 60 1 --loglevel warning
     healthcheck:
