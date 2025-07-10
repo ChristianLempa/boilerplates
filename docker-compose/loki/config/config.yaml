@@ -26,5 +26,14 @@ schema_config:
         prefix: index_
         period: 24h
 
+limits_config:
+  # NOTE: Data Retention is set to 7 days.
+  #       This is the default value and can be changed
+  retention_period: 168h
+  ingestion_rate_mb: 4
+  ingestion_burst_size_mb: 6
+  max_streams_per_user: 10000
+  max_line_size: 256000
+
 ruler:
   alertmanager_url: http://localhost:9093
