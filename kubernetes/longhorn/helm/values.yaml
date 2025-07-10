@@ -28,7 +28,7 @@ image:
       tag: "v4.8.1"
     provisioner:
       repository: "longhornio/csi-provisioner"
-      tag: "v5.2.0"
+      tag: "v5.3.0"
     nodeDriverRegistrar:
       repository: "longhornio/csi-node-driver-registrar"
       tag: "v2.13.0"
