@@ -1,7 +1,7 @@
 ---
 services:
   alloy:
-    image: grafana/alloy:v1.9.2
+    image: grafana/alloy:v1.10.0
     container_name: alloy
     hostname: your-server-name
     command:
