@@ -3,7 +3,7 @@ services:
   alloy:
     image: grafana/alloy:v1.9.2
     container_name: alloy
-    hostname: your-server-name
+    hostname: ${HOSTNAME:-your-server-name}
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
