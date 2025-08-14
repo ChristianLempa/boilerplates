@@ -106,7 +106,7 @@ services:
     #   Alternatively, you can host your PostgreSQL database externally, and
     #   change the connection settings in the `authentik-server` and
     #   `authentik-worker`.
-    image: docker.io/library/postgres:17.5
+    image: docker.io/library/postgres:17.6
     container_name: authentik-db
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-authentik}
