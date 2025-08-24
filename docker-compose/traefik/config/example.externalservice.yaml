@@ -10,7 +10,7 @@
 #         - web
 #         - websecure
 #       tls:
-#         certResolver: cloudflare
+#         certResolver: CertificateResolver0
 #
 #   # -- Change Service Configuration here...
 #   services:
