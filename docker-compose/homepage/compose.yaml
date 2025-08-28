@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 #   (Optional) For secure docker socket integration
 #   dockerproxy:
-#     image: ghcr.io/tecnativa/docker-socket-proxy:0.3.0
+#     image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.0
 #     container_name: homepage-demo-1-dockerproxy
 #     environment:
 #       - CONTAINERS=1 # Allow access to viewing containers
