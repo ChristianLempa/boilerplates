@@ -13,7 +13,7 @@
   ],
   "kubernetes": {
     "managerFilePatterns": [
-      "/(^|/)kubernetes/.+/[^/]+\\.ya?ml$/"
+      "/(^|/)library/kubernetes/.+/[^/]+\\.ya?ml$/"
     ]
   },
   "packageRules": [
@@ -139,7 +139,7 @@
       "customType": "regex",
       "description": "Update Longhorn images in Helm",
       "managerFilePatterns": [
-        "/(^|/)kubernetes/longhorn/helm/values.yaml$/"
+        "/(^|/)library/kubernetes/longhorn/helm/values.yaml$/"
       ],
       "matchStrings": [
         "engine:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",

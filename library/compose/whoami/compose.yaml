@@ -1,0 +1,18 @@
+---
+name: "Whoami Service"
+description: "Simple HTTP service that returns information about the request"
+version: "1.0.0"
+author: "Your Name"
+tags:
+  - "traefik"
+  - "whoami"
+  - "http"
+  - "testing"
+category: "utilities"
+---
+services:
+  {{ service_name }}:
+    image: traefik/whoami
+    ports:
+      - "8080:80"
+    restart: unless-stopped
