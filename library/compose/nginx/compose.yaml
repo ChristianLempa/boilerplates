@@ -21,13 +21,13 @@ services:
       - ./data:/usr/share/nginx/html:ro
     {% if traefik %}
     labels:
-      - traefik.enable=true
-      - traefik.http.services.nginx.loadbalancer.server.port=80
-      - traefik.http.routers.nginx.entrypoints=websecure
-      - traefik.http.routers.nginx.rule=Host(`example.com`)
-      - traefik.http.routers.nginx.tls=true
-      - traefik.http.routers.nginx.tls.certresolver=cloudflare
-      - traefik.http.routers.nginx.service=nginx
+      - traefik.enable={{ traefik_enable | default(true) }}
+      - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
+      - traefik.http.routers.{{ container_name }}.entrypoints=websecure
+      - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik_host | default('example.com') }}`)
+      - traefik.http.routers.{{ container_name }}.tls={{ traefik_tls | default(true) }}
+      - traefik.http.routers.{{ container_name }}.tls.certresolver={{ traefik_certresolver }}
+      - traefik.http.routers.{{ container_name }}.service={{ container_name }}
     {% endif %}
     networks:
       - {{ docker_network | default('bridge') }}

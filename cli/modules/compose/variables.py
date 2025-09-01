@@ -37,14 +37,10 @@ class ComposeVariables(BaseVariables):
             "prompt": "Do you want to change the Traefik labels?",
             "variables": {
                 "traefik_enable": {"display_name": "Enable Traefik", "default": True, "type": "bool", "prompt": "Enable Traefik routing for this service?"},
-                "traefik_router_name": {"display_name": "Router name", "default": "", "type": "str", "prompt": "Enter router name (leave empty to use service name)"},
-                "traefik_entrypoints": {"display_name": "Entrypoints", "default": "websecure", "type": "str", "prompt": "Enter entrypoints (comma-separated, e.g., websecure)"},
-                "traefik_rule": {"display_name": "Routing rule", "default": "", "type": "str", "prompt": "Enter routing rule (e.g., Host(`example.com`))"},
+                "traefik_host": {"display_name": "Routing Rule Host", "default": "", "type": "str", "prompt": "Enter hostname for the routing rule (e.g., example.com))"},
                 "traefik_tls": {"display_name": "Enable TLS", "default": True, "type": "bool", "prompt": "Enable TLS for this router?"},
-                "traefik_cert_resolver": {"display_name": "Certificate resolver", "default": "cloudflare", "type": "str", "prompt": "Enter certificate resolver name"},
-                "traefik_service_port": {"display_name": "Service port", "default": 80, "type": "int", "prompt": "Enter the internal port the service listens on"},
-                "traefik_middlewares": {"display_name": "Middlewares", "default": "", "type": "str", "prompt": "Enter middlewares (comma-separated, leave empty for none)"},
-                "traefik_priority": {"display_name": "Router priority", "default": "", "type": "str", "prompt": "Enter router priority (leave empty for default)"},
+                "traefik_certresolver": {"display_name": "Certificate resolver", "default": "cloudflare", "type": "str", "prompt": "Enter certificate resolver name"},
+                "traefik_middleware": {"display_name": "Middlewares", "default": "", "type": "str", "prompt": "Enter middlewares (comma-separated, leave empty for none)"},
             },
         },
     }

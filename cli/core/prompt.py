@@ -376,7 +376,8 @@ class PromptHandler:
             except Exception:
                 return raw
         if vtype == "bool":
-            return PromptHandler._cast_str_to_bool(raw)
+            bool_val = PromptHandler._cast_str_to_bool(raw)
+            return "true" if bool_val else "false"
         return raw
 
     @staticmethod
@@ -486,7 +487,8 @@ class PromptHandler:
             except Exception:
                 return raw
         if vtype == "bool":
-            return PromptHandler._cast_str_to_bool(raw)
+            bool_val = PromptHandler._cast_str_to_bool(raw)
+            return "true" if bool_val else "false"
         return raw
 
     @staticmethod
