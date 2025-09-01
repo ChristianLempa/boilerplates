@@ -1,5 +1,5 @@
 ---
-name: "Whoami Service"
+name: "Whoami"
 description: "Simple HTTP service that returns information about the request"
 version: "1.0.0"
 author: "Your Name"
@@ -11,8 +11,16 @@ tags:
 category: "utilities"
 ---
 services:
-  {{ service_name }}:
+  {{ service_name | default('whoami') }}:
     image: traefik/whoami
+    container_name: {{ container_name | default('whoami') }}
+    {% if swarm %}
+    deploy:
+      replicas: {{ swarm_replicas | default(1) }}
+      restart_policy:
+        condition: on-failure
+    {% endif %}
     ports:
-      - "8080:80"
+      - "{{ service_port['http'] | default(8080) }}:80"
+      - "{{ service_port['https'] | default(8443) }}:443"
     restart: unless-stopped

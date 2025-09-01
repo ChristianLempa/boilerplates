@@ -1,14 +1,25 @@
 ---
 services:
-  nginx:
+  {{ service_name | default('nginx') }}:
     image: docker.io/library/nginx:1.28.0-alpine
-    container_name: nginx
+    {% if not swarm %}
+    container_name: {{ container_name | default('nginx') }}
+    {% endif %}
+    {% if swarm %}
+    deploy:
+      replicas: {{ swarm_replicas | default(1) }}
+      restart_policy:
+        condition: on-failure
+    {% endif %}
+    {% if not traefik %}
     ports:
-      - 80:80
-      - 443:443
+      - "{{ service_port['http'] | default(8080) }}:80"
+      - "{{ service_port['https'] | default(8443) }}:443"
+    {% endif %}
     volumes:
       - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data:/usr/share/nginx/html:ro
+    {% if traefik %}
     labels:
       - traefik.enable=true
       - traefik.http.services.nginx.loadbalancer.server.port=80
@@ -17,10 +28,13 @@ services:
       - traefik.http.routers.nginx.tls=true
       - traefik.http.routers.nginx.tls.certresolver=cloudflare
       - traefik.http.routers.nginx.service=nginx
+    {% endif %}
     networks:
-      - frontend
+      - {{ docker_network | default('bridge') }}
+    {% if not swarm %}
     restart: unless-stopped
+    {% endif %}
 
 networks:
-  frontend:
+  {{ docker_network | default('bridge') }}:
     external: true
