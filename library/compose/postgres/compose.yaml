@@ -1,4 +1,14 @@
 ---
+name: "PostgreSQL"
+description: "An open-source relational database management system"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - postgres
+  - database
+  - sql
+---
 services:
   postgres:
     image: docker.io/library/postgres:17.6

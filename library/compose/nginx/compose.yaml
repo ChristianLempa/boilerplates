@@ -1,4 +1,14 @@
 ---
+name: "Nginx"
+description: "An open-source web server"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - nginx
+  - web
+  - reverse-proxy
+---
 services:
   {{ service_name | default('nginx') }}:
     image: docker.io/library/nginx:1.28.0-alpine

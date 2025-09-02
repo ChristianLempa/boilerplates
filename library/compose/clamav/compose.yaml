@@ -1,4 +1,14 @@
 ---
+name: "ClamAV"
+description: "An open-source antivirus engine"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - "clamav"
+  - "antivirus"
+  - "security"
+---
 services:
   clamav:
     image: docker.io/clamav/clamav:1.4.3

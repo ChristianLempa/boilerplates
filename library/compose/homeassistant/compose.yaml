@@ -1,4 +1,15 @@
 ---
+name: "Home Assistant"
+description: "A self-hosted home automation platform"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - homeassistant
+  - automation
+  - monitoring
+  - observability
+---
 services:
   homeassistant:
     container_name: homeassistant

@@ -142,6 +142,49 @@ class BaseVariables:
 
         return defaults
 
+    def extract_variable_meta_overrides(self, template_content: str) -> Dict[str, Dict[str, Any]]:
+        """Extract variable metadata overrides from a Jinja2 block.
+
+        Supports a block like:
+
+        {% variables %}
+        container_hostname:
+          description: "..."
+        {% endvariables %}
+
+        The contents are parsed as YAML and returned as a dict mapping
+        variable name -> metadata overrides.
+        """
+        import re
+        try:
+            m = re.search(r"\{%\s*variables\s*%\}(.+?)\{%\s*endvariables\s*%\}", template_content, flags=re.S)
+            if not m:
+                return {}
+            yaml_block = m.group(1).strip()
+            try:
+                import yaml
+            except Exception:
+                return {}
+            try:
+                data = yaml.safe_load(yaml_block) or {}
+                if isinstance(data, dict):
+                    # Ensure values are dicts
+                    cleaned: Dict[str, Dict[str, Any]] = {}
+                    for k, v in data.items():
+                        if v is None:
+                            cleaned[k] = {}
+                        elif isinstance(v, dict):
+                            cleaned[k] = v
+                        else:
+                            # If a scalar was provided, interpret as description
+                            cleaned[k] = {"description": v}
+                    return cleaned
+            except Exception:
+                return {}
+        except Exception:
+            return {}
+        return {}
+
     def determine_variable_sets(self, template_content: str) -> Tuple[List[str], Set[str]]:
         """Return a list of variable set names that contain any used variables.
 

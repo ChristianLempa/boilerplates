@@ -1,4 +1,14 @@
 ---
+name: "Prometheus"
+description: "An open-source monitoring and alerting toolkit"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - prometheus
+  - monitoring
+  - alerting
+---
 volumes:
   prometheus-data:
     driver: local

@@ -1,4 +1,14 @@
 ---
+name: "Nextcloud"
+description: "A self-hosted file sync and share platform"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - nextcloud
+  - web
+  - file-storage
+---
 volumes:
   nextcloud-data:
   nextcloud-db:

@@ -1,4 +1,15 @@
 ---
+name: "Authentik"
+description: "An open-source identity and access management solution"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - "authentik"
+  - "identity"
+  - "access"
+  - "management"  
+---
 services:
   server:
     image: ghcr.io/goauthentik/server:2025.6.3

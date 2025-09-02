@@ -1,4 +1,14 @@
 ---
+name: "Homer"
+description: "A simple homepage for your services"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - "homer"
+  - "http"
+  - "testing"
+---
 services:
   homer:
     image: docker.io/b4bz/homer:v25.08.1

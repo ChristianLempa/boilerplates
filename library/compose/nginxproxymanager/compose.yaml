@@ -1,4 +1,14 @@
 ---
+name: "Nginx Proxy Manager"
+description: "An open-source reverse proxy manager"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - nginx
+  - reverse-proxy
+  - web
+---
 volumes:
   nginxproxymanager-data:
   nginxproxymanager-ssl:

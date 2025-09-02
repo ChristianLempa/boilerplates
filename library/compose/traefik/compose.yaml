@@ -1,4 +1,14 @@
 ---
+name: "Traefik"
+description: "An open-source edge router for microservices"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - traefik
+  - reverse-proxy
+  - load-balancer
+---
 services:
   traefik:
     image: docker.io/library/traefik:v3.5.1

@@ -1,4 +1,15 @@
 ---
+name: "GitLab"
+description: "A self-hosted Git repository manager"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - gitlab
+  - git
+  - repository
+  - management
+---
 services:
   gitlab:
     image: docker.io/gitlab/gitlab-ce:18.3.1-ce.0

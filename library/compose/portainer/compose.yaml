@@ -1,4 +1,14 @@
 ---
+name: "Portainer"
+description: "An open-source container management tool"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - portainer
+  - container-management
+  - web
+---
 services:
   app:
     container_name: portainer

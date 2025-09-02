@@ -1,4 +1,14 @@
 ---
+name: "Loki"
+description: "An open-source log aggregation system"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - loki
+  - monitoring
+  - logging
+---
 services:
   loki:
     container_name: loki

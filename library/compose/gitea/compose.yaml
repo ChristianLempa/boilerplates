@@ -1,4 +1,15 @@
 ---
+name: "Gitea"
+description: "A self-hosted Git service"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+ - gitea
+ - git
+ - code
+ - repository
+---
 services:
   server:
     image: docker.io/gitea/gitea:1.24.5

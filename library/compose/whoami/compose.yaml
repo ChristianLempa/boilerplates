@@ -1,14 +1,14 @@
 ---
 name: "Whoami"
 description: "Simple HTTP service that returns information about the request"
-version: "1.0.0"
-author: "Your Name"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
 tags:
   - "traefik"
   - "whoami"
   - "http"
   - "testing"
-category: "utilities"
 ---
 services:
   {{ service_name | default('whoami') }}:

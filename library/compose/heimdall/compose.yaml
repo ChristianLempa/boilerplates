@@ -1,4 +1,15 @@
 ---
+name: "Heimdall"
+description: "An open-source dashboard for your web applications"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - heimdall
+  - dashboard
+  - monitoring
+  - observability
+---
 services:
   heimdall:
     image: lscr.io/linuxserver/heimdall:2.7.4

@@ -17,9 +17,11 @@ class Boilerplate:
         # Extract frontmatter fields with defaults
         self.name = frontmatter_data.get('name', file_path.stem)
         self.description = frontmatter_data.get('description', 'No description available')
-        self.author = frontmatter_data.get('author', 'Unknown')
-        self.date = frontmatter_data.get('date', 'Unknown')
-        self.module = frontmatter_data.get('module', 'Unknown')
+        self.author = frontmatter_data.get('author', '')
+        self.date = frontmatter_data.get('date', '')
+        self.version = frontmatter_data.get('version', '')
+        self.module = frontmatter_data.get('module', '')
+        self.tags = frontmatter_data.get('tags', [])
         self.files = frontmatter_data.get('files', [])
         
         # Additional computed properties
@@ -33,7 +35,9 @@ class Boilerplate:
             'description': self.description,
             'author': self.author,
             'date': self.date,
+            'version': self.version,
             'module': self.module,
+            'tags': self.tags,
             'files': self.files,
             'path': str(self.relative_path),
             'size': f"{self.size:,} bytes"

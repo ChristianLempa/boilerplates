@@ -1,4 +1,14 @@
 ---
+name: "Wazuh"
+description: "A security monitoring platform"
+version: "0.0.1"
+date: "2023-10-01"
+author: "Christian Lempa"
+tags:
+  - wazuh
+  - security
+  - monitoring
+---
 services:
   wazuh.manager:
     image: docker.io/wazuh/wazuh-manager:4.12.0

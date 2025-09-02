@@ -3,10 +3,12 @@ Compose module commands and functionality.
 Manage Compose configurations and services and template operations.
 """
 
+import re
 import typer
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
+from rich.syntax import Syntax
 from typing import List, Optional, Set, Dict, Any
 
 from ...core.command import BaseModule
@@ -78,7 +80,8 @@ class ComposeModule(BaseModule):
         def show(name: str, raw: bool = typer.Option(False, "--raw", help="Output only the raw boilerplate content")):
             """Show details about a compose boilerplate by name."""
             bps = find_boilerplates(self.library_path, self.compose_filenames)
-            bp = next((b for b in bps if b.name.lower() == name.lower()), None)
+            # Match by directory name (parent folder of the compose file) instead of frontmatter 'name'
+            bp = next((b for b in bps if b.file_path.parent.name.lower() == name.lower()), None)
             if not bp:
                 self.console.print(f"[red]Boilerplate '{name}' not found.[/red]")
                 return
@@ -86,24 +89,62 @@ class ComposeModule(BaseModule):
                 # Output only the raw boilerplate content
                 print(bp.content)
                 return
-            # Print frontmatter info in a clever way
-            table = Table(title=f"🐳 Boilerplate: {bp.name}", title_style="bold blue")
-            table.add_column("Field", style="cyan", no_wrap=True)
-            table.add_column("Value", style="green")
+            # Print frontmatter info in a clean, readable format
+            from rich.text import Text
+            from rich.console import Group
+            
             info = bp.to_dict()
-            for key, value in info.items():
-                if isinstance(value, List):
-                    value = ", ".join(str(v) for v in value)
-                table.add_row(key.title(), str(value))
-            self.console.print(table)
+            
+            # Create a clean header
+            header = Text()
+            header.append("🐳 Boilerplate: ", style="bold")
+            header.append(f"{info['name']}", style="bold blue")
+            header.append(f" ({info['version']})", style="magenta")
+            header.append("\n", style="bold")
+            header.append(f"{info['description']}", style="dim white")
+            
+            # Create metadata section with clean formatting
+            metadata = Text()
+            metadata.append("\nDetails:\n", style="bold cyan")
+            metadata.append("─" * 40 + "\n", style="dim cyan")
+            
+            # Format each field with consistent styling
+            fields = [
+                ("Tags", ", ".join(info['tags']), "cyan"),
+                ("Author", info['author'], "dim white"), 
+                ("Date", info['date'], "dim white"),
+                ("Size", info['size'], "dim white"),
+                ("Path", info['path'], "dim white")
+            ]
+            
+            for label, value, color in fields:
+                metadata.append(f"{label}: ")
+                metadata.append(f"{value}\n", style=color)
+            
+            # Handle files list if present
+            if info['files'] and len(info['files']) > 0:
+                metadata.append("  Files: ")
+                files_str = ", ".join(info['files'][:3])  # Show first 3
+                if len(info['files']) > 3:
+                    files_str += f" ... and {len(info['files']) - 3} more"
+                metadata.append(f"{files_str}\n", style="green")
+            
+            # Display everything as a group
+            display_group = Group(header, metadata)
+            self.console.print(display_group)
+
 
             # Show the content of the boilerplate file in a cleaner form
             from rich.panel import Panel
             from rich.syntax import Syntax
-            self.console.print()  # Add spacing
 
-            # Use syntax highlighting for YAML files
-            syntax = Syntax(bp.content, "yaml", theme="monokai", line_numbers=True, word_wrap=True)
+            # Detect if content contains Jinja2 templating
+            has_jinja = bool(re.search(r'\{\{.*\}\}|\{\%.*\%\}|\{\#.*\#\}', bp.content))
+            
+            # Use appropriate lexer based on content
+            # Use yaml+jinja for combined YAML and Jinja2 highlighting when Jinja2 is present
+            lexer = "yaml+jinja" if has_jinja else "yaml"
+            syntax = Syntax(bp.content, lexer, theme="monokai", line_numbers=True, word_wrap=True)
             panel = Panel(syntax, title=f"{bp.file_path.name}", border_style="blue", padding=(1,2))
             self.console.print(panel)
 
@@ -120,13 +161,20 @@ class ComposeModule(BaseModule):
         ):
             """Render a compose boilerplate interactively and write output to --out."""
             bps = find_boilerplates(self.library_path, self.compose_filenames)
-            bp = next((b for b in bps if b.name.lower() == name.lower()), None)
+            # Match by directory name (parent folder of the compose file) instead of frontmatter 'name'
+            bp = next((b for b in bps if b.file_path.parent.name.lower() == name.lower()), None)
             if not bp:
                 self.console.print(f"[red]Boilerplate '{name}' not found.[/red]")
                 raise typer.Exit(code=1)
 
             cv = ComposeVariables()
-            matched_sets, used_vars = cv.determine_variable_sets(bp.content)
+            # Remove any in-template `{% variables %} ... {% endvariables %}` block
+            # before asking Jinja2 to parse/render the template. This block is
+            # used only to provide metadata overrides and is not valid Jinja2
+            # syntax for the default parser (unknown tag -> TemplateSyntaxError).
+            import re
+            cleaned_content = re.sub(r"\{%\s*variables\s*%\}(.+?)\{%\s*endvariables\s*%\}\n?", "", bp.content, flags=re.S)
+            matched_sets, used_vars = cv.determine_variable_sets(cleaned_content)
 
             # If there are no detected variable sets but there are used vars, we still
             # need to prompt for the used variables. Lazy-import jinja2 only when
@@ -140,7 +188,36 @@ class ComposeModule(BaseModule):
                     typer.secho("Jinja2 is required to render templates. Install it and retry.", fg=typer.colors.RED)
                     raise typer.Exit(code=2)
 
-                template_defaults = cv.extract_template_defaults(bp.content)
+                # Use the cleaned content for defaults and rendering, but extract
+                # overrides from the original content (which may contain the
+                # variables block).
+                template_defaults = cv.extract_template_defaults(cleaned_content)
+
+                # Validate Jinja2 template syntax before proceeding. Parsing the
+                # template will surface syntax errors (unclosed blocks, invalid
+                # tags, etc.) early and allow us to abort with a helpful message.
+                try:
+                    env_for_validation = jinja2.Environment(loader=jinja2.BaseLoader())
+                    env_for_validation.parse(cleaned_content)
+                except jinja2.exceptions.TemplateSyntaxError as e:
+                    # Show file path (if available) and error details, then exit.
+                    self.console.print(f"[red]Template syntax error in '{bp.file_path}': {e.message} (line {e.lineno})[/red]")
+                    raise typer.Exit(code=2)
+                except Exception as e:
+                    # Generic parse failure
+                    self.console.print(f"[red]Failed to parse template '{bp.file_path}': {e}[/red]")
+                    raise typer.Exit(code=2)
+                # Extract variable metadata overrides from a {% variables %} block
+                try:
+                    meta_overrides = cv.extract_variable_meta_overrides(bp.content)
+                    # Merge overrides into declared metadata so PromptHandler will pick them up
+                    for var_name, overrides in meta_overrides.items():
+                        if var_name in cv._declared and isinstance(overrides, dict):
+                            existing = cv._declared[var_name][1]
+                            # shallow merge
+                            existing.update(overrides)
+                except Exception:
+                    meta_overrides = {}
                 used_subscripts = cv.find_used_subscript_keys(bp.content)
                 
                 # Load values from file if specified
@@ -203,18 +280,33 @@ class ComposeModule(BaseModule):
                 # Enable Jinja2 whitespace control so that block tags like
                 # {% if %} don't leave an extra newline in the rendered result.
                 env = jinja2.Environment(loader=jinja2.BaseLoader(), trim_blocks=True, lstrip_blocks=True)
-                template = env.from_string(bp.content)
-                rendered = template.render(**values_dict)
+                try:
+                    template = env.from_string(cleaned_content)
+                except jinja2.exceptions.TemplateSyntaxError as e:
+                    self.console.print(f"[red]Template syntax error in '{bp.file_path}': {e.message} (line {e.lineno})[/red]")
+                    raise typer.Exit(code=2)
+                except Exception as e:
+                    self.console.print(f"[red]Failed to compile template '{bp.file_path}': {e}[/red]")
+                    raise typer.Exit(code=2)
+
+                try:
+                    rendered = template.render(**values_dict)
+                except jinja2.exceptions.TemplateError as e:
+                    # Catch runtime/template errors (undefined variables, etc.)
+                    self.console.print(f"[red]Template rendering error for '{bp.file_path}': {e}[/red]")
+                    raise typer.Exit(code=2)
+                except Exception as e:
+                    self.console.print(f"[red]Unexpected error while rendering '{bp.file_path}': {e}[/red]")
+                    raise typer.Exit(code=2)
 
             # If --out not provided, print to console; else write to file
 
             if out is None:
-                from rich.panel import Panel
-                from rich.syntax import Syntax
-
+                # Print a subtle rule and a small header, then the highlighted YAML
+                self.console.print(f"\n\nGenerated Boilerplate for [bold cyan]{bp.name}[/bold cyan]\n")
                 syntax = Syntax(rendered, "yaml", theme="monokai", line_numbers=False, word_wrap=True)
-                panel = Panel(syntax, title=f"{bp.name}", border_style="green", padding=(1,2))
-                self.console.print(panel)
+                self.console.print(syntax)
+
             else:
                 # Ensure parent directory exists
                 out_parent = out.parent
