@@ -17,3 +17,6 @@
 **/*.pyd
 **/.venv
 **/venv/
+
+# Packaging
+*.egg-info/
