@@ -20,15 +20,24 @@ class ComposeModule(BaseModule):
     """Module for managing compose boilerplates."""
 
     compose_filenames = ["compose.yaml", "docker-compose.yaml", "compose.yml", "docker-compose.yml"]
-    library_path = Path(__file__).parent.parent.parent.parent / "library" / "compose"
+    _library_path = Path(__file__).parent.parent.parent.parent / "library" / "compose"
 
     def __init__(self):
         super().__init__(name="compose", icon="🐳", description="Manage Compose Templates and Configurations")
 
-    def get_valid_variables(self) -> Set[str]:
-        """Get the set of valid variable names for the compose module."""
-        variables = ComposeVariables()
-        return set(variables._declared.keys())
+    # Core BaseModule integration
+    @property
+    def template_paths(self) -> List[str]:
+        # Prefer compose.yaml as default per project rules
+        return self.compose_filenames
+
+    @property
+    def library_path(self) -> Path:
+        return self._library_path
+
+    @property
+    def variable_handler_class(self):
+        return ComposeVariables
     
     def _get_variable_details(self) -> Dict[str, Dict[str, Any]]:
         """Get detailed information about variables for display."""
@@ -44,8 +53,8 @@ class ComposeModule(BaseModule):
             }
         return details
 
-    def _add_module_commands(self, app: typer.Typer) -> None:
-        """Add Module-specific commands to the app."""
+    def _add_custom_commands(self, app: typer.Typer) -> None:
+        """Add compose-specific commands to the app."""
 
         @app.command("list", help="List all compose boilerplates")
         def list():
@@ -157,161 +166,76 @@ class ComposeModule(BaseModule):
             name: str, 
             out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output path to write rendered boilerplate (prints to stdout when omitted)"),
             values_file: Optional[Path] = typer.Option(None, "--values-file", "-f", help="Load values from YAML/JSON file"),
-            values: Optional[List[str]] = typer.Option(None, "--values", help="Set values (format: key=value)")
+            cli_values: Optional[List[str]] = typer.Option(None, "--values", help="Set values (format: key=value)")
         ):
             """Render a compose boilerplate interactively and write output to --out."""
+            from ...core import template, values as values_mod, render
+            from ...core.config import ConfigManager
+
+            # Find and validate boilerplate
             bps = find_boilerplates(self.library_path, self.compose_filenames)
-            # Match by directory name (parent folder of the compose file) instead of frontmatter 'name'
             bp = next((b for b in bps if b.file_path.parent.name.lower() == name.lower()), None)
             if not bp:
                 self.console.print(f"[red]Boilerplate '{name}' not found.[/red]")
                 raise typer.Exit(code=1)
 
+            # Clean template content and find variables
             cv = ComposeVariables()
-            # Remove any in-template `{% variables %} ... {% endvariables %}` block
-            # before asking Jinja2 to parse/render the template. This block is
-            # used only to provide metadata overrides and is not valid Jinja2
-            # syntax for the default parser (unknown tag -> TemplateSyntaxError).
-            import re
-            cleaned_content = re.sub(r"\{%\s*variables\s*%\}(.+?)\{%\s*endvariables\s*%\}\n?", "", bp.content, flags=re.S)
+            cleaned_content = template.clean_template_content(bp.content)
             matched_sets, used_vars = cv.determine_variable_sets(cleaned_content)
 
-            # If there are no detected variable sets but there are used vars, we still
-            # need to prompt for the used variables. Lazy-import jinja2 only when
-            # rendering is required so module import doesn't fail when Jinja2 is missing.
+            # If no variables used, return original content
             if not used_vars:
                 rendered = bp.content
             else:
-                try:
-                    import jinja2
-                except Exception:
-                    typer.secho("Jinja2 is required to render templates. Install it and retry.", fg=typer.colors.RED)
+                # Validate template syntax
+                is_valid, error = template.validate_template(cleaned_content, bp.file_path)
+                if not is_valid:
+                    self.console.print(f"[red]{error}[/red]")
                     raise typer.Exit(code=2)
 
-                # Use the cleaned content for defaults and rendering, but extract
-                # overrides from the original content (which may contain the
-                # variables block).
+                # Extract defaults and variable metadata
                 template_defaults = cv.extract_template_defaults(cleaned_content)
-
-                # Validate Jinja2 template syntax before proceeding. Parsing the
-                # template will surface syntax errors (unclosed blocks, invalid
-                # tags, etc.) early and allow us to abort with a helpful message.
-                try:
-                    env_for_validation = jinja2.Environment(loader=jinja2.BaseLoader())
-                    env_for_validation.parse(cleaned_content)
-                except jinja2.exceptions.TemplateSyntaxError as e:
-                    # Show file path (if available) and error details, then exit.
-                    self.console.print(f"[red]Template syntax error in '{bp.file_path}': {e.message} (line {e.lineno})[/red]")
-                    raise typer.Exit(code=2)
-                except Exception as e:
-                    # Generic parse failure
-                    self.console.print(f"[red]Failed to parse template '{bp.file_path}': {e}[/red]")
-                    raise typer.Exit(code=2)
-                # Extract variable metadata overrides from a {% variables %} block
                 try:
                     meta_overrides = cv.extract_variable_meta_overrides(bp.content)
-                    # Merge overrides into declared metadata so PromptHandler will pick them up
+                    # Merge overrides into declared metadata
                     for var_name, overrides in meta_overrides.items():
                         if var_name in cv._declared and isinstance(overrides, dict):
                             existing = cv._declared[var_name][1]
-                            # shallow merge
                             existing.update(overrides)
                 except Exception:
                     meta_overrides = {}
+
+                # Get subscript keys and load values from all sources
                 used_subscripts = cv.find_used_subscript_keys(bp.content)
-                
-                # Load values from file if specified
-                file_values = {}
-                if values_file:
-                    if not values_file.exists():
-                        self.console.print(f"[red]Values file '{values_file}' not found.[/red]")
-                        raise typer.Exit(code=1)
-                    
-                    try:
-                        import yaml
-                        with open(values_file, 'r', encoding='utf-8') as f:
-                            if values_file.suffix.lower() in ['.yaml', '.yml']:
-                                file_values = yaml.safe_load(f) or {}
-                            elif values_file.suffix.lower() == '.json':
-                                import json
-                                file_values = json.load(f)
-                            else:
-                                self.console.print(f"[red]Unsupported file format '{values_file.suffix}'. Use .yaml, .yml, or .json[/red]")
-                                raise typer.Exit(code=1)
-                        self.console.print(f"[dim]Loaded values from {values_file}[/dim]")
-                    except Exception as e:
-                        self.console.print(f"[red]Failed to load values from {values_file}: {e}[/red]")
-                        raise typer.Exit(code=1)
-                
-                # Parse command-line values
-                cli_values = {}
-                if values:
-                    for value_pair in values:
-                        if '=' not in value_pair:
-                            self.console.print(f"[red]Invalid value format '{value_pair}'. Use key=value format.[/red]")
-                            raise typer.Exit(code=1)
-                        key, val = value_pair.split('=', 1)
-                        # Try to parse as JSON for complex values
-                        try:
-                            import json
-                            cli_values[key] = json.loads(val)
-                        except json.JSONDecodeError:
-                            cli_values[key] = val
-                        except Exception:
-                            cli_values[key] = val
-                
-                # Override template defaults with configured values
-                from ...core.config import ConfigManager
                 config_manager = ConfigManager(self.name)
-                config_values = config_manager.list_all()
-                
-                # Merge values in order of precedence: template defaults <- config <- file <- CLI
-                for key, config_value in config_values.items():
-                    template_defaults[key] = config_value
-                
-                for key, file_value in file_values.items():
-                    template_defaults[key] = file_value
-                
-                for key, cli_value in cli_values.items():
-                    template_defaults[key] = cli_value
-                
-                values_dict = cv.collect_values(used_vars, template_defaults, used_subscripts)
-
-                # Enable Jinja2 whitespace control so that block tags like
-                # {% if %} don't leave an extra newline in the rendered result.
-                env = jinja2.Environment(loader=jinja2.BaseLoader(), trim_blocks=True, lstrip_blocks=True)
                 try:
-                    template = env.from_string(cleaned_content)
-                except jinja2.exceptions.TemplateSyntaxError as e:
-                    self.console.print(f"[red]Template syntax error in '{bp.file_path}': {e.message} (line {e.lineno})[/red]")
-                    raise typer.Exit(code=2)
+                    merged_values = values_mod.load_and_merge_values(
+                        values_file=values_file,
+                        cli_values=cli_values,
+                        config_values=config_manager.list_all(),
+                        defaults=template_defaults
+                    )
                 except Exception as e:
-                    self.console.print(f"[red]Failed to compile template '{bp.file_path}': {e}[/red]")
+                    self.console.print(f"[red]{str(e)}[/red]")
+                    raise typer.Exit(code=1)
+
+                # Collect final values and render template
+                values_dict = cv.collect_values(used_vars, merged_values, used_subscripts)
+                success, rendered, error = template.render_template(
+                    cleaned_content,
+                    values_dict
+                )
+
+                if not success:
+                    self.console.print(f"[red]{error}[/red]")
                     raise typer.Exit(code=2)
 
-                try:
-                    rendered = template.render(**values_dict)
-                except jinja2.exceptions.TemplateError as e:
-                    # Catch runtime/template errors (undefined variables, etc.)
-                    self.console.print(f"[red]Template rendering error for '{bp.file_path}': {e}[/red]")
-                    raise typer.Exit(code=2)
-                except Exception as e:
-                    self.console.print(f"[red]Unexpected error while rendering '{bp.file_path}': {e}[/red]")
-                    raise typer.Exit(code=2)
-
-            # If --out not provided, print to console; else write to file
-
-            if out is None:
-                # Print a subtle rule and a small header, then the highlighted YAML
-                self.console.print(f"\n\nGenerated Boilerplate for [bold cyan]{bp.name}[/bold cyan]\n")
-                syntax = Syntax(rendered, "yaml", theme="monokai", line_numbers=False, word_wrap=True)
-                self.console.print(syntax)
-
-            else:
-                # Ensure parent directory exists
-                out_parent = out.parent
-                if not out_parent.exists():
-                    out_parent.mkdir(parents=True, exist_ok=True)
-
-                out.write_text(rendered, encoding="utf-8")
-                self.console.print(f"[green]Rendered boilerplate written to {out}[/green]")
+            # Output the rendered content
+            output_handler = render.RenderOutput(self.console)
+            output_handler.output_rendered_content(
+                rendered,
+                out,
+                "yaml",
+                bp.name
+            )

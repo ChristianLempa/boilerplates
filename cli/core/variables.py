@@ -31,12 +31,17 @@ class BaseVariables:
         # Support both legacy and new shapes. If the set value contains a
         # 'variables' key, use that mapping; otherwise assume the mapping is
         # directly the vars map (legacy).
-        for set_name, set_def in getattr(self, "variable_sets", {}).items():
-            vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
-            if not isinstance(vars_map, dict):
-                continue
-            for var_name, meta_info in vars_map.items():
-                self._declared[var_name] = (set_name, meta_info)
+        if not hasattr(self, "variable_sets"):
+            self.variable_sets = {}
+        # Ensure we can iterate over variable_sets
+        if not isinstance(self.variable_sets, dict):
+            self.variable_sets = {}
+        for set_name, set_def in self.variable_sets.items():
+                vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
+                if not isinstance(vars_map, dict):
+                    continue
+                for var_name, meta_info in vars_map.items():
+                    self._declared[var_name] = (set_name, meta_info)
 
     def find_used_variables(self, template_content: str) -> Set[str]:
         """Parse the Jinja2 template and return the set of variable names used."""
@@ -186,13 +191,15 @@ class BaseVariables:
         return {}
 
     def determine_variable_sets(self, template_content: str) -> Tuple[List[str], Set[str]]:
-        """Return a list of variable set names that contain any used variables.
-
+        """
         Also returns the raw set of used variable names.
         """
         used = self.find_used_variables(template_content)
         matched_sets: List[str] = []
-        for set_name, set_def in getattr(self, "variable_sets", {}).items():
+        variable_sets = getattr(self, "variable_sets", {})
+        if not isinstance(variable_sets, dict):
+            return [], used
+        for set_name, set_def in variable_sets.items():
             vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
             if not isinstance(vars_map, dict):
                 continue

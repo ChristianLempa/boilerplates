@@ -10,7 +10,8 @@ class ComposeVariables(BaseVariables):
     the individual variable definitions.
     """
 
-    variable_sets: Dict[str, Dict[str, Any]] = {
+    def __init__(self) -> None:
+        self.variable_sets: Dict[str, Dict[str, Any]] = {
         "general": {
             "always": True,
             "prompt": "Do you want to change the general settings?",
@@ -43,3 +44,4 @@ class ComposeVariables(BaseVariables):
             },
         },
     }
+        super().__init__()

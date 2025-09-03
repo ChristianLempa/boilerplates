@@ -64,17 +64,6 @@ def create_app() -> typer.Typer:
             help="Set logging level",
             case_sensitive=False,
         ),
-        verbose: bool = typer.Option(
-            False,
-            "--verbose",
-            help="Enable verbose output"
-        ),
-        quiet: bool = typer.Option(
-            False,
-            "--quiet",
-            "-q",
-            help="Suppress output"
-        ),
     ):
         """
         🚀 Boilerplates CLI - Manage your infrastructure templates with ease!
