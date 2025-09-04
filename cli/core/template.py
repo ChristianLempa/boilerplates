@@ -1,11 +1,23 @@
 from pathlib import Path
 from typing import Any, Dict, Set, Tuple
+import logging
+import re
 from jinja2 import Environment, BaseLoader, meta, nodes
 import frontmatter
 
 
 class Template:
   """Data class for template information extracted from frontmatter."""
+  
+  @staticmethod
+  def _create_jinja_env() -> Environment:
+    """Create standardized Jinja2 environment for consistent template processing."""
+    return Environment(
+      loader=BaseLoader(),
+      trim_blocks=True,           # Remove first newline after block tags
+      lstrip_blocks=True,         # Strip leading whitespace from block tags  
+      keep_trailing_newline=False # Remove trailing newlines
+    )
   
   def __init__(self, file_path: Path, frontmatter_data: Dict[str, Any], content: str):
     self.file_path = file_path
@@ -56,10 +68,6 @@ class Template:
   def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any]]:
     """Parse Jinja2 template to extract variables and their default values.
     
-    Analyzes template content to find:
-    1. All undeclared variables (using AST analysis)
-    2. Default values from | default() filters (using AST traversal)
-    
     Examples:
         {{ app_name | default('my-app') }} → vars={'app_name'}, defaults={'app_name': 'my-app'}
         {{ port | default(8080) }} → vars={'port'}, defaults={'port': 8080}
@@ -69,13 +77,7 @@ class Template:
         Tuple of (all_variable_names, variable_defaults)
     """
     try:
-      # Use consistent Jinja2 environment configuration
-      env = Environment(
-        loader=BaseLoader(),
-        trim_blocks=True,           # Remove first newline after block tags
-        lstrip_blocks=True,         # Strip leading whitespace from block tags  
-        keep_trailing_newline=False # Remove trailing newlines
-      )
+      env = self._create_jinja_env()
       ast = env.parse(template_content)
       
       # Extract all undeclared variables
@@ -94,13 +96,6 @@ class Template:
       return all_variables, defaults
     except Exception:
       return set(), {}
-
-  @staticmethod
-  def _parse_frontmatter(file_path: Path) -> Tuple[Dict[str, Any], str]:
-    """Parse frontmatter and content from a file."""
-    with open(file_path, 'r', encoding='utf-8') as f:
-      post = frontmatter.load(f)
-    return post.metadata, post.content
 
   def to_dict(self) -> Dict[str, Any]:
     """Convert to dictionary for display."""
@@ -122,37 +117,18 @@ class Template:
     }
 
   def render(self, variable_values: Dict[str, Any]) -> str:
-    """Render the template with the provided variable values.
-    
-    Args:
-        variable_values: Dictionary of variable names to their values
-        
-    Returns:
-        Rendered template content as string
-    """
-    import logging
-    import re
-    
+    """Render the template with the provided variable values."""
     logger = logging.getLogger('boilerplates')
     
     try:
-      # Configure Jinja2 environment to handle whitespace and blank lines
-      env = Environment(
-        loader=BaseLoader(),
-        trim_blocks=True,           # Remove first newline after block tags
-        lstrip_blocks=True,         # Strip leading whitespace from block tags
-        keep_trailing_newline=False # Remove trailing newlines
-      )
+      env = self._create_jinja_env()
       jinja_template = env.from_string(self.content)
       rendered_content = jinja_template.render(**variable_values)
       
-      # Additional post-processing to remove multiple consecutive blank lines
-      # Replace multiple consecutive newlines with single newlines
+      # Clean up excessive blank lines and whitespace
       rendered_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', rendered_content)
-      # Remove leading/trailing whitespace
-      rendered_content = rendered_content.strip()
+      return rendered_content.strip()
       
-      return rendered_content
     except Exception as e:
       logger.error(f"Jinja2 template rendering failed: {e}")
       raise ValueError(f"Failed to render template: {e}")

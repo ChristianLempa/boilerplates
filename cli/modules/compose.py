@@ -32,12 +32,26 @@ class ComposeModule(Module):
       "swarm": {
         "description": "Variables for Docker Swarm deployment",
         "vars": {
+          "swarm": {"description": "Enable Docker Swarm mode", "value": False, "var_type": "boolean"},
+          "swarm_replicas": {"description": "Number of replicas in Swarm", "value": 1, "var_type": "integer"},
           "replica_count": {"description": "Number of replicas in Swarm", "value": 1, "var_type": "integer"}
+        }
+      },
+      "networking": {
+        "description": "Network and port configuration",
+        "vars": {
+          "service_port": {"description": "Service port mapping", "value": {"http": 8080, "https": 8443}, "var_type": "dict"},
+          "docker_network": {"description": "Docker network name", "value": "bridge"}
         }
       },
       "traefik": {
         "description": "Variables for Traefik labels",
         "vars": {
+          "traefik": {"description": "Enable Traefik labels", "value": False, "var_type": "boolean"},
+          "traefik_enable": {"description": "Enable Traefik for this service", "value": True, "var_type": "boolean"},
+          "traefik_host": {"description": "Traefik host rule", "value": "example.com"},
+          "traefik_tls": {"description": "Enable TLS for Traefik", "value": True, "var_type": "boolean"},
+          "traefik_certresolver": {"description": "Traefik certificate resolver", "value": "letsencrypt"},
           "traefik_http_port": {"description": "HTTP port for Traefik", "value": 80, "var_type": "integer"},
           "traefik_https_port": {"description": "HTTPS port for Traefik", "value": 443, "var_type": "integer"},
           "traefik_entrypoints": {"description": "Entry points for Traefik", "value": ["http", "https"], "var_type": "list"}

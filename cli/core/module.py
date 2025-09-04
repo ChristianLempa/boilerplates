@@ -16,6 +16,7 @@ from .prompt import PromptHandler
 from .template import Template
 from .variables import VariableGroup, VariableManager
 from .config import ConfigManager
+from .processor import VariableProcessor
 
 logger = logging.getLogger('boilerplates')
 
@@ -34,8 +35,8 @@ class Module(ABC):
     self.files = files
     
     # Initialize ConfigManager and VariableManager with it
-    self.config_manager = ConfigManager()
-    self.variable_manager = VariableManager(vars if vars is not None else [], self.config_manager)
+    self.config = ConfigManager()
+    self.vars = VariableManager(vars if vars is not None else [], self.config)
 
     self.app = Typer()
     self.libraries = LibraryManager()  # Initialize library manager
@@ -49,23 +50,91 @@ class Module(ABC):
       raise ValueError("Module files must be a non-empty list")
     if not all(isinstance(var, VariableGroup) for var in (vars if vars is not None else [])):
       raise ValueError("Module vars must be a list of VariableGroup instances")
-  
-  @property
-  def vars(self) -> List[VariableGroup]:
-    """Backward compatibility property for accessing variable groups."""
-    return self.variable_manager.variable_groups
-  
-  def get_variable_summary(self) -> Dict[str, Any]:
-    """Get a summary of all variables managed by this module."""
-    return self.variable_manager.get_summary()
-  
-  def add_variable_group(self, group: VariableGroup) -> None:
-    """Add a new variable group to this module."""
-    self.variable_manager.add_group(group)
-  
-  def has_variable(self, name: str) -> bool:
-    """Check if this module has a variable with the given name."""
-    return self.variable_manager.has_variable(name)
+
+  def _validate_variables(self, variables: List[str]) -> Tuple[bool, List[str]]:
+    """Validate if all template variables exist in the variable groups.
+    
+    Args:
+        variables: List of variable names to validate
+        
+    Returns:
+        Tuple of (success: bool, missing_variables: List[str])
+    """
+    missing_variables = [var for var in variables if not self.vars.has_variable(var)]
+    success = len(missing_variables) == 0
+    return success, missing_variables
+
+  def _get_variable_defaults_for_template(self, template_vars: List[str]) -> Dict[str, Any]:
+    """Get default values for variables used in a template.
+    
+    Args:
+        template_vars: List of variable names used in the template
+        
+    Returns:
+        Dictionary mapping variable names to their default values
+    """
+    defaults = {}
+    for group in self.vars.variable_groups:
+      for variable in group.vars:
+        if variable.name in template_vars and variable.value is not None:
+          defaults[variable.name] = variable.value
+    return defaults
+
+  def _get_groups_with_template_vars(self, template_vars: List[str]) -> List[VariableGroup]:
+    """Get groups that contain at least one template variable.
+    
+    Args:
+        template_vars: List of variable names used in the template
+        
+    Returns:
+        List of VariableGroup objects that have variables used by the template
+    """
+    result = []
+    for group in self.vars.variable_groups:
+      if any(var.name in template_vars for var in group.vars):
+        result.append(group)
+    return result
+
+  def _resolve_variable_defaults(self, template_vars: List[str], template_defaults: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Resolve variable default values with priority handling.
+    
+    Priority order:
+    1. Module variable defaults (low priority)
+    2. Template's built-in defaults (medium priority)  
+    3. User config defaults (high priority)
+    """
+    if template_defaults is None:
+      template_defaults = {}
+    
+    # Start with module defaults, then override with template and user config
+    defaults = self._get_variable_defaults_for_template(template_vars)
+    defaults.update(template_defaults)
+    defaults.update({var: value for var, value in self.config.get_variable_defaults(self.name).items() if var in template_vars})
+    
+    return defaults
+
+  def _filter_variables_for_template(self, template_vars: List[str]) -> Dict[str, Any]:
+    """Filter the variable groups to only include variables needed by the template."""
+    filtered_vars = {}
+    template_vars_set = set(template_vars)  # Convert to set for O(1) lookup
+    
+    for group in self._get_groups_with_template_vars(template_vars):
+      # Get variables that match template vars and convert to dict format
+      group_vars = {
+        var.name: var.to_dict() for var in group.vars if var.name in template_vars_set
+      }
+      
+      # Only include groups that have variables
+      if group_vars:
+        filtered_vars[group.name] = {
+          'description': group.description,
+          'enabled': group.enabled,
+          'prompt_to_set': getattr(group, 'prompt_to_set', ''),
+          'prompt_to_enable': getattr(group, 'prompt_to_enable', ''),
+          'vars': group_vars
+        }
+    
+    return filtered_vars
 
   def list(self):
     """List all templates in the module."""
@@ -110,8 +179,7 @@ class Module(ABC):
     
     # Find variable groups used by this template
     template_var_groups = [
-      group.name for group in self.variable_manager.variable_groups
-      if any(var.name in template.vars for var in group.vars)
+      group.name for group in self._get_groups_with_template_vars(template.vars)
     ]
     
     if template_var_groups:
@@ -130,51 +198,26 @@ class Module(ABC):
     """Generate a new template with complex variable prompting logic"""
     logger.info(f"Generating template '{id}' from module '{self.name}'")
     
-    # Step 1: Find template by ID
-    logger.debug(f"Step 1: Finding template by ID: {id}")
+    # Find template by ID
     template = self.libraries.find_by_id(module_name=self.name, files=self.files, template_id=id)
     if not template:
       logger.error(f"Template '{id}' not found")
       print(f"Template '{id}' not found.")
       return
-    
-    logger.debug(f"Template found: {template.name} with {len(template.vars)} variables")
-    
-    # Step 2: Validate if the variables in the template are valid ones
-    logger.debug(f"Step 2: Validating template variables: {template.vars}")
-    success, missing = self.variable_manager.validate_template_variables(template.vars)
+
+    # Validate if the variables in the template are valid ones
+    success, missing = self._validate_variables(template.vars)
     if not success:
       logger.error(f"Template '{id}' has invalid variables: {missing}")
       print(f"Template '{id}' has invalid variables: {missing}")
       return
     
-    logger.debug("All template variables are valid")
-    
-    # Step 3: Disable variables not found in template
-    logger.debug(f"Step 3: Disabling variables not used by template")
-    self.variable_manager.disable_variables_not_in_template(template.vars)
-    logger.debug("Unused variables disabled")
-
-    # Step 4: Resolve variable defaults with priority (module -> template -> user config)
-    logger.debug(f"Step 4: Resolving variable defaults with priority")
-    resolved_defaults = self.variable_manager.resolve_variable_defaults(
-      self.name, 
-      template.vars, 
-      template.var_defaults
-    )
-    logger.debug(f"Resolved defaults: {resolved_defaults}")
-    
-    # Step 5: Match template vars with vars of the module (only enabled ones)
-    logger.debug(f"Step 5: Filtering variables for template")
-    filtered_vars = self.variable_manager.filter_variables_for_template(template.vars)
-    logger.debug(f"Filtered variables: {list(filtered_vars.keys())}")
-    
-    # Step 6: Execute complex group-based prompting logic
-    logger.debug(f"Step 6: Starting complex prompting logic")
+    # Process variables using dedicated processor
     try:
-      prompt = PromptHandler(filtered_vars, resolved_defaults)
-      final_variable_values = prompt()
-      logger.debug(f"Prompting completed with values: {final_variable_values}")
+      processor = VariableProcessor(self.vars, self.config, self.name)
+      final_variable_values = processor.process_variables_for_template(template)
+      logger.debug(f"Variable processing completed with {len(final_variable_values)} variables")
+      
     except KeyboardInterrupt:
       logger.info("Template generation cancelled by user")
       print("\n[red]Template generation cancelled.[/red]")

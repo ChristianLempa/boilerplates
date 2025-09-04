@@ -77,8 +77,14 @@ class PromptHandler:
     # Step 2: Determine if group should be enabled
     group_enabled = self._determine_group_enabled_status(group_name, variables, vars_without_defaults)
     
+    # Always set default values for variables in this group, even if user doesn't want to configure them
+    vars_with_defaults = self._get_variables_with_defaults(variables)
+    for var_name in vars_with_defaults:
+      default_value = self.resolved_defaults.get(var_name)
+      self.final_values[var_name] = default_value
+    
     if not group_enabled:
-      logger.debug(f"Group {group_name} disabled by user")
+      logger.debug(f"Group {group_name} disabled by user, but defaults have been applied")
       return
       
     # Step 3: Prompt for required variables (those without defaults)
@@ -164,12 +170,7 @@ class PromptHandler:
   def _handle_variables_with_defaults(self, group_name: str, vars_with_defaults: List[str], variables: Dict[str, Any]):
     """Handle variables that have default values."""
     
-    # First, set all default values
-    for var_name in vars_with_defaults:
-      default_value = self.resolved_defaults.get(var_name)
-      self.final_values[var_name] = default_value
-    
-    # Ask if user wants to customize any of these values
+    # Ask if user wants to customize any of these values (defaults already set earlier)
     try:
       want_to_customize = Confirm.ask(f"[yellow]Do you want to customize any {group_name} variables?[/yellow]", default=False)
     except (EOFError, KeyboardInterrupt):
