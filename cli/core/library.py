@@ -13,7 +13,21 @@ class Library:
     self.path = path
 
   def find_by_id(self, module_name: str, files: list[str], template_id: str) -> "Template | None":
-    """Find a template by its ID in this library."""
+    """
+    Find a template by its ID in this library.
+    
+    Args:
+        module_name: The module name (e.g., 'terraform', 'compose') to search within.
+                    This narrows the search to the specific technology directory in the library.
+        files: List of file patterns to search for (e.g., ['*.tf', '*.yaml']).
+               This filters templates to only those with matching file extensions,
+               ensuring we only process relevant template files for the module.
+        template_id: The unique identifier of the template to find.
+                    This is typically derived from the template's directory name or filename.
+    
+    Returns:
+        Template object if found, None otherwise.
+    """
     for template in self.find(module_name, files, sorted=False):
       if template.id == template_id:
         return template
@@ -71,7 +85,27 @@ class LibraryManager:
     return all_templates
 
   def find_by_id(self, module_name: str, files: list[str], template_id: str) -> "Template | None":
-    """Find a template by its ID across all libraries."""
+    """
+    Find a template by its ID across all libraries.
+    
+    Args:
+        module_name: The module name (e.g., 'terraform', 'compose') to search within.
+                    This narrows the search to the specific technology directory across all libraries,
+                    allowing for modular organization of templates by technology type.
+        files: List of file patterns to search for (e.g., ['*.tf', '*.yaml']).
+               This filters templates to only those with matching file extensions,
+               ensuring we only process relevant template files for the specific module type.
+        template_id: The unique identifier of the template to find.
+                    This is typically derived from the template's directory name or filename,
+                    providing a human-readable way to reference specific templates.
+    
+    Returns:
+        Template object if found across any library, None otherwise.
+        
+    Note:
+        This method searches through all registered libraries in order, returning the first
+        matching template found. This allows for library precedence and template overriding.
+    """
     for library in self.libraries:
       template = library.find_by_id(module_name, files, template_id)
       if template:

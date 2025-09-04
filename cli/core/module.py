@@ -3,6 +3,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, List
 import logging
 from typer import Typer, Option, Argument
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.syntax import Syntax
+from rich.table import Table
+from io import StringIO
+from rich import box
 
 from .library import LibraryManager
 from .prompt import PromptHandler
@@ -73,17 +80,55 @@ class Module(ABC):
   def show(self, id: str = Argument(..., metavar="template", help="The template to show details for")):
     """Show details about a template"""
     logger.debug(f"Showing details for template: {id} in module: {self.name}")
+
+    template = self.libraries.find_by_id(module_name=self.name, files=self.files, template_id=id)
     
-    template = self.libraries.find_by_id(self.name, self.files, id)
-    if template:
-      logger.debug(f"Template found: {template.name}")
-      print(f"ID: {template.id}")
-      print(f"Name: {template.name}")
-      print(f"Directory: {template.directory}")
-      print(f"Content:\n{template.content}")
-    else:
+    if not template:
       logger.error(f"Template with ID '{id}' not found")
       print(f"Template with ID '{id}' not found.")
+      return
+
+    console = Console()
+    
+    # Template title with name, id and version
+    title_text = Text()
+    title_text.append(f"{template.name} ", style="bold magenta")
+    title_text.append(f"({template.id}", style="bold magenta")
+    if template.version:
+      title_text.append(f" v{template.version}", style="bold magenta")
+    title_text.append(")", style="bold magenta")
+    
+    # Description
+    description_text = Text(template.description, style="dim white")
+    
+    # Print template info without panels
+    console.print(title_text)
+    console.print(description_text)
+    console.print()
+    
+    # Print info fields
+    if template.author:
+      console.print(f"Author: [cyan]{template.author}[/cyan]")
+    if template.date:
+      console.print(f"Date: [cyan]{template.date}[/cyan]")
+    if template.tags:
+      console.print(f"Tags: [cyan]{', '.join(template.tags)}[/cyan]")
+    
+    # Determine which variable groups are used by this template
+    template_var_groups = []
+    for var_group in self.variable_manager.variable_groups:
+      # Check if any variables from this group are used in the template
+      group_vars = [var.name for var in var_group.vars]
+      if any(var_name in template.vars for var_name in group_vars):
+        template_var_groups.append(var_group.name)
+    
+    if template_var_groups:
+      console.print(f"Functions: [cyan]{', '.join(template_var_groups)}[/cyan]")
+    
+    # Template content
+    if template.content:
+      console.print(f"\n{template.content}")
+
 
   def generate(self, id: str = Argument(..., metavar="template", help="The template to generate from"), out: Optional[Path] = Option(None, "--out", "-o", help="Output file to save the generated template")):
     """Generate a new template with complex variable prompting logic"""
@@ -91,7 +136,7 @@ class Module(ABC):
     
     # Step 1: Find template by ID
     logger.debug(f"Step 1: Finding template by ID: {id}")
-    template = self.libraries.find_by_id(self.name, self.files, id)
+    template = self.libraries.find_by_id(module_name=self.name, files=self.files, template_id=id)
     if not template:
       logger.error(f"Template '{id}' not found")
       print(f"Template '{id}' not found.")
