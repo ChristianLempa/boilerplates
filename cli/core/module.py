@@ -90,40 +90,36 @@ class Module(ABC):
 
     console = Console()
     
-    # Template title with name, id and version
-    title_text = Text()
-    title_text.append(f"{template.name} ", style="bold magenta")
-    title_text.append(f"({template.id}", style="bold magenta")
-    if template.version:
-      title_text.append(f" v{template.version}", style="bold magenta")
-    title_text.append(")", style="bold magenta")
+    # Build title with version if available
+    version_suffix = f" v{template.version}" if template.version else ""
+    title = f"[bold magenta]{template.name} ({template.id}{version_suffix})[/bold magenta]"
     
-    # Description
-    description_text = Text(template.description, style="dim white")
-    
-    # Print template info without panels
-    console.print(title_text)
-    console.print(description_text)
+    # Print header
+    console.print(title)
+    console.print(f"[dim white]{template.description}[/dim white]")
     console.print()
     
-    # Print info fields
+    # Build and print metadata fields
+    metadata = []
     if template.author:
-      console.print(f"Author: [cyan]{template.author}[/cyan]")
+      metadata.append(f"Author: [cyan]{template.author}[/cyan]")
     if template.date:
-      console.print(f"Date: [cyan]{template.date}[/cyan]")
+      metadata.append(f"Date: [cyan]{template.date}[/cyan]")
     if template.tags:
-      console.print(f"Tags: [cyan]{', '.join(template.tags)}[/cyan]")
+      metadata.append(f"Tags: [cyan]{', '.join(template.tags)}[/cyan]")
     
-    # Determine which variable groups are used by this template
-    template_var_groups = []
-    for var_group in self.variable_manager.variable_groups:
-      # Check if any variables from this group are used in the template
-      group_vars = [var.name for var in var_group.vars]
-      if any(var_name in template.vars for var_name in group_vars):
-        template_var_groups.append(var_group.name)
+    # Find variable groups used by this template
+    template_var_groups = [
+      group.name for group in self.variable_manager.variable_groups
+      if any(var.name in template.vars for var in group.vars)
+    ]
     
     if template_var_groups:
-      console.print(f"Functions: [cyan]{', '.join(template_var_groups)}[/cyan]")
+      metadata.append(f"Functions: [cyan]{', '.join(template_var_groups)}[/cyan]")
+    
+    # Print all metadata
+    for item in metadata:
+      console.print(item)
     
     # Template content
     if template.content:
