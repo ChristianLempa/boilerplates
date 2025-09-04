@@ -1,0 +1,23 @@
+---
+name: "Test Ubuntu Container"
+description: "A simple test compose file to run an Ubuntu container"
+version: "1.0.0"
+date: "2025-09-03"
+author: "Christian Lempa"
+tags:
+  - ubuntu
+  - test
+  - docker
+variables:
+  container_name: "ubuntu-test"
+  image_tag: "latest"
+  restart_policy: "unless-stopped"
+---
+services:
+  {{ service_name }}:
+    image: ubuntu:latest
+    container_name: {{ container_name | default('ubuntu-test') }}
+    restart: {{ restart_policy | default('unless-stopped') }}
+    command: tail -f /dev/null
+    stdin_open: true
+    tty: true

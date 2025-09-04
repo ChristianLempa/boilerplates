@@ -1,0 +1,63 @@
+---
+name: "n8n"
+description: "Workflow automation and integration tool"
+version: "0.0.1"
+date: "2025-09-03"
+author: "Christian Lempa"
+tags:
+  - n8n
+  - automation
+  - workflows
+  - compose
+---
+{% set postgres.always = 'True' %}
+services:
+  {{ service_name | default('n8n') }}:
+    image: n8nio/n8n:1.110.1
+    container_name: {{ container_name | default('n8n') }}
+    environment:
+      - N8N_LOG_LEVEL={{ container_loglevel | default('info') }}
+      - GENERIC_TIMEZONE={{ container_timezone }}
+      - TZ={{ container_timezone }}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      {% if traefik %}
+      {% if traefik_tls %}
+      - N8N_EDITOR_BASE_URL=https://{{ traefik_host }}
+      {% else %}
+      - N8N_EDITOR_BASE_URL=http://{{ traefik_host }}
+      {% endif %}
+      {% endif %}
+      {% if postgres %}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST={{ postgres_host }}
+      - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT:-5432}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      {% endif %}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/home/node/.n8n
+    networks:
+      - {{ docker_network | default('bridge') }}
+    {% if traefik %}
+    labels:
+      - traefik.enable={{ traefik_enable | default('true') }}
+      - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls %}
+      - traefik.http.routers.{{ container_name }}.entrypoints=websecure
+      - traefik.http.routers.{{ container_name }}.tls=true
+      - traefik.http.routers.{{ container_name }}.tls.certresolver={{ traefik_certresolver }}
+      - traefik.http.services.{{ container_name }}.loadbalancer.server.port=5678
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy }}
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  {{ docker_network | default('bridge') }}:
+    external: true

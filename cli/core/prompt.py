@@ -1,583 +1,378 @@
-from typing import Any, Dict, Optional, List, Set, Tuple
-from rich.prompt import Prompt, IntPrompt, Confirm
-import typer
-import sys
+from typing import Dict, Any, List, Optional, Union
+import logging
+from rich.console import Console
+from rich.prompt import Prompt, Confirm, IntPrompt, FloatPrompt
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich.markdown import Markdown
+from rich import box
+import re
+
+logger = logging.getLogger('boilerplates')
 
 class PromptHandler:
-    def __init__(self, declared_variables: Dict[str, Tuple[str, Dict[str, Any]]], variable_sets: Dict[str, Dict[str, Any]]):
-        self._declared = declared_variables
-        self.variable_sets = variable_sets
+  """Advanced prompt handler with Rich UI for complex variable group logic."""
 
-    @staticmethod
-    def ask_bool(prompt_text: str, default: bool = False, description: Optional[str] = None) -> bool:
-        """Ask a yes/no question, render default in cyan when in a TTY, and
-        fall back to typer.confirm when not attached to a TTY.
-        """
-        if description and description.strip():
-            typer.secho(description, fg=typer.colors.BRIGHT_BLACK)
-            
-        if not (sys.stdin.isatty() and sys.stdout.isatty()):
-            return typer.confirm(prompt_text, default=default)
-
-        if default:
-            indicator = "[cyan]Y[/cyan]/n"
-        else:
-            indicator = "y/[cyan]N[/cyan]"
-
-        prompt_full = f"{prompt_text} [{indicator}]"
-        resp = Prompt.ask(prompt_full, default="", show_default=False)
-        if resp is None or str(resp).strip() == "":
-            return bool(default)
-        r = str(resp).strip().lower()
-        return r[0] in ("y", "1", "t")
-
-    @staticmethod
-    def ask_int(prompt_text: str, default: Optional[int] = None, description: Optional[str] = None) -> int:
-        if description and description.strip():
-            typer.secho(description, fg=typer.colors.BRIGHT_BLACK)
-        return IntPrompt.ask(prompt_text, default=default, show_default=True)
-
-    @staticmethod
-    def ask_str(prompt_text: str, default: Optional[str] = None, show_default: bool = True, description: Optional[str] = None) -> str:
-        if description and description.strip():
-            typer.secho(description, fg=typer.colors.BRIGHT_BLACK)
-        return Prompt.ask(prompt_text, default=default, show_default=show_default)
-
-    def collect_values(self, used_vars: Set[str], template_defaults: Dict[str, Any] = None, used_subscripts: Dict[str, Set[str]] = None) -> Dict[str, Any]:
-        """Interactively prompt for values for the variables that appear in the template.
-
-        For variables that were declared in `variable_sets` we use their metadata.
-        For unknown variables, we fall back to a generic prompt.
-        """
-        if template_defaults is None:
-            template_defaults = {}
-        values: Dict[str, Any] = {}
-
-        # Group used vars by their set.
-        # Iterate through declared variable_sets so the prompt order
-        # matches the order variables were defined in each set.
-        set_used_vars: Dict[str, List[str]] = {}
-        if isinstance(self.variable_sets, dict):
-            for set_name, set_def in self.variable_sets.items():
-                vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
-                if not isinstance(vars_map, dict):
-                    continue
-                for var_name in vars_map.keys():
-                    if var_name in used_vars and var_name in self._declared:
-                        if set_name not in set_used_vars:
-                            set_used_vars[set_name] = []
-                        set_used_vars[set_name].append(var_name)
-            
-            # If the set name is used as a variable, include the set for prompting
-                if set_name in used_vars and set_name not in set_used_vars:
-                    set_used_vars[set_name] = []
-
-        # Process each set in order: 'always' sets first, then others
-        if set_used_vars:
-            # Sort sets by priority: 'always' sets first, then by name
-            def sort_sets(item):
-                set_name, vars_list = item
-                set_def = self.variable_sets.get(set_name, {})
-                is_always = bool(set_def.get('always', False))
-                return (0 if is_always else 1, set_name)
-            
-            sorted_sets = sorted(set_used_vars.items(), key=sort_sets)
-            
-            for set_name, vars_in_set in sorted_sets:
-                # Retrieve per-set definition to pick up the custom prompt if provided
-                set_def = self.variable_sets.get(set_name, {})
-                set_prompt = set_def.get("prompt") if isinstance(set_def, dict) else None
-                typer.secho(f"\n{set_name.title()} Settings", fg=typer.colors.BLUE, bold=True)
-
-                def _print_defaults_for_set(vars_list):
-                    # Collect variables that have an effective default to print.
-                    printable = []
-                    for v in vars_list:
-                        meta_info = self._declared[v][1]
-                        display_name = meta_info.get("display_name", v.replace("_", " ").title())
-                        default = self._get_effective_default(v, template_defaults, values)
-                        # Skip variables that have no effective default (they must be provided by the user)
-                        if default is not None:
-                            printable.append((v, display_name, default))
-
-                    # If there are no defaults to show, don't print a header or blank line.
-                    if not printable:
-                        return
-
-                    # Print a blank line and a consistent header for defaults so it matches
-                    # the 'Required ... Variables' section formatting.
-                    typer.secho("\nDefault %s Variables" % set_name.title(), fg=typer.colors.GREEN, bold=True)
-
-                    for v, display_name, default in printable:
-                        # If variable is accessed with subscripts, show '(multiple)'
-                        if used_subscripts and v in used_subscripts and used_subscripts[v]:
-                            typer.secho(f"{display_name}: ", fg=typer.colors.BRIGHT_BLACK, nl=False)
-                            typer.secho("(multiple)", fg=typer.colors.CYAN)
-                        else:
-                            typer.secho(f"{display_name}: ", fg=typer.colors.BRIGHT_BLACK, nl=False)
-                            typer.secho(f"{default}", fg=typer.colors.CYAN)
-
-                # Decide whether this set is enabled and whether it should be
-                # customized. Support three modes in the set definition:
-                # - 'always': True => the set is enabled and we skip the enable
-                #    question (but may still ask to customize values)
-                # - 'prompt_enable': str => ask this question first to enable the
-                #    set (stores values[set_name] boolean)
-                # - 'prompt' (existing): when provided, ask whether to customize
-                #    the values. We ask 'prompt_enable' first when present, then
-                #    'prompt' to decide whether to customize.
-
-                set_always = bool(set_def.get('always', False))
-                set_prompt_enable = set_def.get('prompt_enable')
-                set_customize_prompt = set_prompt or f"Do you want to change the {set_name.title()} settings?"
-
-                if set_always:
-                    enable_set = True
-                elif set_prompt_enable:
-                    enable_set = self.ask_bool(set_prompt_enable, default=False)
-                else:
-                    # No explicit enable prompt: fall back to asking the customize prompt
-                    # and treat that as enabling when answered Yes.
-                    enable_set = None
-
-                # If we have a definitive enable decision, store it into values
-                if enable_set is not None:
-                    values[set_name] = enable_set
-                    # If a declared variable exists with the same name, don't prompt it
-                    if set_name in vars_in_set:
-                        vars_in_set = [v for v in vars_in_set if v != set_name]
-
-                # If we didn't ask prompt_enable, ask the customize prompt directly
-                if enable_set is None:
-                    # Check for undefined variables first, before asking if they want to enable
-                    undefined_vars_in_set = []
-                    for var in vars_in_set:
-                        effective_default = self._get_effective_default(var, template_defaults, values)
-                        if effective_default is None:
-                            undefined_vars_in_set.append(var)
-                    
-                    # If there are undefined variables, we must enable this set
-                    if undefined_vars_in_set:
-                        typer.secho(f"\n{set_name.title()} Settings", fg=typer.colors.BLUE, bold=True)
-                        typer.secho(f"Required {set_name.title()} Variables", fg=typer.colors.YELLOW, bold=True)
-                        for var in undefined_vars_in_set:
-                            meta_info = self._declared[var][1]
-                            display_name = meta_info.get("display_name", var.replace("_", " ").title())
-                            vtype = meta_info.get("type", "str")
-                            prompt = meta_info.get("prompt", f"Enter {display_name}")
-                            description = meta_info.get("description")
-                            
-                            # Handle subscripted variables
-                            subs = used_subscripts.get(var, set()) if used_subscripts else set()
-                            if subs:
-                                result_map = {}
-                                for k in subs:
-                                    # Required sub-key: enforce non-empty
-                                    kval = Prompt.ask(f"Value for {display_name}['{k}']:", default="", show_default=False)
-                                    if not (sys.stdin.isatty() and sys.stdout.isatty()):
-                                        # Non-interactive: empty value is an error
-                                        if kval is None or str(kval).strip() == "":
-                                            typer.secho(f"[red]Required value for {display_name}['{k}'] cannot be blank in non-interactive mode.[/red]")
-                                            raise typer.Exit(code=1)
-                                    else:
-                                        # Interactive: re-prompt until non-empty
-                                        while kval is None or str(kval).strip() == "":
-                                            typer.secho("Value cannot be blank. Please enter a value.", fg=typer.colors.YELLOW)
-                                            kval = Prompt.ask(f"Value for {display_name}['{k}']:", default="", show_default=False)
-                                    result_map[k] = self._guess_and_cast(kval)
-                                values[var] = result_map
-                                continue
-
-                            if vtype == "bool":
-                                val = self.ask_bool(prompt, default=False, description=description)
-                            elif vtype == "int":
-                                val = self.ask_int(prompt, default=None, description=description)
-                            else:
-                                val = self.ask_str(prompt, default=None, show_default=False, description=description)
-                            
-                            values[var] = self._cast_value_from_input(val, vtype)
-                        
-                        # Since we prompted for required variables, enable the set
-                        values[set_name] = True
-                        if set_name in vars_in_set:
-                            vars_in_set = [v for v in vars_in_set if v != set_name]
-                        
-                        # Print defaults and ask if they want to change others
-                        _print_defaults_for_set(vars_in_set)
-                        change_set = self.ask_bool(set_customize_prompt, default=False)
-                        if not change_set:
-                            # Use defaults for remaining variables
-                            for var in vars_in_set:
-                                if var not in values:  # Don't override variables we already prompted for
-                                    meta_info = self._declared[var][1]
-                                    default = self._get_effective_default(var, template_defaults, values)
-                                    values[var] = default
-                            continue
-                    else:
-                        # No undefined variables, ask the customize prompt as normal
-                        change_set = self.ask_bool(set_customize_prompt, default=False)
-                        values[set_name] = change_set
-                        if set_name in vars_in_set:
-                            vars_in_set = [v for v in vars_in_set if v != set_name]
-                        if not change_set:
-                            # Use defaults for this set
-                            for var in vars_in_set:
-                                if var not in values:  # Don't override variables that might have been set
-                                    meta_info = self._declared[var][1]
-                                    default = self._get_effective_default(var, template_defaults, values)
-                                    values[var] = default
-                            continue
-
-                # If we had an enable_set (True/False) and it is False, skip customizing
-                if enable_set is not None and not enable_set:
-                    for var in vars_in_set:
-                        if var not in values:  # Don't override variables that might have been set
-                            meta_info = self._declared[var][1]
-                            default = self._get_effective_default(var, template_defaults, values)
-                            values[var] = default
-                    continue
-
-                # At this point the set is enabled. Check for undefined variables first.
-                undefined_vars_in_set = []
-                for var in vars_in_set:
-                    effective_default = self._get_effective_default(var, template_defaults, values)
-                    if effective_default is None:
-                        undefined_vars_in_set.append(var)
-                
-                # Prompt for undefined variables in this set
-                if undefined_vars_in_set:
-                    typer.secho(f"\nRequired {set_name.title()} Variables", fg=typer.colors.YELLOW, bold=True)
-                    for var in undefined_vars_in_set:
-                        meta_info = self._declared[var][1]
-                        display_name = meta_info.get("display_name", var.replace("_", " ").title())
-                        vtype = meta_info.get("type", "str")
-                        prompt = meta_info.get("prompt", f"Enter {display_name}")
-                        description = meta_info.get("description")
-                        
-                        # Handle subscripted variables
-                        subs = used_subscripts.get(var, set()) if used_subscripts else set()
-                        if subs:
-                            result_map = {}
-                            for k in subs:
-                                # Required sub-key: enforce non-empty
-                                kval = Prompt.ask(f"Value for {display_name}['{k}']:", default="", show_default=False)
-                                if not (sys.stdin.isatty() and sys.stdout.isatty()):
-                                    if kval is None or str(kval).strip() == "":
-                                        typer.secho(f"[red]Required value for {display_name}['{k}'] cannot be blank in non-interactive mode.[/red]")
-                                        raise typer.Exit(code=1)
-                                else:
-                                    while kval is None or str(kval).strip() == "":
-                                        typer.secho("Value cannot be blank. Please enter a value.", fg=typer.colors.YELLOW)
-                                        kval = Prompt.ask(f"Value for {display_name}['{k}']:", default="", show_default=False)
-                                result_map[k] = self._guess_and_cast(kval)
-                            values[var] = result_map
-                            continue
-
-                        if vtype == "bool":
-                            val = self.ask_bool(prompt, default=False, description=description)
-                        elif vtype == "int":
-                            val = self.ask_int(prompt, default=None, description=description)
-                        else:
-                            val = self.ask_str(prompt, default=None, show_default=False, description=description)
-                            # Enforce non-empty for required scalar variables
-                            if not (sys.stdin.isatty() and sys.stdout.isatty()):
-                                if val is None or str(val).strip() == "":
-                                    typer.secho(f"[red]Required value for {display_name} cannot be blank in non-interactive mode.[/red]")
-                                    raise typer.Exit(code=1)
-                            else:
-                                while val is None or str(val).strip() == "":
-                                    typer.secho("Value cannot be blank. Please enter a value.", fg=typer.colors.YELLOW)
-                                    val = self.ask_str(prompt, default=None, show_default=False, description=description)
-
-                        values[var] = self._cast_value_from_input(val, vtype)
-
-                # Print defaults now (only after enabling and prompting for required vars)
-                # so the user sees current values before customizing.
-                _print_defaults_for_set(vars_in_set)
-
-                # If we have asked prompt_enable earlier (and the set is enabled),
-                # now ask whether to customize. For 'always' sets we still ask the
-                # customize prompt.
-                if set_prompt_enable or set_always:
-                    change_set = self.ask_bool(set_customize_prompt, default=False)
-                    if not change_set:
-                        for var in vars_in_set:
-                            if var not in values:  # Don't override variables that might have been set
-                                meta_info = self._declared[var][1]
-                                default = self._get_effective_default(var, template_defaults, values)
-                                values[var] = default
-                        continue
-
-                # Prompt for each variable in the set
-                for var in vars_in_set:
-                    # Skip variables that have already been prompted for
-                    if var in values:
-                        continue
-                        
-                    meta_info = self._declared[var][1]
-                    display_name = meta_info.get("display_name", var.replace("_", " ").title())
-                    vtype = meta_info.get("type", "str")
-                    prompt = meta_info.get("prompt", f"Enter {display_name}")
-                    description = meta_info.get("description")
-                    default = self._get_effective_default(var, template_defaults, values)
-
-                    # Build prompt text and rely on show_default to display the default value
-                    prompt_text = f"{prompt}"
-
-                    # If variable is accessed with subscripts in the template, always prompt for each key and store as dict
-                    subs = used_subscripts.get(var, set()) if used_subscripts else set()
-                    if subs:
-                        # Print all default values for subscripted keys before prompting
-                        for k in subs:
-                            key_default = None
-                            if isinstance(default, dict):
-                                key_default = default.get(k)
-                            elif default is not None:
-                                key_default = default
-                            typer.secho(f"{display_name}['{k}']: ", fg=typer.colors.BRIGHT_BLACK, nl=False)
-                            typer.secho(f"{key_default}", fg=typer.colors.CYAN)
-                        result_map = {}
-                        for k in subs:
-                            kval = Prompt.ask(f"Value for {display_name}['{k}']:", default=str(default.get(k)) if isinstance(default, dict) and default.get(k) is not None else None, show_default=True)
-                            result_map[k] = self._guess_and_cast(kval)
-                        values[var] = result_map
-                        continue
-
-                    if vtype == "bool":
-                        # Normalize default to bool
-                        bool_default = False
-                        if isinstance(default, bool):
-                            bool_default = default
-                        elif isinstance(default, str):
-                            bool_default = default.lower() in ("true", "1", "yes")
-                        elif isinstance(default, int):
-                            bool_default = default != 0
-                        val = self.ask_bool(prompt_text, default=bool_default, description=description)
-                    elif vtype == "int":
-                        # Use IntPrompt to validate and parse integers; show default if present
-                        int_default = None
-                        if isinstance(default, int):
-                            int_default = default
-                        elif isinstance(default, str) and default.isdigit():
-                            int_default = int(default)
-                        val = self.ask_int(prompt_text, default=int_default, description=description)
-                    else:
-                        # Use Prompt for string input and show default
-                        str_default = str(default) if default is not None else None
-                        val = self.ask_str(prompt_text, default=str_default, show_default=True, description=description)
-
-                    # Handle collection types: arrays and maps
-                    if vtype in ("array", "list"):
-                        values[var] = self.prompt_array(var, meta_info, default)
-                        continue
-
-                    if vtype in ("map", "dict"):
-                        # If the template indexes this variable with specific keys, prompt per-key
-                        subs = used_subscripts.get(var, set()) if used_subscripts else set()
-                        if subs:
-                            # Prompt for each accessed key; allow single scalar default to apply to all
-                            result_map = {}
-                            # If default is a scalar, ask whether to expand it to accessed keys
-                            if not isinstance(default, dict) and default is not None:
-                                use_single = self.ask_bool(f"Use single value {default} for all {display_name} keys?", default=True)
-                                if use_single:
-                                    for k in subs:
-                                        result_map[k] = default
-                                    values[var] = result_map
-                                    continue
-                            # Otherwise prompt per key or use metadata keys when present
-                            keys_meta = meta_info.get("keys")
-                            for k in subs:
-                                if isinstance(keys_meta, dict) and k in keys_meta:
-                                    # reuse metadata prompt
-                                    kmeta = keys_meta[k]
-                                    result_map[k] = self.prompt_scalar(k, kmeta, kmeta.get("default"))
-                                else:
-                                    # generic prompt
-                                    kval = self.ask_str(f"Value for {display_name}['{k}']:")
-                                    result_map[k] = self._guess_and_cast(kval)
-                            values[var] = result_map
-                            continue
-
-                        # Fallback to full map prompting
-                        values[var] = self.prompt_map(var, meta_info, default)
-                        continue
-
-                    # store scalar/canonicalized value
-                    values[var] = self._cast_value_from_input(val, vtype)
-
-        # Handle variables that belong to sets but weren't processed
-        all_set_vars = set()
-        if isinstance(self.variable_sets, dict):
-            for set_name, set_def in self.variable_sets.items():
-                vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
-                if isinstance(vars_map, dict):
-                    all_set_vars.update(vars_map.keys())
+  def __init__(self, variable_groups: Dict[str, Any], resolved_defaults: Dict[str, Any] = None):
+    """Initialize the prompt handler.
+    
+    Args:
+        variable_groups: Dictionary of variable groups from VariableManager
+        resolved_defaults: Pre-resolved default values with priority handling
+    """
+    self.variable_groups = variable_groups
+    self.resolved_defaults = resolved_defaults or {}
+    self.console = Console()
+    self.final_values = {}
+    
+  def __call__(self) -> Dict[str, Any]:
+    """Execute the complex prompting logic and return final variable values."""
+    logger.debug(f"Starting advanced prompt handler with {len(self.variable_groups)} variable groups")
+    
+    self._show_welcome_message()
+    
+    # Process each variable group with the complex logic
+    for group_name, group_data in self.variable_groups.items():
+      self._process_variable_group(group_name, group_data)
+    
+    self._show_summary()
+    return self.final_values
+  
+  def _show_welcome_message(self):
+    """Display a welcome message for the template generation."""
+    welcome_text = Text("🚀 Template Generation", style="bold blue")
+    subtitle = Text("Configure variables for your template", style="dim")
+    
+    panel = Panel(
+      f"{welcome_text}\n{subtitle}",
+      box=box.ROUNDED,
+      padding=(1, 2)
+    )
+    self.console.print(panel)
+    self.console.print()
+  
+  def _process_variable_group(self, group_name: str, group_data: Dict[str, Any]):
+    """Process a single variable group with complex prompting logic.
+    
+    Logic flow:
+    1. Check if group has variables with no default values → always prompt
+    2. If group is not enabled → ask user if they want to enable it
+    3. If group is enabled → prompt for variables without values
+    4. Ask if user wants to change existing variable values
+    """
+    logger.debug(f"Processing variable group: {group_name}")
+    
+    variables = group_data.get('vars', {})
+    if not variables:
+      logger.debug(f"Group {group_name} has no variables, skipping")
+      return
+      
+    # Show group header
+    self._show_group_header(group_name, group_data.get('description', ''))
+    
+    # Step 1: Check for variables with no default values (always prompt)
+    vars_without_defaults = self._get_variables_without_defaults(variables)
+    
+    # Step 2: Determine if group should be enabled
+    group_enabled = self._determine_group_enabled_status(group_name, variables, vars_without_defaults)
+    
+    if not group_enabled:
+      logger.debug(f"Group {group_name} disabled by user")
+      return
+      
+    # Step 3: Prompt for required variables (those without defaults)
+    if vars_without_defaults:
+      self.console.print(f"[bold red]Required variables for {group_name}:[/bold red]")
+      for var_name in vars_without_defaults:
+        var_data = variables[var_name]
+        value = self._prompt_for_variable(var_name, var_data, required=True)
+        self.final_values[var_name] = value
+    
+    # Step 4: Handle variables with defaults - ask if user wants to change them
+    vars_with_defaults = self._get_variables_with_defaults(variables)
+    
+    if vars_with_defaults:
+      self._handle_variables_with_defaults(group_name, vars_with_defaults, variables)
+    
+    self.console.print()  # Add spacing between groups
+  
+  def _show_group_header(self, group_name: str, description: str):
+    """Display a header for the variable group."""
+    header = f"[bold cyan]📦 {group_name.title()} Variables[/bold cyan]"
+    if description:
+      header += f"\n[dim]{description}[/dim]"
+    
+    self.console.print(Panel(header, box=box.SIMPLE, padding=(0, 1)))
+  
+  def _get_variables_without_defaults(self, variables: Dict[str, Any]) -> List[str]:
+    """Get list of variable names that have no default values."""
+    return [
+      var_name for var_name, var_data in variables.items()
+      if var_name not in self.resolved_defaults or self.resolved_defaults[var_name] is None
+    ]
+  
+  def _get_variables_with_defaults(self, variables: Dict[str, Any]) -> List[str]:
+    """Get list of variable names that have default values."""
+    return [
+      var_name for var_name, var_data in variables.items()
+      if var_name in self.resolved_defaults and self.resolved_defaults[var_name] is not None
+    ]
+  
+  def _determine_group_enabled_status(self, group_name: str, variables: Dict[str, Any], vars_without_defaults: List[str]) -> bool:
+    """Determine if a variable group should be enabled based on complex logic."""
+    
+    # If there are required variables (no defaults), group must be enabled
+    if vars_without_defaults:
+      logger.debug(f"Group {group_name} has required variables, enabling automatically")
+      return True
+    
+    # Check if group is enabled by default values or should ask user
+    vars_with_defaults = self._get_variables_with_defaults(variables)
+    if not vars_with_defaults:
+      logger.debug(f"Group {group_name} has no variables with defaults, skipping")
+      return False
+    
+    # Show preview of what this group would configure
+    self._show_group_preview(group_name, vars_with_defaults)
+    
+    # Ask user if they want to enable this optional group
+    try:
+      return Confirm.ask(
+        f"[yellow]Do you want to configure {group_name} variables?[/yellow]",
+        default=False
+      )
+    except (EOFError, KeyboardInterrupt):
+      logger.debug(f"User interrupted prompt for group {group_name}, defaulting to disabled")
+      return False
+  
+  def _show_group_preview(self, group_name: str, vars_with_defaults: List[str]):
+    """Show a preview of variables that would be configured in this group."""
+    if not vars_with_defaults:
+      return
+      
+    table = Table(title=f"Variables in {group_name}", box=box.SIMPLE)
+    table.add_column("Variable", style="cyan")
+    table.add_column("Default Value", style="green")
+    
+    for var_name in vars_with_defaults:
+      default_value = self.resolved_defaults.get(var_name, "None")
+      table.add_row(var_name, str(default_value))
+    
+    self.console.print(table)
+  
+  def _handle_variables_with_defaults(self, group_name: str, vars_with_defaults: List[str], variables: Dict[str, Any]):
+    """Handle variables that have default values."""
+    
+    # First, set all default values
+    for var_name in vars_with_defaults:
+      default_value = self.resolved_defaults.get(var_name)
+      self.final_values[var_name] = default_value
+    
+    # Ask if user wants to customize any of these values
+    try:
+      want_to_customize = Confirm.ask(f"[yellow]Do you want to customize any {group_name} variables?[/yellow]", default=False)
+    except (EOFError, KeyboardInterrupt):
+      logger.debug(f"User interrupted customization prompt for group {group_name}, using defaults")
+      return
+    
+    if want_to_customize:
+      for var_name in vars_with_defaults:
+        var_data = variables[var_name]
+        current_value = self.final_values[var_name]
         
-        # Handle unknown variables (variables that don't belong to any set)
-        # If a variable was already set (for example by the set-level prompt mapping
-        # into `values[set_name]`), don't prompt for it again.
-        for var in used_vars:
-            if var not in self._declared and var not in values and var not in all_set_vars:
-                prompt_text = f"Value for '{var}':"
-                val = Prompt.ask(prompt_text, default="", show_default=False)
-                values[var] = self._guess_and_cast(val)
-            elif var in self._declared and var not in values:
-                # This is a declared variable that wasn't processed in its set
-                # This shouldn't happen with proper logic, but let's handle it
-                meta_info = self._declared[var][1]
-                default = self._get_effective_default(var, template_defaults, values)
-                if default is not None:
-                    values[var] = default
-                else:
-                    # No default available, prompt generically
-                    display_name = meta_info.get("display_name", var.replace("_", " ").title())
-                    vtype = meta_info.get("type", "str")
-                    prompt = meta_info.get("prompt", f"Enter {display_name}")
-                    description = meta_info.get("description")
-                    
-                    if vtype == "bool":
-                        val = self.ask_bool(prompt, default=False, description=description)
-                    elif vtype == "int":
-                        val = self.ask_int(prompt, default=None, description=description)
-                    else:
-                        val = self.ask_str(prompt, default=None, show_default=False, description=description)
-                    
-                    values[var] = self._cast_value_from_input(val, vtype)
-
-        return values
-
-    def _get_effective_default(self, var_name: str, template_defaults: Dict[str, Any], current_values: Dict[str, Any]):
-        # Prefer template-provided default, else declared metadata default
-        meta_info = self._declared.get(var_name, ({}, {}))[1] if var_name in self._declared else {}
-        candidate = None
-        if template_defaults and var_name in template_defaults:
-            candidate = template_defaults[var_name]
+        self.console.print(f"\n[dim]Current value for [bold]{var_name}[/bold]: {current_value}[/dim]")
+        
+        try:
+          change_variable = Confirm.ask(f"Change [bold]{var_name}[/bold]?", default=False)
+        except (EOFError, KeyboardInterrupt):
+          logger.debug(f"User interrupted change prompt for variable {var_name}, keeping current value")
+          continue
+          
+        if change_variable:
+          new_value = self._prompt_for_variable(var_name, var_data, required=False, current_value=current_value)
+          self.final_values[var_name] = new_value
+  
+  def _prompt_for_variable(self, var_name: str, var_data: Dict[str, Any], required: bool = False, current_value: Any = None) -> Any:
+    """Prompt user for a single variable with type validation."""
+    
+    var_type = var_data.get('type', 'string')
+    description = var_data.get('description', '')
+    options = var_data.get('options', [])
+    
+    # Build prompt message
+    prompt_parts = [f"[bold]{var_name}[/bold]"]
+    if description:
+      prompt_parts.append(f"({description})")
+    
+    prompt_message = " ".join(prompt_parts)
+    
+    # Add type information if not string
+    if var_type != 'string':
+      prompt_message += f" [dim]({var_type})[/dim]"
+    
+    # Handle different variable types
+    try:
+      if var_type == 'boolean':
+        return self._prompt_boolean(prompt_message, current_value)
+      elif var_type == 'integer':
+        return self._prompt_integer(prompt_message, current_value)
+      elif var_type == 'float':
+        return self._prompt_float(prompt_message, current_value)
+      elif var_type == 'choice' and options:
+        return self._prompt_choice(prompt_message, options, current_value)
+      elif var_type == 'list':
+        return self._prompt_list(prompt_message, current_value)
+      else:  # string or unknown type
+        return self._prompt_string(prompt_message, current_value, required)
+        
+    except KeyboardInterrupt:
+      self.console.print("\n[red]Operation cancelled by user[/red]")
+      raise
+    except Exception as e:
+      logger.error(f"Error prompting for variable {var_name}: {e}")
+      self.console.print(f"[red]Error getting input for {var_name}. Using default string prompt.[/red]")
+      return self._prompt_string(prompt_message, current_value, required)
+  
+  def _prompt_string(self, prompt_message: str, current_value: Any = None, required: bool = False) -> str:
+    """Prompt for string input with validation."""
+    default_val = str(current_value) if current_value is not None else None
+    
+    while True:
+      try:
+        value = Prompt.ask(prompt_message, default=default_val)
+        
+        if required and not value.strip():
+          self.console.print("[red]This field is required and cannot be empty[/red]")
+          continue
+          
+        return value.strip()
+      except (EOFError, KeyboardInterrupt):
+        if required:
+          self.console.print(f"\n[red]This field is required. Using empty string.[/red]")
+          return ""
         else:
-            candidate = meta_info.get("default") if isinstance(meta_info, dict) else None
-
-        # If candidate names another variable and that variable has already
-        # been provided by the user, use that value.
-        if isinstance(candidate, str) and candidate in current_values:
-            return current_values[candidate]
-
-        # Otherwise, try to resolve identifier references to declared defaults
-        if isinstance(candidate, str) and candidate in self._declared:
-            decl_def = self._declared[candidate][1].get("default")
-            if decl_def is not None:
-                return decl_def
-
-        return candidate
-
-    def prompt_scalar(self, var_name: str, meta_info: Dict[str, Any], default_val: Any) -> Any:
-        display_name = meta_info.get("display_name", var_name.replace("_", " ").title())
-        vtype = meta_info.get("type", "str")
-        prompt = meta_info.get("prompt", f"Enter {display_name}")
-        description = meta_info.get("description")
-        if vtype == "bool":
-            bool_default = False
-            if isinstance(default_val, bool):
-                bool_default = default_val
-            elif isinstance(default_val, str):
-                bool_default = default_val.lower() in ("true", "1", "yes")
-            elif isinstance(default_val, int):
-                bool_default = default_val != 0
-            return self.ask_bool(prompt, default=bool_default, description=description)
-        if vtype == "int":
-            int_default = None
-            if isinstance(default_val, int):
-                int_default = default_val
-            elif isinstance(default_val, str) and default_val.isdigit():
-                int_default = int(default_val)
-            return self.ask_int(prompt, default=int_default, description=description)
-        str_default = str(default_val) if default_val is not None else None
-        return self.ask_str(prompt, default=str_default, show_default=True, description=description)
-
-    def prompt_array(self, var_name: str, meta_info: Dict[str, Any], default_val: Any) -> Any:
-        display_name = meta_info.get("display_name", var_name.replace("_", " ").title())
-        item_type = meta_info.get("item_type", "str")
-        item_prompt = meta_info.get("item_prompt", f"Enter {display_name} item")
-        default_list = default_val if isinstance(default_val, list) else []
-        default_count = len(default_list) if default_list else 0
-        count = self.ask_int(f"How many entries for {display_name}?", default=default_count or 1)
-        arr = []
-        for i in range(count):
-            item_default = default_list[i] if i < len(default_list) else None
-            item_prompt_text = f"{item_prompt} [{i}]"
-            if item_type == "int":
-                int_d = item_default if isinstance(item_default, int) else (int(item_default) if isinstance(item_default, str) and str(item_default).isdigit() else None)
-                item_val = self.ask_int(item_prompt_text, default=int_d)
-            elif item_type == "bool":
-                item_bool_d = self._cast_str_to_bool(item_default)
-                item_val = self.ask_bool(item_prompt_text, default=item_bool_d)
-            else:
-                item_str_d = str(item_default) if item_default is not None else None
-                item_val = self.ask_str(item_prompt_text, default=item_str_d, show_default=True)
-            arr.append(self._cast_value_from_input(item_val, item_type))
-        return arr
-
-    def prompt_map(self, var_name: str, meta_info: Dict[str, Any], default_val: Any) -> Any:
-        display_name = meta_info.get("display_name", var_name.replace("_", " ").title())
-        keys_meta = meta_info.get("keys")
-        result_map = {}
-        if isinstance(keys_meta, dict):
-            for key_name, kmeta in keys_meta.items():
-                kdisplay = kmeta.get("display_name", f"{display_name}['{key_name}']")
-                ktype = kmeta.get("type", "str")
-                kdefault = kmeta.get("default") if "default" in kmeta else (default_val.get(key_name) if isinstance(default_val, dict) and key_name in default_val else None)
-                kprompt = kmeta.get("prompt", f"Enter value for {kdisplay}")
-                if ktype == "int":
-                    kd = kdefault if isinstance(kdefault, int) else (int(kdefault) if isinstance(kdefault, str) and str(kdefault).isdigit() else None)
-                    kval = self.ask_int(kprompt, default=kd)
-                elif ktype == "bool":
-                    kval = self.ask_bool(kprompt, default=self._cast_str_to_bool(kdefault))
-                else:
-                    kval = self.ask_str(kprompt, default=str(kdefault) if kdefault is not None else None, show_default=True)
-                result_map[key_name] = self._cast_value_from_input(kval, ktype)
-            return result_map
-        if isinstance(default_val, dict) and len(default_val) > 0:
-            for key_name, kdefault in default_val.items():
-                kprompt = f"Enter value for {display_name}['{key_name}']"
-                kval = self.ask_str(kprompt, default=str(kdefault) if kdefault is not None else None, show_default=True)
-                result_map[key_name] = self._guess_and_cast(kval)
-            return result_map
-        count = self.ask_int(f"How many named entries for {display_name}?", default=1)
-        for i in range(count):
-            key_name = self.ask_str(f"Key name [{i}]", default=None, show_default=False)
-            kval = self.ask_str(f"Value for {display_name}['{key_name}']:", default=None, show_default=False)
-            result_map[key_name] = self._guess_and_cast(kval)
-        return result_map
-
-    @staticmethod
-    def _cast_str_to_bool(s):
-        if isinstance(s, bool):
-            return s
-        if isinstance(s, int):
-            return s != 0
-        if isinstance(s, str):
-            return s.lower() in ("true", "1", "yes")
-        return False
-
-    @staticmethod
-    def _cast_value_from_input(raw, vtype):
-        if vtype == "int":
-            try:
-                return int(raw)
-            except Exception:
-                return raw
-        if vtype == "bool":
-            bool_val = PromptHandler._cast_str_to_bool(raw)
-            return "true" if bool_val else "false"
-        return raw
-
-    @staticmethod
-    def _guess_and_cast(raw):
-        s = raw if not isinstance(raw, str) else raw.strip()
-        if s == "":
-            return raw
-        if isinstance(s, str) and s.isdigit():
-            return PromptHandler._cast_value_from_input(s, "int")
-        if isinstance(s, str) and s.lower() in ("true", "false", "yes", "no", "1", "0", "t", "f"):
-            return PromptHandler._cast_value_from_input(s, "bool")
-        return PromptHandler._cast_value_from_input(s, "str")
-
+          return default_val or ""
+  
+  def _prompt_boolean(self, prompt_message: str, current_value: Any = None) -> bool:
+    """Prompt for boolean input."""
+    default_val = bool(current_value) if current_value is not None else None
+    try:
+      return Confirm.ask(prompt_message, default=default_val)
+    except (EOFError, KeyboardInterrupt):
+      return default_val if default_val is not None else False
+  
+  def _prompt_integer(self, prompt_message: str, current_value: Any = None) -> int:
+    """Prompt for integer input with validation."""
+    default_val = int(current_value) if current_value is not None else None
+    
+    while True:
+      try:
+        return IntPrompt.ask(prompt_message, default=default_val)
+      except ValueError:
+        self.console.print("[red]Please enter a valid integer[/red]")
+      except (EOFError, KeyboardInterrupt):
+        return default_val if default_val is not None else 0
+  
+  def _prompt_float(self, prompt_message: str, current_value: Any = None) -> float:
+    """Prompt for float input with validation."""
+    default_val = float(current_value) if current_value is not None else None
+    
+    while True:
+      try:
+        return FloatPrompt.ask(prompt_message, default=default_val)
+      except ValueError:
+        self.console.print("[red]Please enter a valid number[/red]")
+      except (EOFError, KeyboardInterrupt):
+        return default_val if default_val is not None else 0.0
+  
+  def _prompt_choice(self, prompt_message: str, options: List[Any], current_value: Any = None) -> Any:
+    """Prompt for choice from a list of options."""
+    
+    # Show available options
+    self.console.print(f"\n[dim]Available options:[/dim]")
+    for i, option in enumerate(options, 1):
+      marker = "→" if option == current_value else " "
+      self.console.print(f"  {marker} {i}. {option}")
+    
+    while True:
+      try:
+        choice = Prompt.ask(f"{prompt_message} (1-{len(options)})")
+        
+        try:
+          choice_idx = int(choice) - 1
+          if 0 <= choice_idx < len(options):
+            return options[choice_idx]
+          else:
+            self.console.print(f"[red]Please enter a number between 1 and {len(options)}[/red]")
+        except ValueError:
+          # Try to match by string value
+          matching_options = [opt for opt in options if str(opt).lower() == choice.lower()]
+          if matching_options:
+            return matching_options[0]
+          self.console.print(f"[red]Please enter a valid option number (1-{len(options)}) or exact option name[/red]")
+      except (EOFError, KeyboardInterrupt):
+        return current_value if current_value is not None else options[0] if options else None
+  
+  def _prompt_list(self, prompt_message: str, current_value: Any = None) -> List[str]:
+    """Prompt for list input (comma-separated values)."""
+    
+    current_str = ""
+    if current_value and isinstance(current_value, list):
+      current_str = ", ".join(str(item) for item in current_value)
+    elif current_value:
+      current_str = str(current_value)
+    
+    self.console.print(f"[dim]Enter values separated by commas[/dim]")
+    
+    try:
+      value = Prompt.ask(prompt_message, default=current_str)
+      
+      if not value.strip():
+        return []
+      
+      # Split by comma and clean up
+      items = [item.strip() for item in value.split(',') if item.strip()]
+      return items
+    except (EOFError, KeyboardInterrupt):
+      if current_value and isinstance(current_value, list):
+        return current_value
+      elif current_value:
+        return [str(current_value)]
+      else:
+        return []
+  
+  def _show_summary(self):
+    """Display a summary of all configured variables."""
+    if not self.final_values:
+      self.console.print("[yellow]No variables were configured.[/yellow]")
+      return
+    
+    self.console.print("\n" + "="*50)
+    self.console.print("[bold green]📋 Configuration Summary[/bold green]")
+    self.console.print("="*50)
+    
+    table = Table(box=box.SIMPLE_HEAVY)
+    table.add_column("Variable", style="cyan", min_width=20)
+    table.add_column("Value", style="green")
+    table.add_column("Type", style="dim")
+    
+    for var_name, value in self.final_values.items():
+      var_type = type(value).__name__
+      # Format value for display
+      if isinstance(value, list):
+        display_value = ", ".join(str(item) for item in value)
+      else:
+        display_value = str(value)
+      
+      table.add_row(var_name, display_value, var_type)
+    
+    self.console.print(table)
+    self.console.print()
+    
+    try:
+      if not Confirm.ask("[bold]Proceed with template generation?[/bold]", default=True):
+        raise KeyboardInterrupt("Template generation cancelled by user")
+    except (EOFError, KeyboardInterrupt):
+      # If user cancels, still proceed with defaults
+      self.console.print("[yellow]Using current configuration to proceed.[/yellow]")

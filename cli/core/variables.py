@@ -1,217 +1,242 @@
-"""
-Core variables support for interactive collection and detection.
-
-Provides a BaseVariables class that can detect which variable sets are used
-in a Jinja2 template and interactively collect values from the user.
-"""
-from typing import Dict, List, Tuple, Set, Any
-import jinja2
-from jinja2 import meta
-import typer
-from .prompt import PromptHandler
+from typing import Any, Dict, List, Tuple
+from .config import ConfigManager
 
 
-class BaseVariables:
-    """Base implementation for variable sets and interactive prompting.
+class Variable:
+  """Data class for variable information."""
+  
+  def __init__(self, name: str, description: str = "", value: Any = None, var_type: str = "string", options: List[Any] = None, enabled: bool = True):
+    self.name = name
+    self.description = description
+    self.value = value
+    self.type = var_type  # e.g., string, integer, boolean, choice
+    self.options = options if options is not None else []  # For choice type
+    self.enabled = enabled  # Whether this variable is enabled (default: True)
 
-     Subclasses should set `variable_sets` to one of two shapes:
 
-     1) Legacy shape (mapping of set-name -> { var_name: { ... } })
-         { "general": { "foo": { ... }, ... } }
-
-     2) New shape (mapping of set-name -> { "prompt": str, "variables": { var_name: { ... } } })
-         { "general": { "prompt": "...", "variables": { "foo": { ... } } } }
+class VariableGroup():
+  """Data class for variable groups."""
+  
+  def __init__(self, name: str, description: str = "", vars: List[Variable] = None, enabled: bool = True):
+    self.name = name
+    self.description = description
+    self.vars = vars if vars is not None else []
+    self.enabled = enabled  # Whether this variable group is enabled
+    self.prompt_to_set = ""  # Custom prompt message
+    self.prompt_to_enable = ""  # Custom prompt message when asking to enable this group
+  
+  def is_enabled(self) -> bool:
+    """Check if this variable group is enabled."""
+    return self.enabled
+  
+  def enable(self) -> None:
+    """Enable this variable group."""
+    self.enabled = True
+  
+  def disable(self) -> None:
+    """Disable this variable group."""
+    self.enabled = False
+  
+  def get_enabled_variables(self) -> List[Variable]:
+    """Get all enabled variables in this group."""
+    return [var for var in self.vars if var.enabled]
+  
+  def disable_variables_not_in_template(self, template_vars: List[str]) -> None:
+    """Disable all variables that are not found in the template variables.
+    
+    Args:
+        template_vars: List of variable names used in the template
     """
-
-    variable_sets: Dict[str, Dict[str, Any]] = {}
-
-    def __init__(self) -> None:
-        # Flattened list of all declared variable names -> (set_name, meta)
-        self._declared: Dict[str, Tuple[str, Dict[str, Any]]] = {}
-        # Support both legacy and new shapes. If the set value contains a
-        # 'variables' key, use that mapping; otherwise assume the mapping is
-        # directly the vars map (legacy).
-        if not hasattr(self, "variable_sets"):
-            self.variable_sets = {}
-        # Ensure we can iterate over variable_sets
-        if not isinstance(self.variable_sets, dict):
-            self.variable_sets = {}
-        for set_name, set_def in self.variable_sets.items():
-                vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
-                if not isinstance(vars_map, dict):
-                    continue
-                for var_name, meta_info in vars_map.items():
-                    self._declared[var_name] = (set_name, meta_info)
-
-    def find_used_variables(self, template_content: str) -> Set[str]:
-        """Parse the Jinja2 template and return the set of variable names used."""
-        env = jinja2.Environment()
-        try:
-            ast = env.parse(template_content)
-            used = meta.find_undeclared_variables(ast)
-            return set(used)
-        except Exception:
-            # If parsing fails, fallback to an empty set (safe behavior)
-            return set()
-
-    def find_used_subscript_keys(self, template_content: str) -> Dict[str, Set[str]]:
-        """Return mapping of variable name -> set of string keys accessed via subscripting
-
-        Example: for template using service_port['http'] and service_port['https']
-        this returns { 'service_port': {'http', 'https'} }.
-        """
-        try:
-            env = jinja2.Environment()
-            ast = env.parse(template_content)
-            # Walk AST and collect Subscript nodes
-            from jinja2 import nodes
-
-            subs: Dict[str, Set[str]] = {}
-
-            for node in ast.find_all(nodes.Getitem):
-                # Getitem node structure: node.node (value), node.arg (index)
-                try:
-                    if isinstance(node.node, nodes.Name):
-                        var_name = node.node.name
-                        # index can be Const (string) or Name/other; handle Const
-                        idx = node.arg
-                        if isinstance(idx, nodes.Const) and isinstance(idx.value, str):
-                            subs.setdefault(var_name, set()).add(idx.value)
-                except Exception:
-                    continue
-
-            return subs
-        except Exception:
-            return {}
-
-    def extract_template_defaults(self, template_content: str) -> Dict[str, Any]:
-        """Extract default values from Jinja2 expressions like {{ var | default(value) }}."""
-        import re
-
-        def _parse_literal(s: str):
-            s = s.strip()
-            if s.startswith("'") and s.endswith("'"):
-                return s[1:-1]
-            if s.startswith('"') and s.endswith('"'):
-                return s[1:-1]
-            if s.isdigit():
-                return int(s)
-            return s
-
-        defaults: Dict[str, Any] = {}
+    for var in self.vars:
+      if var.name not in template_vars:
+        var.enabled = False
+  
+  @classmethod
+  def from_dict(cls, name: str, config: Dict[str, Any]) -> "VariableGroup":
+    """Create a VariableGroup from a dictionary configuration."""
+    variables = []
+    vars_config = config.get("vars", {})
+    
+    for var_name, var_config in vars_config.items():
+      var_type = var_config.get("var_type", "string")  # Default to string if not specified
+      enabled = var_config.get("enabled", True)  # Default to enabled if not specified
+      variables.append(Variable(
+        name=var_name,
+        description=var_config.get("description", ""),
+        value=var_config.get("value"),
+        var_type=var_type,
+        enabled=enabled
+      ))
+    
+    return cls(
+      name=name,
+      description=config.get("description", ""),
+      vars=variables,
+      enabled=config.get("enabled", True)  # Default to enabled if not specified
+    )
 
 
-        # Match {{ var['key'] | default(value) }} and {{ var | default(value) }}
-        pattern_subscript = r'\{\{\s*(\w+)\s*\[\s*["\']([^"\']+)["\']\s*\]\s*\|\s*default\(([^)]+)\)\s*\}\}'
-        for var, key, default_str in re.findall(pattern_subscript, template_content):
-            if var not in defaults or not isinstance(defaults[var], dict):
-                defaults[var] = {}
-            defaults[var][key] = _parse_literal(default_str)
-
-        pattern_scalar = r'\{\{\s*(\w+)\s*\|\s*default\(([^)]+)\)\s*\}\}'
-        for var, default_str in re.findall(pattern_scalar, template_content):
-            # Only set scalar default if not already set as a dict
-            if var not in defaults:
-                defaults[var] = _parse_literal(default_str)
-
-        # Handle simple {% set name = other | default('val') %} patterns
-        set_pattern = r"\{%\s*set\s+(\w+)\s*=\s*([^%]+?)\s*%}"
-        for set_var, expr in re.findall(set_pattern, template_content):
-            m = re.match(r"(\w+)\s*\|\s*default\(([^)]+)\)", expr.strip())
-            if m:
-                src_var, src_default = m.groups()
-                if src_var in defaults:
-                    defaults[set_var] = defaults[src_var]
-                else:
-                    defaults[set_var] = _parse_literal(src_default)
-
-        # Resolve transitive references: if a default is an identifier that
-        # points to another default, follow it; if it points to a declared
-        # variable with a metadata default, use that.
-        def _resolve_ref(value, seen: Set[str]):
-            if not isinstance(value, str):
-                return value
-            if value in seen:
-                return value
-            seen.add(value)
-            if value in defaults:
-                return _resolve_ref(defaults[value], seen)
-            if value in self._declared:
-                declared_def = self._declared[value][1].get("default")
-                if declared_def is not None:
-                    return declared_def
-            return value
-
-        for k in list(defaults.keys()):
-            defaults[k] = _resolve_ref(defaults[k], set([k]))
-
-        return defaults
-
-    def extract_variable_meta_overrides(self, template_content: str) -> Dict[str, Dict[str, Any]]:
-        """Extract variable metadata overrides from a Jinja2 block.
-
-        Supports a block like:
-
-        {% variables %}
-        container_hostname:
-          description: "..."
-        {% endvariables %}
-
-        The contents are parsed as YAML and returned as a dict mapping
-        variable name -> metadata overrides.
-        """
-        import re
-        try:
-            m = re.search(r"\{%\s*variables\s*%\}(.+?)\{%\s*endvariables\s*%\}", template_content, flags=re.S)
-            if not m:
-                return {}
-            yaml_block = m.group(1).strip()
-            try:
-                import yaml
-            except Exception:
-                return {}
-            try:
-                data = yaml.safe_load(yaml_block) or {}
-                if isinstance(data, dict):
-                    # Ensure values are dicts
-                    cleaned: Dict[str, Dict[str, Any]] = {}
-                    for k, v in data.items():
-                        if v is None:
-                            cleaned[k] = {}
-                        elif isinstance(v, dict):
-                            cleaned[k] = v
-                        else:
-                            # If a scalar was provided, interpret as description
-                            cleaned[k] = {"description": v}
-                    return cleaned
-            except Exception:
-                return {}
-        except Exception:
-            return {}
-        return {}
-
-    def determine_variable_sets(self, template_content: str) -> Tuple[List[str], Set[str]]:
-        """
-        Also returns the raw set of used variable names.
-        """
-        used = self.find_used_variables(template_content)
-        matched_sets: List[str] = []
-        variable_sets = getattr(self, "variable_sets", {})
-        if not isinstance(variable_sets, dict):
-            return [], used
-        for set_name, set_def in variable_sets.items():
-            vars_map = set_def.get("variables") if isinstance(set_def, dict) and "variables" in set_def else set_def
-            if not isinstance(vars_map, dict):
-                continue
-            if any(var in used for var in vars_map.keys()):
-                matched_sets.append(set_name)
-        return matched_sets, used
-
-    def collect_values(self, used_vars: Set[str], template_defaults: Dict[str, Any] = None, used_subscripts: Dict[str, Set[str]] = None) -> Dict[str, Any]:
-        """Interactively prompt for values for the variables that appear in the template.
-
-        For variables that were declared in `variable_sets` we use their metadata.
-        For unknown variables, we fall back to a generic prompt.
-        """
-        prompt_handler = PromptHandler(self._declared, getattr(self, "variable_sets", {}))
-        return prompt_handler.collect_values(used_vars, template_defaults, used_subscripts)
+class VariableManager:
+  """Manager class for handling collections of VariableGroups.
+  
+  The VariableManager centralizes variable-related operations for:
+  - Managing VariableGroups
+  - Validating template variables
+  - Filtering variables for specific templates
+  - Resolving variable defaults with priority handling
+  """
+  
+  def __init__(self, variable_groups: List[VariableGroup] = None, config_manager: ConfigManager = None):
+    """Initialize the VariableManager with a list of VariableGroups and ConfigManager."""
+    self.variable_groups = variable_groups if variable_groups is not None else []
+    self.config_manager = config_manager if config_manager is not None else ConfigManager()
+  
+  def add_group(self, group: VariableGroup) -> None:
+    """Add a VariableGroup to the manager."""
+    if not isinstance(group, VariableGroup):
+      raise ValueError("group must be a VariableGroup instance")
+    self.variable_groups.append(group)
+  
+  def disable_variables_not_in_template(self, template_vars: List[str]) -> None:
+    """Disable all variables in all groups that are not found in the template variables.
+    
+    Args:
+        template_vars: List of variable names used in the template
+    """
+    for group in self.variable_groups:
+      group.disable_variables_not_in_template(template_vars)
+  
+  def get_all_variable_names(self) -> List[str]:
+    """Get all variable names from all variable groups."""
+    return [var.name for group in self.variable_groups for var in group.vars]
+  
+  def has_variable(self, name: str) -> bool:
+    """Check if a variable exists in any group."""
+    for group in self.variable_groups:
+      for var in group.vars:
+        if var.name == name:
+          return True
+    return False
+  
+  def validate_template_variables(self, template_vars: List[str]) -> Tuple[bool, List[str]]:
+    """Validate if all template variables exist in the variable groups.
+    
+    Args:
+        template_vars: List of variable names used in the template
+        
+    Returns:
+        Tuple of (success: bool, missing_variables: List[str])
+    """
+    all_variables = self.get_all_variable_names()
+    missing_variables = [var for var in template_vars if var not in all_variables]
+    success = len(missing_variables) == 0
+    return success, missing_variables
+  
+  def filter_variables_for_template(self, template_vars: List[str]) -> Dict[str, Any]:
+    """Filter the variable groups to only include variables needed by the template.
+    
+    Args:
+        template_vars: List of variable names used in the template
+        
+    Returns:
+        Dictionary with filtered variable groups and their variables, including group metadata
+    """
+    filtered_vars = {}
+    
+    for group in self.variable_groups:
+      group_has_template_vars = False
+      group_vars = {}
+      
+      for variable in group.vars:
+        if variable.name in template_vars:
+          group_has_template_vars = True
+          group_vars[variable.name] = {
+            'name': variable.name,
+            'description': variable.description,
+            'value': variable.value,
+            'type': variable.type,
+            'options': getattr(variable, 'options', []),
+            'enabled': variable.enabled
+          }
+      
+      # Only include groups that have variables used by the template
+      if group_has_template_vars:
+        filtered_vars[group.name] = {
+          'description': group.description,
+          'enabled': group.enabled,
+          'prompt_to_set': getattr(group, 'prompt_to_set', ''),
+          'prompt_to_enable': getattr(group, 'prompt_to_enable', ''),
+          'vars': group_vars
+        }
+    
+    return filtered_vars
+  
+  def get_module_defaults(self, template_vars: List[str]) -> Dict[str, Any]:
+    """Get default values from module variable definitions for template variables.
+    
+    Args:
+        template_vars: List of variable names used in the template
+        
+    Returns:
+        Dictionary mapping variable names to their default values
+    """
+    defaults = {}
+    
+    for group in self.variable_groups:
+      for variable in group.vars:
+        if variable.name in template_vars and variable.value is not None:
+          defaults[variable.name] = variable.value
+    
+    return defaults
+  
+  def resolve_variable_defaults(self, module_name: str, template_vars: List[str], template_defaults: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Resolve variable default values with hardcoded priority handling.
+    
+    Priority order (hardcoded):
+    1. Module variable defaults (low priority)
+    2. Template's built-in defaults from |default() filters (medium priority)
+    3. User config defaults (high priority)
+    
+    Args:
+        module_name: Name of the module (for config lookup)
+        template_vars: List of variable names used in the template
+        template_defaults: Dictionary of template's built-in default values
+        
+    Returns:
+        Dictionary of variable names to their resolved default values
+    """
+    if template_defaults is None:
+      template_defaults = {}
+    
+    # Priority 1: Start with module variable defaults (low priority)
+    defaults = self.get_module_defaults(template_vars)
+    
+    # Priority 2: Override with template's built-in defaults (medium priority)
+    defaults.update(template_defaults)
+    
+    # Priority 3: Override with user config defaults (high priority)
+    user_config_defaults = self.config_manager.get_variable_defaults(module_name)
+    for var_name in template_vars:
+      if var_name in user_config_defaults:
+        defaults[var_name] = user_config_defaults[var_name]
+    
+    return defaults
+  
+  def get_summary(self) -> Dict[str, Any]:
+    """Get a summary of all variable groups and their contents."""
+    summary = {
+      'total_groups': len(self.variable_groups),
+      'total_variables': len(self.get_all_variable_names()),
+      'groups': []
+    }
+    
+    for group in self.variable_groups:
+      group_info = {
+        'name': group.name,
+        'description': group.description,
+        'variable_count': len(group.vars),
+        'variables': [var.name for var in group.vars]
+      }
+      summary['groups'].append(group_info)
+    
+    return summary

@@ -1,39 +1,37 @@
 """
 Modules package for the Boilerplates CLI.
-Contains all module implementations for different infrastructure types.
-"""
 
-from typing import List
-from .ansible import AnsibleModule
-from .docker import DockerModule
-from .compose import ComposeModule
-from .github_actions import GitHubActionsModule
-from .gitlab_ci import GitLabCIModule
-from .kestra import KestraModule
-from .kubernetes import KubernetesModule
-from .packer import PackerModule
-from .terraform import TerraformModule
-from .vagrant import VagrantModule
+To add a new module:
+1. Create a new Python file: cli/modules/[module_name].py
+2. Create a class inheriting from Module with the import: from ..core.module import Module
+3. Ensure the class properly sets 'files' parameter and implements required methods
+4. Import and register the module in cli/__main__.py
 
-from ..core.command import BaseModule
+Available modules:
+- compose: Manage Docker Compose configurations and services
+- ansible: Manage Ansible playbooks and configurations
+- docker: Manage Docker configurations and files
+- github_actions: Manage GitHub Actions workflows
+- gitlab_ci: Manage GitLab CI/CD pipelines
+- kestra: Manage Kestra workflows and configurations
+- kubernetes: Manage Kubernetes manifests and configurations
+- packer: Manage Packer templates and configurations
+- terraform: Manage Terraform configurations and modules
+- vagrant: Manage Vagrant configurations and files
 
-
-def get_all_modules() -> List[BaseModule]:
-    """
-    Get all available CLI modules.
+Example:
+    # In cli/modules/mymodule.py
+    from ..core.module import Module
     
-    Returns:
-        List of initialized module instances.
-    """
-    return [
-        AnsibleModule(),
-        DockerModule(),
-        ComposeModule(),
-        GitHubActionsModule(),
-        GitLabCIModule(),
-        KestraModule(),
-        KubernetesModule(),
-        PackerModule(),
-        TerraformModule(),
-        VagrantModule(),
-    ]
+    class MyModule(Module):
+        def __init__(self):
+            super().__init__(
+                name="mymodule",
+                description="My module description",
+                files=["config.yml", "settings.json"],
+                vars={"key": "value"}  # optional
+            )
+        
+        def register(self, app):
+            return super().register(app)
+"""

@@ -1,0 +1,52 @@
+---
+name: "Complex Test Template"
+description: "A comprehensive template for testing complex variable prompting logic"
+version: "1.0.0"
+date: "2025-01-01"
+author: "GitHub Copilot"
+tags:
+  - "test"
+  - "complex"
+  - "variables"
+---
+services:
+  {{ service_name }}:
+    image: {{ docker_image | default('nginx:latest') }}
+    container_name: {{ container_name | default(service_name) }}
+    restart: {{ restart_policy | default('unless-stopped') }}
+    
+    {% if traefik_http_port %}
+    ports:
+      - "{{ traefik_http_port }}:80"
+      {% if traefik_https_port %}
+      - "{{ traefik_https_port }}:443"
+      {% endif %}
+    {% endif %}
+    
+    {% if replica_count and replica_count > 1 %}
+    deploy:
+      replicas: {{ replica_count }}
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    {% endif %}
+    
+    {% if traefik_entrypoints %}
+    labels:
+      - "traefik.enable=true"
+      {% for entrypoint in traefik_entrypoints %}
+      - "traefik.http.routers.{{ service_name }}.entrypoints={{ entrypoint }}"
+      {% endfor %}
+    {% endif %}
+    
+    environment:
+      - APP_NAME={{ service_name }}
+      {% if container_name %}
+      - CONTAINER_NAME={{ container_name }}
+      {% endif %}
+
+networks:
+  default:
+    name: {{ service_name }}_network

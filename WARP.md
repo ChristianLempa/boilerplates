@@ -59,9 +59,9 @@ boilerplate --log-level DEBUG [command]
 
 ### Adding New Modules
 
-1. Create new module directory in `cli/modules/[module_name]/`
-2. Implement module class inheriting from `BaseModule` in `cli/core/command.py`
-3. Add module to imports in `cli/modules/__init__.py`
+1. Create new module file: `cli/modules/[module_name].py`
+2. Implement module class inheriting from `BaseModule` in the file
+3. Add module to imports in `cli/__main__.py`
 4. Create corresponding template directory in `library/[module_name]/`
 
 ## Architecture Notes
@@ -103,6 +103,7 @@ tags:
 - **Docker Compose**: Default to `compose.yaml` filename (not `docker-compose.yml`)
 - **Logging Standards**: No emojis, avoid multi-lines, use proper log levels
 - **Comment Anchors**: Use for TODOs, FIXMEs, notes, and links in source code
+- **Spaces in Python**: Prefer using 2 Spaces for indentation
 
 ## Configuration
 

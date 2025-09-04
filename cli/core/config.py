@@ -1,75 +1,79 @@
-"""
-Configuration management for the Boilerplates CLI.
-Handles module-specific configuration stored in config.json files.
-"""
-
-import json
-import os
-from pathlib import Path
 from typing import Any, Dict, Optional
-
-from .logging import setup_logging
+from pathlib import Path
 
 
 class ConfigManager:
-    """Manages configuration for CLI modules."""
-
-    def __init__(self, module_name: str):
-        self.module_name = module_name
-        self.config_dir = Path.home() / ".boilerplates"
-        self.config_file = self.config_dir / f"{module_name}.json"
-        self.logger = setup_logging()
-
-    def _ensure_config_dir(self) -> None:
-        """Ensure the configuration directory exists."""
-        self.config_dir.mkdir(parents=True, exist_ok=True)
-
-    def _load_config(self) -> Dict[str, Any]:
-        """Load configuration from file."""
-        if not self.config_file.exists():
-            return {}
-
-        try:
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            self.logger.warning(f"Failed to load config for {self.module_name}: {e}")
-            return {}
-
-    def _save_config(self, config: Dict[str, Any]) -> None:
-        """Save configuration to file."""
-        self._ensure_config_dir()
-        try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-        except IOError as e:
-            self.logger.error(f"Failed to save config for {self.module_name}: {e}")
-            raise
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get a configuration value."""
-        config = self._load_config()
-        return config.get(key, default)
-
-    def set(self, key: str, value: Any) -> None:
-        """Set a configuration value."""
-        config = self._load_config()
-        config[key] = value
-        self._save_config(config)
-
-    def delete(self, key: str) -> bool:
-        """Delete a configuration value."""
-        config = self._load_config()
-        if key in config:
-            del config[key]
-            self._save_config(config)
-            return True
-        return False
-
-    def list_all(self) -> Dict[str, Any]:
-        """List all configuration values."""
-        return self._load_config()
-
-    def get_config_path(self) -> Path:
-        """Get the path to the configuration file."""
-        return self.config_file
+  """Placeholder for configuration management.
+  
+  This will handle loading and saving user configuration including:
+  - Variable default values (highest priority)
+  - Module settings
+  - User preferences
+  
+  TODO: Implement actual configuration persistence and loading
+  """
+  
+  def __init__(self, config_dir: Optional[Path] = None):
+    """Initialize the configuration manager.
+    
+    Args:
+        config_dir: Directory to store configuration files. 
+                   Defaults to ~/.boilerplates/
+    """
+    if config_dir is None:
+      config_dir = Path.home() / ".boilerplates"
+    
+    self.config_dir = config_dir
+    self.config_dir.mkdir(parents=True, exist_ok=True)
+  
+  def get_variable_defaults(self, module_name: str) -> Dict[str, Any]:
+    """Get user-configured default values for variables in a module.
+    
+    Args:
+        module_name: Name of the module (e.g., 'compose', 'terraform')
+        
+    Returns:
+        Dictionary mapping variable names to their user-configured default values
+        
+    TODO: Implement actual config file loading
+    """
+    # Placeholder implementation - returns empty dict
+    return {}
+  
+  def save_variable_defaults(self, module_name: str, variable_defaults: Dict[str, Any]) -> None:
+    """Save user-configured default values for variables in a module.
+    
+    Args:
+        module_name: Name of the module (e.g., 'compose', 'terraform')
+        variable_defaults: Dictionary mapping variable names to their default values
+        
+    TODO: Implement actual config file saving
+    """
+    # Placeholder implementation - does nothing
+    pass
+  
+  def get_module_config(self, module_name: str) -> Dict[str, Any]:
+    """Get module-specific configuration.
+    
+    Args:
+        module_name: Name of the module
+        
+    Returns:
+        Dictionary with module configuration
+        
+    TODO: Implement actual config loading
+    """
+    # Placeholder implementation - returns empty dict
+    return {}
+  
+  def save_module_config(self, module_name: str, config: Dict[str, Any]) -> None:
+    """Save module-specific configuration.
+    
+    Args:
+        module_name: Name of the module
+        config: Dictionary with module configuration
+        
+    TODO: Implement actual config saving
+    """
+    # Placeholder implementation - does nothing
+    pass
