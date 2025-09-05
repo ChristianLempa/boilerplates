@@ -29,28 +29,13 @@ class PromptHandler:
   def __call__(self) -> Dict[str, Any]:
     """Execute the complex prompting logic and return final variable values."""
     logger.debug(f"Starting advanced prompt handler with {len(self.variable_groups)} variable groups")
-    
-    self._show_welcome_message()
-    
+
     # Process each variable group with the complex logic
     for group_name, group_data in self.variable_groups.items():
       self._process_variable_group(group_name, group_data)
     
     self._show_summary()
     return self.final_values
-  
-  def _show_welcome_message(self):
-    """Display a welcome message for the template generation."""
-    welcome_text = Text("🚀 Template Generation", style="bold blue")
-    subtitle = Text("Configure variables for your template", style="dim")
-    
-    panel = Panel(
-      f"{welcome_text}\n{subtitle}",
-      box=box.ROUNDED,
-      padding=(1, 2)
-    )
-    self.console.print(panel)
-    self.console.print()
   
   def _process_variable_group(self, group_name: str, group_data: Dict[str, Any]):
     """Process a single variable group with complex prompting logic.
@@ -61,16 +46,15 @@ class PromptHandler:
     3. If group is enabled → prompt for variables without values
     4. Ask if user wants to change existing variable values
     """
-    logger.debug(f"Processing variable group: {group_name}")
     
     variables = group_data.get('vars', {})
     if not variables:
-      logger.debug(f"Group {group_name} has no variables, skipping")
       return
-      
+
     # Show group header
-    self._show_group_header(group_name, group_data.get('description', ''))
-    
+    self.console.print(f"[bold cyan]{group_name.title()} Variables[/bold cyan]")
+    self.console.print()
+
     # Step 1: Check for variables with no default values (always prompt)
     vars_without_defaults = self._get_variables_without_defaults(variables)
     
@@ -83,13 +67,12 @@ class PromptHandler:
       default_value = self.resolved_defaults.get(var_name)
       self.final_values[var_name] = default_value
     
+    # When group is not enabled
     if not group_enabled:
-      logger.debug(f"Group {group_name} disabled by user, but defaults have been applied")
       return
       
     # Step 3: Prompt for required variables (those without defaults)
     if vars_without_defaults:
-      self.console.print(f"[bold red]Required variables for {group_name}:[/bold red]")
       for var_name in vars_without_defaults:
         var_data = variables[var_name]
         value = self._prompt_for_variable(var_name, var_data, required=True)
@@ -102,14 +85,6 @@ class PromptHandler:
       self._handle_variables_with_defaults(group_name, vars_with_defaults, variables)
     
     self.console.print()  # Add spacing between groups
-  
-  def _show_group_header(self, group_name: str, description: str):
-    """Display a header for the variable group."""
-    header = f"[bold cyan]📦 {group_name.title()} Variables[/bold cyan]"
-    if description:
-      header += f"\n[dim]{description}[/dim]"
-    
-    self.console.print(Panel(header, box=box.SIMPLE, padding=(0, 1)))
   
   def _get_variables_without_defaults(self, variables: Dict[str, Any]) -> List[str]:
     """Get list of variable names that have no default values."""
@@ -149,6 +124,7 @@ class PromptHandler:
         default=False
       )
     except (EOFError, KeyboardInterrupt):
+      # For optional group configuration, gracefully handle interruption
       logger.debug(f"User interrupted prompt for group {group_name}, defaulting to disabled")
       return False
   
@@ -203,8 +179,10 @@ class PromptHandler:
     
     # Build prompt message
     prompt_parts = [f"[bold]{var_name}[/bold]"]
+    if required:
+      prompt_parts.append("[red](Required)[/red]")
     if description:
-      prompt_parts.append(f"({description})")
+      prompt_parts.append(f"[dim]{description}[/dim]")
     
     prompt_message = " ".join(prompt_parts)
     
@@ -228,7 +206,7 @@ class PromptHandler:
         return self._prompt_string(prompt_message, current_value, required)
         
     except KeyboardInterrupt:
-      self.console.print("\n[red]Operation cancelled by user[/red]")
+      # Let KeyboardInterrupt propagate up to be handled at module level
       raise
     except Exception as e:
       logger.error(f"Error prompting for variable {var_name}: {e}")
@@ -249,11 +227,8 @@ class PromptHandler:
           
         return value.strip()
       except (EOFError, KeyboardInterrupt):
-        if required:
-          self.console.print(f"\n[red]This field is required. Using empty string.[/red]")
-          return ""
-        else:
-          return default_val or ""
+        # Let KeyboardInterrupt propagate up for proper cancellation
+        raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _prompt_boolean(self, prompt_message: str, current_value: Any = None) -> bool:
     """Prompt for boolean input."""
@@ -261,7 +236,7 @@ class PromptHandler:
     try:
       return Confirm.ask(prompt_message, default=default_val)
     except (EOFError, KeyboardInterrupt):
-      return default_val if default_val is not None else False
+      raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _prompt_integer(self, prompt_message: str, current_value: Any = None) -> int:
     """Prompt for integer input with validation."""
@@ -273,7 +248,7 @@ class PromptHandler:
       except ValueError:
         self.console.print("[red]Please enter a valid integer[/red]")
       except (EOFError, KeyboardInterrupt):
-        return default_val if default_val is not None else 0
+        raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _prompt_float(self, prompt_message: str, current_value: Any = None) -> float:
     """Prompt for float input with validation."""
@@ -285,7 +260,7 @@ class PromptHandler:
       except ValueError:
         self.console.print("[red]Please enter a valid number[/red]")
       except (EOFError, KeyboardInterrupt):
-        return default_val if default_val is not None else 0.0
+        raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _prompt_choice(self, prompt_message: str, options: List[Any], current_value: Any = None) -> Any:
     """Prompt for choice from a list of options."""
@@ -313,7 +288,7 @@ class PromptHandler:
             return matching_options[0]
           self.console.print(f"[red]Please enter a valid option number (1-{len(options)}) or exact option name[/red]")
       except (EOFError, KeyboardInterrupt):
-        return current_value if current_value is not None else options[0] if options else None
+        raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _prompt_list(self, prompt_message: str, current_value: Any = None) -> List[str]:
     """Prompt for list input (comma-separated values)."""
@@ -336,22 +311,13 @@ class PromptHandler:
       items = [item.strip() for item in value.split(',') if item.strip()]
       return items
     except (EOFError, KeyboardInterrupt):
-      if current_value and isinstance(current_value, list):
-        return current_value
-      elif current_value:
-        return [str(current_value)]
-      else:
-        return []
+      raise KeyboardInterrupt("Template generation cancelled by user")
   
   def _show_summary(self):
     """Display a summary of all configured variables."""
     if not self.final_values:
       self.console.print("[yellow]No variables were configured.[/yellow]")
       return
-    
-    self.console.print("\n" + "="*50)
-    self.console.print("[bold green]📋 Configuration Summary[/bold green]")
-    self.console.print("="*50)
     
     table = Table(box=box.SIMPLE_HEAVY)
     table.add_column("Variable", style="cyan", min_width=20)
@@ -371,9 +337,6 @@ class PromptHandler:
     self.console.print(table)
     self.console.print()
     
-    try:
-      if not Confirm.ask("[bold]Proceed with template generation?[/bold]", default=True):
-        raise KeyboardInterrupt("Template generation cancelled by user")
-    except (EOFError, KeyboardInterrupt):
-      # If user cancels, still proceed with defaults
-      self.console.print("[yellow]Using current configuration to proceed.[/yellow]")
+    # Ask user if they want to proceed with template generation
+    if not Confirm.ask("[bold]Proceed with template generation?[/bold]", default=True):
+      raise KeyboardInterrupt("Template generation cancelled by user")

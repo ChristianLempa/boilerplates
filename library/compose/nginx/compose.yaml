@@ -20,7 +20,7 @@ services:
       replicas: {{ swarm_replicas | default(1) }}
       {% if traefik %}
       labels:
-        - traefik.enable={{ traefik_enable | default(true) }}
+        - traefik.enable={{ traefik }}
         - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
         - traefik.http.routers.{{ container_name }}.entrypoints=websecure
         - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik_host }}`)
@@ -39,7 +39,7 @@ services:
     #   - ./data:/usr/share/nginx/html:ro
     {% if traefik and not swarm %}
     labels:
-      - traefik.enable={{ traefik_enable | default(true) }}
+      - traefik.enable={{ traefik  }}
       - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
       - traefik.http.routers.{{ container_name }}.entrypoints=websecure
       - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik_host }}`)

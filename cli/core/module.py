@@ -196,19 +196,16 @@ class Module(ABC):
 
   def generate(self, id: str = Argument(..., metavar="template", help="The template to generate from"), out: Optional[Path] = Option(None, "--out", "-o", help="Output file to save the generated template")):
     """Generate a new template with complex variable prompting logic"""
-    logger.info(f"Generating template '{id}' from module '{self.name}'")
-    
+
     # Find template by ID
     template = self.libraries.find_by_id(module_name=self.name, files=self.files, template_id=id)
     if not template:
-      logger.error(f"Template '{id}' not found")
       print(f"Template '{id}' not found.")
       return
 
     # Validate if the variables in the template are valid ones
     success, missing = self._validate_variables(template.vars)
     if not success:
-      logger.error(f"Template '{id}' has invalid variables: {missing}")
       print(f"Template '{id}' has invalid variables: {missing}")
       return
     
@@ -219,26 +216,20 @@ class Module(ABC):
       logger.debug(f"Variable processing completed with {len(final_variable_values)} variables")
       
     except KeyboardInterrupt:
-      logger.info("Template generation cancelled by user")
       print("\n[red]Template generation cancelled.[/red]")
       return
     except Exception as e:
-      logger.error(f"Error during prompting: {e}")
       print(f"Error during variable prompting: {e}")
       return
     
     # Step 7: Generate template with final variable values
-    logger.debug(f"Step 7: Generating template with final values")
     try:
       generated_content = template.render(final_variable_values)
-      logger.debug("Template rendered successfully")
     except Exception as e:
-      logger.error(f"Error rendering template: {e}")
       print(f"Error rendering template: {e}")
       return
     
     # Step 8: Output the generated content
-    logger.debug(f"Step 8: Outputting generated content")
     if out:
       try:
         out.parent.mkdir(parents=True, exist_ok=True)

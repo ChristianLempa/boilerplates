@@ -48,7 +48,6 @@ class ComposeModule(Module):
         "description": "Variables for Traefik labels",
         "vars": {
           "traefik": {"description": "Enable Traefik labels", "value": False, "var_type": "boolean"},
-          "traefik_enable": {"description": "Enable Traefik for this service", "value": True, "var_type": "boolean"},
           "traefik_host": {"description": "Traefik host rule", "value": "example.com"},
           "traefik_tls": {"description": "Enable TLS for Traefik", "value": True, "var_type": "boolean"},
           "traefik_certresolver": {"description": "Traefik certificate resolver", "value": "letsencrypt"},
