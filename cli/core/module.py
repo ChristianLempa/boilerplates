@@ -1,149 +1,61 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, List
+from typing import List, Optional
 import logging
 from typer import Typer, Option, Argument
 from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.syntax import Syntax
-from rich.table import Table
-from io import StringIO
-from rich import box
-
 from .library import LibraryManager
-from .prompt import PromptHandler
-from .template import Template
-from .variables import VariableGroup, VariableManager
-from .config import ConfigManager
+from .variables import VariableRegistry
 from .processor import VariableProcessor
 
 logger = logging.getLogger('boilerplates')
 
 
 class Module(ABC):
-  """
-  Base Module for all CLI Commands.
+  """Simplified base module with clearer responsibilities."""
   
-  This class now uses VariableManager for centralized variable management,
-  providing better organization and more advanced variable operations.
-  """
-
-  def __init__(self, name: str, description: str, files: list[str], vars: list[VariableGroup] = None):
-    self.name = name
-    self.description = description
-    self.files = files
+  # Class attributes set by subclasses
+  name: str = None
+  description: str = None  
+  files: List[str] = None
+  
+  def __init__(self):
+    # Validate required attributes
+    if not all([self.name, self.description, self.files]):
+      raise ValueError(f"Module {self.__class__.__name__} must define name, description, and files")
     
-    # Initialize ConfigManager and VariableManager with it
-    self.config = ConfigManager()
-    self.vars = VariableManager(vars if vars is not None else [], self.config)
-
     self.app = Typer()
-    self.libraries = LibraryManager()  # Initialize library manager
+    self.libraries = LibraryManager()
+    self.variables = VariableRegistry()
     
-    # Validate that required attributes are set
-    if not self.name:
-      raise ValueError("Module name must be set")
-    if not self.description:
-      raise ValueError("Module description must be set")
-    if not isinstance(self.files, list) or len(self.files) == 0:
-      raise ValueError("Module files must be a non-empty list")
-    if not all(isinstance(var, VariableGroup) for var in (vars if vars is not None else [])):
-      raise ValueError("Module vars must be a list of VariableGroup instances")
-
-  def _validate_variables(self, variables: List[str]) -> Tuple[bool, List[str]]:
-    """Validate if all template variables exist in the variable groups.
+    # Allow subclasses to initialize their variables
+    self._init_variables()
     
-    Args:
-        variables: List of variable names to validate
-        
-    Returns:
-        Tuple of (success: bool, missing_variables: List[str])
-    """
-    missing_variables = [var for var in variables if not self.vars.has_variable(var)]
-    success = len(missing_variables) == 0
-    return success, missing_variables
+  def _init_variables(self):
+    """Override in subclasses to register module-specific variables."""
+    pass
 
-  def _get_variable_defaults_for_template(self, template_vars: List[str]) -> Dict[str, Any]:
-    """Get default values for variables used in a template.
+
+
+  def _get_groups_with_template_vars(self, template_vars: List[str]) -> List[str]:
+    """Get group names that contain at least one template variable.
     
     Args:
         template_vars: List of variable names used in the template
         
     Returns:
-        Dictionary mapping variable names to their default values
+        List of group names that have variables used by the template
     """
-    defaults = {}
-    for group in self.vars.variable_groups:
-      for variable in group.vars:
-        if variable.name in template_vars and variable.value is not None:
-          defaults[variable.name] = variable.value
-    return defaults
+    grouped_vars = self.variables.get_variables_for_template(template_vars)
+    return list(grouped_vars.keys())
 
-  def _get_groups_with_template_vars(self, template_vars: List[str]) -> List[VariableGroup]:
-    """Get groups that contain at least one template variable.
-    
-    Args:
-        template_vars: List of variable names used in the template
-        
-    Returns:
-        List of VariableGroup objects that have variables used by the template
-    """
-    result = []
-    for group in self.vars.variable_groups:
-      if any(var.name in template_vars for var in group.vars):
-        result.append(group)
-    return result
 
-  def _resolve_variable_defaults(self, template_vars: List[str], template_defaults: Dict[str, Any] = None) -> Dict[str, Any]:
-    """Resolve variable default values with priority handling.
-    
-    Priority order:
-    1. Module variable defaults (low priority)
-    2. Template's built-in defaults (medium priority)  
-    3. User config defaults (high priority)
-    """
-    if template_defaults is None:
-      template_defaults = {}
-    
-    # Start with module defaults, then override with template and user config
-    defaults = self._get_variable_defaults_for_template(template_vars)
-    defaults.update(template_defaults)
-    defaults.update({var: value for var, value in self.config.get_variable_defaults(self.name).items() if var in template_vars})
-    
-    return defaults
-
-  def _filter_variables_for_template(self, template_vars: List[str]) -> Dict[str, Any]:
-    """Filter the variable groups to only include variables needed by the template."""
-    filtered_vars = {}
-    template_vars_set = set(template_vars)  # Convert to set for O(1) lookup
-    
-    for group in self._get_groups_with_template_vars(template_vars):
-      # Get variables that match template vars and convert to dict format
-      group_vars = {
-        var.name: var.to_dict() for var in group.vars if var.name in template_vars_set
-      }
-      
-      # Only include groups that have variables
-      if group_vars:
-        filtered_vars[group.name] = {
-          'description': group.description,
-          'enabled': group.enabled,
-          'prompt_to_set': getattr(group, 'prompt_to_set', ''),
-          'prompt_to_enable': getattr(group, 'prompt_to_enable', ''),
-          'vars': group_vars
-        }
-    
-    return filtered_vars
 
   def list(self):
-    """List all templates in the module."""
-    logger.debug(f"Listing templates for module: {self.name}")
+    """List all templates."""
     templates = self.libraries.find(self.name, self.files, sorted=True)
-    logger.debug(f"Found {len(templates)} templates")
-    
     for template in templates:
-      print(f"{template.id} ({template.name}, {template.directory})")
+      print(f"{template.id} - {template.name}")
     return templates
 
   def show(self, id: str = Argument(..., metavar="template", help="The template to show details for")):
@@ -178,9 +90,7 @@ class Module(ABC):
       metadata.append(f"Tags: [cyan]{', '.join(template.tags)}[/cyan]")
     
     # Find variable groups used by this template
-    template_var_groups = [
-      group.name for group in self._get_groups_with_template_vars(template.vars)
-    ]
+    template_var_groups = self._get_groups_with_template_vars(template.vars)
     
     if template_var_groups:
       metadata.append(f"Functions: [cyan]{', '.join(template_var_groups)}[/cyan]")
@@ -194,60 +104,33 @@ class Module(ABC):
       console.print(f"\n{template.content}")
 
 
-  def generate(self, id: str = Argument(..., metavar="template", help="The template to generate from"), out: Optional[Path] = Option(None, "--out", "-o", help="Output file to save the generated template")):
-    """Generate a new template with complex variable prompting logic"""
-
-    # Find template by ID
-    template = self.libraries.find_by_id(module_name=self.name, files=self.files, template_id=id)
+  def generate(self, id: str = Argument(..., help="Template ID"),
+              out: Optional[Path] = Option(None, "--out", "-o")):
+    """Generate from template."""
+    # Find template
+    template = self.libraries.find_by_id(self.name, self.files, id)
     if not template:
       print(f"Template '{id}' not found.")
       return
-
-    # Validate if the variables in the template are valid ones
-    success, missing = self._validate_variables(template.vars)
-    if not success:
-      print(f"Template '{id}' has invalid variables: {missing}")
-      return
     
-    # Process variables using dedicated processor
-    try:
-      processor = VariableProcessor(self.vars, self.config, self.name)
-      final_variable_values = processor.process_variables_for_template(template)
-      logger.debug(f"Variable processing completed with {len(final_variable_values)} variables")
-      
-    except KeyboardInterrupt:
-      print("\n[red]Template generation cancelled.[/red]")
-      return
-    except Exception as e:
-      print(f"Error during variable prompting: {e}")
-      return
+    # Process variables
+    processor = VariableProcessor(self.variables)
+    values = processor.process(template)
     
-    # Step 7: Generate template with final variable values
-    try:
-      generated_content = template.render(final_variable_values)
-    except Exception as e:
-      print(f"Error rendering template: {e}")
-      return
+    # Render and output
+    content = template.render(values)
     
-    # Step 8: Output the generated content
     if out:
-      try:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        with open(out, 'w', encoding='utf-8') as f:
-          f.write(generated_content)
-        logger.info(f"Template generated and saved to {out}")
-        print(f"✅ Template generated and saved to {out}")
-      except Exception as e:
-        logger.error(f"Error saving to file {out}: {e}")
-        print(f"Error saving to file {out}: {e}")
+      out.parent.mkdir(parents=True, exist_ok=True)
+      out.write_text(content)
+      print(f"✅ Generated to {out}")
     else:
-      print("\n" + "="*60)
-      print("📄 Generated Template Content:")
-      print("="*60)
-      print(generated_content)
+      print(f"\n{'='*60}\nGenerated Content:\n{'='*60}")
+      print(content)
   
-  def register(self, app: Typer):
+  def register_cli(self, app: Typer):
+    """Register this module with the CLI app."""
     self.app.command()(self.list)
     self.app.command()(self.show)
     self.app.command()(self.generate)
-    app.add_typer(self.app, name=self.name, help=self.description, no_args_is_help=True)
+    app.add_typer(self.app, name=self.name, help=self.description)

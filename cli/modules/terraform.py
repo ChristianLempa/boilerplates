@@ -1,16 +1,18 @@
 from ..core.module import Module
-from ..core.registry import register_module
+from ..core.registry import registry
+from ..core.variables import Variable
 
-@register_module(
-  name="terraform",
-  description="Manage Terraform configurations and modules",
-  files=["main.tf", "variables.tf", "outputs.tf", "versions.tf", "providers.tf", "terraform.tf"]
-)
 class TerraformModule(Module):
-  """Module for managing Terraform configurations and modules."""
+  """Terraform module - clean and simple."""
+  
+  name = "terraform"
+  description = "Manage Terraform configurations"
+  files = ["main.tf", "variables.tf", "outputs.tf", "versions.tf"]
+  
+  def _init_variables(self):
+    """Initialize Terraform-specific variables."""
+    # Only if module needs variables
+    pass
 
-  def __init__(self):
-    super().__init__(name=self.name, description=self.description, files=self.files)
-
-  def register(self, app):
-    return super().register(app)
+# Register the module
+registry.register(TerraformModule)

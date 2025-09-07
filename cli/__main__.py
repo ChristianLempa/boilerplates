@@ -55,7 +55,7 @@ def init_app():
     for module in registry.create_instances():
       try:
         logger.debug(f"Registering module: {module.__class__.__name__}")
-        module.register(app)
+        module.register_cli(app)
       except Exception as e:
         logger.error(f"Error registering {module.__class__.__name__}: {e}")
     

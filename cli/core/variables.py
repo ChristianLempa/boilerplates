@@ -1,143 +1,87 @@
-from typing import Any, Dict, List, Tuple
-from .config import ConfigManager
+from typing import Any, Dict, List
+from dataclasses import dataclass, field
+from collections import OrderedDict
 
 
+@dataclass
 class Variable:
-  """Data class for variable information."""
+  """Variable with all necessary properties."""
+  name: str
+  description: str = ""
+  default: Any = None
+  type: str = "string"
+  options: List[Any] = field(default_factory=list)
+  group: str = "general"
+  required: bool = False
   
-  def __init__(self, name: str, description: str = "", value: Any = None, var_type: str = "string", options: List[Any] = None, enabled: bool = True):
-    self.name = name
-    self.description = description
-    self.value = value
-    self.type = var_type  # e.g., string, integer, boolean, choice
-    self.options = options if options is not None else []  # For choice type
-    self.enabled = enabled  # Whether this variable is enabled (default: True)
-  
-  def disable(self) -> None:
-    """Disable this variable."""
-    self.enabled = False
-
-  def to_dict(self) -> Dict[str, Any]:
-    """Convert Variable to dictionary for compatibility with PromptHandler."""
+  def to_prompt_config(self) -> Dict[str, Any]:
+    """Convert to prompt configuration."""
     return {
       'name': self.name,
-      'description': self.description,
-      'value': self.value,
+      'description': self.description, 
       'type': self.type,
       'options': self.options,
-      'enabled': self.enabled
+      'required': self.required,
+      'default': self.default
     }
 
 
-class VariableGroup():
-  """Data class for variable groups."""
+class VariableRegistry:
+  """Variable management for modules."""
   
-  def __init__(self, name: str, description: str = "", vars: List[Variable] = None, enabled: bool = True):
-    self.name = name
-    self.description = description
-    self.vars = vars if vars is not None else []
-    self.enabled = enabled  # Whether this variable group is enabled
-    self.prompt_to_set = ""  # Custom prompt message
-    self.prompt_to_enable = ""  # Custom prompt message when asking to enable this group
+  def __init__(self):
+    self.variables: Dict[str, Variable] = OrderedDict()
+    self.groups: Dict[str, Dict[str, Any]] = OrderedDict()
+    self.registration_order: Dict[str, List[str]] = {}  # group -> ordered list of variable names
+    self.group_enablers: Dict[str, str] = {}  # group -> enabler variable name
   
-  def disable(self) -> None:
-    """Disable this variable group and all its variables."""
-    self.enabled = False
-    for var in self.vars:
-      var.disable()
-
-  def get_all_vars(self) -> List[Variable]:
-    """Get all variables in this group."""
-    return self.vars
-
-  @classmethod
-  def from_dict(cls, name: str, config: Dict[str, Any]) -> "VariableGroup":
-    """Create a VariableGroup from a dictionary configuration."""
-    variables = []
-    vars_config = config.get("vars", {})
+  def register_variable(self, var: Variable) -> None:
+    """Register a variable."""
+    self.variables[var.name] = var
+    # Track registration order per group
+    if var.group not in self.registration_order:
+      self.registration_order[var.group] = []
+    self.registration_order[var.group].append(var.name)
     
-    for var_name, var_config in vars_config.items():
-      var_type = var_config.get("var_type", "string")  # Default to string if not specified
-      enabled = var_config.get("enabled", True)  # Default to enabled if not specified
-      variables.append(Variable(
-        name=var_name,
-        description=var_config.get("description", ""),
-        value=var_config.get("value"),
-        var_type=var_type,
-        enabled=enabled
-      ))
-    
-    return cls(
-      name=name,
-      description=config.get("description", ""),
-      vars=variables,
-      enabled=config.get("enabled", True)  # Default to enabled if not specified
-    )
-
-
-class VariableManager:
-  """Manager class for handling collections of VariableGroups.
-  
-  The VariableManager centralizes variable-related operations for:
-  - Managing VariableGroups
-  - Validating template variables
-  - Filtering variables for specific templates
-  - Resolving variable defaults with priority handling
-  """
-  
-  def __init__(self, variable_groups: List[VariableGroup] = None, config_manager: ConfigManager = None):
-    """Initialize the VariableManager with a list of VariableGroups and ConfigManager."""
-    self.variable_groups = variable_groups if variable_groups is not None else []
-    self.config_manager = config_manager if config_manager is not None else ConfigManager()
-  
-  def add_group(self, group: VariableGroup) -> None:
-    """Add a VariableGroup to the manager."""
-    if not isinstance(group, VariableGroup):
-      raise ValueError("group must be a VariableGroup instance")
-    self.variable_groups.append(group)
-  
-  def get_all_groups(self) -> List[VariableGroup]:
-    """Get all variable groups."""
-    return self.variable_groups
-
-  def has_variable(self, name: str) -> bool:
-    """Check if a variable exists in any group."""
-    for group in self.variable_groups:
-      for var in group.vars:
-        if var.name == name:
-          return True
-    return False
-  
-  def get_variable_value(self, name: str, group_name: str = None) -> Any:
-    """Get the value of a variable by name.
+  def register_group(self, name: str, display_name: str, 
+                    description: str = "", icon: str = "", enabler: str = "") -> None:
+    """Register a variable group.
     
     Args:
-        name: Variable name to find
-        group_name: Optional group name to search within
-        
-    Returns:
-        Variable value if found, None otherwise
+        name: Internal group name
+        display_name: Display name for the group
+        description: Group description
+        icon: Optional icon for the group
+        enabler: Optional variable name that controls if this group is enabled
     """
-    for group in self.variable_groups:
-      if group_name is not None and group.name != group_name:
-        continue
-      for var in group.vars:
-        if var.name == name:
-          return var.value
-    return None
-
-  def get_variables_in_template(self, template_vars: List[str]) -> List[tuple]:
-    """Get all variables that exist in the template vars list.
+    self.groups[name] = {
+      'display_name': display_name,
+      'description': description,
+      'icon': icon
+    }
     
-    Args:
-        template_vars: List of variable names used in the template
-        
-    Returns:
-        List of tuples (group_name, variable) for variables found in template
-    """
-    result = []
-    for group in self.variable_groups:
-      for var in group.vars:
-        if var.name in template_vars:
-          result.append((group.name, var))
-    return result
+    if enabler:
+      self.group_enablers[name] = enabler
+  
+  def get_variables_for_template(self, template_vars: List[str]) -> Dict[str, List[Variable]]:
+    """Get variables grouped by their group name, preserving registration order."""
+    grouped = OrderedDict()
+    
+    # First, organize variables by group
+    temp_grouped = {}
+    for var_name in template_vars:
+      if var_name in self.variables:
+        var = self.variables[var_name]
+        if var.group not in temp_grouped:
+          temp_grouped[var.group] = []
+        temp_grouped[var.group].append(var)
+    
+    # Then, sort variables within each group by registration order
+    for group_name, vars_list in temp_grouped.items():
+      grouped[group_name] = sorted(
+        vars_list,
+        key=lambda v: self.registration_order.get(group_name, []).index(v.name) 
+        if v.name in self.registration_order.get(group_name, []) else float('inf')
+      )
+    
+    return grouped
