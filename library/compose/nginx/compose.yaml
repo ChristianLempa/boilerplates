@@ -10,7 +10,7 @@ tags:
   - reverse-proxy
 ---
 services:
-  {{ service_name | default('nginx') }}:
+  {{ service_name }}:
     image: docker.io/library/nginx:1.28.0-alpine
     {% if not swarm %}
     container_name: {{ container_name | default('nginx') }}
@@ -31,7 +31,7 @@ services:
     {% endif %}
     {% if not traefik %}
     ports:
-      - "{{ service_port['http'] | default(8080) }}:80"
+      - "{{ service_port['http']  }}:80"
       - "{{ service_port['https'] | default(8443) }}:443"
     {% endif %}
     # volumes:

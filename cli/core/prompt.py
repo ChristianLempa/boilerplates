@@ -1,18 +1,14 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 import logging
 from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt, FloatPrompt
 from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
-from rich.markdown import Markdown
 from rich import box
-import re
 
 logger = logging.getLogger('boilerplates')
 
 class PromptHandler:
-  """Advanced prompt handler with Rich UI for complex variable group logic."""
+  """Prompt handler with Rich UI for variable configuration."""
 
   def __init__(self, variable_groups: Dict[str, Any], resolved_defaults: Dict[str, Any] = None):
     """Initialize the prompt handler.
@@ -26,293 +22,394 @@ class PromptHandler:
     self.console = Console()
     self.final_values = {}
     
+    # Map prompt types to their handlers
+    self.prompt_handlers = {
+      'boolean': self._prompt_boolean,
+      'integer': self._prompt_integer,
+      'float': self._prompt_float,
+      'choice': self._prompt_choice,
+      'list': self._prompt_list,
+      'string': self._prompt_string
+    }
+    
   def __call__(self) -> Dict[str, Any]:
-    """Execute the complex prompting logic and return final variable values."""
-    logger.debug(f"Starting advanced prompt handler with {len(self.variable_groups)} variable groups")
+    """Execute the prompting logic and return final variable values."""
+    logger.debug(f"Starting prompt handler with {len(self.variable_groups)} variable groups")
 
-    # Process each variable group with the complex logic
-    # Maintain order by processing 'general' group first if it exists
-    ordered_groups = []
-    if 'general' in self.variable_groups:
-      ordered_groups.append(('general', self.variable_groups['general']))
-    
-    # Add remaining groups in their original order
-    for group_name, group_data in self.variable_groups.items():
-      if group_name != 'general':
-        ordered_groups.append((group_name, group_data))
-    
-    for group_name, group_data in ordered_groups:
+    # Process groups in order (general first if exists)
+    for group_name, group_data in self._get_ordered_groups():
       self._process_variable_group(group_name, group_data)
     
     self._show_summary()
     return self.final_values
   
+  def _get_ordered_groups(self) -> List[tuple]:
+    """Get groups in processing order (general first)."""
+    ordered = []
+    if 'general' in self.variable_groups:
+      ordered.append(('general', self.variable_groups['general']))
+    
+    for name, data in self.variable_groups.items():
+      if name != 'general':
+        ordered.append((name, data))
+    
+    return ordered
+  
   def _process_variable_group(self, group_name: str, group_data: Dict[str, Any]):
-    """Process a single variable group with complex prompting logic.
-    
-    Logic flow:
-    1. Check if group has variables with no default values → always prompt
-    2. If group is not enabled → ask user if they want to enable it
-    3. If group is enabled → prompt for variables without values
-    4. Ask if user wants to change existing variable values
-    """
-    
+    """Process a single variable group."""
     variables = group_data.get('vars', {})
     if not variables:
       return
 
-    # Show compact group header only if there are variables to configure
-    vars_without_defaults = self._get_variables_without_defaults(variables)
-    vars_with_defaults = self._get_variables_with_defaults(variables)
+    # Flatten multivalue variables to check which ones are truly required
+    required_items, optional_items = self._categorize_variables(variables)
     
-    # Only show header if we need user interaction  
-    if not (vars_without_defaults or vars_with_defaults):
+    if not (required_items or optional_items):
       return
-      
-    # Use icon from group configuration
-    group_icon = group_data.get('icon', '')
-    group_display_name = group_data.get('display_name', group_name.title())
-    icon_display = f"{group_icon} " if group_icon else ""
-    self.console.print(f"\n{icon_display}[bold magenta]{group_display_name} Variables[/bold magenta]")
-
-    # Check if this group has an enabler variable
+    
+    # Apply defaults for all optional items
+    for var_name, key, default_value in optional_items:
+      if key is not None:
+        # Multivalue with key
+        if var_name not in self.final_values:
+          self.final_values[var_name] = {}
+        self.final_values[var_name][key] = default_value
+      else:
+        # Simple variable
+        self.final_values[var_name] = default_value
+    
+    # Check for enabler variable
     enabler_var_name = group_data.get('enabler', '')
+    has_enabler = enabler_var_name and enabler_var_name in variables
     
-    # Always set default values for variables in this group
-    for var_name in vars_with_defaults:
-      default_value = self.resolved_defaults.get(var_name)
-      self.final_values[var_name] = default_value
-    
-    if enabler_var_name and enabler_var_name in variables:
-      # For groups with enablers, handle everything in _handle_group_with_enabler
-      self._handle_group_with_enabler(group_name, group_data, variables, vars_without_defaults, vars_with_defaults)
-    else:
-      # Original flow for groups without enablers
-      # Step 2: Determine if group should be enabled
-      group_enabled = self._determine_group_enabled_status(group_name, group_data, variables, vars_without_defaults)
-      
-      # When group is not enabled
-      if not group_enabled:
+    # Determine if group should be processed
+    if has_enabler:
+      # Handle enabler group
+      enabled = self._prompt_enabler(group_name, enabler_var_name)
+      self.final_values[enabler_var_name] = enabled
+      if not enabled:
         return
+    elif not required_items:
+      # No required items, ask if user wants to configure optional ones
+      if not self._should_process_optional_group(group_name):
+        return
+    
+    # Show group header
+    self._show_group_header(group_name, group_data)
+    
+    # Process required items first
+    if required_items:
+      for var_name, key, _ in required_items:
+        if var_name == enabler_var_name:
+          continue  # Already handled
         
-      # Step 3: Prompt for required variables (those without defaults)
-      if vars_without_defaults:
-        for var_name in vars_without_defaults:
-          var_data = variables[var_name]
-          value = self._prompt_for_variable(var_name, var_data, required=True)
-          self.final_values[var_name] = value
-      
-      # Step 4: Handle variables with defaults - ask if user wants to change them
-      if vars_with_defaults:
-        self._handle_variables_with_defaults(group_name, vars_with_defaults, variables)
-    # Groups are now more compact, minimal spacing needed
-  
-  def _get_variables_without_defaults(self, variables: Dict[str, Any]) -> List[str]:
-    """Get list of variable names that have no default values."""
-    return [
-      var_name for var_name, var_data in variables.items()
-      if var_name not in self.resolved_defaults or self.resolved_defaults[var_name] is None
+        if key is not None:
+          # Multivalue required key
+          value = self._prompt_for_multivalue_key(
+            var_name, key, variables[var_name], required=True
+          )
+          if var_name not in self.final_values:
+            self.final_values[var_name] = {}
+          self.final_values[var_name][key] = value
+        else:
+          # Simple required variable
+          self.final_values[var_name] = self._prompt_for_variable(
+            var_name, variables[var_name], required=True
+          )
+    
+    # Process optional items if user wants to change them
+    # Filter out already-prompted items from required_items
+    already_prompted = set((var_name, key) for var_name, key, _ in required_items)
+    optional_to_prompt = [
+      (var_name, key, default) for var_name, key, default in optional_items 
+      if var_name != enabler_var_name and (var_name, key) not in already_prompted
     ]
+    
+    if optional_to_prompt:
+      self._handle_optional_items(group_name, optional_to_prompt, variables)
   
-  def _get_variables_with_defaults(self, variables: Dict[str, Any]) -> List[str]:
-    """Get list of variable names that have default values."""
-    return [
-      var_name for var_name, var_data in variables.items()
-      if var_name in self.resolved_defaults and self.resolved_defaults[var_name] is not None
-    ]
-  
-  def _determine_group_enabled_status(self, group_name: str, group_data: Dict[str, Any], variables: Dict[str, Any], vars_without_defaults: List[str]) -> bool:
-    """Determine if a variable group should be enabled based on complex logic."""
+  def _handle_optional_items(self, group_name: str, optional_items: list, variables: Dict[str, Any]):
+    """Handle optional items (variables or multivalue keys with defaults)."""
+    # Group items by variable for preview
+    vars_to_show = {}
+    for var_name, key, default in optional_items:
+      if var_name not in vars_to_show:
+        vars_to_show[var_name] = []
+      vars_to_show[var_name].append((key, default))
     
-    # Check if this group has an enabler variable
-    enabler_var_name = group_data.get('enabler', '')
-    if enabler_var_name and enabler_var_name in variables:
-      # This is a group controlled by an enabler variable
-      # The enabler variable will be prompted separately
-      # For now, assume it's enabled so we can prompt for the enabler
-      return True
+    # Show preview
+    self._show_preview(list(vars_to_show.keys()))
     
-    # If there are required variables (no defaults), group must be enabled
-    if vars_without_defaults:
-      logger.debug(f"Group {group_name} has required variables, enabling automatically")
-      return True
-    
-    # Check if any variable in the group is marked as required
-    has_required_vars = any(var_data.get('required', False) for var_data in variables.values())
-    if has_required_vars:
-      logger.debug(f"Group {group_name} has variables marked as required, enabling automatically")
-      return True
-    
-    # Check if group is enabled by default values or should ask user
-    vars_with_defaults = self._get_variables_with_defaults(variables)
-    if not vars_with_defaults:
-      logger.debug(f"Group {group_name} has no variables with defaults, skipping")
-      return False
-    
-    # Ask user if they want to enable this optional group
-    try:
-      enable_group = Confirm.ask(
-        f"Do you want to enable [bold]{group_name}[/bold]?",
-        default=False
-      )
-      
-      # If group is enabled and has variables with defaults, ask if they want to change values
-      if enable_group and vars_with_defaults:
-        # This will be handled in the main flow after group is enabled
-        pass
-        
-      return enable_group
-    except (EOFError, KeyboardInterrupt):
-      # For optional group configuration, gracefully handle interruption
-      logger.debug(f"User interrupted prompt for group {group_name}, defaulting to disabled")
-      return False
-  
-  
-  def _show_group_preview(self, group_name: str, vars_with_defaults: List[str]):
-    """Show configured values in dim white below header."""
-    if not vars_with_defaults:
-      return
-      
-    # Create a clean display of configured values
-    var_previews = []
-    for var_name in vars_with_defaults:
-      default_value = self.resolved_defaults.get(var_name, "None")
-      # Truncate long values for cleaner display
-      display_value = str(default_value)
-      if len(display_value) > 25:
-        display_value = display_value[:22] + "..."
-      var_previews.append(f"{var_name}={display_value}")
-    
-    # Show configured values in dim white
-    vars_text = ", ".join(var_previews)
-    self.console.print(f"[dim white]({vars_text})[/dim white]")
-  
-  def _handle_variables_with_defaults(self, group_name: str, vars_with_defaults: List[str], variables: Dict[str, Any]):
-    """Handle variables that have default values."""
-    
-    # Show preview of current values before asking if user wants to change them
-    self._show_group_preview(group_name, vars_with_defaults)
-    
-    # Ask if user wants to customize any of these values (defaults already set earlier)
+    # Ask if user wants to customize
     try:
       want_to_customize = Confirm.ask(f"Do you want to change {group_name} values?", default=False)
     except (EOFError, KeyboardInterrupt):
-      logger.debug(f"User interrupted customization prompt for group {group_name}, using defaults")
+      logger.debug(f"User interrupted customization for {group_name}, using defaults")
       return
     
     if want_to_customize:
-      # Directly prompt for each variable without asking if they want to change it
-      for var_name in vars_with_defaults:
+      for var_name, key, default in optional_items:
         var_data = variables[var_name]
-        current_value = self.final_values[var_name]
         
-        # Directly prompt for the new value
-        new_value = self._prompt_for_variable(var_name, var_data, required=False, current_value=current_value)
-        self.final_values[var_name] = new_value
+        if key is not None:
+          # Multivalue item
+          value = self._prompt_for_multivalue_key(
+            var_name, key, var_data, required=False
+          )
+          if isinstance(key, int):
+            # Handle list index
+            if var_name not in self.final_values:
+              self.final_values[var_name] = []
+            while len(self.final_values[var_name]) <= key:
+              self.final_values[var_name].append(None)
+            self.final_values[var_name][key] = value
+          else:
+            # Handle dict key
+            if var_name not in self.final_values:
+              self.final_values[var_name] = {}
+            self.final_values[var_name][key] = value
+        else:
+          # Simple variable
+          current_value = self.final_values.get(var_name)
+          self.final_values[var_name] = self._prompt_for_variable(
+            var_name, var_data, required=False, current_value=current_value
+          )
+  
+  def _categorize_variables(self, variables: Dict[str, Any]) -> tuple:
+    """Categorize variables into required and optional items.
+    
+    Returns:
+      (required_items, optional_items) where each item is (var_name, key_or_index, default_value)
+      For simple variables, key_or_index is None.
+    """
+    required_items = []
+    optional_items = []
+    
+    for var_name, var_data in variables.items():
+      patterns = var_data.get('usage_patterns', {})
+      
+      if patterns and patterns.get('keys'):
+        # Multivalue with specific keys
+        for key in patterns['keys']:
+          # Check if this specific key has a default
+          default = None
+          if var_name in self.resolved_defaults and isinstance(self.resolved_defaults[var_name], dict):
+            default = self.resolved_defaults[var_name].get(key)
+          
+          if default is None:
+            required_items.append((var_name, key, None))
+          else:
+            optional_items.append((var_name, key, default))
+      
+      elif patterns and patterns.get('indices'):
+        # Multivalue with specific indices  
+        for idx in patterns['indices']:
+          # Check if this specific index has a default
+          default = None
+          if var_name in self.resolved_defaults and isinstance(self.resolved_defaults[var_name], list):
+            if idx < len(self.resolved_defaults[var_name]):
+              default = self.resolved_defaults[var_name][idx]
+          
+          if default is None:
+            required_items.append((var_name, idx, None))
+          else:
+            optional_items.append((var_name, idx, default))
+      
+      else:
+        # Simple variable
+        default = self.resolved_defaults.get(var_name)
+        if default is None:
+          required_items.append((var_name, None, None))
+        else:
+          optional_items.append((var_name, None, default))
+    
+    return required_items, optional_items
+  
+  def _prompt_for_multivalue_key(self, var_name: str, key, var_data: Dict[str, Any], required: bool = False) -> Any:
+    """Prompt for a specific key/index of a multivalue variable."""
+    var_type = var_data.get('type', 'string')
+    
+    # Build prompt message
+    if isinstance(key, int):
+      prompt_msg = f"{var_name}[{key}]"
+    else:
+      prompt_msg = f"{var_name}['{key}']"
+    
+    if var_data.get('description'):
+      prompt_msg = f"Enter {prompt_msg} ({var_data['description']})"
+    else:
+      prompt_msg = f"Enter {prompt_msg}"
+    
+    if required:
+      prompt_msg += " [red](Required)[/red]"
+    
+    # Get current value if exists
+    current_value = None
+    if var_name in self.final_values:
+      if isinstance(self.final_values[var_name], dict) and key in self.final_values[var_name]:
+        current_value = self.final_values[var_name][key]
+      elif isinstance(self.final_values[var_name], list) and isinstance(key, int) and key < len(self.final_values[var_name]):
+        current_value = self.final_values[var_name][key]
+    
+    # Prompt based on type
+    handler = self.prompt_handlers.get(var_type, self.prompt_handlers['string'])
+    if var_type == 'string':
+      return handler(prompt_msg, current_value, required)
+    else:
+      return handler(prompt_msg, current_value)
+  
+  def _should_process_optional_group(self, group_name: str) -> bool:
+    """Ask if user wants to configure optional settings for a group."""
+    try:
+      return Confirm.ask(f"Do you want to configure {group_name} settings?", default=False)
+    except (EOFError, KeyboardInterrupt):
+      return False
+  
+  
+  def _prompt_enabler(self, group_name: str, enabler_var_name: str) -> bool:
+    """Prompt for a group enabler variable."""
+    current_value = self.final_values.get(enabler_var_name, False)
+    try:
+      return Confirm.ask(
+        f"Do you want to enable [bold]{group_name}[/bold]?",
+        default=bool(current_value)
+      )
+    except (EOFError, KeyboardInterrupt):
+      logger.debug(f"User interrupted enabler prompt for {group_name}")
+      return False
+  
+  def _show_group_header(self, group_name: str, group_data: Dict[str, Any]):
+    """Display group header."""
+    icon = group_data.get('icon', '')
+    display_name = group_data.get('display_name', group_name.title())
+    icon_display = f"{icon} " if icon else ""
+    self.console.print(f"\n{icon_display}[bold magenta]{display_name} Variables[/bold magenta]")
+  
+  
+  def _show_preview(self, variables: List[str]):
+    """Show preview of configured values."""
+    if not variables:
+      return
+    
+    previews = []
+    for var_name in variables:
+      value = self.final_values.get(var_name)
+      if value is None:
+        display_value = "not set"
+      elif isinstance(value, dict):
+        # Show dict values compactly
+        items = [f"{k}={v}" for k, v in value.items()]
+        display_value = "{" + ", ".join(items[:2]) + ("..." if len(items) > 2 else "") + "}"
+      elif isinstance(value, list):
+        # Show list values compactly
+        display_value = "[" + ", ".join(str(v) for v in value[:2]) + (", ..." if len(value) > 2 else "") + "]"
+      else:
+        display_value = str(value)[:22] + "..." if len(str(value)) > 25 else str(value)
+      previews.append(f"{var_name}={display_value}")
+    
+    self.console.print(f"[dim white]({', '.join(previews)})[/dim white]")
+  
   
   def _prompt_for_variable(self, var_name: str, var_data: Dict[str, Any], required: bool = False, current_value: Any = None) -> Any:
-    """Prompt user for a single variable with new format: Enter VARIABLE_NAME (DESCRIPTION) (DEFAULT)."""
+    """Prompt user for a single variable.
     
+    Note: Multivalue variables with patterns are handled separately via _prompt_for_multivalue_key.
+    This method only handles simple variables or multivalue without specific patterns.
+    """
     var_type = var_data.get('type', 'string')
-    description = var_data.get('description', '')
-    options = var_data.get('options', [])
     
-    # Build new format prompt: Enter VARIABLE_NAME (DESCRIPTION) (DEFAULT_VALUE)
-    prompt_parts = ["Enter", f"[bold]{var_name}[/bold]"]
+    # Build prompt message
+    prompt_message = self._build_prompt_message(var_name, var_data, required, current_value)
     
-    # Add description in parentheses if available
-    if description:
-      prompt_parts.append(f"({description})")
+    # Get handler and execute prompt
+    handler = self.prompt_handlers.get(var_type, self.prompt_handlers['string'])
     
-    # Show default value if available
-    if current_value is not None:
-      prompt_parts.append(f"[dim]({current_value})[/dim]")
-    elif required:
-      prompt_parts.append("[red](Required)[/red]")
-    
-    prompt_message = " ".join(prompt_parts)
-    
-    # Handle different variable types
     try:
-      if var_type == 'boolean':
-        return self._prompt_boolean(prompt_message, current_value)
-      elif var_type == 'integer':
-        return self._prompt_integer(prompt_message, current_value)
-      elif var_type == 'float':
-        return self._prompt_float(prompt_message, current_value)
-      elif var_type == 'choice' and options:
-        return self._prompt_choice(prompt_message, options, current_value)
-      elif var_type == 'list':
-        return self._prompt_list(prompt_message, current_value)
-      else:  # string or unknown type
-        return self._prompt_string(prompt_message, current_value, required)
-        
+      # Special handling for choice type (needs options)
+      if var_type == 'choice':
+        return handler(prompt_message, current_value, var_data.get('options', []))
+      # Special handling for string type (needs required flag)
+      elif var_type == 'string':
+        return handler(prompt_message, current_value, required)
+      else:
+        return handler(prompt_message, current_value)
     except KeyboardInterrupt:
-      # Let KeyboardInterrupt propagate up to be handled at module level
       raise
     except Exception as e:
-      logger.error(f"Error prompting for variable {var_name}: {e}")
-      self.console.print(f"[red]Error getting input for {var_name}. Using default string prompt.[/red]")
+      logger.error(f"Error prompting for {var_name}: {e}")
+      self.console.print(f"[red]Error getting input for {var_name}[/red]")
+      # Fallback to string prompt
       return self._prompt_string(prompt_message, current_value, required)
   
+  def _build_prompt_message(self, var_name: str, var_data: Dict[str, Any], required: bool, current_value: Any) -> str:
+    """Build the prompt message for a variable."""
+    parts = ["Enter", f"[bold]{var_name}[/bold]"]
+    
+    if description := var_data.get('description'):
+      parts.append(f"({description})")
+    
+    if current_value is not None:
+      parts.append(f"[dim]({current_value})[/dim]")
+    elif required:
+      parts.append("[red](Required)[/red]")
+    
+    return " ".join(parts)
+  
   def _prompt_string(self, prompt_message: str, current_value: Any = None, required: bool = False) -> str:
-    """Prompt for string input with validation."""
-    default_val = str(current_value) if current_value is not None else None
+    """Prompt for string input."""
+    default = str(current_value) if current_value is not None else None
     
     while True:
       try:
-        value = Prompt.ask(prompt_message, default=default_val)
-        
-        # Handle None values that can occur when user provides no input
-        if value is None:
-          value = ""
+        value = Prompt.ask(prompt_message, default=default) or ""
         
         if required and not value.strip():
-          self.console.print("[red]This field is required and cannot be empty[/red]")
+          self.console.print("[red]This field is required[/red]")
           continue
           
         return value.strip()
       except (EOFError, KeyboardInterrupt):
-        # Let KeyboardInterrupt propagate up for proper cancellation
-        raise KeyboardInterrupt("Template generation cancelled by user")
+        raise KeyboardInterrupt("Operation cancelled by user")
   
   def _prompt_boolean(self, prompt_message: str, current_value: Any = None) -> bool:
     """Prompt for boolean input."""
-    default_val = bool(current_value) if current_value is not None else None
+    default = bool(current_value) if current_value is not None else None
     try:
-      return Confirm.ask(prompt_message, default=default_val)
+      return Confirm.ask(prompt_message, default=default)
     except (EOFError, KeyboardInterrupt):
-      raise KeyboardInterrupt("Template generation cancelled by user")
+      raise KeyboardInterrupt("Operation cancelled by user")
   
   def _prompt_integer(self, prompt_message: str, current_value: Any = None) -> int:
-    """Prompt for integer input with validation."""
-    default_val = int(current_value) if current_value is not None else None
+    """Prompt for integer input."""
+    default = int(current_value) if current_value is not None else None
     
     while True:
       try:
-        return IntPrompt.ask(prompt_message, default=default_val)
+        return IntPrompt.ask(prompt_message, default=default)
       except ValueError:
         self.console.print("[red]Please enter a valid integer[/red]")
       except (EOFError, KeyboardInterrupt):
-        raise KeyboardInterrupt("Template generation cancelled by user")
+        raise KeyboardInterrupt("Operation cancelled by user")
   
   def _prompt_float(self, prompt_message: str, current_value: Any = None) -> float:
-    """Prompt for float input with validation."""
-    default_val = float(current_value) if current_value is not None else None
+    """Prompt for float input."""
+    default = float(current_value) if current_value is not None else None
     
     while True:
       try:
-        return FloatPrompt.ask(prompt_message, default=default_val)
+        return FloatPrompt.ask(prompt_message, default=default)
       except ValueError:
         self.console.print("[red]Please enter a valid number[/red]")
       except (EOFError, KeyboardInterrupt):
-        raise KeyboardInterrupt("Template generation cancelled by user")
+        raise KeyboardInterrupt("Operation cancelled by user")
   
-  def _prompt_choice(self, prompt_message: str, options: List[Any], current_value: Any = None) -> Any:
-    """Prompt for choice from a list of options."""
+  def _prompt_choice(self, prompt_message: str, current_value: Any = None, options: List[Any] = None) -> Any:
+    """Prompt for choice from options."""
+    if not options:
+      return self._prompt_string(prompt_message, current_value)
     
-    # Show available options
-    self.console.print(f"\n[dim]Available options:[/dim]")
+    # Show options
+    self.console.print("\n[dim]Available options:[/dim]")
     for i, option in enumerate(options, 1):
       marker = "→" if option == current_value else " "
       self.console.print(f"  {marker} {i}. {option}")
@@ -321,138 +418,63 @@ class PromptHandler:
       try:
         choice = Prompt.ask(f"{prompt_message} (1-{len(options)})")
         
+        # Try numeric selection
         try:
-          choice_idx = int(choice) - 1
-          if 0 <= choice_idx < len(options):
-            return options[choice_idx]
-          else:
-            self.console.print(f"[red]Please enter a number between 1 and {len(options)}[/red]")
+          idx = int(choice) - 1
+          if 0 <= idx < len(options):
+            return options[idx]
         except ValueError:
-          # Try to match by string value
-          matching_options = [opt for opt in options if str(opt).lower() == choice.lower()]
-          if matching_options:
-            return matching_options[0]
-          self.console.print(f"[red]Please enter a valid option number (1-{len(options)}) or exact option name[/red]")
+          # Try string match
+          matches = [opt for opt in options if str(opt).lower() == choice.lower()]
+          if matches:
+            return matches[0]
+        
+        self.console.print(f"[red]Invalid choice. Enter 1-{len(options)} or option name[/red]")
       except (EOFError, KeyboardInterrupt):
-        raise KeyboardInterrupt("Template generation cancelled by user")
+        raise KeyboardInterrupt("Operation cancelled by user")
   
   def _prompt_list(self, prompt_message: str, current_value: Any = None) -> List[str]:
-    """Prompt for list input (comma-separated values)."""
+    """Prompt for list input (comma-separated)."""
+    default = ", ".join(str(item) for item in current_value) if isinstance(current_value, list) else str(current_value or "")
     
-    current_str = ""
-    if current_value and isinstance(current_value, list):
-      current_str = ", ".join(str(item) for item in current_value)
-    elif current_value:
-      current_str = str(current_value)
-    
-    self.console.print(f"[dim]Enter values separated by commas[/dim]")
+    self.console.print("[dim]Enter values separated by commas[/dim]")
     
     try:
-      value = Prompt.ask(prompt_message, default=current_str)
-      
-      if not value.strip():
-        return []
-      
-      # Split by comma and clean up
-      items = [item.strip() for item in value.split(',') if item.strip()]
-      return items
+      value = Prompt.ask(prompt_message, default=default)
+      return [item.strip() for item in value.split(',') if item.strip()] if value.strip() else []
     except (EOFError, KeyboardInterrupt):
-      raise KeyboardInterrupt("Template generation cancelled by user")
-  
-  def _handle_group_with_enabler(self, group_name: str, group_data: Dict[str, Any], 
-                                 variables: Dict[str, Any], vars_without_defaults: List[str], 
-                                 vars_with_defaults: List[str]):
-    """Handle groups that have an enabler variable."""
-    enabler_var_name = group_data.get('enabler', '')
-    enabler_var_data = variables.get(enabler_var_name, {})
-    current_enabler_value = self.final_values.get(enabler_var_name, False)
-    
-    # Ask if they want to enable the feature
-    try:
-      enable_feature = Confirm.ask(
-        f"Do you want to enable [bold]{group_name}[/bold]?",
-        default=bool(current_enabler_value)
-      )
-      self.final_values[enabler_var_name] = enable_feature
-      
-      if not enable_feature:
-        # If the feature is disabled, skip all other variables in this group
-        return
-        
-    except (EOFError, KeyboardInterrupt):
-      logger.debug(f"User interrupted enabler prompt for group {group_name}, using default")
-      return
-    
-    # Now handle required variables (those without defaults)
-    if vars_without_defaults:
-      # Remove enabler from the list if it's there
-      vars_without_defaults = [v for v in vars_without_defaults if v != enabler_var_name]
-      
-      for var_name in vars_without_defaults:
-        var_data = variables[var_name]
-        value = self._prompt_for_variable(var_name, var_data, required=True)
-        self.final_values[var_name] = value
-    
-    # Handle variables with defaults
-    if vars_with_defaults:
-      # Remove enabler from the list
-      remaining_vars = [v for v in vars_with_defaults if v != enabler_var_name]
-      
-      if remaining_vars:
-        # Show preview and ask if they want to change values
-        self._show_group_preview(group_name, remaining_vars)
-        
-        try:
-          want_to_customize = Confirm.ask(f"Do you want to change {group_name} values?", default=False)
-        except (EOFError, KeyboardInterrupt):
-          logger.debug(f"User interrupted customization prompt for group {group_name}, using defaults")
-          return
-        
-        if want_to_customize:
-          for var_name in remaining_vars:
-            var_data = variables[var_name]
-            current_value = self.final_values[var_name]
-            new_value = self._prompt_for_variable(var_name, var_data, required=False, current_value=current_value)
-            self.final_values[var_name] = new_value
+      raise KeyboardInterrupt("Operation cancelled by user")
   
   def _show_summary(self):
-    """Display a compact summary of all configured variables."""
+    """Display summary of configured variables."""
     if not self.final_values:
       return
     
-    # Only show detailed table if there are many variables (>5)
-    if len(self.final_values) > 5:
+    # Compact summary for few variables, table for many
+    if len(self.final_values) <= 5:
+      summaries = []
+      for name, value in self.final_values.items():
+        display_value = self._truncate_value(value, 20)
+        summaries.append(f"[cyan]{name}[/cyan]=[green]{display_value}[/green]")
+      self.console.print(f"\n[dim]Using:[/dim] {', '.join(summaries)}")
+    else:
       table = Table(box=box.SIMPLE)
       table.add_column("Variable", style="cyan")
       table.add_column("Value", style="green")
       
-      for var_name, value in self.final_values.items():
-        # Format value for display and truncate if too long
-        if isinstance(value, list):
-          display_value = ", ".join(str(item) for item in value)
-        else:
-          display_value = str(value)
-        
-        if len(display_value) > 50:
-          display_value = display_value[:47] + "..."
-        
-        table.add_row(var_name, display_value)
+      for name, value in self.final_values.items():
+        display_value = self._truncate_value(value, 50)
+        table.add_row(name, display_value)
       
       self.console.print(table)
-    else:
-      # For few variables, show a compact inline summary
-      var_summaries = []
-      for var_name, value in self.final_values.items():
-        display_value = str(value)
-        if len(display_value) > 20:
-          display_value = display_value[:17] + "..."
-        var_summaries.append(f"[cyan]{var_name}[/cyan]=[green]{display_value}[/green]")
-      
-      summary_text = ", ".join(var_summaries)
-      self.console.print(f"\n[dim]Using:[/dim] {summary_text}")
     
     self.console.print()
     
-    # Ask user if they want to proceed with template generation
+    # Confirm generation
     if not Confirm.ask("Proceed with generation?", default=True):
-      raise KeyboardInterrupt("Template generation cancelled by user")
+      raise KeyboardInterrupt("Generation cancelled by user")
+  
+  def _truncate_value(self, value: Any, max_length: int) -> str:
+    """Truncate value for display."""
+    display_value = ", ".join(str(item) for item in value) if isinstance(value, list) else str(value)
+    return display_value[:max_length-3] + "..." if len(display_value) > max_length else display_value

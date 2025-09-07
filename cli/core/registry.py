@@ -1,19 +1,18 @@
 """Module registry system."""
-from typing import Type, Dict, List
 
 
 class ModuleRegistry:
   """Simple module registry without magic."""
   
   def __init__(self):
-    self._modules: Dict[str, Type] = {}
+    self._modules = {}
   
-  def register(self, module_class: Type) -> None:
+  def register(self, module_class):
     """Register a module class."""
     # Module class defines its own name attribute
     self._modules[module_class.name] = module_class
   
-  def create_instances(self) -> List:
+  def create_instances(self):
     """Create instances of all registered modules."""
     instances = []
     for name in sorted(self._modules.keys()):

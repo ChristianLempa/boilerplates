@@ -16,18 +16,22 @@ class ComposeModule(Module):
       "general", "General Settings",
       "Basic configuration for Docker Compose services"
     )
-    
+
+    self.variables.register_group(
+      "swarm", "Docker Swarm Settings",
+      "Settings for deploying services in Docker Swarm mode", icon="󰒋 ", enabler="swarm"
+    )
+
     self.variables.register_group(
       "traefik", "Traefik Configuration", 
-      "Reverse proxy settings", icon="󰞉", enabler="traefik"
+      "Reverse proxy settings", icon="󰞉 ", enabler="traefik"
     )
     
     # Register variables
     self.variables.register_variable(Variable(
       name="service_name",
       description="Name of the service",
-      group="general",
-      required=True
+      group="general"
     ))
     
     self.variables.register_variable(Variable(
@@ -35,7 +39,23 @@ class ComposeModule(Module):
       description="Container name",
       group="general"
     ))
-    
+
+    self.variables.register_variable(Variable(
+      name="service_port",
+      description="Port(s) the service listens on (can be single or multiple)",
+      type="integer",
+      group="general",
+      multivalue=True
+    ))
+
+    self.variables.register_variable(Variable(
+      name="swarm",
+      description="Enable Docker Swarm mode",
+      type="boolean",
+      default=False,
+      group="swarm"
+    ))
+
     self.variables.register_variable(Variable(
       name="traefik",
       description="Enable Traefik",
@@ -47,8 +67,22 @@ class ComposeModule(Module):
     self.variables.register_variable(Variable(
       name="traefik_host",
       description="Traefik hostname",
-      default=None,
       group="traefik"
+    ))
+
+    self.variables.register_variable(Variable(
+      name="traefik_certresolver",
+      description="Traefik certificate resolver",
+      group="traefik"
+    ))
+    
+    # Add docker_network as a multivalue example
+    self.variables.register_variable(Variable(
+      name="docker_network",
+      description="Docker network(s) to connect to",
+      type="string",
+      group="general",
+      multivalue=True
     ))
 
 # Register the module

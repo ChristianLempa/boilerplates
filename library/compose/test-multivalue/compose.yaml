@@ -1,0 +1,66 @@
+---
+name: "Test Multivalue Template"
+description: "Demo template showing multivalue variable usage"
+version: "0.0.1"
+date: "2025-01-07"
+author: "Test"
+tags:
+  - test
+  - multivalue
+---
+services:
+  {{ service_name | default('app') }}:
+    container_name: {{ container_name | default('my-app') }}
+    image: nginx:alpine
+    
+    # Example: service_port can be a single value or dict
+    {% if service_port is mapping %}
+    ports:
+      {% for name, port in service_port.items() %}
+      - "{{ port }}:{{ port }}"  # {{ name }} port
+      {% endfor %}
+    {% elif service_port is iterable and service_port is not string %}
+    ports:
+      {% for port in service_port %}
+      - "{{ port }}:{{ port }}"
+      {% endfor %}
+    {% else %}
+    ports:
+      - "{{ service_port }}:80"
+    {% endif %}
+    
+    # Example: docker_network can be single or multiple
+    {% if docker_network is mapping %}
+    networks:
+      {% for name, net in docker_network.items() %}
+      {{ net }}:
+        aliases:
+          - {{ service_name }}-{{ name }}
+      {% endfor %}
+    {% elif docker_network is iterable and docker_network is not string %}
+    networks:
+      {% for net in docker_network %}
+      - {{ net }}
+      {% endfor %}
+    {% else %}
+    networks:
+      - {{ docker_network | default('default') }}
+    {% endif %}
+
+{% if docker_network is mapping %}
+networks:
+  {% for name, net in docker_network.items() %}
+  {{ net }}:
+    external: true
+  {% endfor %}
+{% elif docker_network is iterable and docker_network is not string %}
+networks:
+  {% for net in docker_network %}
+  {{ net }}:
+    external: true
+  {% endfor %}
+{% elif docker_network %}
+networks:
+  {{ docker_network }}:
+    external: true
+{% endif %}

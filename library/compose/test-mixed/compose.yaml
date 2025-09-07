@@ -1,0 +1,17 @@
+---
+name: "Test Mixed Defaults"
+description: "Test template with mixed default scenarios"
+version: "0.0.1"
+---
+services:
+  {{ service_name }}:
+    container_name: {{ container_name | default('test') }}
+    ports:
+      # http has no default (required)
+      - "{{ service_port['http'] }}:80"  
+      # https has a default (optional)
+      - "{{ service_port['https'] | default(8443) }}:443"
+      # admin has a default (optional)  
+      - "{{ service_port['admin'] | default(9090) }}:9090"
+    networks:
+      - {{ network_name }}

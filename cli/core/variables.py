@@ -10,9 +10,10 @@ class Variable:
   description: str = ""
   default: Any = None
   type: str = "string"
-  options: List[Any] = field(default_factory=list)
+  options: List[Any] = field(default_factory=list)  # FIXME: not needed
   group: str = "general"
-  required: bool = False
+  required: bool = False  # FIXME: not needed
+  multivalue: bool = False  # If True, variable can accept multiple values as dict/list
   
   def to_prompt_config(self) -> Dict[str, Any]:
     """Convert to prompt configuration."""
@@ -22,7 +23,8 @@ class Variable:
       'type': self.type,
       'options': self.options,
       'required': self.required,
-      'default': self.default
+      'default': self.default,
+      'multivalue': self.multivalue
     }
 
 
