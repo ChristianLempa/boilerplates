@@ -118,11 +118,7 @@ class SimplifiedPromptHandler:
         console.print(f"\n[bold cyan]{display_name} - Required Configuration[/bold cyan]")
       for var_name in required:
         var = self.variables[var_name]
-        if var.is_dict:
-          console.print(f"\n[cyan]{var.name}[/cyan]")
-          self.values[var_name] = self._prompt_dict_variable(var)
-        else:
-          self.values[var_name] = self._prompt_variable(var, required=True)
+        self.values[var_name] = self._prompt_variable(var, required=True)
     
     # Process optional variables
     if optional:
@@ -135,49 +131,9 @@ class SimplifiedPromptHandler:
       if Confirm.ask("Do you want to change any values?", default=False):
         for var_name in optional:
           var = self.variables[var_name]
-          if var.is_dict:
-            console.print(f"\n[cyan]{var.name}[/cyan]")
-            self.values[var_name] = self._prompt_dict_variable(
-              var, current_values=self.values.get(var_name, {})
-            )
-          else:
-            self.values[var_name] = self._prompt_variable(
-              var, current_value=self.values[var_name]
-            )
-  
-  
-  def _prompt_dict_variable(self, var: TemplateVariable, current_values: Dict[str, Any] = None) -> Dict[str, Any]:
-    """Prompt for a dict variable with dynamic keys."""
-    result = {}
-    current_values = current_values or {}
-    
-    for key in var.dict_keys:
-      # Use current value if available, otherwise check for default
-      current_value = current_values.get(key)
-      if current_value is None and isinstance(var.default, dict):
-        current_value = var.default.get(key)
-      
-      prompt_msg = f"Enter {var.name}['{key}']"
-      if current_value is not None:
-        prompt_msg += f" [dim]({current_value})[/dim]"
-      else:
-        prompt_msg += " [red](Required)[/red]"
-      
-      # Infer type from current value or default
-      if isinstance(current_value, int):
-        while True:
-          try:
-            result[key] = IntPrompt.ask(prompt_msg, default=current_value)
-            break
-          except ValueError:
-            console.print("[red]Please enter a valid integer[/red]")
-      elif isinstance(current_value, bool):
-        result[key] = Confirm.ask(prompt_msg, default=current_value)
-      else:
-        value = Prompt.ask(prompt_msg, default=str(current_value) if current_value else None)
-        result[key] = value if value else current_value
-    
-    return result
+          self.values[var_name] = self._prompt_variable(
+            var, current_value=self.values[var_name]
+          )
   
   def _show_variables(self, var_names: List[str]):
     """Display current variable values."""
@@ -185,12 +141,7 @@ class SimplifiedPromptHandler:
       var = self.variables[var_name]
       value = self.values.get(var_name, var.default)
       if value is not None:
-        # Special formatting for dict values - show each key separately
-        if isinstance(value, dict):
-          for key, val in value.items():
-            console.print(f"  {var.display_name}['{key}']: [dim]{val}[/dim]")
-        else:
-          console.print(f"  {var.display_name}: [dim]{value}[/dim]")
+        console.print(f"  {var.display_name}: [dim]{value}[/dim]")
   
   def _prompt_variable(
     self, 

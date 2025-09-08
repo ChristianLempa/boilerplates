@@ -36,7 +36,6 @@ class Template:
   # Template variable analysis results
   vars: Set[str] = field(default_factory=set, init=False)
   var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
-  var_dict_keys: Dict[str, List[str]] = field(default_factory=dict, init=False)  # Track dict access patterns
   variables: Dict[str, TemplateVariable] = field(default_factory=dict, init=False)  # Analyzed variables
   
   def __post_init__(self):
@@ -52,10 +51,10 @@ class Template:
     self.size = self.file_path.stat().st_size if self.file_path.exists() else 0
     
     # Parse template variables
-    self.vars, self.var_defaults, self.var_dict_keys = self._parse_template_variables(self.content)
+    self.vars, self.var_defaults = self._parse_template_variables(self.content)
     # Analyze variables to create TemplateVariable objects
     self.variables = analyze_template_variables(
-      self.vars, self.var_defaults, self.var_dict_keys, self.content
+      self.vars, self.var_defaults, self.content
     )
   
   @staticmethod
@@ -96,17 +95,15 @@ class Template:
       post = frontmatter.load(f)
     return post.metadata, post.content
   
-  def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any], Dict[str, List[str]]]:
+  def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any]]:
     """Parse Jinja2 template to extract variables and their defaults.
     
-    Handles multiple patterns:
+    Handles:
     - Simple variables: service_name
-    - Dotted notation: traefik.host
-    - Dict notation: service_port['http']
-    - Nested patterns: nginx_dashboard.port['dashboard']
+    - Dotted notation: traefik.host, service_port.http
     
     Returns:
-        Tuple of (all_variable_names, variable_defaults, dict_access_patterns)
+        Tuple of (all_variable_names, variable_defaults)
     """
     try:
       env = self._create_jinja_env()
@@ -115,42 +112,7 @@ class Template:
       # Start with variables found by Jinja2's meta utility
       all_variables = meta.find_undeclared_variables(ast)
       
-      # Track dict access patterns
-      dict_keys = {}  # var_name -> list of keys accessed
-      
-      # Handle all Getitem nodes (dict access)
-      for node in ast.find_all(nodes.Getitem):
-        if isinstance(node.arg, nodes.Const) and isinstance(node.arg.value, str):
-          key = node.arg.value
-          current = node.node
-          
-          # Handle nested patterns like nginx_dashboard.port['dashboard']
-          if isinstance(current, nodes.Getattr):
-            # Build the full dotted name
-            parts = [current.attr]
-            base = current.node
-            while isinstance(base, nodes.Getattr):
-              parts.insert(0, base.attr)
-              base = base.node
-            if isinstance(base, nodes.Name):
-              parts.insert(0, base.name)
-              var_name = '.'.join(parts)
-              # This is a dotted variable with dict access
-              all_variables.add(var_name)
-              if var_name not in dict_keys:
-                dict_keys[var_name] = []
-              if key not in dict_keys[var_name]:
-                dict_keys[var_name].append(key)
-          
-          # Handle simple dict access like service_port['http']
-          elif isinstance(current, nodes.Name):
-            var_name = current.name
-            if var_name not in dict_keys:
-              dict_keys[var_name] = []
-            if key not in dict_keys[var_name]:
-              dict_keys[var_name].append(key)
-      
-      # Handle dotted notation variables (like traefik.host, swarm.replicas)
+      # Handle dotted notation variables (like traefik.host, service_port.http)
       for node in ast.find_all(nodes.Getattr):
         current = node.node
         # Build the full dotted name
@@ -171,37 +133,6 @@ class Template:
           if isinstance(node.node, nodes.Name):
             defaults[node.node.name] = node.args[0].value
           
-          # Handle dict access defaults
-          elif isinstance(node.node, nodes.Getitem):
-            if isinstance(node.node.arg, nodes.Const):
-              key = node.node.arg.value
-              
-              # Handle nested pattern defaults: {{ nginx_dashboard.port['dashboard'] | default(8081) }}
-              if isinstance(node.node.node, nodes.Getattr):
-                # Build the full dotted name
-                parts = []
-                current = node.node.node
-                while isinstance(current, nodes.Getattr):
-                  parts.insert(0, current.attr)
-                  current = current.node
-                if isinstance(current, nodes.Name):
-                  parts.insert(0, current.name)
-                  var_name = '.'.join(parts)
-                  if var_name not in defaults:
-                    defaults[var_name] = {}
-                  if not isinstance(defaults[var_name], dict):
-                    defaults[var_name] = {}
-                  defaults[var_name][key] = node.args[0].value
-              
-              # Handle simple dict defaults: {{ var['key'] | default(value) }}
-              elif isinstance(node.node.node, nodes.Name):
-                var_name = node.node.node.name
-                if var_name not in defaults:
-                  defaults[var_name] = {}
-                if not isinstance(defaults[var_name], dict):
-                  defaults[var_name] = {}
-                defaults[var_name][key] = node.args[0].value
-          
           # Handle dotted variable defaults: {{ traefik.host | default('example.com') }}
           elif isinstance(node.node, nodes.Getattr):
             # Build the full dotted name
@@ -215,10 +146,10 @@ class Template:
               var_name = '.'.join(parts)
               defaults[var_name] = node.args[0].value
       
-      return all_variables, defaults, dict_keys
+      return all_variables, defaults
     except Exception as e:
       logging.getLogger('boilerplates').debug(f"Error parsing template variables: {e}")
-      return set(), {}, {}
+      return set(), {}
 
   def validate(self) -> List[str]:
     """Validate template integrity.

@@ -8,8 +8,7 @@ class TemplateVariable:
   
   Represents a variable found in a template with all its properties:
   - Simple variables: service_name, container_name
-  - Dotted variables: traefik.host, network.name
-  - Dict variables: service_port['http'], nginx_dashboard.port['dashboard']
+  - Dotted variables: traefik.host, network.name, service_port.http
   - Enabler variables: Variables used in {% if var %} conditions
   """
   name: str
@@ -18,8 +17,6 @@ class TemplateVariable:
   
   # Variable characteristics
   is_enabler: bool = False  # Used in {% if %} conditions
-  is_dict: bool = False  # Has dict access patterns like var['key']
-  dict_keys: List[str] = field(default_factory=list)  # Keys accessed if is_dict
   
   # Grouping info (extracted from dotted notation)
   group: Optional[str] = None  # e.g., 'traefik' for 'traefik.host'
@@ -41,7 +38,6 @@ class TemplateVariable:
 def analyze_template_variables(
   vars_used: Set[str],
   var_defaults: Dict[str, Any],
-  var_dict_keys: Dict[str, List[str]],
   template_content: str
 ) -> Dict[str, TemplateVariable]:
   """Analyze template variables and create TemplateVariable objects.
@@ -49,7 +45,6 @@ def analyze_template_variables(
   Args:
     vars_used: Set of all variable names used in template
     var_defaults: Dict of variable defaults from template
-    var_dict_keys: Dict of variables with dict access patterns
     template_content: The raw template content for additional analysis
   
   Returns:
@@ -69,22 +64,16 @@ def analyze_template_variables(
     # Detect if it's an enabler
     var.is_enabler = var_name in enablers
     
-    # Detect if it's a dict variable
-    if var_name in var_dict_keys:
-      var.is_dict = True
-      var.dict_keys = var_dict_keys[var_name]
-      # Dict variables might have dict defaults
-      if isinstance(var.default, dict):
-        var.type = "dict"
-    
     # Infer type from default value
-    if var.default is not None and var.type == "string":
+    if var.default is not None:
       if isinstance(var.default, bool):
         var.type = "boolean"
       elif isinstance(var.default, int):
         var.type = "integer"
       elif isinstance(var.default, float):
         var.type = "float"
+      else:
+        var.type = "string"
     
     # If it's an enabler without a default, assume boolean
     if var.is_enabler and var.default is None:

@@ -29,12 +29,12 @@ services:
         - traefik.http.routers.{{ container_name }}.service={{ container_name }}
       {% endif %}
     {% endif %}
-    {% if not traefik and service_port %}
+    {% if not traefik %}
     ports:
-      - "{{ service_port['http'] | default(8080) }}:80"
-      - "{{ service_port['https'] | default(8443) }}:443"
+      - "{{ service_port_http | default(8080) }}:80"
+      - "{{ service_port_https | default(8443) }}:443"
       {% if nginx_dashboard %}
-      - "{{ nginx_dashboard.port['dashboard'] | default(8081) }}:8080"
+      - "{{ nginx_dashboard_port_dashboard | default(8081) }}:8080"
       {% endif %}
     {% endif %}
     # volumes:
