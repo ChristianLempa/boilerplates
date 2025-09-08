@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Any, Dict, Set, Tuple, List
+from typing import Any, Dict, List, Set, Tuple
+from dataclasses import dataclass, field
 import logging
 import re
 from jinja2 import Environment, BaseLoader, meta, nodes, TemplateSyntaxError
@@ -7,8 +8,49 @@ import frontmatter
 from .exceptions import TemplateValidationError
 
 
+@dataclass
 class Template:
   """Data class for template information extracted from frontmatter."""
+  
+  # Required fields
+  file_path: Path
+  content: str = ""
+  
+  # Frontmatter fields with defaults
+  name: str = ""
+  description: str = "No description available"
+  author: str = ""
+  date: str = ""
+  version: str = ""
+  module: str = ""
+  tags: List[str] = field(default_factory=list)
+  files: List[str] = field(default_factory=list)
+  
+  # Computed properties (will be set in __post_init__)
+  id: str = field(init=False)
+  directory: str = field(init=False)
+  relative_path: str = field(init=False)
+  size: int = field(init=False)
+  
+  # Template variable analysis results
+  vars: Set[str] = field(default_factory=set, init=False)
+  var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
+  var_dict_keys: Dict[str, List[str]] = field(default_factory=dict, init=False)  # Track dict access patterns
+  
+  def __post_init__(self):
+    """Initialize computed properties after dataclass initialization."""
+    # Set default name if not provided
+    if not self.name:
+      self.name = self.file_path.parent.name
+    
+    # Computed properties
+    self.id = self.file_path.parent.name
+    self.directory = self.file_path.parent.name
+    self.relative_path = self.file_path.name
+    self.size = self.file_path.stat().st_size if self.file_path.exists() else 0
+    
+    # Parse template variables
+    self.vars, self.var_defaults, self.var_dict_keys = self._parse_template_variables(self.content)
   
   @staticmethod
   def _create_jinja_env() -> Environment:
@@ -19,46 +61,27 @@ class Template:
       lstrip_blocks=True,         # Strip leading whitespace from block tags  
       keep_trailing_newline=False  # Remove trailing newlines
     )
-  
-  def __init__(self, file_path: Path, frontmatter_data: Dict[str, Any], content: str):
-    self.file_path = file_path
-    self.content = content
-    
-    # Extract frontmatter fields with defaults
-    self.name = frontmatter_data.get('name', file_path.parent.name)  # Use directory name as default
-    self.description = frontmatter_data.get('description', 'No description available')
-    self.author = frontmatter_data.get('author', '')
-    self.date = frontmatter_data.get('date', '')
-    self.version = frontmatter_data.get('version', '')
-    self.module = frontmatter_data.get('module', '')
-    self.tags = frontmatter_data.get('tags', [])
-    self.files = frontmatter_data.get('files', [])
-    
-    # Additional computed properties
-    self.id = file_path.parent.name  # Unique identifier (parent directory name)
-    self.directory = file_path.parent.name  # Directory name where the template is located
-    self.relative_path = file_path.name
-    self.size = file_path.stat().st_size if file_path.exists() else 0
-    
-    # Extract variables and defaults from the template content
-    # vars: Set[str] - All Jinja2 variable names found in template (e.g., {'app_name', 'port', 'debug'})
-    # var_defaults: Dict[str, Any] - Default values from | default() filters (e.g., {'app_name': 'my-app', 'port': 8080})
-    # var_usage: Dict[str, Dict] - How variables are used (simple, array indices, dict keys)
-    self.vars, self.var_defaults, self.var_usage = self._parse_template_variables(content)
 
   @classmethod
   def from_file(cls, file_path: Path) -> "Template":
     """Create a Template instance from a file path."""
     try:
       frontmatter_data, content = cls._parse_frontmatter(file_path)
-      return cls(file_path=file_path, frontmatter_data=frontmatter_data, content=content)
-    except Exception:
-      # If frontmatter parsing fails, create a basic Template object
       return cls(
         file_path=file_path,
-        frontmatter_data={'name': file_path.parent.name},
-        content=""
+        content=content,
+        name=frontmatter_data.get('name', ''),
+        description=frontmatter_data.get('description', 'No description available'),
+        author=frontmatter_data.get('author', ''),
+        date=frontmatter_data.get('date', ''),
+        version=frontmatter_data.get('version', ''),
+        module=frontmatter_data.get('module', ''),
+        tags=frontmatter_data.get('tags', []),
+        files=frontmatter_data.get('files', [])
       )
+    except Exception:
+      # If frontmatter parsing fails, create a basic Template object
+      return cls(file_path=file_path)
   
   @staticmethod
   def _parse_frontmatter(file_path: Path) -> Tuple[Dict[str, Any], str]:
@@ -67,18 +90,15 @@ class Template:
       post = frontmatter.load(f)
     return post.metadata, post.content
   
-  def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any], Dict[str, Dict]]:
-    """Parse Jinja2 template to extract variables, defaults, and usage patterns.
+  def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any], Dict[str, List[str]]]:
+    """Parse Jinja2 template to extract variables and their defaults.
     
-    Examples:
-        {{ app_name | default('my-app') }} → Simple variable
-        {{ service_port['http'] }} → Dict with key 'http'
-        {{ service_port.https }} → Dict with key 'https' (dot notation)
-        {{ docker_network[0] }} → Array with index 0
-        {{ ports[item.name] }} → Dynamic dict key
+    Two separate approaches:
+    - Dotted notation (traefik.host): Must be defined in module
+    - Dict notation (service_port['http']): Dynamic keys allowed
     
     Returns:
-        Tuple of (all_variable_names, variable_defaults, variable_usage_patterns)
+        Tuple of (all_variable_names, variable_defaults, dict_access_patterns)
     """
     try:
       env = self._create_jinja_env()
@@ -87,13 +107,32 @@ class Template:
       # Start with variables found by Jinja2's meta utility
       all_variables = meta.find_undeclared_variables(ast)
       
-      # Add variables used in Getattr and Getitem nodes
-      for node in ast.find_all((nodes.Getattr, nodes.Getitem)):
-          current_node = node.node
-          while isinstance(current_node, (nodes.Getattr, nodes.Getitem)):
-              current_node = current_node.node
-          if isinstance(current_node, nodes.Name):
-              all_variables.add(current_node.name)
+      # Track dict access patterns (e.g., service_port['http'])
+      dict_keys = {}  # var_name -> list of keys accessed
+      for node in ast.find_all(nodes.Getitem):
+        if isinstance(node.arg, nodes.Const) and isinstance(node.arg.value, str):
+          # This is dict access with a string key
+          current = node.node
+          if isinstance(current, nodes.Name):
+            var_name = current.name
+            key = node.arg.value
+            if var_name not in dict_keys:
+              dict_keys[var_name] = []
+            if key not in dict_keys[var_name]:
+              dict_keys[var_name].append(key)
+      
+      # Handle dotted notation variables (like traefik.host, swarm.replicas)
+      for node in ast.find_all(nodes.Getattr):
+        current = node.node
+        # Build the full dotted name
+        parts = [node.attr]
+        while isinstance(current, nodes.Getattr):
+          parts.insert(0, current.attr)
+          current = current.node
+        if isinstance(current, nodes.Name):
+          parts.insert(0, current.name)
+          # Add the full dotted variable name
+          all_variables.add('.'.join(parts))
       
       # Extract default values from | default() filters
       defaults = {}
@@ -104,7 +143,7 @@ class Template:
             defaults[node.node.name] = node.args[0].value
           # Handle dict access defaults: {{ var['key'] | default(value) }}
           elif isinstance(node.node, nodes.Getitem):
-            if isinstance(node.node.node, nodes.Name) and isinstance(node.node.arg, nodes.Const):
+            if isinstance(node.node.arg, nodes.Const) and isinstance(node.node.node, nodes.Name):
               var_name = node.node.node.name
               key = node.node.arg.value
               if var_name not in defaults:
@@ -112,81 +151,67 @@ class Template:
               if not isinstance(defaults[var_name], dict):
                 defaults[var_name] = {}
               defaults[var_name][key] = node.args[0].value
+          # Handle dotted variable defaults: {{ port.http | default(8080) }}
+          elif isinstance(node.node, nodes.Getattr):
+            # Build the full dotted name
+            current = node.node
+            parts = []
+            while isinstance(current, nodes.Getattr):
+              parts.insert(0, current.attr)
+              current = current.node
+            if isinstance(current, nodes.Name):
+              parts.insert(0, current.name)
+              var_name = '.'.join(parts)
+              defaults[var_name] = node.args[0].value
       
-      # Analyze variable usage patterns for multivalue support
-      usage_patterns = self._analyze_variable_patterns(template_content)
-      
-      return all_variables, defaults, usage_patterns
+      return all_variables, defaults, dict_keys
     except Exception as e:
       logging.getLogger('boilerplates').debug(f"Error parsing template variables: {e}")
       return set(), {}, {}
-  
-  def _analyze_variable_patterns(self, template_content: str) -> Dict[str, Dict]:
-    """Analyze how variables are used in the template to detect multivalue patterns.
-    
-    Returns a dict mapping variable names to their usage info:
-    {
-      'service_port': {
-        'keys': ['http', 'https'],  # Keys used with this variable
-        'indices': [],               # Numeric indices used
-      }
-    }
-    """
-    patterns = {}
-    
-    # Pattern for dict access: variable['key'] or variable["key"]
-    dict_pattern = r'{{\s*(\w+)\[[\'"]([\w-]+)[\'"]\]'
-    for match in re.finditer(dict_pattern, template_content):
-      var_name, key = match.groups()
-      if var_name not in patterns:
-        patterns[var_name] = {'keys': [], 'indices': []}
-      if key not in patterns[var_name]['keys']:
-        patterns[var_name]['keys'].append(key)
-    
-    # Pattern for numeric index: variable[0], variable[1], etc.
-    index_pattern = r'{{\s*(\w+)\[(\d+)\]'
-    for match in re.finditer(index_pattern, template_content):
-      var_name, index = match.groups()
-      if var_name not in patterns:
-        patterns[var_name] = {'keys': [], 'indices': []}
-      idx = int(index)
-      if idx not in patterns[var_name]['indices']:
-        patterns[var_name]['indices'].append(idx)
-    
-    # Sort indices if present
-    for var_name in patterns:
-      patterns[var_name]['indices'].sort()
-    
-    return patterns
 
-  def validate(self, registered_variables=None):
+  def validate(self, registered_variables: Set[str]) -> List[str]:
     """Validate template integrity.
     
     Args:
-        registered_variables: Optional set of variable names registered by the module.
-                             If provided, checks for undefined variables.
+        registered_variables: Set of variable names registered by the module.
+                             Required for proper variable validation.
     
     Returns:
         List of validation error messages. Empty list if valid.
+    
+    Raises:
+        TemplateValidationError: If validation fails (critical errors only).
     """
     errors = []
     
-    # Check for Jinja2 syntax errors
+    # Check for Jinja2 syntax errors (critical - should raise immediately)
     try:
       env = self._create_jinja_env()
       env.from_string(self.content)
     except TemplateSyntaxError as e:
-      errors.append(f"Invalid Jinja2 syntax at line {e.lineno}: {e.message}")
+      raise TemplateValidationError(self.id, [f"Invalid Jinja2 syntax at line {e.lineno}: {e.message}"])
     except Exception as e:
-      errors.append(f"Template parsing error: {str(e)}")
+      raise TemplateValidationError(self.id, [f"Template parsing error: {str(e)}"])
     
-    # Check for undefined variables if registered variables are provided
-    if registered_variables is not None:
-      # Variables that are used in template but not defined anywhere
-      undefined = self.vars - set(self.var_defaults.keys()) - registered_variables
-      if undefined:
-        var_list = ", ".join(sorted(undefined))
-        errors.append(f"Undefined variables: {var_list}")
+    # Check for undefined variables
+    # Dotted variables MUST be registered in the module (even if they have defaults)
+    # Dict variables only need the base name registered
+    undefined = []
+    for var in self.vars:
+      if '.' in var:
+        # Dotted variable MUST be registered (defaults don't excuse them)
+        if var not in registered_variables:
+          undefined.append(var)
+      else:
+        # Non-dotted variable
+        if var not in registered_variables and var not in self.var_defaults:
+          # Check if it's a dict variable with keys
+          if var not in self.var_dict_keys:
+            undefined.append(var)
+    
+    if undefined:
+      var_list = ", ".join(sorted(undefined))
+      errors.append(f"Undefined variables (dotted variables must be registered in module): {var_list}")
     
     # Check for missing required frontmatter fields
     if not self.name or self.name == self.file_path.parent.name:
@@ -200,38 +225,6 @@ class Template:
       errors.append("Template has no content")
     
     return errors
-  
-  def validate_strict(self, registered_variables=None):
-    """Validate template and raise exception if invalid.
-    
-    Args:
-        registered_variables: Optional set of variable names registered by the module.
-    
-    Raises:
-        TemplateValidationError: If validation fails
-    """
-    errors = self.validate(registered_variables)
-    if errors:
-      raise TemplateValidationError(self.id, errors)
-
-  def to_dict(self) -> Dict[str, Any]:
-    """Convert to dictionary for display."""
-    return {
-      'id': self.id,
-      'name': self.name,
-      'description': self.description,
-      'author': self.author,
-      'date': self.date,
-      'version': self.version,
-      'module': self.module,
-      'tags': self.tags,
-      'files': self.files,
-      'directory': self.directory,
-      'path': str(self.relative_path),
-      'size': f"{self.size:,} bytes",
-      'vars': list(self.vars),
-      'var_defaults': self.var_defaults
-    }
 
   def render(self, variable_values: Dict[str, Any]) -> str:
     """Render the template with the provided variable values."""

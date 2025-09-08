@@ -1,16 +1,12 @@
 from ..core.module import Module
-from ..core.registry import register_module
+from ..core.registry import registry
 
-@register_module(
-  name="kestra",
-  description="Manage Kestra workflows and configurations",
-  files=["inputs.yaml", "variables.yaml", "webhook.yaml", "flow.yml", "flow.yaml"]
-)
 class KestraModule(Module):
   """Module for managing Kestra workflows and configurations."""
+  
+  name = "kestra"
+  description = "Manage Kestra workflows and configurations"
+  files = ["inputs.yaml", "variables.yaml", "webhook.yaml", "flow.yml", "flow.yaml"]
 
-  def __init__(self):
-    super().__init__(name=self.name, description=self.description, files=self.files)
-
-  def register(self, app):
-    return super().register(app)
+# Register the module
+registry.register(KestraModule)

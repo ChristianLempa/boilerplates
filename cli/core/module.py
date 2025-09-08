@@ -7,7 +7,7 @@ from rich.console import Console
 from .config import get_config
 from .exceptions import TemplateNotFoundError, TemplateValidationError
 from .library import LibraryManager
-from .prompt import PromptHandler
+from .prompt import SimplifiedPromptHandler
 from .variables import VariableRegistry
 
 logger = logging.getLogger('boilerplates')
@@ -67,11 +67,9 @@ class Module(ABC):
       if value:
         console.print(f"{label}: [cyan]{value}[/cyan]")
     
-    # Variable groups
+    # Variables
     if template.vars:
-      groups = self.variables.get_variables_for_template(template.vars)
-      if groups:
-        console.print(f"Functions: [cyan]{', '.join(groups.keys())}[/cyan]")
+      console.print(f"Variables: [cyan]{', '.join(sorted(template.vars))}[/cyan]")
     
     # Content
     if template.content:
@@ -122,59 +120,62 @@ class Module(ABC):
   
   def _validate_template(self, template, template_id: str) -> None:
     """Validate template and raise error if validation fails."""
-    errors = template.validate(set(self.variables.variables.keys()))
+    # Get registered variables for validation
+    registered_vars = set(self.variables.variables.keys())
     
-    if errors:
-      logger.error(f"Template '{template_id}' validation failed")
-      raise TemplateValidationError(template_id, errors)
+    # Validate will raise TemplateValidationError for critical errors (syntax)
+    # and return a list of warnings for non-critical issues
+    warnings = template.validate(registered_vars)
+    
+    # If there are non-critical warnings, log them but don't fail
+    if warnings:
+      logger.warning(f"Template '{template_id}' has validation warnings: {warnings}")
+      # Optionally, you could still raise an error for strict validation:
+      # raise TemplateValidationError(template_id, warnings)
   
   def _process_variables(self, template) -> Dict[str, Any]:
     """Process template variables with prompting."""
-    grouped_vars = self.variables.get_variables_for_template(list(template.vars))
-    if not grouped_vars:
+    # Get variables used in template that are registered
+    template_vars = self.variables.get_variables_for_template(list(template.vars))
+    if not template_vars:
       return {}
     
-    # Collect all defaults
-    defaults = {
-      var.name: var.default 
-      for group_vars in grouped_vars.values() 
-      for var in group_vars 
-      if var.default is not None
-    }
-    defaults.update(template.var_defaults)  # Template defaults override
+    # Collect all defaults from variables and template
+    defaults = {}
+    for var_name, var in template_vars.items():
+      if var.default is not None:
+        defaults[var_name] = var.default
+    
+    # Handle dict variable defaults specially
+    # Auto-detect dict type from template usage
+    for var_name, var in template_vars.items():
+      # If template uses dict access, treat it as dict type regardless of registration
+      if var_name in template.var_dict_keys:
+        # This is a dict variable with dynamic keys
+        # Get defaults for each key from template
+        if var_name in template.var_defaults and isinstance(template.var_defaults[var_name], dict):
+          if var_name not in defaults:
+            defaults[var_name] = {}
+          defaults[var_name].update(template.var_defaults[var_name])
+    
+    # Also add template defaults for regular variables
+    for k, v in template.var_defaults.items():
+      if not isinstance(v, dict):  # Skip dict defaults, already handled
+        defaults[k] = v
     
     # Use rich output if enabled
     if not get_config().use_rich_output:
       # Simple fallback - just prompt for missing values
       values = defaults.copy()
-      for group_vars in grouped_vars.values():
-        for var in group_vars:
-          if var.name not in values:
-            desc = f" ({var.description})" if var.description else ""
-            values[var.name] = input(f"Enter {var.name}{desc}: ")
+      for var_name, var in template_vars.items():
+        if var_name not in values:
+          desc = f" ({var.description})" if var.description else ""
+          values[var_name] = input(f"Enter {var_name}{desc}: ")
       return values
     
-    # Format for PromptHandler
-    formatted_groups = {}
-    for group_name, variables in grouped_vars.items():
-      group_info = self.variables.groups.get(group_name, {})
-      formatted_groups[group_name] = {
-        'display_name': group_info.get('display_name', group_name.title()),
-        'description': group_info.get('description', ''),
-        'icon': group_info.get('icon', ''),
-        'vars': {},
-        'enabler': self.variables.group_enablers.get(group_name, '')
-      }
-      
-      # Add usage patterns to each variable config
-      for var in variables:
-        var_config = var.to_prompt_config()
-        # Add usage patterns if this variable is used in the template
-        if var.name in template.var_usage:
-          var_config['usage_patterns'] = template.var_usage[var.name]
-        formatted_groups[group_name]['vars'][var.name] = var_config
-    
-    return PromptHandler(formatted_groups, defaults)()
+    # Pass dict keys info to prompt handler
+    # Use the new simplified prompt handler with dict support
+    return SimplifiedPromptHandler(template_vars, defaults, template.var_dict_keys)()
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""

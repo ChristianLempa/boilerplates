@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import json
 import logging
 import yaml
 
@@ -215,51 +214,3 @@ def set_config(config):
   """
   global _config
   _config = config
-
-
-# Legacy ConfigManager for backwards compatibility
-class ConfigManager:
-  """Legacy configuration manager for module configs.
-  
-  This is kept for backwards compatibility but uses json files.
-  """
-  
-  def __init__(self, config_dir=None):
-    if config_dir is None:
-      config_dir = Path.home() / ".boilerplates"
-    self.config_dir = config_dir
-    self.config_dir.mkdir(parents=True, exist_ok=True)
-  
-  def get_variable_defaults(self, module_name):
-    """Get user-configured default values for variables in a module."""
-    config_file = self.config_dir / f"{module_name}_vars.json"
-    if config_file.exists():
-      try:
-        with open(config_file, 'r') as f:
-          return json.load(f)
-      except json.JSONDecodeError:
-        logger.warning(f"Invalid JSON in {config_file}")
-    return {}
-  
-  def save_variable_defaults(self, module_name, variable_defaults):
-    """Save user-configured default values for variables in a module."""
-    config_file = self.config_dir / f"{module_name}_vars.json"
-    with open(config_file, 'w') as f:
-      json.dump(variable_defaults, f, indent=2)
-  
-  def get_module_config(self, module_name):
-    """Get module-specific configuration."""
-    config_file = self.config_dir / f"{module_name}.json"
-    if config_file.exists():
-      try:
-        with open(config_file, 'r') as f:
-          return json.load(f)
-      except json.JSONDecodeError:
-        logger.warning(f"Invalid JSON in {config_file}")
-    return {}
-  
-  def save_module_config(self, module_name, config):
-    """Save module-specific configuration."""
-    config_file = self.config_dir / f"{module_name}.json"
-    with open(config_file, 'w') as f:
-      json.dump(config, f, indent=2)
