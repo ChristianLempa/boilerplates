@@ -1,120 +1,98 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
+from enum import Enum
+
+
+class VariableType(Enum):
+  """Supported variable types."""
+  STR = "str"
+  INT = "int" 
+  BOOL = "bool"
+  ENUM = "enum"
+  FLOAT = "float"
 
 
 @dataclass
 class Variable:
-  """Variable detected from template analysis.
+  """Represents a single variable with metadata."""
   
-  Represents a variable found in a template with all its properties:
-  - Simple variables: service_name, container_name
-  - Dotted variables: traefik.host, network.name, service_port.http
-  - Enabler variables: Variables used in {% if var %} conditions
-  """
   name: str
+  type: VariableType = VariableType.STR
+  description: str = ""
+  display: str = ""  # Display name for UI
   default: Any = None
-  type: str = "string"  # string, integer, float, boolean (inferred from default or usage)
+  options: List[str] = field(default_factory=list)  # For enum types
+  parent: Optional[str] = None  # Parent variable name (for dotted notation)
   
-  # Variable characteristics
-  is_enabler: bool = False  # Used in {% if %} conditions
+  def has_parent(self) -> bool:
+    """Check if this variable has a parent."""
+    return self.parent is not None
   
-  # Grouping info (extracted from dotted notation)
-  group: Optional[str] = None  # e.g., 'traefik' for 'traefik.host'
-  
-  # Metadata for enhanced UX
-  description: Optional[str] = None  # Override for variable description
-  hint: Optional[str] = None  # Helpful hint shown during input
-  tip: Optional[str] = None  # Additional tip or best practice
-  icon: Optional[str] = None  # Icon for this specific variable
-  validation: Optional[str] = None  # Regex pattern for validation
-  
-  @property
-  def display_name(self) -> str:
-    """Get display name for prompts."""
-    if self.group:
-      # Remove group prefix for display
-      return self.name.replace(f"{self.group}.", "").replace(".", " ")
-    return self.name.replace(".", " ")
-  
-  @property 
-  def is_required(self) -> bool:
-    """Check if variable is required (no default value)."""
-    return self.default is None
+  def get_full_name(self) -> str:
+    """Get the full dotted name."""
+    if self.parent:
+      return f"{self.parent}.{self.name}"
+    return self.name
 
 
-def analyze_template_variables(
-  vars_used: Set[str],
-  var_defaults: Dict[str, Any],
-  template_content: str
-) -> Dict[str, Variable]:
-  """Analyze template variables and create TemplateVariable objects.
+class VariableRegistry:
+  """Registry for managing module variables."""
   
-  Args:
-    vars_used: Set of all variable names used in template
-    var_defaults: Dict of variable defaults from template
-    template_content: The raw template content for additional analysis
+  def __init__(self):
+    self._variables: Dict[str, Variable] = {}  # Full name -> Variable
   
-  Returns:
-    Dict mapping variable name to Variable object
-  """
-  variables = {}
-  
-  # Detect enabler variables (used in {% if %} conditions)
-  enablers = _detect_enablers(template_content)
-  
-  for var_name in vars_used:
-    var = Variable(
-      name=var_name,
-      default=var_defaults.get(var_name)
-    )
+  def register_variable(self, variable: Variable) -> Variable:
+    """Register a variable in the registry."""
+    full_name = variable.get_full_name()
     
-    # Detect if it's an enabler
-    var.is_enabler = var_name in enablers
+    # Convert string type to enum if needed
+    if isinstance(variable.type, str):
+      try:
+        variable.type = VariableType(variable.type.lower())
+      except ValueError:
+        variable.type = VariableType.STR
     
-    # Infer type from default value
-    if var.default is not None:
-      if isinstance(var.default, bool):
-        var.type = "boolean"
-      elif isinstance(var.default, int):
-        var.type = "integer"
-      elif isinstance(var.default, float):
-        var.type = "float"
-      else:
-        var.type = "string"
+    # Validate enum options
+    if variable.type == VariableType.ENUM and not variable.options:
+      raise ValueError(f"Variable '{full_name}' of type 'enum' must have options")
     
-    # If it's an enabler without a default, assume boolean
-    if var.is_enabler and var.default is None:
-      var.type = "boolean"
-      var.default = False  # Default enablers to False
+    self._variables[full_name] = variable
+    return variable
+  
+  def get_variable(self, name: str) -> Optional[Variable]:
+    """Get variable by full name."""
+    return self._variables.get(name)
+  
+  def get_all_variables(self) -> Dict[str, Variable]:
+    """Get all registered variables."""
+    return self._variables.copy()
+  
+  def get_parent_variables(self) -> List[Variable]:
+    """Get all variables that have children (enabler variables)."""
+    parent_names = set()
+    for var in self._variables.values():
+      if var.parent:
+        parent_names.add(var.parent)
     
-    # Detect group from dotted notation
-    if '.' in var_name:
-      var.group = var_name.split('.')[0]
+    return [self._variables[name] for name in parent_names if name in self._variables]
+  
+  def get_children_of(self, parent_name: str) -> List[Variable]:
+    """Get all child variables of a specific parent."""
+    return [var for var in self._variables.values() if var.parent == parent_name]
+  
+  def validate_parent_child_relationships(self) -> List[str]:
+    """Validate that all parent-child relationships are consistent."""
+    errors = []
     
-    variables[var_name] = var
-  
-  return variables
-
-
-def _detect_enablers(template_content: str) -> Set[str]:
-  """Detect variables used as enablers in {% if %} conditions.
-  
-  Args:
-    template_content: The raw template content
-  
-  Returns:
-    Set of variable names that are used as enablers
-  """
-  import re
-  enablers = set()
-  
-  # Find variables used in {% if var %} patterns
-  # This catches: {% if var %}, {% if not var %}, {% if var and ... %}
-  if_pattern = re.compile(r'{%\s*if\s+(not\s+)?(\w+)(?:\s|%)', re.MULTILINE)
-  for match in if_pattern.finditer(template_content):
-    var_name = match.group(2)
-    # Skip Jinja2 keywords
-    if var_name not in ['true', 'false', 'none', 'True', 'False', 'None']:
-      enablers.add(var_name)
-  
-  return enablers
+    for var in self._variables.values():
+      if var.parent:
+        # Check if parent exists
+        if var.parent not in self._variables:
+          errors.append(f"Variable '{var.get_full_name()}' references non-existent parent '{var.parent}'")
+        else:
+          parent_var = self._variables[var.parent]
+          # Parent should generally be boolean if it has children
+          if parent_var.type != VariableType.BOOL:
+            errors.append(f"Parent variable '{var.parent}' should be boolean type (has children)")
+    
+    return errors

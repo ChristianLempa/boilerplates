@@ -6,7 +6,7 @@ import re
 from jinja2 import Environment, BaseLoader, meta, nodes, TemplateSyntaxError
 import frontmatter
 from .exceptions import TemplateValidationError
-from .variables import Variable, analyze_template_variables
+# Module variables will be handled by the module's VariableRegistry
 
 
 @dataclass
@@ -37,7 +37,6 @@ class Template:
   # Template variable analysis results
   vars: Set[str] = field(default_factory=set, init=False)
   var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
-  variables: Dict[str, Variable] = field(default_factory=dict, init=False)  # Analyzed variables
   
   def __post_init__(self):
     """Initialize computed properties after dataclass initialization."""
@@ -53,10 +52,6 @@ class Template:
     
     # Parse template variables
     self.vars, self.var_defaults = self._parse_template_variables(self.content)
-    # Analyze variables to create TemplateVariable objects
-    self.variables = analyze_template_variables(
-      self.vars, self.var_defaults, self.content
-    )
   
   @staticmethod
   def _create_jinja_env() -> Environment:
@@ -153,8 +148,11 @@ class Template:
       logging.getLogger('boilerplates').debug(f"Error parsing template variables: {e}")
       return set(), {}
 
-  def validate(self) -> List[str]:
+  def validate(self, module_variable_metadata: Dict[str, Dict[str, Any]] = None) -> List[str]:
     """Validate template integrity.
+    
+    Args:
+        module_variable_metadata: Module's variable metadata for validation
     
     Returns:
         List of validation error messages. Empty list if valid.
@@ -173,6 +171,11 @@ class Template:
     except Exception as e:
       raise TemplateValidationError(self.id, [f"Template parsing error: {str(e)}"])
     
+    # Validate variable definitions (critical - should raise immediately)
+    undefined_vars = self._validate_variable_definitions(module_variable_metadata or {})
+    if undefined_vars:
+      raise TemplateValidationError(self.id, undefined_vars)
+    
     # All variables are now auto-detected, no need to check for undefined
     # The template parser will have found all variables used
     
@@ -186,6 +189,37 @@ class Template:
     # Check for empty content (unless it's intentionally a metadata-only template)
     if not self.content.strip() and not self.files:
       errors.append("Template has no content")
+    
+    return errors
+
+  def update_variables_with_module_metadata(self, module_variable_registry) -> None:
+    """Update template variables with module variable registry.
+    
+    Args:
+        module_variable_registry: Module's VariableRegistry instance
+    """
+    # This method is kept for compatibility but simplified
+    # Variables are now managed directly by the VariableRegistry
+    pass
+
+  def _validate_variable_definitions(self, module_variable_registry) -> List[str]:
+    """Validate that all template variables are properly defined.
+    
+    Args:
+        module_variable_registry: Module's VariableRegistry instance
+    
+    Returns:
+        List of error messages for undefined variables
+    """
+    errors = []
+    
+    # For now, simplified validation - just check template-specific variables
+    # Module variables are validated by the VariableRegistry itself
+    for var_name in self.vars:
+      if var_name.startswith('template.'):
+        # Template-specific variables must be defined in frontmatter
+        if var_name not in self.variable_metadata:
+          errors.append(f"Template variable '{var_name}' must be defined in frontmatter 'variables' section")
     
     return errors
 

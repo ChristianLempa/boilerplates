@@ -9,12 +9,16 @@ tags:
   - automation
   - workflows
   - compose
+variables:
+  template.custom_config:
+    description: "Custom configuration for n8n"
+    hint: "Additional environment variables or settings"
+    type: "string"
+    default: ""
 ---
-{% set postgres.always = 'True' %}
 services:
-  {{ service_name | default('n8n') }}:
+  {{ service_name }}:
     image: n8nio/n8n:1.110.1
-    container_name: {{ container_name | default('n8n') }}
     environment:
       - N8N_LOG_LEVEL={{ container_loglevel | default('info') }}
       - GENERIC_TIMEZONE={{ container_timezone }}
@@ -22,15 +26,15 @@ services:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_ENABLED=true
       {% if traefik %}
-      {% if traefik_tls %}
-      - N8N_EDITOR_BASE_URL=https://{{ traefik_host }}
+      {% if traefik.tls %}
+      - N8N_EDITOR_BASE_URL=https://{{ traefik.host }}
       {% else %}
-      - N8N_EDITOR_BASE_URL=http://{{ traefik_host }}
+      - N8N_EDITOR_BASE_URL=http://{{ traefik.host }}
       {% endif %}
       {% endif %}
       {% if postgres %}
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST={{ postgres_host }}
+      - DB_POSTGRESDB_HOST={{ postgres.host }}
       - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT:-5432}
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
       - DB_POSTGRESDB_USER=${POSTGRES_USER}
@@ -39,25 +43,35 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - data:/home/node/.n8n
+    {% if network %}
     networks:
-      - {{ docker_network | default('bridge') }}
+      - {{ network.name | default('bridge') }}
+    {% endif %}
     {% if traefik %}
     labels:
-      - traefik.enable={{ traefik_enable | default('true') }}
-      - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik_host }}`)
-      {% if traefik_tls %}
-      - traefik.http.routers.{{ container_name }}.entrypoints=websecure
-      - traefik.http.routers.{{ container_name }}.tls=true
-      - traefik.http.routers.{{ container_name }}.tls.certresolver={{ traefik_certresolver }}
-      - traefik.http.services.{{ container_name }}.loadbalancer.server.port=5678
+      - traefik.enable={{ traefik | default('true') }}
+      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik.host }}`)
+      {% if traefik.tls %}
+      - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik.tls.entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name }}.tls=true
+      - traefik.http.routers.{{ service_name }}.tls.certresolver={{ traefik.tls.certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik.entrypoint | default('web') }}
       {% endif %}
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=5678
     {% endif %}
-    restart: {{ restart_policy }}
+    restart: {{ restart_policy | default('unless-stopped') }}
+    {% if ports %}
 
 volumes:
   data:
     driver: local
 
+{% if network %}
 networks:
-  {{ docker_network | default('bridge') }}:
+  {{ network.name | default('bridge') }}:
+  {% if network.external %}
     external: true
+  {% endif %}
+{% endif %}
+{% endif %}

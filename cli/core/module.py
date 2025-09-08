@@ -1,17 +1,15 @@
 from abc import ABC
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 import logging
 import yaml
 from typer import Typer, Option, Argument
 from rich.console import Console
-from .config import get_config
-from .exceptions import TemplateNotFoundError, TemplateValidationError
+from .exceptions import TemplateNotFoundError
 from .library import LibraryManager
-from .prompt import SimplifiedPromptHandler
 
 logger = logging.getLogger('boilerplates')
-console = Console()  # Single shared console instance
+console = Console()
 
 
 class Module(ABC):
@@ -29,6 +27,11 @@ class Module(ABC):
       )
     
     self.libraries = LibraryManager()
+    
+    # Initialize variables if the subclass defines _init_variables method
+    if hasattr(self, '_init_variables'):
+      self._init_variables()
+    
     self.metadata = self._build_metadata()
   
   def _build_metadata(self) -> Dict[str, Any]:
@@ -110,61 +113,26 @@ class Module(ABC):
     # Validate template (will raise TemplateValidationError if validation fails)
     self._validate_template(template, id)
     
-    # Process variables and render
-    values = self._process_variables(template)
-    
-    try:
-      content = template.render(values)
-    except Exception as e:
-      logger.error(f"Failed to render template: {e}")
-      raise
-    
-    # Output result
-    if out:
-      out.parent.mkdir(parents=True, exist_ok=True)
-      out.write_text(content)
-      console.print(f"[green]✅ Generated to {out}[/green]")
-    else:
-      console.print(f"\n{'='*60}\nGenerated Content:\n{'='*60}")
-      console.print(content)
+    print("TEST")
   
   def _validate_template(self, template, template_id: str) -> None:
     """Validate template and raise error if validation fails."""
-    # Template is now self-validating, no need for registered variables
-    warnings = template.validate()
+    # Update template variables with module variable registry
+    module_variable_registry = getattr(self, 'variables', None)
+    if module_variable_registry:
+      template.update_variables_with_module_metadata(module_variable_registry)
+      
+      # Validate parent-child relationships in the registry
+      registry_errors = module_variable_registry.validate_parent_child_relationships()
+      if registry_errors:
+        logger.error(f"Variable registry validation errors: {registry_errors}")
+    
+    # Validate template with module variables
+    warnings = template.validate(module_variable_registry)
     
     # If there are non-critical warnings, log them but don't fail
     if warnings:
       logger.warning(f"Template '{template_id}' has validation warnings: {warnings}")
-  
-  def _process_variables(self, template) -> Dict[str, Any]:
-    """Process template variables with prompting."""
-    # Use template's analyzed variables
-    if not template.variables:
-      return {}
-    
-    # Apply metadata to variables
-    self._apply_metadata_to_variables(template.variables, template.variable_metadata)
-    
-    # Collect defaults from analyzed variables
-    defaults = {}
-    for var_name, var in template.variables.items():
-      if var.default is not None:
-        defaults[var_name] = var.default
-    
-    # Use rich output if enabled
-    if not get_config().use_rich_output:
-      # Simple fallback - just prompt for missing values
-      values = defaults.copy()
-      for var_name, var in template.variables.items():
-        if var_name not in values:
-          values[var_name] = input(f"Enter {var_name}: ")
-      return values
-    
-    # Pass metadata to prompt handler
-    prompt_handler = SimplifiedPromptHandler(template.variables)
-    prompt_handler.category_metadata = self.metadata.get('categories', {})
-    return prompt_handler()
   
   def _apply_metadata_to_variables(self, variables: Dict[str, Any], template_metadata: Dict[str, Any]):
     """Apply metadata from module and template to variables."""
