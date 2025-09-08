@@ -92,10 +92,12 @@ class SimplifiedPromptHandler:
         enabler = group_name
         # Show section header with icon
         console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+        console.print()  # Add newline after header
         enabled = Confirm.ask(
           f"Enable {enabler}?", 
           default=bool(enabler_var.default)
         )
+        console.print()  # Add newline after enabler prompt
         self.values[enabler] = enabled
         
         if not enabled:
@@ -120,6 +122,7 @@ class SimplifiedPromptHandler:
     if required:
       if not enabler:  # Show header only if we haven't shown it for enabler
         console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+        console.print()  # Add newline after header
       for var_name in required:
         var = self.variables[var_name]
         self.values[var_name] = self._prompt_variable(var, required=True)
@@ -132,11 +135,16 @@ class SimplifiedPromptHandler:
         # Show section header if not already shown
         if not required and not enabler:
           console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+          console.print()  # Add newline after header
         
-        # Show current values
+        # Show current values with label
+        console.print()  # Add newline before values
+        console.print("[white]Default values:[/white]")
         self._show_variables_inline(display_optional)
+        console.print()  # Add newline after values
         
         if Confirm.ask("Do you want to change any values?", default=False):
+          console.print()  # Add newline after prompt
           for var_name in optional:
             # Skip the enabler variable as it was already handled
             if var_name == enabler:
