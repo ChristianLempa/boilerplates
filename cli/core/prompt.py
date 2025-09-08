@@ -122,26 +122,37 @@ class SimplifiedPromptHandler:
     
     # Process optional variables
     if optional:
-      console.print(f"\n[bold cyan]{display_name} - Optional Configuration[/bold cyan]")
       # Filter out enabler variables from display
       display_optional = [v for v in optional if v != enabler]
       if display_optional:
-        self._show_variables(display_optional)
+        console.print(f"\n[bold cyan]{display_name} - Optional Configuration[/bold cyan]")
+        self._show_variables_inline(display_optional)
       
-      if Confirm.ask("Do you want to change any values?", default=False):
+      if display_optional and Confirm.ask("Do you want to change any values?", default=False):
         for var_name in optional:
           var = self.variables[var_name]
           self.values[var_name] = self._prompt_variable(
             var, current_value=self.values[var_name]
           )
   
-  def _show_variables(self, var_names: List[str]):
-    """Display current variable values."""
+  def _show_variables_inline(self, var_names: List[str]):
+    """Display current variable values in a single line."""
+    items = []
     for var_name in var_names:
       var = self.variables[var_name]
       value = self.values.get(var_name, var.default)
       if value is not None:
-        console.print(f"  {var.display_name}: [dim]{value}[/dim]")
+        # Format value based on type
+        if isinstance(value, bool):
+          formatted_value = str(value).lower()
+        elif isinstance(value, str) and ' ' in value:
+          formatted_value = f"'{value}'"
+        else:
+          formatted_value = str(value)
+        items.append(f"{var.display_name}: {formatted_value}")
+    
+    if items:
+      console.print(f"  [dim white]{', '.join(items)}[/dim white]")
   
   def _prompt_variable(
     self, 
