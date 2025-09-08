@@ -125,18 +125,18 @@ class SimplifiedPromptHandler:
       # Filter out enabler variables from display
       display_optional = [v for v in optional if v != enabler]
       if display_optional:
-        console.print(f"\n[bold cyan]{display_name} - Optional Configuration[/bold cyan]")
-        self._show_variables_inline(display_optional)
+        console.print()
+        self._show_variables_compact(display_name, display_optional)
       
-      if display_optional and Confirm.ask("Do you want to change any values?", default=False):
+      if display_optional and Confirm.ask("  Do you want to change any values?", default=False):
         for var_name in optional:
           var = self.variables[var_name]
           self.values[var_name] = self._prompt_variable(
             var, current_value=self.values[var_name]
           )
   
-  def _show_variables_inline(self, var_names: List[str]):
-    """Display current variable values in a single line."""
+  def _show_variables_compact(self, category: str, var_names: List[str]):
+    """Display variables in compact format with icon."""
     items = []
     for var_name in var_names:
       var = self.variables[var_name]
@@ -152,7 +152,24 @@ class SimplifiedPromptHandler:
         items.append(f"{var.display_name}: {formatted_value}")
     
     if items:
-      console.print(f"  [dim white]{', '.join(items)}[/dim white]")
+      # Use different icons based on category
+      icon = self._get_category_icon(category)
+      console.print(f"  {icon} [bold]{category}:[/bold] [dim white]{', '.join(items)}[/dim white]")
+  
+  def _get_category_icon(self, category: str) -> str:
+    """Get icon for a category."""
+    icons = {
+      'general': '📦',
+      'network': '🌐',
+      'traefik': '🔀',
+      'swarm': '🐝',
+      'nginx_dashboard': '📊',
+      'service_port': '🔌',
+      'security': '🔒',
+      'storage': '💾',
+      'monitoring': '📈',
+    }
+    return icons.get(category.lower(), '⚙️')  # Default gear icon
   
   def _prompt_variable(
     self, 
