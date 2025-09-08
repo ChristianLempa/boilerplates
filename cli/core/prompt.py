@@ -4,7 +4,7 @@ from collections import OrderedDict
 from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt, FloatPrompt
 import logging
-from .variables import TemplateVariable
+from .variables import Variable
 
 logger = logging.getLogger('boilerplates')
 console = Console()
@@ -13,11 +13,11 @@ console = Console()
 class SimplifiedPromptHandler:
   """Prompt handler for template-detected variables."""
   
-  def __init__(self, variables: Dict[str, TemplateVariable]):
+  def __init__(self, variables: Dict[str, Variable]):
     """Initialize with template variables.
     
     Args:
-      variables: Dict of variable name to TemplateVariable object
+      variables: Dict of variable name to Variable object
     """
     self.variables = variables
     self.values = {}
@@ -80,8 +80,9 @@ class SimplifiedPromptHandler:
     # Deduplicate variables
     var_names = list(dict.fromkeys(var_names))  # Preserves order while removing duplicates
     
-    # Get icon for this category
+    # Get icon and description for this category
     icon = self._get_category_icon(display_name)
+    description = self._get_category_description(display_name)
     
     # Check if this group has an enabler
     group_name = display_name.lower()
@@ -90,14 +91,16 @@ class SimplifiedPromptHandler:
       enabler_var = self.variables[group_name]
       if enabler_var.is_enabler:
         enabler = group_name
-        # Show section header with icon
-        console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+        # Show section header with icon and description
+        header = f"\n{icon}[bold cyan]{display_name}[/bold cyan]"
+        if description:
+          header += f" [dim]- {description}[/dim]"
+        console.print(header)
         console.print()  # Add newline after header
         enabled = Confirm.ask(
           f"Enable {enabler}?", 
           default=bool(enabler_var.default)
         )
-        console.print()  # Add newline after enabler prompt
         self.values[enabler] = enabled
         
         if not enabled:
@@ -121,7 +124,10 @@ class SimplifiedPromptHandler:
     # Process required variables
     if required:
       if not enabler:  # Show header only if we haven't shown it for enabler
-        console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+        header = f"\n{icon}[bold cyan]{display_name}[/bold cyan]"
+        if description:
+          header += f" [dim]- {description}[/dim]"
+        console.print(header)
         console.print()  # Add newline after header
       for var_name in required:
         var = self.variables[var_name]
@@ -134,14 +140,15 @@ class SimplifiedPromptHandler:
       if display_optional:
         # Show section header if not already shown
         if not required and not enabler:
-          console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+          header = f"\n{icon}[bold cyan]{display_name}[/bold cyan]"
+          if description:
+            header += f" [dim]- {description}[/dim]"
+          console.print(header)
           console.print()  # Add newline after header
         
         # Show current values with label
-        console.print()  # Add newline before values
-        console.print("[white]Default values:[/white]")
+        console.print("\n[white]Default values [/white]", end="")
         self._show_variables_inline(display_optional)
-        console.print()  # Add newline after values
         
         if Confirm.ask("Do you want to change any values?", default=False):
           console.print()  # Add newline after prompt
@@ -168,7 +175,7 @@ class SimplifiedPromptHandler:
           formatted_value = f"'{value}'"
         else:
           formatted_value = str(value)
-        items.append(f"{var.display_name}: {formatted_value}")
+        items.append(f"{var.display_name}: [cyan]({formatted_value})[/cyan]")
     
     if items:
       console.print(f"[dim white]{', '.join(items)}[/dim white]")
@@ -182,9 +189,17 @@ class SimplifiedPromptHandler:
         return cat_meta['icon'] + ' '
     return ''  # No icon if not defined in metadata
   
+  def _get_category_description(self, category: str) -> str:
+    """Get description for a category."""
+    if self.category_metadata and category.lower() in self.category_metadata:
+      cat_meta = self.category_metadata[category.lower()]
+      if 'description' in cat_meta:
+        return cat_meta['description']
+    return ''  # No description if not defined in metadata
+  
   def _prompt_variable(
     self, 
-    var: TemplateVariable, 
+    var: Variable,
     required: bool = False,
     current_value: Any = None
   ) -> Any:

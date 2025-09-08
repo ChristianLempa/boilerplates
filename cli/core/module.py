@@ -29,23 +29,21 @@ class Module(ABC):
       )
     
     self.libraries = LibraryManager()
-    self.metadata = self._load_metadata()
+    self.metadata = self._build_metadata()
   
-  def _load_metadata(self) -> Dict[str, Any]:
-    """Load module metadata from .meta.yaml file if it exists."""
-    import inspect
-    # Get the path to the actual module file
-    module_path = Path(inspect.getfile(self.__class__))
-    meta_file = module_path.with_suffix('.meta.yaml')
+  def _build_metadata(self) -> Dict[str, Any]:
+    """Build metadata from class attributes."""
+    metadata = {}
     
-    if meta_file.exists():
-      try:
-        with open(meta_file, 'r') as f:
-          return yaml.safe_load(f) or {}
-      except Exception as e:
-        logger.debug(f"Failed to load metadata for {self.name}: {e}")
+    # Add categories if defined
+    if hasattr(self, 'categories'):
+      metadata['categories'] = self.categories
     
-    return {}
+    # Add variable metadata if defined
+    if hasattr(self, 'variable_metadata'):
+      metadata['variables'] = self.variable_metadata
+    
+    return metadata
 
 
   def list(self):

@@ -6,7 +6,7 @@ import re
 from jinja2 import Environment, BaseLoader, meta, nodes, TemplateSyntaxError
 import frontmatter
 from .exceptions import TemplateValidationError
-from .variables import TemplateVariable, analyze_template_variables
+from .variables import Variable, analyze_template_variables
 
 
 @dataclass
@@ -37,7 +37,7 @@ class Template:
   # Template variable analysis results
   vars: Set[str] = field(default_factory=set, init=False)
   var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
-  variables: Dict[str, TemplateVariable] = field(default_factory=dict, init=False)  # Analyzed variables
+  variables: Dict[str, Variable] = field(default_factory=dict, init=False)  # Analyzed variables
   
   def __post_init__(self):
     """Initialize computed properties after dataclass initialization."""

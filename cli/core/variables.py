@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class TemplateVariable:
+class Variable:
   """Variable detected from template analysis.
   
   Represents a variable found in a template with all its properties:
@@ -46,7 +46,7 @@ def analyze_template_variables(
   vars_used: Set[str],
   var_defaults: Dict[str, Any],
   template_content: str
-) -> Dict[str, TemplateVariable]:
+) -> Dict[str, Variable]:
   """Analyze template variables and create TemplateVariable objects.
   
   Args:
@@ -55,7 +55,7 @@ def analyze_template_variables(
     template_content: The raw template content for additional analysis
   
   Returns:
-    Dict mapping variable name to TemplateVariable object
+    Dict mapping variable name to Variable object
   """
   variables = {}
   
@@ -63,7 +63,7 @@ def analyze_template_variables(
   enablers = _detect_enablers(template_content)
   
   for var_name in vars_used:
-    var = TemplateVariable(
+    var = Variable(
       name=var_name,
       default=var_defaults.get(var_name)
     )
