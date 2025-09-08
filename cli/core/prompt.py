@@ -80,6 +80,9 @@ class SimplifiedPromptHandler:
     # Deduplicate variables
     var_names = list(dict.fromkeys(var_names))  # Preserves order while removing duplicates
     
+    # Get icon for this category
+    icon = self._get_category_icon(display_name)
+    
     # Check if this group has an enabler
     group_name = display_name.lower()
     enabler = None
@@ -87,8 +90,8 @@ class SimplifiedPromptHandler:
       enabler_var = self.variables[group_name]
       if enabler_var.is_enabler:
         enabler = group_name
-        # Ask about enabler first
-        console.print(f"\n[bold cyan]{display_name} Configuration[/bold cyan]")
+        # Show section header with icon
+        console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
         enabled = Confirm.ask(
           f"Enable {enabler}?", 
           default=bool(enabler_var.default)
@@ -115,8 +118,8 @@ class SimplifiedPromptHandler:
     
     # Process required variables
     if required:
-      if not enabler:  # Don't repeat header if we already showed it for enabler
-        console.print(f"\n[bold cyan]{display_name} - Required Configuration[/bold cyan]")
+      if not enabler:  # Show header only if we haven't shown it for enabler
+        console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
       for var_name in required:
         var = self.variables[var_name]
         self.values[var_name] = self._prompt_variable(var, required=True)
@@ -126,8 +129,12 @@ class SimplifiedPromptHandler:
       # Filter out enabler variables from display
       display_optional = [v for v in optional if v != enabler]
       if display_optional:
-        console.print()
-        self._show_variables_compact(display_name, display_optional)
+        # Show section header if not already shown
+        if not required and not enabler:
+          console.print(f"\n{icon}[bold cyan]{display_name}[/bold cyan]")
+        
+        # Show current values
+        self._show_variables_inline(display_optional)
         
         if Confirm.ask("Do you want to change any values?", default=False):
           for var_name in optional:
@@ -139,8 +146,8 @@ class SimplifiedPromptHandler:
               var, current_value=self.values[var_name]
             )
   
-  def _show_variables_compact(self, category: str, var_names: List[str]):
-    """Display variables in compact format with icon."""
+  def _show_variables_inline(self, var_names: List[str]):
+    """Display variables inline without header."""
     items = []
     for var_name in var_names:
       var = self.variables[var_name]
@@ -156,9 +163,7 @@ class SimplifiedPromptHandler:
         items.append(f"{var.display_name}: {formatted_value}")
     
     if items:
-      # Use different icons based on category
-      icon = self._get_category_icon(category)
-      console.print(f"{icon}[bold]{category}:[/bold] [dim white]{', '.join(items)}[/dim white]")
+      console.print(f"[dim white]{', '.join(items)}[/dim white]")
   
   def _get_category_icon(self, category: str) -> str:
     """Get icon for a category."""
