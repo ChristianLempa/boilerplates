@@ -1,89 +1,124 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass, field
-from collections import OrderedDict
 
 
 @dataclass
-class Variable:
-  """Variable with automatic grouping via dotted notation.
+class TemplateVariable:
+  """Variable detected from template analysis.
   
-  Variables are automatically grouped by their prefix:
-  - 'traefik' is a standalone boolean (enabler)
-  - 'traefik.host' is part of the traefik group
-  - 'port.http' is part of the port group
-  
-  Type can be:
-  - 'string': String value (default)
-  - 'integer': Integer value  
-  - 'float': Float value
-  - 'boolean': Boolean value
+  Represents a variable found in a template with all its properties:
+  - Simple variables: service_name, container_name
+  - Dotted variables: traefik.host, network.name
+  - Dict variables: service_port['http'], nginx_dashboard.port['dashboard']
+  - Enabler variables: Variables used in {% if var %} conditions
   """
   name: str
-  description: str = ""
   default: Any = None
-  type: str = "string"  # string, integer, float, boolean
+  type: str = "string"  # string, integer, float, boolean (inferred from default or usage)
   
-  def to_prompt_config(self) -> Dict[str, Any]:
-    """Convert to prompt configuration."""
-    return {
-      'name': self.name,
-      'description': self.description, 
-      'type': self.type,
-      'default': self.default
-    }
+  # Variable characteristics
+  is_enabler: bool = False  # Used in {% if %} conditions
+  is_dict: bool = False  # Has dict access patterns like var['key']
+  dict_keys: List[str] = field(default_factory=list)  # Keys accessed if is_dict
+  
+  # Grouping info (extracted from dotted notation)
+  group: Optional[str] = None  # e.g., 'traefik' for 'traefik.host'
+  
+  @property
+  def display_name(self) -> str:
+    """Get display name for prompts."""
+    if self.group:
+      # Remove group prefix for display
+      return self.name.replace(f"{self.group}.", "").replace(".", " ")
+    return self.name.replace(".", " ")
+  
+  @property 
+  def is_required(self) -> bool:
+    """Check if variable is required (no default value)."""
+    return self.default is None
 
 
-class VariableRegistry:
-  """Simplified variable registry with automatic grouping via dotted notation."""
+def analyze_template_variables(
+  vars_used: Set[str],
+  var_defaults: Dict[str, Any],
+  var_dict_keys: Dict[str, List[str]],
+  template_content: str
+) -> Dict[str, TemplateVariable]:
+  """Analyze template variables and create TemplateVariable objects.
   
-  def __init__(self):
-    self.variables: Dict[str, Variable] = OrderedDict()
+  Args:
+    vars_used: Set of all variable names used in template
+    var_defaults: Dict of variable defaults from template
+    var_dict_keys: Dict of variables with dict access patterns
+    template_content: The raw template content for additional analysis
   
-  def register(self, var: Variable) -> None:
-    """Register a variable."""
-    self.variables[var.name] = var
+  Returns:
+    Dict mapping variable name to TemplateVariable object
+  """
+  variables = {}
   
-  def get_variables_for_template(self, template_vars: List[str]) -> Dict[str, Variable]:
-    """Get variables that are used in the template.
-    
-    Returns a dict of variable name to Variable object for all
-    variables used in the template, preserving registration order.
-    """
-    result = OrderedDict()
-    # Iterate through registered variables to preserve registration order
-    for var_name in self.variables.keys():
-      if var_name in template_vars:
-        result[var_name] = self.variables[var_name]
-    return result
+  # Detect enabler variables (used in {% if %} conditions)
+  enablers = _detect_enablers(template_content)
   
-  def group_variables(self, variables: Dict[str, Variable]) -> Tuple[Dict[str, List[str]], List[str]]:
-    """Automatically group variables by their dotted notation prefix.
+  for var_name in vars_used:
+    var = TemplateVariable(
+      name=var_name,
+      default=var_defaults.get(var_name)
+    )
     
-    Returns:
-      (groups, standalone) where:
-      - groups: Dict mapping group name to list of variable names in that group
-      - standalone: List of variable names that aren't in any group
-    """
-    groups = OrderedDict()
-    standalone = []
-    all_var_names = list(variables.keys())
+    # Detect if it's an enabler
+    var.is_enabler = var_name in enablers
     
-    for var_name in all_var_names:
-      if '.' in var_name:
-        # This is a grouped variable like 'traefik.host'
-        prefix = var_name.split('.')[0]
-        if prefix not in groups:
-          groups[prefix] = []
-        groups[prefix].append(var_name)
-      else:
-        # Check if this is a group parent (has children)
-        is_group_parent = any(v.startswith(f"{var_name}.") for v in all_var_names)
-        if is_group_parent:
-          if var_name not in groups:
-            groups[var_name] = []
-          # The parent itself is not added to the group list, it's the enabler
-        else:
-          # Truly standalone variable
-          standalone.append(var_name)
+    # Detect if it's a dict variable
+    if var_name in var_dict_keys:
+      var.is_dict = True
+      var.dict_keys = var_dict_keys[var_name]
+      # Dict variables might have dict defaults
+      if isinstance(var.default, dict):
+        var.type = "dict"
     
-    return groups, standalone
+    # Infer type from default value
+    if var.default is not None and var.type == "string":
+      if isinstance(var.default, bool):
+        var.type = "boolean"
+      elif isinstance(var.default, int):
+        var.type = "integer"
+      elif isinstance(var.default, float):
+        var.type = "float"
+    
+    # If it's an enabler without a default, assume boolean
+    if var.is_enabler and var.default is None:
+      var.type = "boolean"
+      var.default = False  # Default enablers to False
+    
+    # Detect group from dotted notation
+    if '.' in var_name:
+      var.group = var_name.split('.')[0]
+    
+    variables[var_name] = var
+  
+  return variables
+
+
+def _detect_enablers(template_content: str) -> Set[str]:
+  """Detect variables used as enablers in {% if %} conditions.
+  
+  Args:
+    template_content: The raw template content
+  
+  Returns:
+    Set of variable names that are used as enablers
+  """
+  import re
+  enablers = set()
+  
+  # Find variables used in {% if var %} patterns
+  # This catches: {% if var %}, {% if not var %}, {% if var and ... %}
+  if_pattern = re.compile(r'{%\s*if\s+(not\s+)?(\w+)(?:\s|%)', re.MULTILINE)
+  for match in if_pattern.finditer(template_content):
+    var_name = match.group(2)
+    # Skip Jinja2 keywords
+    if var_name not in ['true', 'false', 'none', 'True', 'False', 'None']:
+      enablers.add(var_name)
+  
+  return enablers

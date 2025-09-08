@@ -1,28 +1,25 @@
-"""Simplified prompt handler for dotted notation variables."""
+"""Simplified prompt handler for template variables."""
 from typing import Dict, Any, List, Tuple, Optional
 from collections import OrderedDict
 from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt, FloatPrompt
 import logging
+from .variables import TemplateVariable
 
 logger = logging.getLogger('boilerplates')
 console = Console()
 
 
 class SimplifiedPromptHandler:
-  """Clean prompt handler for dotted notation variables."""
+  """Prompt handler for template-detected variables."""
   
-  def __init__(self, variables: Dict[str, Any], defaults: Dict[str, Any], dict_keys: Dict[str, List[str]] = None):
-    """Initialize with template variables and defaults.
+  def __init__(self, variables: Dict[str, TemplateVariable]):
+    """Initialize with template variables.
     
     Args:
-      variables: Dict of variable name to Variable object
-      defaults: Dict of variable name to default value
-      dict_keys: Dict variables and their keys used in template
+      variables: Dict of variable name to TemplateVariable object
     """
     self.variables = variables
-    self.defaults = defaults
-    self.dict_keys = dict_keys or {}
     self.values = {}
     
   def __call__(self) -> Dict[str, Any]:
@@ -41,7 +38,7 @@ class SimplifiedPromptHandler:
     return self.values
   
   def _group_variables(self) -> Tuple[Dict[str, List[str]], List[str]]:
-    """Group variables by their prefix, preserving registration order.
+    """Group variables by their prefix or enabler status.
     
     Returns:
       (groups, standalone) where groups is {prefix: [var_names]}
@@ -49,21 +46,24 @@ class SimplifiedPromptHandler:
     groups = OrderedDict()
     standalone = []
     
-    # Process variables in registration order
-    for var_name in self.variables.keys():
-      if '.' in var_name:
-        # This is a child variable (e.g., 'traefik.host')
-        prefix = var_name.split('.')[0]
-        
-        # Create group if needed (preserves first encounter order)
-        if prefix not in groups:
-          groups[prefix] = []
-        
-        # Add to group
-        groups[prefix].append(var_name)
+    # First pass: identify all groups
+    for var_name, var in self.variables.items():
+      if var.group:
+        # This variable belongs to a group
+        if var.group not in groups:
+          groups[var.group] = []
+        groups[var.group].append(var_name)
       else:
-        # Standalone variable (no dots)
-        standalone.append(var_name)
+        # Check if this is an enabler for other variables
+        # An enabler is a variable that other variables use as their group
+        is_group_enabler = any(v.group == var_name for v in self.variables.values())
+        if is_group_enabler:
+          if var_name not in groups:
+            groups[var_name] = []
+          # The enabler itself is not added to the group list
+        else:
+          # Truly standalone variable
+          standalone.append(var_name)
     
     return groups, standalone
   
@@ -79,36 +79,38 @@ class SimplifiedPromptHandler:
     # Deduplicate variables
     var_names = list(dict.fromkeys(var_names))  # Preserves order while removing duplicates
     
-    # Check if this group has an enabler (standalone variable with same name as group)
+    # Check if this group has an enabler
     group_name = display_name.lower()
     enabler = None
     if is_group and group_name in self.variables:
-      enabler = group_name
-      # Ask about enabler first
-      console.print(f"\n[bold cyan]{display_name} Configuration[/bold cyan]")
-      var = self.variables[enabler]
-      enabled = Confirm.ask(
-        f"Enable {enabler}?", 
-        default=bool(self.defaults.get(enabler, False))
-      )
-      self.values[enabler] = enabled
-      
-      if not enabled:
-        # Skip all group variables
-        return
+      enabler_var = self.variables[group_name]
+      if enabler_var.is_enabler:
+        enabler = group_name
+        # Ask about enabler first
+        console.print(f"\n[bold cyan]{display_name} Configuration[/bold cyan]")
+        enabled = Confirm.ask(
+          f"Enable {enabler}?", 
+          default=bool(enabler_var.default)
+        )
+        self.values[enabler] = enabled
+        
+        if not enabled:
+          # Skip all group variables
+          return
     
     # Split into required and optional
     required = []
     optional = []
     for var_name in var_names:
-      if var_name in self.defaults:
-        optional.append(var_name)
-      else:
+      var = self.variables[var_name]
+      if var.is_required:
         required.append(var_name)
+      else:
+        optional.append(var_name)
     
     # Apply defaults
     for var_name in optional:
-      self.values[var_name] = self.defaults[var_name]
+      self.values[var_name] = self.variables[var_name].default
     
     # Process required variables
     if required:
@@ -116,12 +118,11 @@ class SimplifiedPromptHandler:
         console.print(f"\n[bold cyan]{display_name} - Required Configuration[/bold cyan]")
       for var_name in required:
         var = self.variables[var_name]
-        if var_name in self.dict_keys:
-          console.print(f"\n[cyan]{var.description or var_name}[/cyan]")
-          self.values[var_name] = self._prompt_dict_variable(var_name, var)
+        if var.is_dict:
+          console.print(f"\n[cyan]{var.name}[/cyan]")
+          self.values[var_name] = self._prompt_dict_variable(var)
         else:
-          display = var_name.replace('.', ' ') if is_group else var_name
-          self.values[var_name] = self._prompt_variable(display, var, required=True)
+          self.values[var_name] = self._prompt_variable(var, required=True)
     
     # Process optional variables
     if optional:
@@ -133,36 +134,30 @@ class SimplifiedPromptHandler:
       
       if Confirm.ask("Do you want to change any values?", default=False):
         for var_name in optional:
-          # Skip the enabler variable as it was already handled
-          if var_name == enabler:
-            continue
           var = self.variables[var_name]
-          if var_name in self.dict_keys:
-            console.print(f"\n[cyan]{var.description or var_name}[/cyan]")
+          if var.is_dict:
+            console.print(f"\n[cyan]{var.name}[/cyan]")
             self.values[var_name] = self._prompt_dict_variable(
-              var_name, var, current_values=self.values.get(var_name, {})
+              var, current_values=self.values.get(var_name, {})
             )
           else:
-            display = var_name.replace('.', ' ') if is_group else var_name
             self.values[var_name] = self._prompt_variable(
-              display, var, current_value=self.values[var_name]
+              var, current_value=self.values[var_name]
             )
   
   
-  def _prompt_dict_variable(self, var_name: str, var: Any, current_values: Dict[str, Any] = None) -> Dict[str, Any]:
+  def _prompt_dict_variable(self, var: TemplateVariable, current_values: Dict[str, Any] = None) -> Dict[str, Any]:
     """Prompt for a dict variable with dynamic keys."""
     result = {}
-    keys = self.dict_keys.get(var_name, [])
     current_values = current_values or {}
     
-    for key in keys:
+    for key in var.dict_keys:
       # Use current value if available, otherwise check for default
       current_value = current_values.get(key)
-      if current_value is None:
-        if var_name in self.defaults and isinstance(self.defaults[var_name], dict):
-          current_value = self.defaults[var_name].get(key)
+      if current_value is None and isinstance(var.default, dict):
+        current_value = var.default.get(key)
       
-      prompt_msg = f"Enter {var_name}['{key}']"
+      prompt_msg = f"Enter {var.name}['{key}']"
       if current_value is not None:
         prompt_msg += f" [dim]({current_value})[/dim]"
       else:
@@ -187,31 +182,25 @@ class SimplifiedPromptHandler:
   def _show_variables(self, var_names: List[str]):
     """Display current variable values."""
     for var_name in var_names:
-      value = self.values.get(var_name, self.defaults.get(var_name))
+      var = self.variables[var_name]
+      value = self.values.get(var_name, var.default)
       if value is not None:
-        display_name = var_name.replace('.', ' ')
         # Special formatting for dict values - show each key separately
         if isinstance(value, dict):
           for key, val in value.items():
-            console.print(f"  {display_name}['{key}']: [dim]{val}[/dim]")
+            console.print(f"  {var.display_name}['{key}']: [dim]{val}[/dim]")
         else:
-          console.print(f"  {display_name}: [dim]{value}[/dim]")
+          console.print(f"  {var.display_name}: [dim]{value}[/dim]")
   
   def _prompt_variable(
     self, 
-    name: str, 
-    var: Any, 
+    var: TemplateVariable, 
     required: bool = False,
     current_value: Any = None
   ) -> Any:
     """Prompt for a single variable value."""
-    var_type = var.type if hasattr(var, 'type') else 'string'
-    description = var.description if hasattr(var, 'description') else ''
-    
     # Build prompt message
-    parts = [f"Enter {name}"]
-    if description:
-      parts.append(f"({description})")
+    parts = [f"Enter {var.display_name}"]
     if current_value is not None:
       parts.append(f"[dim]({current_value})[/dim]")
     elif required:
@@ -220,11 +209,11 @@ class SimplifiedPromptHandler:
     prompt_msg = " ".join(parts)
     
     # Handle different types
-    if var_type == 'boolean':
+    if var.type == 'boolean':
       default = bool(current_value) if current_value is not None else None
       return Confirm.ask(prompt_msg, default=default)
     
-    elif var_type == 'integer':
+    elif var.type == 'integer':
       default = int(current_value) if current_value is not None else None
       while True:
         try:
@@ -232,7 +221,7 @@ class SimplifiedPromptHandler:
         except ValueError:
           console.print("[red]Please enter a valid integer[/red]")
     
-    elif var_type == 'float':
+    elif var.type == 'float':
       default = float(current_value) if current_value is not None else None
       while True:
         try:

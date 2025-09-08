@@ -6,6 +6,7 @@ import re
 from jinja2 import Environment, BaseLoader, meta, nodes, TemplateSyntaxError
 import frontmatter
 from .exceptions import TemplateValidationError
+from .variables import TemplateVariable, analyze_template_variables
 
 
 @dataclass
@@ -36,6 +37,7 @@ class Template:
   vars: Set[str] = field(default_factory=set, init=False)
   var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
   var_dict_keys: Dict[str, List[str]] = field(default_factory=dict, init=False)  # Track dict access patterns
+  variables: Dict[str, TemplateVariable] = field(default_factory=dict, init=False)  # Analyzed variables
   
   def __post_init__(self):
     """Initialize computed properties after dataclass initialization."""
@@ -51,6 +53,10 @@ class Template:
     
     # Parse template variables
     self.vars, self.var_defaults, self.var_dict_keys = self._parse_template_variables(self.content)
+    # Analyze variables to create TemplateVariable objects
+    self.variables = analyze_template_variables(
+      self.vars, self.var_defaults, self.var_dict_keys, self.content
+    )
   
   @staticmethod
   def _create_jinja_env() -> Environment:
@@ -93,9 +99,11 @@ class Template:
   def _parse_template_variables(self, template_content: str) -> Tuple[Set[str], Dict[str, Any], Dict[str, List[str]]]:
     """Parse Jinja2 template to extract variables and their defaults.
     
-    Two separate approaches:
-    - Dotted notation (traefik.host): Must be defined in module
-    - Dict notation (service_port['http']): Dynamic keys allowed
+    Handles multiple patterns:
+    - Simple variables: service_name
+    - Dotted notation: traefik.host
+    - Dict notation: service_port['http']
+    - Nested patterns: nginx_dashboard.port['dashboard']
     
     Returns:
         Tuple of (all_variable_names, variable_defaults, dict_access_patterns)
@@ -107,15 +115,36 @@ class Template:
       # Start with variables found by Jinja2's meta utility
       all_variables = meta.find_undeclared_variables(ast)
       
-      # Track dict access patterns (e.g., service_port['http'])
+      # Track dict access patterns
       dict_keys = {}  # var_name -> list of keys accessed
+      
+      # Handle all Getitem nodes (dict access)
       for node in ast.find_all(nodes.Getitem):
         if isinstance(node.arg, nodes.Const) and isinstance(node.arg.value, str):
-          # This is dict access with a string key
+          key = node.arg.value
           current = node.node
-          if isinstance(current, nodes.Name):
+          
+          # Handle nested patterns like nginx_dashboard.port['dashboard']
+          if isinstance(current, nodes.Getattr):
+            # Build the full dotted name
+            parts = [current.attr]
+            base = current.node
+            while isinstance(base, nodes.Getattr):
+              parts.insert(0, base.attr)
+              base = base.node
+            if isinstance(base, nodes.Name):
+              parts.insert(0, base.name)
+              var_name = '.'.join(parts)
+              # This is a dotted variable with dict access
+              all_variables.add(var_name)
+              if var_name not in dict_keys:
+                dict_keys[var_name] = []
+              if key not in dict_keys[var_name]:
+                dict_keys[var_name].append(key)
+          
+          # Handle simple dict access like service_port['http']
+          elif isinstance(current, nodes.Name):
             var_name = current.name
-            key = node.arg.value
             if var_name not in dict_keys:
               dict_keys[var_name] = []
             if key not in dict_keys[var_name]:
@@ -141,17 +170,39 @@ class Template:
           # Handle simple variable defaults: {{ var | default(value) }}
           if isinstance(node.node, nodes.Name):
             defaults[node.node.name] = node.args[0].value
-          # Handle dict access defaults: {{ var['key'] | default(value) }}
+          
+          # Handle dict access defaults
           elif isinstance(node.node, nodes.Getitem):
-            if isinstance(node.node.arg, nodes.Const) and isinstance(node.node.node, nodes.Name):
-              var_name = node.node.node.name
+            if isinstance(node.node.arg, nodes.Const):
               key = node.node.arg.value
-              if var_name not in defaults:
-                defaults[var_name] = {}
-              if not isinstance(defaults[var_name], dict):
-                defaults[var_name] = {}
-              defaults[var_name][key] = node.args[0].value
-          # Handle dotted variable defaults: {{ port.http | default(8080) }}
+              
+              # Handle nested pattern defaults: {{ nginx_dashboard.port['dashboard'] | default(8081) }}
+              if isinstance(node.node.node, nodes.Getattr):
+                # Build the full dotted name
+                parts = []
+                current = node.node.node
+                while isinstance(current, nodes.Getattr):
+                  parts.insert(0, current.attr)
+                  current = current.node
+                if isinstance(current, nodes.Name):
+                  parts.insert(0, current.name)
+                  var_name = '.'.join(parts)
+                  if var_name not in defaults:
+                    defaults[var_name] = {}
+                  if not isinstance(defaults[var_name], dict):
+                    defaults[var_name] = {}
+                  defaults[var_name][key] = node.args[0].value
+              
+              # Handle simple dict defaults: {{ var['key'] | default(value) }}
+              elif isinstance(node.node.node, nodes.Name):
+                var_name = node.node.node.name
+                if var_name not in defaults:
+                  defaults[var_name] = {}
+                if not isinstance(defaults[var_name], dict):
+                  defaults[var_name] = {}
+                defaults[var_name][key] = node.args[0].value
+          
+          # Handle dotted variable defaults: {{ traefik.host | default('example.com') }}
           elif isinstance(node.node, nodes.Getattr):
             # Build the full dotted name
             current = node.node
@@ -169,12 +220,8 @@ class Template:
       logging.getLogger('boilerplates').debug(f"Error parsing template variables: {e}")
       return set(), {}, {}
 
-  def validate(self, registered_variables: Set[str]) -> List[str]:
+  def validate(self) -> List[str]:
     """Validate template integrity.
-    
-    Args:
-        registered_variables: Set of variable names registered by the module.
-                             Required for proper variable validation.
     
     Returns:
         List of validation error messages. Empty list if valid.
@@ -193,25 +240,8 @@ class Template:
     except Exception as e:
       raise TemplateValidationError(self.id, [f"Template parsing error: {str(e)}"])
     
-    # Check for undefined variables
-    # Dotted variables MUST be registered in the module (even if they have defaults)
-    # Dict variables only need the base name registered
-    undefined = []
-    for var in self.vars:
-      if '.' in var:
-        # Dotted variable MUST be registered (defaults don't excuse them)
-        if var not in registered_variables:
-          undefined.append(var)
-      else:
-        # Non-dotted variable
-        if var not in registered_variables and var not in self.var_defaults:
-          # Check if it's a dict variable with keys
-          if var not in self.var_dict_keys:
-            undefined.append(var)
-    
-    if undefined:
-      var_list = ", ".join(sorted(undefined))
-      errors.append(f"Undefined variables (dotted variables must be registered in module): {var_list}")
+    # All variables are now auto-detected, no need to check for undefined
+    # The template parser will have found all variables used
     
     # Check for missing required frontmatter fields
     if not self.name or self.name == self.file_path.parent.name:

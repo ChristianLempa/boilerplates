@@ -8,14 +8,13 @@ from .config import get_config
 from .exceptions import TemplateNotFoundError, TemplateValidationError
 from .library import LibraryManager
 from .prompt import SimplifiedPromptHandler
-from .variables import VariableRegistry
 
 logger = logging.getLogger('boilerplates')
 console = Console()  # Single shared console instance
 
 
 class Module(ABC):
-  """Streamlined base module with minimal redundancy."""
+  """Streamlined base module that auto-detects variables from templates."""
   
   # Required class attributes for subclasses
   name = None
@@ -29,11 +28,6 @@ class Module(ABC):
       )
     
     self.libraries = LibraryManager()
-    self.variables = VariableRegistry()
-    
-    # Allow subclasses to initialize variables if they override this
-    if hasattr(self, '_init_variables'):
-      self._init_variables()
 
 
   def list(self):
@@ -120,62 +114,36 @@ class Module(ABC):
   
   def _validate_template(self, template, template_id: str) -> None:
     """Validate template and raise error if validation fails."""
-    # Get registered variables for validation
-    registered_vars = set(self.variables.variables.keys())
-    
-    # Validate will raise TemplateValidationError for critical errors (syntax)
-    # and return a list of warnings for non-critical issues
-    warnings = template.validate(registered_vars)
+    # Template is now self-validating, no need for registered variables
+    warnings = template.validate()
     
     # If there are non-critical warnings, log them but don't fail
     if warnings:
       logger.warning(f"Template '{template_id}' has validation warnings: {warnings}")
-      # Optionally, you could still raise an error for strict validation:
-      # raise TemplateValidationError(template_id, warnings)
   
   def _process_variables(self, template) -> Dict[str, Any]:
     """Process template variables with prompting."""
-    # Get variables used in template that are registered
-    template_vars = self.variables.get_variables_for_template(list(template.vars))
-    if not template_vars:
+    # Use template's analyzed variables
+    if not template.variables:
       return {}
     
-    # Collect all defaults from variables and template
+    # Collect defaults from analyzed variables
     defaults = {}
-    for var_name, var in template_vars.items():
+    for var_name, var in template.variables.items():
       if var.default is not None:
         defaults[var_name] = var.default
-    
-    # Handle dict variable defaults specially
-    # Auto-detect dict type from template usage
-    for var_name, var in template_vars.items():
-      # If template uses dict access, treat it as dict type regardless of registration
-      if var_name in template.var_dict_keys:
-        # This is a dict variable with dynamic keys
-        # Get defaults for each key from template
-        if var_name in template.var_defaults and isinstance(template.var_defaults[var_name], dict):
-          if var_name not in defaults:
-            defaults[var_name] = {}
-          defaults[var_name].update(template.var_defaults[var_name])
-    
-    # Also add template defaults for regular variables
-    for k, v in template.var_defaults.items():
-      if not isinstance(v, dict):  # Skip dict defaults, already handled
-        defaults[k] = v
     
     # Use rich output if enabled
     if not get_config().use_rich_output:
       # Simple fallback - just prompt for missing values
       values = defaults.copy()
-      for var_name, var in template_vars.items():
+      for var_name, var in template.variables.items():
         if var_name not in values:
-          desc = f" ({var.description})" if var.description else ""
-          values[var_name] = input(f"Enter {var_name}{desc}: ")
+          values[var_name] = input(f"Enter {var_name}: ")
       return values
     
-    # Pass dict keys info to prompt handler
-    # Use the new simplified prompt handler with dict support
-    return SimplifiedPromptHandler(template_vars, defaults, template.var_dict_keys)()
+    # Use the new simplified prompt handler with template's analyzed variables
+    return SimplifiedPromptHandler(template.variables)()
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""
