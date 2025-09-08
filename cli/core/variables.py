@@ -21,6 +21,13 @@ class TemplateVariable:
   # Grouping info (extracted from dotted notation)
   group: Optional[str] = None  # e.g., 'traefik' for 'traefik.host'
   
+  # Metadata for enhanced UX
+  description: Optional[str] = None  # Override for variable description
+  hint: Optional[str] = None  # Helpful hint shown during input
+  tip: Optional[str] = None  # Additional tip or best practice
+  icon: Optional[str] = None  # Icon for this specific variable
+  validation: Optional[str] = None  # Regex pattern for validation
+  
   @property
   def display_name(self) -> str:
     """Get display name for prompts."""

@@ -21,6 +21,7 @@ class SimplifiedPromptHandler:
     """
     self.variables = variables
     self.values = {}
+    self.category_metadata = {}  # Will be set by Module if available
     
   def __call__(self) -> Dict[str, Any]:
     """Execute the prompting flow."""
@@ -127,13 +128,16 @@ class SimplifiedPromptHandler:
       if display_optional:
         console.print()
         self._show_variables_compact(display_name, display_optional)
-      
-      if display_optional and Confirm.ask("  Do you want to change any values?", default=False):
-        for var_name in optional:
-          var = self.variables[var_name]
-          self.values[var_name] = self._prompt_variable(
-            var, current_value=self.values[var_name]
-          )
+        
+        if Confirm.ask("Do you want to change any values?", default=False):
+          for var_name in optional:
+            # Skip the enabler variable as it was already handled
+            if var_name == enabler:
+              continue
+            var = self.variables[var_name]
+            self.values[var_name] = self._prompt_variable(
+              var, current_value=self.values[var_name]
+            )
   
   def _show_variables_compact(self, category: str, var_names: List[str]):
     """Display variables in compact format with icon."""
@@ -154,22 +158,16 @@ class SimplifiedPromptHandler:
     if items:
       # Use different icons based on category
       icon = self._get_category_icon(category)
-      console.print(f"  {icon} [bold]{category}:[/bold] [dim white]{', '.join(items)}[/dim white]")
+      console.print(f"{icon}[bold]{category}:[/bold] [dim white]{', '.join(items)}[/dim white]")
   
   def _get_category_icon(self, category: str) -> str:
     """Get icon for a category."""
-    icons = {
-      'general': '📦',
-      'network': '🌐',
-      'traefik': '🔀',
-      'swarm': '🐝',
-      'nginx_dashboard': '📊',
-      'service_port': '🔌',
-      'security': '🔒',
-      'storage': '💾',
-      'monitoring': '📈',
-    }
-    return icons.get(category.lower(), '⚙️')  # Default gear icon
+    # Only use icons from metadata
+    if self.category_metadata and category.lower() in self.category_metadata:
+      cat_meta = self.category_metadata[category.lower()]
+      if 'icon' in cat_meta:
+        return cat_meta['icon'] + ' '
+    return ''  # No icon if not defined in metadata
   
   def _prompt_variable(
     self, 
@@ -178,14 +176,25 @@ class SimplifiedPromptHandler:
     current_value: Any = None
   ) -> Any:
     """Prompt for a single variable value."""
-    # Build prompt message
-    parts = [f"Enter {var.display_name}"]
-    if current_value is not None:
-      parts.append(f"[dim]({current_value})[/dim]")
-    elif required:
-      parts.append("[red](Required)[/red]")
+    # Build prompt message with description if available
+    display_text = var.description if var.description else var.display_name
     
-    prompt_msg = " ".join(parts)
+    # Add hint if available
+    hint_text = ""
+    if var.hint:
+      hint_text = f" [dim]({var.hint})[/dim]"
+    
+    # Build the full prompt
+    if current_value is not None:
+      prompt_msg = f"Enter {display_text}{hint_text} [dim]({current_value})[/dim]"
+    elif required:
+      prompt_msg = f"Enter {display_text}{hint_text} [red](Required)[/red]"
+    else:
+      prompt_msg = f"Enter {display_text}{hint_text}"
+    
+    # Show tip if available
+    if var.tip:
+      console.print(f"[dim cyan]💡 {var.tip}[/dim cyan]")
     
     # Handle different types
     if var.type == 'boolean':

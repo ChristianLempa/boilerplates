@@ -2,6 +2,7 @@ from abc import ABC
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
+import yaml
 from typer import Typer, Option, Argument
 from rich.console import Console
 from .config import get_config
@@ -28,6 +29,23 @@ class Module(ABC):
       )
     
     self.libraries = LibraryManager()
+    self.metadata = self._load_metadata()
+  
+  def _load_metadata(self) -> Dict[str, Any]:
+    """Load module metadata from .meta.yaml file if it exists."""
+    import inspect
+    # Get the path to the actual module file
+    module_path = Path(inspect.getfile(self.__class__))
+    meta_file = module_path.with_suffix('.meta.yaml')
+    
+    if meta_file.exists():
+      try:
+        with open(meta_file, 'r') as f:
+          return yaml.safe_load(f) or {}
+      except Exception as e:
+        logger.debug(f"Failed to load metadata for {self.name}: {e}")
+    
+    return {}
 
 
   def list(self):
@@ -127,6 +145,9 @@ class Module(ABC):
     if not template.variables:
       return {}
     
+    # Apply metadata to variables
+    self._apply_metadata_to_variables(template.variables, template.variable_metadata)
+    
     # Collect defaults from analyzed variables
     defaults = {}
     for var_name, var in template.variables.items():
@@ -142,8 +163,43 @@ class Module(ABC):
           values[var_name] = input(f"Enter {var_name}: ")
       return values
     
-    # Use the new simplified prompt handler with template's analyzed variables
-    return SimplifiedPromptHandler(template.variables)()
+    # Pass metadata to prompt handler
+    prompt_handler = SimplifiedPromptHandler(template.variables)
+    prompt_handler.category_metadata = self.metadata.get('categories', {})
+    return prompt_handler()
+  
+  def _apply_metadata_to_variables(self, variables: Dict[str, Any], template_metadata: Dict[str, Any]):
+    """Apply metadata from module and template to variables."""
+    # First apply module metadata
+    module_var_metadata = self.metadata.get('variables', {})
+    for var_name, var in variables.items():
+      if var_name in module_var_metadata:
+        meta = module_var_metadata[var_name]
+        if 'hint' in meta and not var.hint:
+          var.hint = meta['hint']
+        if 'description' in meta and not var.description:
+          var.description = meta['description']
+        if 'tip' in meta and not var.tip:
+          var.tip = meta['tip']
+        if 'validation' in meta and not var.validation:
+          var.validation = meta['validation']
+        if 'icon' in meta and not var.icon:
+          var.icon = meta['icon']
+    
+    # Then apply template metadata (overrides module metadata)
+    for var_name, var in variables.items():
+      if var_name in template_metadata:
+        meta = template_metadata[var_name]
+        if 'hint' in meta:
+          var.hint = meta['hint']
+        if 'description' in meta:
+          var.description = meta['description']
+        if 'tip' in meta:
+          var.tip = meta['tip']
+        if 'validation' in meta:
+          var.validation = meta['validation']
+        if 'icon' in meta:
+          var.icon = meta['icon']
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""

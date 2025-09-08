@@ -26,6 +26,7 @@ class Template:
   module: str = ""
   tags: List[str] = field(default_factory=list)
   files: List[str] = field(default_factory=list)
+  variable_metadata: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # Variable hints/tips from frontmatter
   
   # Computed properties (will be set in __post_init__)
   id: str = field(init=False)
@@ -82,7 +83,8 @@ class Template:
         version=frontmatter_data.get('version', ''),
         module=frontmatter_data.get('module', ''),
         tags=frontmatter_data.get('tags', []),
-        files=frontmatter_data.get('files', [])
+        files=frontmatter_data.get('files', []),
+        variable_metadata=frontmatter_data.get('variables', {})
       )
     except Exception:
       # If frontmatter parsing fails, create a basic Template object
