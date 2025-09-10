@@ -4,69 +4,66 @@ Main entry point for the Boilerplates CLI application.
 This file serves as the primary executable when running the CLI.
 """
 import importlib
-import logging
 import pkgutil
 import sys
 from pathlib import Path
-from typer import Typer, Option, Context
+from typer import Typer, Context
+from rich.console import Console
 import cli.modules
 from cli.core.registry import registry
+from cli.core.exceptions import BoilerplateError
 
 app = Typer(no_args_is_help=True)
-
-# Set up logging
-logging.basicConfig(
-    level=logging.CRITICAL,
-    format='[%(levelname)s] %(message)s',
-    stream=sys.stdout
-)
-logger = logging.getLogger('boilerplates')
+console = Console()
 
 @app.callback()
-def main(
-    ctx: Context,
-    debug: bool = Option(False, "--debug", help="Enable debug logging")
-):
+def main(ctx: Context):
   """Main CLI application for managing boilerplates."""
-  # Enable debug logging if requested
-  if debug:
-    logging.getLogger('boilerplates').setLevel(logging.DEBUG)
-    logger.debug("Debug logging enabled")
-  
-  logger.debug("Starting boilerplates CLI application")
+  pass
 
 def init_app():
   """Initialize the application by discovering and registering modules."""
   try:
     # Auto-discover and import all modules
     modules_path = Path(cli.modules.__file__).parent
-    logger.debug(f"Discovering modules in: {modules_path}")
     
     for finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
       if not ispkg and not name.startswith('_') and name != 'base':
         try:
-          logger.debug(f"Importing module: {name}")
           importlib.import_module(f"cli.modules.{name}")
         except ImportError as e:
-          logger.warning(f"Could not import {name}: {e}")
+          # Silently skip modules that can't be imported
+          pass
     
     # Register modules with app
-    logger.debug(f"Registering {len(registry.create_instances())} modules")
     for module in registry.create_instances():
       try:
-        logger.debug(f"Registering module: {module.__class__.__name__}")
         module.register_cli(app)
       except Exception as e:
-        logger.error(f"Error registering {module.__class__.__name__}: {e}")
+        console.print(f"[yellow]Warning:[/yellow] Error registering {module.__class__.__name__}: {e}")
     
   except Exception as e:
-    logger.error(f"Application initialization error: {e}")
-    exit(1)
+    console.print(f"[bold red]Application initialization error:[/bold red] {e}")
+    sys.exit(1)
 
 def run():
   """Run the CLI application."""
-  init_app()
-  app()
+  try:
+    init_app()
+    app()
+  except BoilerplateError as e:
+    # Handle our custom exceptions cleanly without stack trace
+    console.print(f"[bold red]Error:[/bold red] {e}")
+    sys.exit(1)
+  except KeyboardInterrupt:
+    # Handle Ctrl+C gracefully
+    console.print("\n[yellow]Operation cancelled by user[/yellow]")
+    sys.exit(130)
+  except Exception as e:
+    # Handle unexpected errors - show simplified message
+    console.print(f"[bold red]Unexpected error:[/bold red] {e}")
+    console.print("[dim]Run with --debug for more details[/dim]")
+    sys.exit(1)
 
 if __name__ == "__main__":
   run()

@@ -52,6 +52,9 @@ class Library:
         if file_path.is_file():
           # Create Template object using the new class method
           template = Template.from_file(file_path)
+          # Set module context if not already specified in frontmatter
+          if not template.module:
+            template.module = module_name
           templates.append(template)
 
     if sorted:

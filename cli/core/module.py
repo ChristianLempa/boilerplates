@@ -58,12 +58,8 @@ class Module(ABC):
 
   def show(self, id: str = Argument(..., help="Template ID")):
     """Show template details."""
-    logger.debug(f"Showing template: {id}")
-    
     template = self._get_template(id)
-    if not template:
-      return
-    
+
     # Header
     version = f" v{template.version}" if template.version else ""
     console.print(f"[bold magenta]{template.name} ({template.id}{version})[/bold magenta]")
@@ -86,18 +82,15 @@ class Module(ABC):
     
     # Content
     if template.content:
-      console.print(f"\n{template.content}")
-  
-  def _get_template(self, template_id: str, raise_on_missing: bool = False):
+      print(f"\n{template.content}")
+
+  def _get_template(self, template_id: str):
     """Get template by ID with unified error handling."""
     template = self.libraries.find_by_id(self.name, self.files, template_id)
     
     if not template:
-      logger.error(f"Template '{template_id}' not found")
-      if raise_on_missing:
-        raise TemplateNotFoundError(template_id, self.name)
-      console.print(f"[red]Template '{template_id}' not found[/red]")
-    
+      raise TemplateNotFoundError(template_id, self.name)
+
     return template
 
   def generate(
@@ -106,17 +99,19 @@ class Module(ABC):
     out: Optional[Path] = Option(None, "--out", "-o")
   ):
     """Generate from template."""
-    logger.debug(f"Generating template: {id}")
-    
-    template = self._get_template(id, raise_on_missing=True)
+    template = self._get_template(id)
     
     # Validate template (will raise TemplateValidationError if validation fails)
     self._validate_template(template, id)
     
-    print("TEST")
+    print("TEST SUCCESSFUL")
   
   def _validate_template(self, template, template_id: str) -> None:
     """Validate template and raise error if validation fails."""
+    from .exceptions import TemplateValidationError
+    
+    validation_errors = []
+    
     # Update template variables with module variable registry
     module_variable_registry = getattr(self, 'variables', None)
     if module_variable_registry:
@@ -125,47 +120,33 @@ class Module(ABC):
       # Validate parent-child relationships in the registry
       registry_errors = module_variable_registry.validate_parent_child_relationships()
       if registry_errors:
-        logger.error(f"Variable registry validation errors: {registry_errors}")
+        validation_errors.extend(registry_errors)
+      
+      # Validate that all template variables are either registered or in template_vars
+      unregistered_vars = []
+      for var_name in template.vars:
+        # Check if variable is registered in module
+        if not module_variable_registry.get_variable(var_name):
+          # Check if it's defined in template's frontmatter variable_metadata (template_vars)
+          if var_name not in template.variable_metadata:
+            unregistered_vars.append(var_name)
+      
+      if unregistered_vars:
+        validation_errors.append(
+          f"Unregistered variables found: {', '.join(unregistered_vars)}. "
+          f"Variables must be either registered in the module or defined in template frontmatter 'variables' section."
+        )
     
-    # Validate template with module variables
-    warnings = template.validate(module_variable_registry)
+    # Validate template syntax and structure
+    template_warnings = template.validate(module_variable_registry)
+    
+    # If there are validation errors, fail with TemplateValidationError
+    if validation_errors:
+      raise TemplateValidationError(template_id, validation_errors)
     
     # If there are non-critical warnings, log them but don't fail
-    if warnings:
-      logger.warning(f"Template '{template_id}' has validation warnings: {warnings}")
-  
-  def _apply_metadata_to_variables(self, variables: Dict[str, Any], template_metadata: Dict[str, Any]):
-    """Apply metadata from module and template to variables."""
-    # First apply module metadata
-    module_var_metadata = self.metadata.get('variables', {})
-    for var_name, var in variables.items():
-      if var_name in module_var_metadata:
-        meta = module_var_metadata[var_name]
-        if 'hint' in meta and not var.hint:
-          var.hint = meta['hint']
-        if 'description' in meta and not var.description:
-          var.description = meta['description']
-        if 'tip' in meta and not var.tip:
-          var.tip = meta['tip']
-        if 'validation' in meta and not var.validation:
-          var.validation = meta['validation']
-        if 'icon' in meta and not var.icon:
-          var.icon = meta['icon']
-    
-    # Then apply template metadata (overrides module metadata)
-    for var_name, var in variables.items():
-      if var_name in template_metadata:
-        meta = template_metadata[var_name]
-        if 'hint' in meta:
-          var.hint = meta['hint']
-        if 'description' in meta:
-          var.description = meta['description']
-        if 'tip' in meta:
-          var.tip = meta['tip']
-        if 'validation' in meta:
-          var.validation = meta['validation']
-        if 'icon' in meta:
-          var.icon = meta['icon']
+    if template_warnings:
+      logger.warning(f"Template '{template_id}' has validation warnings: {template_warnings}")
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""

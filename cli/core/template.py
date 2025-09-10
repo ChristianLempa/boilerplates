@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple, Optional
 from dataclasses import dataclass, field
 import logging
 import re
@@ -37,7 +37,6 @@ class Template:
   # Template variable analysis results
   vars: Set[str] = field(default_factory=set, init=False)
   var_defaults: Dict[str, Any] = field(default_factory=dict, init=False)
-  
   def __post_init__(self):
     """Initialize computed properties after dataclass initialization."""
     # Set default name if not provided
@@ -180,7 +179,7 @@ class Template:
     # The template parser will have found all variables used
     
     # Check for missing required frontmatter fields
-    if not self.name or self.name == self.file_path.parent.name:
+    if not self.name:
       errors.append("Missing 'name' in frontmatter")
     
     if not self.description or self.description == 'No description available':
