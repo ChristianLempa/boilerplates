@@ -147,59 +147,62 @@ class Template:
       logging.getLogger('boilerplates').debug(f"Error parsing template variables: {e}")
       return set(), {}
 
-  def validate(self, module_variable_metadata: Dict[str, Dict[str, Any]] = None) -> List[str]:
+  def validate(self, module_variable_registry=None, template_id: str = None):
     """Validate template integrity.
     
     Args:
-        module_variable_metadata: Module's variable metadata for validation
-    
-    Returns:
-        List of validation error messages. Empty list if valid.
+        module_variable_registry: Module's VariableRegistry for validation
+        template_id: Template ID for error messages (uses self.id if not provided)
     
     Raises:
-        TemplateValidationError: If validation fails (critical errors only).
+        TemplateValidationError: If validation fails.
     """
-    errors = []
+    import logging
+    from .exceptions import TemplateValidationError
     
-    # Check for Jinja2 syntax errors (critical - should raise immediately)
+    logger = logging.getLogger('boilerplates')
+    template_id = template_id or self.id
+    errors = []
+    warnings = []
+    
+    # Check for Jinja2 syntax errors (critical)
     try:
       env = self._create_jinja_env()
       env.from_string(self.content)
     except TemplateSyntaxError as e:
-      raise TemplateValidationError(self.id, [f"Invalid Jinja2 syntax at line {e.lineno}: {e.message}"])
+      raise TemplateValidationError(template_id, [f"Invalid Jinja2 syntax at line {e.lineno}: {e.message}"])
     except Exception as e:
-      raise TemplateValidationError(self.id, [f"Template parsing error: {str(e)}"])
+      raise TemplateValidationError(template_id, [f"Template parsing error: {str(e)}"])
     
-    # Validate variable definitions (critical - should raise immediately)
-    undefined_vars = self._validate_variable_definitions(module_variable_metadata or {})
+    # Validate module variable registry consistency
+    if module_variable_registry:
+      registry_errors = module_variable_registry.validate_parent_child_relationships()
+      if registry_errors:
+        errors.extend(registry_errors)
+    
+    # Validate variable definitions (critical)
+    undefined_vars = self._validate_variable_definitions(module_variable_registry)
     if undefined_vars:
-      raise TemplateValidationError(self.id, undefined_vars)
+      errors.extend(undefined_vars)
     
-    # All variables are now auto-detected, no need to check for undefined
-    # The template parser will have found all variables used
-    
-    # Check for missing required frontmatter fields
+    # Check for missing frontmatter fields (warnings)
     if not self.name:
-      errors.append("Missing 'name' in frontmatter")
+      warnings.append("Missing 'name' in frontmatter")
     
     if not self.description or self.description == 'No description available':
-      errors.append("Missing 'description' in frontmatter")
+      warnings.append("Missing 'description' in frontmatter")
     
-    # Check for empty content (unless it's intentionally a metadata-only template)
+    # Check for empty content (warning)
     if not self.content.strip() and not self.files:
-      errors.append("Template has no content")
+      warnings.append("Template has no content")
     
-    return errors
-
-  def update_variables_with_module_metadata(self, module_variable_registry) -> None:
-    """Update template variables with module variable registry.
+    # Raise if critical errors found
+    if errors:
+      raise TemplateValidationError(template_id, errors)
     
-    Args:
-        module_variable_registry: Module's VariableRegistry instance
-    """
-    # This method is kept for compatibility but simplified
-    # Variables are now managed directly by the VariableRegistry
-    pass
+    # Log warnings
+    for warning in warnings:
+      logger.warning(f"Template '{template_id}': {warning}")
 
   def _validate_variable_definitions(self, module_variable_registry) -> List[str]:
     """Validate that all template variables are properly defined.
@@ -212,13 +215,23 @@ class Template:
     """
     errors = []
     
-    # For now, simplified validation - just check template-specific variables
-    # Module variables are validated by the VariableRegistry itself
+    if not module_variable_registry:
+      return errors
+    
+    # Check that all template variables are either registered or in frontmatter
+    unregistered_vars = []
     for var_name in self.vars:
-      if var_name.startswith('template.'):
-        # Template-specific variables must be defined in frontmatter
+      # Check if variable is registered in module
+      if not module_variable_registry.get_variable(var_name):
+        # Check if it's defined in template's frontmatter
         if var_name not in self.variable_metadata:
-          errors.append(f"Template variable '{var_name}' must be defined in frontmatter 'variables' section")
+          unregistered_vars.append(var_name)
+    
+    if unregistered_vars:
+      errors.append(
+        f"Unregistered variables found: {', '.join(unregistered_vars)}. "
+        f"Variables must be either registered in the module or defined in template frontmatter 'variables' section."
+      )
     
     return errors
 

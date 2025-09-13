@@ -102,51 +102,10 @@ class Module(ABC):
     template = self._get_template(id)
     
     # Validate template (will raise TemplateValidationError if validation fails)
-    self._validate_template(template, id)
+    module_variable_registry = getattr(self, 'variables', None)
+    template.validate(module_variable_registry, id)
     
     print("TEST SUCCESSFUL")
-  
-  def _validate_template(self, template, template_id: str) -> None:
-    """Validate template and raise error if validation fails."""
-    from .exceptions import TemplateValidationError
-    
-    validation_errors = []
-    
-    # Update template variables with module variable registry
-    module_variable_registry = getattr(self, 'variables', None)
-    if module_variable_registry:
-      template.update_variables_with_module_metadata(module_variable_registry)
-      
-      # Validate parent-child relationships in the registry
-      registry_errors = module_variable_registry.validate_parent_child_relationships()
-      if registry_errors:
-        validation_errors.extend(registry_errors)
-      
-      # Validate that all template variables are either registered or in template_vars
-      unregistered_vars = []
-      for var_name in template.vars:
-        # Check if variable is registered in module
-        if not module_variable_registry.get_variable(var_name):
-          # Check if it's defined in template's frontmatter variable_metadata (template_vars)
-          if var_name not in template.variable_metadata:
-            unregistered_vars.append(var_name)
-      
-      if unregistered_vars:
-        validation_errors.append(
-          f"Unregistered variables found: {', '.join(unregistered_vars)}. "
-          f"Variables must be either registered in the module or defined in template frontmatter 'variables' section."
-        )
-    
-    # Validate template syntax and structure
-    template_warnings = template.validate(module_variable_registry)
-    
-    # If there are validation errors, fail with TemplateValidationError
-    if validation_errors:
-      raise TemplateValidationError(template_id, validation_errors)
-    
-    # If there are non-critical warnings, log them but don't fail
-    if template_warnings:
-      logger.warning(f"Template '{template_id}' has validation warnings: {template_warnings}")
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""
