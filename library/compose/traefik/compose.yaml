@@ -8,6 +8,12 @@ tags:
   - traefik
   - reverse-proxy
   - load-balancer
+files:
+  - config/traefik.yaml
+variables:
+  acme_email:
+    display: "ACME Email"
+    description: "Email address for ACME (Let's Encrypt) registration"
 ---
 services:
   traefik:

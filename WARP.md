@@ -79,6 +79,8 @@ boilerplate --log-level DEBUG [command]
 - `BaseModule`: Abstract base class providing shared commands (config management)
 - Module Commands: Each module implements technology-specific operations
 - Template Library: Structured collection of boilerplates with metadata
+- `Template.vars_map`: Unified variables metadata and defaults (merged from module variables_spec and frontmatter)
+- `PromptHandler`: Interactive prompting based on vars_map and template usage
 
 ### Template Format
 
@@ -109,10 +111,11 @@ tags:
 
 The codebase has been optimized following the ARCHITECTURE_OPTIMIZATION.md plan:
 
-### Simplified Variable System
-- Reduced from 3 classes (Variable, VariableGroup, VariableManager) to 2 classes (Variable, VariableRegistry)
-- Removed complex enable/disable logic
-- Streamlined data transformations
+### Simplified Variable System (2025-09)
+- Replaced custom registry with a unified variables map (vars_map) on Template
+- Module variables are defined as a simple dict (variables_spec) and merged with template frontmatter
+- Dotted names (e.g., traefik.tls.certresolver) imply hierarchy for prompting/sections
+- No separate Variable/Registry classes needed
 
 ### Streamlined Module System
 - Removed decorator pattern (@register_module)

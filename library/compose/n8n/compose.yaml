@@ -10,11 +10,9 @@ tags:
   - workflows
   - compose
 variables:
-  template.custom_config:
-    description: "Custom configuration for n8n"
-    hint: "Additional environment variables or settings"
-    type: "string"
-    default: ""
+  ports.http:
+    description: "Port for HTTP access to n8n"
+    default: "5678"
 ---
 services:
   {{ service_name }}:
@@ -63,7 +61,7 @@ services:
     restart: {{ restart_policy | default('unless-stopped') }}
     {% if ports %}
     ports:
-      - "5678:5678"
+      - "{{ ports.http | default('5678') }}:5678"
     {% endif %}
 
 volumes:

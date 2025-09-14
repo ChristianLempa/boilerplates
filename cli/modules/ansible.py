@@ -9,5 +9,4 @@ class AnsibleModule(Module):
   files = ["playbook.yml", "playbook.yaml", "main.yml", "main.yaml", 
            "site.yml", "site.yaml"]
 
-# Register the module
 registry.register(AnsibleModule)

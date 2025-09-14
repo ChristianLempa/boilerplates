@@ -37,7 +37,7 @@ entryPoints:
 certificatesResolvers:
   cloudflare:
     acme:
-      email: your-email@example.com  # <-- Change this to your email
+      email: {{ acme_email }}
       storage: /var/traefik/certs/cloudflare-acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
