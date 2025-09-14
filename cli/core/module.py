@@ -5,10 +5,10 @@ import logging
 import yaml
 from typer import Typer, Option, Argument
 from rich.console import Console
-from .exceptions import TemplateNotFoundError
+# Using standard Python exceptions
 from .library import LibraryManager
 
-logger = logging.getLogger('boilerplates')
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -31,6 +31,16 @@ class Module(ABC):
     # Initialize variables if the subclass defines _init_variables method
     if hasattr(self, '_init_variables'):
       self._init_variables()
+      
+      # Validate module variable registry consistency after initialization
+      # NOTE: This ensures the module's variable hierarchy is properly structured (e.g., traefik.host requires traefik to exist).
+      # The registry defines parent-child relationships where child variables like 'traefik.tls.certresolver' can only be used
+      # when their parents ('traefik' and 'traefik.tls') are enabled. This prevents invalid module configurations.
+      if hasattr(self, 'variables') and self.variables:
+        registry_errors = self.variables.validate_parent_child_relationships()
+        if registry_errors:
+          error_msg = f"Module '{self.name}' has invalid variable registry:\n" + "\n".join(f"  - {e}" for e in registry_errors)
+          raise ValueError(error_msg)
     
     self.metadata = self._build_metadata()
   
@@ -52,8 +62,12 @@ class Module(ABC):
   def list(self):
     """List all templates."""
     templates = self.libraries.find(self.name, self.files, sorted=True)
+    
+    # Enrich each template with module variables
     for template in templates:
+      self._enrich_template_with_variables(template)
       console.print(f"[cyan]{template.id}[/cyan] - {template.name}")
+    
     return templates
 
   def show(self, id: str = Argument(..., help="Template ID")):
@@ -85,13 +99,117 @@ class Module(ABC):
       print(f"\n{template.content}")
 
   def _get_template(self, template_id: str):
-    """Get template by ID with unified error handling."""
+    """Get template by ID with unified error handling and variable enrichment."""
     template = self.libraries.find_by_id(self.name, self.files, template_id)
     
     if not template:
-      raise TemplateNotFoundError(template_id, self.name)
-
+      raise FileNotFoundError(f"Template '{template_id}' not found in module '{self.name}'")
+    
+    # Enrich template with module variables if available
+    self._enrich_template_with_variables(template)
+    
     return template
+
+  def _enrich_template_with_variables(self, template):
+    """Enrich template with module variable registry defaults (optimized).
+    
+    This method updates the template's vars with module defaults while preserving
+    template-specific variables and frontmatter definitions.
+    
+    Args:
+        template: Template instance to enrich
+    """
+    # Skip if already enriched or no variables
+    if template._is_enriched or not hasattr(self, 'variables') or not self.variables:
+      return
+    
+    logger = logging.getLogger('boilerplates')
+    logger.debug(f"Enriching template '{template.id}' with {len(self.variables.get_all_variables())} module variables")
+    
+    # Get template variables first (this is cached)
+    template_vars = template._parse_template_variables(
+      template.content, 
+      getattr(template, 'frontmatter_variables', {})
+    )
+    
+    # Only get module variables that are actually used in the template
+    used_variables = template._get_used_variables()
+    module_vars = {}
+    module_defaults = {}
+    
+    for var_name in used_variables:
+      var_obj = self.variables.get_variable(var_name)
+      if var_obj:
+        module_vars[var_name] = var_obj.default if var_obj.default is not None else None
+        if var_obj.default is not None:
+          module_defaults[var_name] = var_obj.default
+    
+    if module_defaults:
+      logger.debug(f"Module provides {len(module_defaults)} defaults for used variables: {module_defaults}")
+    
+    # Merge with template taking precedence
+    final_vars = dict(module_vars)
+    overrides = {}
+    
+    for var_name, var_value in template_vars.items():
+      if var_name in final_vars and final_vars[var_name] != var_value and var_value is not None:
+        logger.warning(
+          f"Variable '{var_name}' defined in both module and template. Template takes precedence."
+        )
+        overrides[var_name] = var_value
+      final_vars[var_name] = var_value
+    
+    if overrides:
+      logger.debug(f"Template overrode {len(overrides)} module variables")
+    
+    # Set final variables and mark as enriched
+    template.vars = final_vars
+    template._is_enriched = True
+    
+    logger.debug(f"Template '{template.id}' enriched with {len(final_vars)} final variables")
+
+  def _check_template_readiness(self, template):
+    """Check if template is ready for generation (replaces complex validation).
+    
+    Args:
+        template: Template instance to check
+    
+    Raises:
+        ValueError: If template has critical issues preventing generation
+    """
+    logger = logging.getLogger('boilerplates')
+    errors = []
+    
+    # Check for basic template issues
+    if not template.content.strip():
+      errors.append("Template has no content")
+    
+    # Check for undefined variables (variables used but not available)
+    undefined_vars = []
+    for var_name, var_value in template.vars.items():
+      if var_value is None:
+        # Check if it's in module registry
+        if hasattr(self, 'variables') and self.variables:
+          var_obj = self.variables.get_variable(var_name)
+          if not var_obj:
+            # Not in module registry and no template default - problematic
+            undefined_vars.append(var_name)
+    
+    if undefined_vars:
+      errors.append(
+        f"Template uses undefined variables: {', '.join(undefined_vars)}. "
+        f"These variables are not registered in the module and have no template defaults."
+      )
+    
+    # Check for syntax errors by attempting to create AST
+    try:
+      template._get_ast()
+    except Exception as e:
+      errors.append(f"Template has Jinja2 syntax errors: {str(e)}")
+    
+    if errors:
+      error_msg = f"Template '{template.id}' is not ready for generation:\n" + "\n".join(f"  - {e}" for e in errors)
+      raise ValueError(error_msg)
 
   def generate(
     self,
@@ -99,11 +217,12 @@ class Module(ABC):
     out: Optional[Path] = Option(None, "--out", "-o")
   ):
     """Generate from template."""
+
+    # Fetch template from library
     template = self._get_template(id)
     
-    # Validate template (will raise TemplateValidationError if validation fails)
-    module_variable_registry = getattr(self, 'variables', None)
-    template.validate(module_variable_registry, id)
+    # Check for critical template issues during enrichment
+    self._check_template_readiness(template)
     
     print("TEST SUCCESSFUL")
   

@@ -2,7 +2,7 @@ from pathlib import Path
 import subprocess
 import logging
 from .config import get_config, LibraryConfig
-from .exceptions import RemoteLibraryError
+# Using standard Python exceptions
 
 logger = logging.getLogger('boilerplates')
 
@@ -31,9 +31,33 @@ class Library:
     Returns:
         Template object if found, None otherwise.
     """
+    from .template import Template  # Import here to avoid circular import
+    
+    module_path = self.path / module_name
+    if not module_path.exists():
+      return None
+    
+    # Try to find the template directory directly by ID
+    template_dir = module_path / template_id
+    if template_dir.exists() and template_dir.is_dir():
+      # Look for template files in this specific directory
+      for filename in files:
+        for file_path in template_dir.glob(filename):
+          if file_path.is_file():
+            template = Template.from_file(file_path)
+            # Set module context if not already specified in frontmatter
+            if not template.module:
+              template.module = module_name
+            # Verify this is actually the template we want
+            if template.id == template_id:
+              return template
+    
+    # Fallback to the original method if direct lookup fails
+    # This handles cases where template ID doesn't match directory structure
     for template in self.find(module_name, files, sorted=False):
       if template.id == template_id:
         return template
+    
     return None
 
   def find(self, module_name, files, sorted=False):
@@ -112,10 +136,7 @@ class RemoteLibrary(Library):
         )
         
         if result.returncode != 0:
-          raise RemoteLibraryError(
-            self.name, "clone", 
-            f"Git clone failed: {result.stderr}"
-          )
+          raise ConnectionError(f"Git clone failed for '{self.name}': {result.stderr}")
         
         logger.info(f"Successfully cloned library '{self.name}'")
         return True
@@ -157,10 +178,7 @@ class RemoteLibrary(Library):
           )
           
           if result.returncode != 0:
-            raise RemoteLibraryError(
-              self.name, "pull",
-              f"Git pull failed: {result.stderr}"
-            )
+            raise ConnectionError(f"Git pull failed for '{self.name}': {result.stderr}")
           
           logger.info(f"Successfully updated library '{self.name}' ({behind_count} new commits)")
           return True
@@ -169,15 +187,11 @@ class RemoteLibrary(Library):
           return True
           
     except subprocess.CalledProcessError as e:
-      raise RemoteLibraryError(
-        self.name, "update",
-        f"Command failed: {e.stderr if hasattr(e, 'stderr') else str(e)}"
+      raise RuntimeError(
+        f"Git command failed for '{self.name}': {e.stderr if hasattr(e, 'stderr') else str(e)}"
       )
     except Exception as e:
-      raise RemoteLibraryError(
-        self.name, "update",
-        str(e)
-      )
+      raise RuntimeError(f"Library update failed for '{self.name}': {str(e)}")
   
   def get_info(self) -> dict:
     """Get information about the remote library.

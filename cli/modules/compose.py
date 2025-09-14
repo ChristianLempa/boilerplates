@@ -45,6 +45,13 @@ class ComposeModule(Module):
     ))
     
     self.variables.register_variable(Variable(
+      name="container_hostname",
+      type=VariableType.STR,
+      description="Container hostname (shows up in logs and networking)",
+      display="Container Hostname"
+    ))
+    
+    self.variables.register_variable(Variable(
       name="restart_policy",
       type=VariableType.ENUM,
       description="Container restart policy",

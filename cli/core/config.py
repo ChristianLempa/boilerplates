@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import logging
 import yaml
 
-from .exceptions import ConfigurationError
+# Using standard Python exceptions
 
 logger = logging.getLogger('boilerplates')
 
@@ -91,7 +91,7 @@ class Config:
         return config
         
       except yaml.YAMLError as e:
-        raise ConfigurationError("config.yaml", f"Invalid YAML format: {e}")
+        raise ValueError(f"Invalid YAML format in config.yaml: {e}")
       except Exception as e:
         logger.warning(f"Failed to load config from {config_path}: {e}, using defaults")
         return cls()
@@ -142,7 +142,7 @@ class Config:
         yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
       logger.debug(f"Saved configuration to {config_path}")
     except Exception as e:
-      raise ConfigurationError("config.yaml", f"Failed to save: {e}")
+      raise OSError(f"Failed to save config.yaml: {e}")
   
   def add_library(self, library):
     """Add a library configuration.
@@ -153,10 +153,7 @@ class Config:
     # Check for duplicate names
     existing_names = {lib.name for lib in self.libraries}
     if library.name in existing_names:
-      raise ConfigurationError(
-        f"library:{library.name}",
-        f"Library with name '{library.name}' already exists"
-      )
+      raise ValueError(f"Library with name '{library.name}' already exists")
     
     self.libraries.append(library)
     # Sort by priority (highest first)
