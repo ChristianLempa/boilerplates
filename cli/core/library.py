@@ -4,7 +4,7 @@ import logging
 from .config import get_config, LibraryConfig
 # Using standard Python exceptions
 
-logger = logging.getLogger('boilerplates')
+logger = logging.getLogger(__name__)
 
 
 class Library:
@@ -33,8 +33,11 @@ class Library:
     """
     from .template import Template  # Import here to avoid circular import
     
+    logger.debug(f"Searching for template '{template_id}' in library '{self.name}' at {self.path} (module: {module_name})")
+    
     module_path = self.path / module_name
     if not module_path.exists():
+      logger.debug(f"Module path '{module_path}' does not exist in library '{self.name}'")
       return None
     
     # Try to find the template directory directly by ID
@@ -50,24 +53,31 @@ class Library:
               template.module = module_name
             # Verify this is actually the template we want
             if template.id == template_id:
+              logger.info(f"Found template '{template_id}' in library '{self.name}' (direct lookup)")
               return template
     
     # Fallback to the original method if direct lookup fails
     # This handles cases where template ID doesn't match directory structure
+    logger.debug(f"Direct lookup failed for '{template_id}', falling back to full scan in library '{self.name}'")
     for template in self.find(module_name, files, sorted=False):
       if template.id == template_id:
+        logger.info(f"Found template '{template_id}' in library '{self.name}' (full scan)")
         return template
     
+    logger.debug(f"Template '{template_id}' not found in library '{self.name}'")
     return None
 
   def find(self, module_name, files, sorted=False):
     """Find templates in this library for a specific module."""
     from .template import Template  # Import here to avoid circular import
     
+    logger.debug(f"Scanning for templates in library '{self.name}' (module: {module_name}, files: {files})")
+    
     templates = []
     module_path = self.path / module_name
     
     if not module_path.exists():
+      logger.debug(f"Module path '{module_path}' does not exist in library '{self.name}'")
       return templates
     
     # Find all files matching the specified filenames
@@ -84,6 +94,10 @@ class Library:
     if sorted:
       templates.sort(key=lambda t: t.id)
 
+    if templates:
+      logger.info(f"Found {len(templates)} templates in library '{self.name}' for module '{module_name}'")
+    else:
+      logger.debug(f"No templates found in library '{self.name}' for module '{module_name}'")
     return templates
 
 
@@ -247,6 +261,7 @@ class LibraryManager:
   def _initialize_libraries(self):
     """Initialize libraries from configuration."""
     config = get_config()
+    logger.info(f"Initializing library manager with {len(config.libraries)} configured libraries")
     
     # First, add configured libraries
     for lib_config in config.libraries:
@@ -254,7 +269,7 @@ class LibraryManager:
         library = self._create_library_from_config(lib_config)
         if library:
           self.libraries.append(library)
-          logger.debug(f"Loaded library '{lib_config.name}' with priority {lib_config.priority}")
+          logger.info(f"Loaded library '{lib_config.name}' (type: {lib_config.type}, priority: {lib_config.priority})")
       except Exception as e:
         logger.warning(f"Failed to load library '{lib_config.name}': {e}")
     
@@ -263,9 +278,13 @@ class LibraryManager:
       script_dir = Path(__file__).parent.parent.parent  # Go up from cli/core/ to project root
       default_library = Library("default", script_dir / "library", priority=-1)  # Lower priority
       self.libraries.append(default_library)
+      logger.info(f"Added default built-in library at '{script_dir / 'library'}' (priority: -1)")
     
     # Sort libraries by priority (highest first)
     self._sort_by_priority()
+    logger.info(f"Successfully initialized {len(self.libraries)} libraries")
+    if self.libraries:
+      logger.debug(f"Libraries in priority order: {[(lib.name, lib.priority) for lib in self.libraries]}")
   
   def _create_library_from_config(self, lib_config):
     """Create a Library instance from configuration.
@@ -319,15 +338,25 @@ class LibraryManager:
 
   def find(self, module_name, files, sorted=False):
     """Find templates across all libraries for a specific module."""
+    logger.debug(f"Searching across {len(self.libraries)} libraries for module '{module_name}'")
     all_templates = []
+    library_counts = {}
     
     for library in self.libraries:
       templates = library.find(module_name, files, sorted=sorted)
+      if templates:
+        library_counts[library.name] = len(templates)
       all_templates.extend(templates)
 
     if sorted:
       all_templates.sort(key=lambda t: t.id)
 
+    if all_templates:
+      logger.info(f"Found {len(all_templates)} total templates for module '{module_name}'")
+      if library_counts:
+        logger.debug(f"Template distribution: {library_counts}")
+    else:
+      logger.debug(f"No templates found for module '{module_name}' across any library")
     return all_templates
 
   def find_by_id(self, module_name, files, template_id):
@@ -353,9 +382,12 @@ class LibraryManager:
         returning the first matching template found. This allows higher-priority libraries
         to override templates from lower-priority ones.
     """
+    logger.debug(f"Searching for template '{template_id}' across {len(self.libraries)} libraries (module: {module_name})")
     for library in self.libraries:  # Already sorted by priority
       template = library.find_by_id(module_name, files, template_id)
       if template:
-        logger.debug(f"Found template '{template_id}' in library '{library.name}' (priority: {library.priority})")
+        logger.info(f"Retrieved template '{template_id}' from library '{library.name}' (priority: {library.priority})")
         return template
+    
+    logger.warning(f"Template '{template_id}' not found in any library")
     return None

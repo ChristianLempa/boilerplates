@@ -83,12 +83,14 @@ class Template:
       template.frontmatter_variables = frontmatter_data.get('variables', {})
       
       if template.frontmatter_variables:
-        logger.debug(f"Template '{template.id}' has frontmatter variables: {list(template.frontmatter_variables.keys())}")
+        logger.debug(f"Template '{template.id}' has {len(template.frontmatter_variables)} frontmatter variables: {list(template.frontmatter_variables.keys())}")
       
-      logger.debug(f"Successfully loaded template '{template.id}' from {file_path}")
+      logger.info(f"Loaded template '{template.id}' (v{template.version or 'unversioned'}, {template.size} bytes)")
+      logger.debug(f"Template details: author='{template.author}', tags={template.tags}")
       return template
-    except Exception:
+    except Exception as e:
       # If frontmatter parsing fails, create a basic Template object
+      logger.warning(f"Failed to parse frontmatter for {file_path}: {e}. Creating basic template.")
       return cls(file_path=file_path)
   
   @staticmethod
@@ -113,8 +115,8 @@ class Template:
     """Create standardized Jinja2 environment for consistent template processing."""
     return Environment(
       loader=BaseLoader(),
-      trim_blocks=True,           # Remove first newline after block tags
-      lstrip_blocks=True,         # Strip leading whitespace from block tags  
+      trim_blocks=True,  # Remove first newline after block tags
+      lstrip_blocks=True,  # Strip leading whitespace from block tags
       keep_trailing_newline=False  # Remove trailing newlines
     )
   
@@ -129,12 +131,18 @@ class Template:
     """Get variables actually used in template (cached)."""
     ast = self._get_ast()
     used_variables = meta.find_undeclared_variables(ast)
+    initial_count = len(used_variables)
     
     # Handle dotted notation variables
+    dotted_vars = []
     for node in ast.find_all(nodes.Getattr):
       dotted_name = Template._build_dotted_name(node)
       if dotted_name:
         used_variables.add(dotted_name)
+        dotted_vars.append(dotted_name)
+    
+    if dotted_vars:
+      logger.debug(f"Found {len(dotted_vars)} dotted variables in addition to {initial_count} simple variables")
     
     return used_variables
   
@@ -145,25 +153,31 @@ class Template:
       post = frontmatter.load(f)
     return post.metadata, post.content
 
-
   def render(self, variable_values: Dict[str, Any]) -> str:
     """Render the template with the provided variable values."""
     logger = logging.getLogger('boilerplates')
     
     try:
+      logger.debug(f"Rendering template '{self.id}' with {len(variable_values)} provided variables")
       env = self._create_jinja_env()
       jinja_template = env.from_string(self.content)
       # Merge template vars (with defaults) with provided values
       # All variables should be defined at this point due to validation
       merged_variable_values = {**self.vars, **variable_values}
+      logger.debug(f"Final render context has {len(merged_variable_values)} variables")
+      
       rendered_content = jinja_template.render(**merged_variable_values)
+      initial_size = len(rendered_content)
       
       # Clean up excessive blank lines and whitespace
       rendered_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', rendered_content)
-      return rendered_content.strip()
+      final_content = rendered_content.strip()
+      
+      logger.info(f"Successfully rendered template '{self.id}' ({initial_size} -> {len(final_content)} bytes)")
+      return final_content
       
     except Exception as e:
-      logger.error(f"Jinja2 template rendering failed: {e}")
+      logger.error(f"Failed to render template '{self.id}': {e}")
       raise ValueError(f"Failed to render template: {e}")
 
   def _parse_template_variables(self, template_content: str, frontmatter_vars: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -191,7 +205,10 @@ class Template:
       
       # Get all variables used in template
       all_variables = self._get_used_variables()
-      logger.debug(f"Template uses {len(all_variables)} variables: {sorted(all_variables)}")
+      if all_variables:
+        logger.debug(f"Template uses {len(all_variables)} variables: {sorted(all_variables)}")
+      else:
+        logger.debug("Template does not use any variables")
       
       # Initialize vars dict with all variables (default to None)
       vars_dict = {var_name: None for var_name in all_variables}
@@ -212,7 +229,8 @@ class Template:
               vars_dict[dotted_name] = node.args[0].value
       
       if template_defaults:
-        logger.debug(f"Template defines {len(template_defaults)} defaults: {template_defaults}")
+        logger.info(f"Template defines {len(template_defaults)} variable defaults")
+        logger.debug(f"Template default values: {template_defaults}")
       
       # Process frontmatter variables (frontmatter takes precedence)
       if frontmatter_vars:
@@ -230,7 +248,8 @@ class Template:
             vars_dict[var_name] = var_config
         
         if frontmatter_overrides:
-          logger.debug(f"Frontmatter overrides {len(frontmatter_overrides)} variables: {frontmatter_overrides}")
+          logger.info(f"Frontmatter defines/overrides {len(frontmatter_overrides)} variables")
+          logger.debug(f"Frontmatter variable values: {frontmatter_overrides}")
       
       # Cache result if no frontmatter (pure template parsing)
       if not frontmatter_vars:
@@ -240,7 +259,3 @@ class Template:
     except Exception as e:
       logger.debug(f"Error parsing template variables: {e}")
       return {}
-
-
-
-

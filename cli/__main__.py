@@ -28,7 +28,6 @@ def setup_logging(log_level: str = "WARNING"):
       ValueError: If the log level is invalid
       RuntimeError: If logging configuration fails
   """
-  # Convert string to logging level
   numeric_level = getattr(logging, log_level.upper(), None)
   if not isinstance(numeric_level, int):
     raise ValueError(
@@ -36,15 +35,13 @@ def setup_logging(log_level: str = "WARNING"):
     )
   
   try:
-    # Configure root logger
     logging.basicConfig(
       level=numeric_level,
       format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
       datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
-    # Get the boilerplates logger and set its level
-    logger = logging.getLogger('boilerplates')
+
+    logger = logging.getLogger('__name__')
     logger.setLevel(numeric_level)
   except Exception as e:
     raise RuntimeError(f"Failed to configure logging: {e}")
@@ -53,19 +50,19 @@ def setup_logging(log_level: str = "WARNING"):
 @app.callback()
 def main(
   ctx: Context,
-  loglevel: Optional[str] = Option(
+  log_level: Optional[str] = Option(
     "WARNING", 
-    "--loglevel", 
+    "--log-level", 
     help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
   )
 ):
   """Main CLI application for managing boilerplates."""
   # Configure logging based on the provided log level
-  setup_logging(loglevel)
+  setup_logging(log_level)
   
   # Store log level in context for potential use by other commands
   ctx.ensure_object(dict)
-  ctx.obj['loglevel'] = loglevel
+  ctx.obj['log_level'] = log_level
 
 def init_app():
   """Initialize the application by discovering and registering modules.
@@ -155,7 +152,7 @@ def run():
   except Exception as e:
     # Handle unexpected errors - show simplified message
     console.print(f"[bold red]Unexpected error:[/bold red] {e}")
-    console.print("[dim]Use --loglevel DEBUG for more details[/dim]")
+    console.print("[dim]Use --log-level DEBUG for more details[/dim]")
     sys.exit(1)
 
 if __name__ == "__main__":

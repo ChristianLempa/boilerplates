@@ -26,10 +26,13 @@ class Module(ABC):
         f"Module {self.__class__.__name__} must define name, description, and files"
       )
     
+    logger.info(f"Initializing module '{self.name}'")
+    logger.debug(f"Module '{self.name}' configuration: files={self.files}, description='{self.description}'")
     self.libraries = LibraryManager()
     
     # Initialize variables if the subclass defines _init_variables method
     if hasattr(self, '_init_variables'):
+      logger.debug(f"Module '{self.name}' has variable initialization method")
       self._init_variables()
       
       # Validate module variable registry consistency after initialization
@@ -37,12 +40,18 @@ class Module(ABC):
       # The registry defines parent-child relationships where child variables like 'traefik.tls.certresolver' can only be used
       # when their parents ('traefik' and 'traefik.tls') are enabled. This prevents invalid module configurations.
       if hasattr(self, 'variables') and self.variables:
+        var_count = len(self.variables.get_all_variables())
+        logger.info(f"Module '{self.name}' registered {var_count} variables")
+        
         registry_errors = self.variables.validate_parent_child_relationships()
         if registry_errors:
           error_msg = f"Module '{self.name}' has invalid variable registry:\n" + "\n".join(f"  - {e}" for e in registry_errors)
+          logger.error(error_msg)
           raise ValueError(error_msg)
+        logger.debug(f"Module '{self.name}' variable registry validation completed successfully")
     
     self.metadata = self._build_metadata()
+    logger.info(f"Module '{self.name}' initialization completed successfully")
   
   def _build_metadata(self) -> Dict[str, Any]:
     """Build metadata from class attributes."""
@@ -58,21 +67,31 @@ class Module(ABC):
     
     return metadata
 
-
   def list(self):
     """List all templates."""
+    logger.debug(f"Listing templates for module '{self.name}'")
     templates = self.libraries.find(self.name, self.files, sorted=True)
     
-    # Enrich each template with module variables
+    if templates:
+      logger.info(f"Listing {len(templates)} templates for module '{self.name}'")
+    else:
+      logger.info(f"No templates found for module '{self.name}'")
+    
+    # Display templates without enrichment (enrichment only needed for generation)
     for template in templates:
-      self._enrich_template_with_variables(template)
       console.print(f"[cyan]{template.id}[/cyan] - {template.name}")
     
     return templates
 
   def show(self, id: str = Argument(..., help="Template ID")):
     """Show template details."""
-    template = self._get_template(id)
+    logger.debug(f"Showing template '{id}' from module '{self.name}'")
+    # Get template directly from library without enrichment (not needed for display)
+    template = self.libraries.find_by_id(self.name, self.files, id)
+    
+    if not template:
+      logger.debug(f"Template '{id}' not found in module '{self.name}'")
+      raise FileNotFoundError(f"Template '{id}' not found in module '{self.name}'")
 
     # Header
     version = f" v{template.version}" if template.version else ""
@@ -90,7 +109,7 @@ class Module(ABC):
       if value:
         console.print(f"{label}: [cyan]{value}[/cyan]")
     
-    # Variables
+    # Variables (show raw template variables without module enrichment)
     if template.vars:
       console.print(f"Variables: [cyan]{', '.join(sorted(template.vars))}[/cyan]")
     
@@ -98,17 +117,6 @@ class Module(ABC):
     if template.content:
       print(f"\n{template.content}")
 
-  def _get_template(self, template_id: str):
-    """Get template by ID with unified error handling and variable enrichment."""
-    template = self.libraries.find_by_id(self.name, self.files, template_id)
-    
-    if not template:
-      raise FileNotFoundError(f"Template '{template_id}' not found in module '{self.name}'")
-    
-    # Enrich template with module variables if available
-    self._enrich_template_with_variables(template)
-    
-    return template
 
   def _enrich_template_with_variables(self, template):
     """Enrich template with module variable registry defaults (optimized).
@@ -121,9 +129,12 @@ class Module(ABC):
     """
     # Skip if already enriched or no variables
     if template._is_enriched or not hasattr(self, 'variables') or not self.variables:
+      if template._is_enriched:
+        logger.debug(f"Template '{template.id}' already enriched, skipping")
+      else:
+        logger.debug(f"Module '{self.name}' has no variables, skipping enrichment for '{template.id}'")
       return
     
-    logger = logging.getLogger('boilerplates')
     logger.debug(f"Enriching template '{template.id}' with {len(self.variables.get_all_variables())} module variables")
     
     # Get template variables first (this is cached)
@@ -145,7 +156,8 @@ class Module(ABC):
           module_defaults[var_name] = var_obj.default
     
     if module_defaults:
-      logger.debug(f"Module provides {len(module_defaults)} defaults for used variables: {module_defaults}")
+      logger.debug(f"Module provides {len(module_defaults)} defaults for used variables")
+      logger.debug(f"Module default values: {module_defaults}")
     
     # Merge with template taking precedence
     final_vars = dict(module_vars)
@@ -166,7 +178,10 @@ class Module(ABC):
     template.vars = final_vars
     template._is_enriched = True
     
-    logger.debug(f"Template '{template.id}' enriched with {len(final_vars)} final variables")
+    if final_vars:
+      logger.info(f"Template '{template.id}' enriched with {len(final_vars)} variables from module '{self.name}'")
+    else:
+      logger.debug(f"Template '{template.id}' has no variables after enrichment")
 
   def _check_template_readiness(self, template):
     """Check if template is ready for generation (replaces complex validation).
@@ -177,7 +192,7 @@ class Module(ABC):
     Raises:
         ValueError: If template has critical issues preventing generation
     """
-    logger = logging.getLogger('boilerplates')
+    logger.debug(f"Checking template readiness for '{template.id}'")
     errors = []
     
     # Check for basic template issues
@@ -208,8 +223,11 @@ class Module(ABC):
       errors.append(f"Template has Jinja2 syntax errors: {str(e)}")
     
     if errors:
+      logger.error(f"Template '{template.id}' failed readiness check with {len(errors)} errors")
       error_msg = f"Template '{template.id}' is not ready for generation:\n" + "\n".join(f"  - {e}" for e in errors)
       raise ValueError(error_msg)
+    
+    logger.debug(f"Template '{template.id}' passed readiness check")
 
   def generate(
     self,
@@ -218,18 +236,29 @@ class Module(ABC):
   ):
     """Generate from template."""
 
+    logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
     # Fetch template from library
-    template = self._get_template(id)
+    template = self.libraries.find_by_id(self.name, self.files, id)
     
-    # Check for critical template issues during enrichment
+    if not template:
+      logger.error(f"Template '{id}' not found for generation in module '{self.name}'")
+      raise FileNotFoundError(f"Template '{id}' not found in module '{self.name}'")
+    
+    # Enrich template with module variables if available
+    self._enrich_template_with_variables(template)
+    
+    # Check for critical template issues after enrichment
     self._check_template_readiness(template)
     
+    logger.info(f"Template '{id}' generation completed successfully for module '{self.name}'")
     print("TEST SUCCESSFUL")
   
   def register_cli(self, app: Typer):
     """Register module commands with the main app."""
+    logger.debug(f"Registering CLI commands for module '{self.name}'")
     module_app = Typer()
     module_app.command()(self.list)
     module_app.command()(self.show)
     module_app.command()(self.generate)
     app.add_typer(module_app, name=self.name, help=self.description)
+    logger.info(f"Module '{self.name}' CLI commands registered")
