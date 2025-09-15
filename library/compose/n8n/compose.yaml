@@ -43,7 +43,7 @@ services:
       - data:/home/node/.n8n
     {% if network %}
     networks:
-      - {{ network.name | default('bridge') }}
+      - {{ network_name | default('bridge') }}
     {% endif %}
     {% if traefik %}
     labels:
@@ -70,8 +70,8 @@ volumes:
 
 {% if network %}
 networks:
-  {{ network.name | default('bridge') }}:
-  {% if network.external %}
+  {{ network_name | default('bridge') }}:
+  {% if network_external %}
     external: true
   {% endif %}
 {% endif %}

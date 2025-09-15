@@ -14,6 +14,15 @@ variables:
   acme_email:
     display: "ACME Email"
     description: "Email address for ACME (Let's Encrypt) registration"
+    type: "str"
+  traefik.host:
+    display: "Traefik Host"
+    description: "Domain name for Traefik dashboard"
+    type: "str"
+  database.name:
+    display: "Database Name"
+    description: "Name of the database"
+    type: "str"
 ---
 services:
   traefik:
@@ -30,7 +39,13 @@ services:
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
     environment:
-      - CF_DNS_API_TOKEN=your-cloudflare-api-token  # <-- Change this to your Cloudflare API Token
+      - CF_DNS_API_TOKEN={{ acme_email }}  # Using template variable
+      {% if traefik.host -%}
+      - TRAEFIK_HOST={{ traefik.host }}
+      {% endif %}
+      {% if database.name -%}
+      - DB_NAME={{ database.name }}
+      {% endif %}
     networks:
       - frontend
     restart: unless-stopped
