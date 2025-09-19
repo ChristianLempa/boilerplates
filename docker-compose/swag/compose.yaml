@@ -15,7 +15,7 @@ services:
       - /opt/webserver_swag/config/mariadb:/config
     restart: unless-stopped
   swag:
-    image: docker.io/linuxserver/swag:3.3.0
+    image: docker.io/linuxserver/swag:5.0.0
     container_name: swag
     cap_add:
       - NET_ADMIN
