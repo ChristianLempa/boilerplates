@@ -1,7 +1,7 @@
 ---
 services:
   traefik:
-    image: docker.io/library/traefik:v3.5.2
+    image: docker.io/library/traefik:v3.5.3
     container_name: traefik
     ports:
       - 80:80
