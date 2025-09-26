@@ -1,7 +1,4 @@
 from typing import Dict, List
-import logging
-
-logger = logging.getLogger(__name__)
 
 # NOTE: This helper supports both syntaxes:
 #   --var KEY=VALUE

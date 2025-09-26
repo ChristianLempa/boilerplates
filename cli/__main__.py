@@ -94,27 +94,27 @@ def init_app():
           failed_imports.append(error_info)
           logger.error(error_info)
     
-    # Register modules with app
-    modules = registry.create_instances()
-    logger.debug(f"Registering {len(modules)} discovered modules")
+    # Register modules with app lazily
+    module_classes = list(registry.iter_module_classes())
+    logger.debug(f"Registering {len(module_classes)} discovered modules")
     
-    for module in modules:
+    for name, module_cls in module_classes:
       try:
-        logger.debug(f"Registering module: {module.__class__.__name__}")
-        module.register_cli(app)
+        logger.debug(f"Registering module class: {module_cls.__name__}")
+        module_cls.register_cli(app)
       except Exception as e:
-        error_info = f"Registration failed for '{module.__class__.__name__}': {str(e)}"
+        error_info = f"Registration failed for '{module_cls.__name__}': {str(e)}"
         failed_registrations.append(error_info)
         # Log warning but don't raise exception for individual module failures
         logger.warning(error_info)
         console.print(f"[yellow]Warning:[/yellow] {error_info}")
     
     # If we have no modules registered at all, that's a critical error
-    if not modules and not failed_imports:
+    if not module_classes and not failed_imports:
       raise RuntimeError("No modules found to register")
     
     # Log summary
-    successful_modules = len(modules) - len(failed_registrations)
+    successful_modules = len(module_classes) - len(failed_registrations)
     logger.info(f"Application initialized: {successful_modules} modules registered successfully")
     
     if failed_imports:

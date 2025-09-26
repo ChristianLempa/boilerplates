@@ -1,7 +1,5 @@
 from pathlib import Path
 import logging
-from .template import Template
-
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +50,7 @@ class Library:
         raise FileNotFoundError(f"Template '{template_id}' found but missing any of the required files: {files}")
     
     logger.debug(f"Found template '{template_id}' at: {template_path}")
-    return template_path
+    return template_path, self.name
 
 
   def find(self, module_name, files, sort_results=False):
@@ -94,18 +92,18 @@ class Library:
               if file_path.exists():
                 has_any_file = True
                 break
-            
+
             if has_any_file:
-              template_dirs.append(item)
+              template_dirs.append((item, self.name))
           else:
             # No file requirements, include all directories
-            template_dirs.append(item)
+            template_dirs.append((item, self.name))
     except PermissionError as e:
       raise FileNotFoundError(f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}")
     
     # Sort if requested
     if sort_results:
-      template_dirs.sort(key=lambda x: x.name.lower())
+      template_dirs.sort(key=lambda x: x[0].name.lower())
     
     logger.debug(f"Found {len(template_dirs)} templates in module '{module_name}'")
     return template_dirs
@@ -139,9 +137,9 @@ class LibraryManager:
     
     for library in sorted(self.libraries, key=lambda x: x.priority, reverse=True):
       try:
-        template_path = library.find_by_id(module_name, files, template_id)
+        template_path, lib_name = library.find_by_id(module_name, files, template_id)
         logger.debug(f"Found template '{template_id}' in library '{library.name}'")
-        return template_path
+        return template_path, lib_name
       except FileNotFoundError:
         # Continue searching in next library
         continue
@@ -178,88 +176,15 @@ class LibraryManager:
     seen_names = set()
     unique_templates = []
     for template in all_templates:
-      if template.name not in seen_names:
-        unique_templates.append(template)
-        seen_names.add(template.name)
+      name, library_name = template
+      if name.name not in seen_names:
+        unique_templates.append((name, library_name))
+        seen_names.add(name.name)
     
     # Sort if requested
     if sort_results:
-      unique_templates.sort(key=lambda x: x.name.lower())
+      unique_templates.sort(key=lambda x: x[0].name.lower())
     
     logger.debug(f"Found {len(unique_templates)} unique templates total")
     return unique_templates
   
-  def load_template_by_id(self, module_name, files, template_id, module_variables=None):
-    """Load a template by its ID as a Template object.
-    
-    Args:
-        module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in the template directory
-        template_id: The template ID to find
-        module_variables: Optional dict of module-specific variables to merge
-    
-    Returns:
-        Template object if found, None otherwise
-    """
-    template_path = self.find_by_id(module_name, files, template_id)
-    if not template_path:
-      return None
-    
-    # Find the actual template file in the directory
-    template_file = None
-    for file_name in files:
-      candidate_file = template_path / file_name
-      if candidate_file.exists():
-        template_file = candidate_file
-        break
-    
-    if not template_file:
-      logger.error(f"Template '{template_id}' directory found but no template file exists")
-      return None
-    
-    # Load the template from file
-    try:
-      if module_variables:
-        logger.debug(f"Passing {len(module_variables)} module variables to template: {list(module_variables.keys())}")
-      else:
-        logger.debug("No module variables provided")
-      template = Template.from_file(template_file, module_variables=module_variables)
-      return template
-    except Exception as e:
-      logger.error(f"Error loading template '{template_id}': {e}")
-      return None
-  
-  def load_templates(self, module_name, files, sort_results=False, module_variables=None):
-    """Load all templates for a module as Template objects.
-    
-    Args:
-        module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in template directories
-        sort_results: Whether to return results sorted alphabetically
-        module_variables: Optional dict of module-specific variables to merge
-    
-    Returns:
-        List of Template objects
-    """
-    template_paths = self.find(module_name, files, sort_results)
-    
-    templates = []
-    for template_path in template_paths:
-      try:
-        # Find the actual template file in the directory
-        template_file = None
-        for file_name in files:
-          candidate_file = template_path / file_name
-          if candidate_file.exists():
-            template_file = candidate_file
-            break
-        
-        if template_file:
-          template = Template.from_file(template_file, module_variables=module_variables)
-          templates.append(template)
-        else:
-          logger.warning(f"Template directory '{template_path.name}' found but no template file exists")
-      except Exception as e:
-        logger.warning(f"Error loading template from {template_path}: {e}")
-    
-    return templates

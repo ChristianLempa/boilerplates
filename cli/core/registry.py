@@ -23,30 +23,11 @@ class ModuleRegistry:
     logger.info(f"Registered module '{module_class.name}' (total modules: {len(self._modules)})")
     logger.debug(f"Module '{module_class.name}' details: description='{module_class.description}', files={module_class.files}")
   
-  def create_instances(self):
-    """Create instances of all registered modules."""
-    logger.info(f"Creating instances for {len(self._modules)} registered modules")
-    instances = []
-    failed_modules = []
-    
+  def iter_module_classes(self):
+    """Yield registered module classes without instantiating them."""
+    logger.debug(f"Iterating over {len(self._modules)} registered module classes")
     for name in sorted(self._modules.keys()):
-      try:
-        logger.debug(f"Attempting to create instance of module '{name}'")
-        instance = self._modules[name]()
-        instances.append(instance)
-        logger.debug(f"Successfully instantiated module '{name}'")
-      except Exception as e:
-        logger.error(f"Failed to instantiate module '{name}': {e}")
-        failed_modules.append(name)
-        print(f"Warning: Could not instantiate {name}: {e}")
-    
-    if failed_modules:
-      logger.warning(f"Failed to instantiate {len(failed_modules)} modules: {failed_modules}")
-    
-    logger.info(f"Successfully created {len(instances)} module instances out of {len(self._modules)} registered")
-    if instances:
-      logger.debug(f"Active modules: {[inst.name for inst in instances]}")
-    return instances
+      yield name, self._modules[name]
 
 # Global registry
 registry = ModuleRegistry()
