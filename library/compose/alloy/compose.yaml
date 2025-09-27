@@ -1,15 +1,17 @@
 ---
-name: "Grafana Alloy"
-description: "A lightweight and flexible service mesh"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - "grafana"
-  - "alloy"
-  - "monitoring"
-  - "http"
-  - "traefik"
+kind: "compose"
+metadata:
+  name: "Grafana Alloy"
+  description: "A lightweight and flexible service mesh"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - "grafana"
+    - "alloy"
+    - "monitoring"
+    - "http"
+    - "traefik"
 variables:
   container_hostname:
     description: "Sets the container's internal hostname (this will show up in the collected logs)"
@@ -26,7 +28,7 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    {% if ports %}
+    {% if ports_enabled %}
     ports:
       - "12345:12345"
     {% endif %}
@@ -39,23 +41,23 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker/:ro
       - /run/udev/data:/run/udev/data:ro
-    {% if network %}
+    {% if network_enabled %}
     networks:
-      - {{ network.name | default("bridge") }}
+      - {{ network_name | default("bridge") }}
     {% endif %}
-    {% if traefik %}
+    {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.http.services.{{ service_name | default("alloy") }}.loadbalancer.server.port=12345
       - traefik.http.services.{{ service_name | default("alloy") }}.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ service_name | default("alloy") }}.service={{ service_name | default("alloy") }}
-      - traefik.http.routers.{{ service_name | default("alloy") }}.rule=Host(`{{ traefik.host }}`)
-      {% if traefik.tls %}
+      - traefik.http.routers.{{ service_name | default("alloy") }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name | default("alloy") }}.tls=true
-      - traefik.http.routers.{{ service_name | default("alloy") }}.entrypoints={{ traefik.tls.entrypoint | default("websecure") }}
-      - traefik.http.routers.{{ service_name | default("alloy") }}.tls.certresolver={{ traefik.tls.certresolver }}
+      - traefik.http.routers.{{ service_name | default("alloy") }}.entrypoints={{ traefik_tls_entrypoint | default("websecure") }}
+      - traefik.http.routers.{{ service_name | default("alloy") }}.tls.certresolver={{ traefik_tls_certresolver }}
       {% else %}
-      - traefik.http.routers.{{ service_name | default("alloy") }}.entrypoints={{ traefik.entrypoint | default("web") }}
+      - traefik.http.routers.{{ service_name | default("alloy") }}.entrypoints={{ traefik_entrypoint | default("web") }}
       {% endif %}
     {% endif %}
     restart: {{ restart_policy | default("unless-stopped") }}
@@ -64,10 +66,10 @@ volumes:
   alloy_data:
     driver: local
 
-{% if network %}
+{% if network_enabled %}
 networks:
-  {{ network.name | default("bridge") }}:
-    {% if network.external %}
+  {{ network_name | default("bridge") }}:
+    {% if network_external %}
     external: true
     {% endif %}
 {% endif %}

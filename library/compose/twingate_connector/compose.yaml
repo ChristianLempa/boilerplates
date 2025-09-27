@@ -1,13 +1,15 @@
 ---
-name: "Twingate Connector"
-description: "A connector for Twingate"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - twingate
-  - connector
-  - networking
+kind: "compose"
+metadata:
+  name: "Twingate Connector"
+  description: "A connector for Twingate"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - twingate
+    - connector
+    - networking
 ---
 services:
   twingate_connector:

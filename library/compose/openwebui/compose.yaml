@@ -1,13 +1,15 @@
 ---
-name: "Open Web UI"
-description: "A web-based user interface for managing various services"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - openwebui
-  - web
-  - user-interface
+kind: "compose"
+metadata:
+  name: "Open Web UI"
+  description: "A web-based user interface for managing various services"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - openwebui
+    - web
+    - user-interface
 ---
 services:
   openwebui:

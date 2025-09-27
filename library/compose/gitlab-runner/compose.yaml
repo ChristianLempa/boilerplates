@@ -1,14 +1,16 @@
 ---
-name: "GitLab Runner"
-description: "A self-hosted CI/CD automation tool"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - gitlab-runner
-  - ci
-  - cd
-  - automation
+kind: "compose"
+metadata:
+  name: "GitLab Runner"
+  description: "A self-hosted CI/CD automation tool"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - gitlab-runner
+    - ci
+    - cd
+    - automation
 ---
 services:
   gitlab-runner:

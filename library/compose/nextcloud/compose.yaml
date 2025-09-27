@@ -1,42 +1,134 @@
 ---
-name: "Nextcloud"
-description: "A self-hosted file sync and share platform"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - nextcloud
-  - web
-  - file-storage
+kind: "compose"
+metadata:
+  name: "Nextcloud"
+  description: "A self-hosted file sync and share platform"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - nextcloud
+    - web
+    - file-storage
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for Nextcloud web interface"
+        type: int
+        default: 80
+  database:
+    vars:
+      database_type:
+        description: "Database type (mysql or postgres)"
+        type: enum
+        options: ["mysql", "postgres"]
+        default: "mysql"
+      mysql_user:
+        description: "MySQL username"
+        type: str
+        default: "nextcloud"
+      mysql_password:
+        description: "MySQL password"
+        type: str
+        default: "nextcloud"
+      mysql_database:
+        description: "MySQL database name"
+        type: str
+        default: "nextcloud"
+      mysql_root_password_random:
+        description: "Use random MySQL root password"
+        type: bool
+        default: true
 ---
-volumes:
-  nextcloud-data:
-  nextcloud-db:
 services:
-  nextcloud-app:
+  {{ service_name | default('nextcloud-app') }}:
     image: docker.io/library/nextcloud:31.0.8-apache
-    container_name: nextcloud-app
+    container_name: {{ container_name | default('nextcloud-app') }}
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      {% if database_type == 'mysql' -%}
+      - MYSQL_PASSWORD={{ mysql_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ mysql_database | default('nextcloud') }}
+      - MYSQL_USER={{ mysql_user | default('nextcloud') }}
+      - MYSQL_HOST={{ service_name | default('nextcloud') }}-db
+      {% elif database_type == 'postgres' -%}
+      - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
+      - POSTGRES_DB={{ database_name | default('nextcloud') }}
+      - POSTGRES_USER={{ database_user | default('nextcloud') }}
+      - POSTGRES_HOST={{ service_name | default('nextcloud') }}-db
+      {% endif %}
+    {% if ports_enabled %}
     ports:
-      - 80:80
+      - "{{ ports_http | default(80) }}:80"
+    {% endif %}
     volumes:
       - nextcloud-data:/var/www/html
-    environment:
-      - MYSQL_PASSWORD=$MYSQL_PASSWORD
-      - MYSQL_DATABASE=$MYSQL_DATABASE
-      - MYSQL_USER=$MYSQL_USER
-      - MYSQL_HOST=nextcloud-db
-    restart: unless-stopped
-  nextcloud-db:
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('nextcloud') }}.loadbalancer.server.port=80
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}.tls=true
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name | default('nextcloud') }}-db
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {{ service_name | default('nextcloud') }}-db:
+    {% if database_type == 'mysql' -%}
     # See compatibility matrix for Nextcloud 31
     # https://docs.nextcloud.com/server/31/admin_manual/installation/system_requirements.html
     image: docker.io/library/mariadb:10.11.14
-    container_name: nextcloud-db
+    container_name: {{ service_name | default('nextcloud') }}-db
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      {% if mysql_root_password_random -%}
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      {% endif %}
+      - MYSQL_PASSWORD={{ mysql_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ mysql_database | default('nextcloud') }}
+      - MYSQL_USER={{ mysql_user | default('nextcloud') }}
     volumes:
       - nextcloud-db:/var/lib/mysql
+    {% elif database_type == 'postgres' -%}
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name | default('nextcloud') }}-db
     environment:
-      - MYSQL_RANDOM_ROOT_PASSWORD=true
-      - MYSQL_PASSWORD=$MYSQL_PASSWORD
-      - MYSQL_DATABASE=$MYSQL_DATABASE
-      - MYSQL_USER=$MYSQL_USER
-    restart: unless-stopped
+      - TZ={{ container_timezone | default('UTC') }}
+      - POSTGRES_USER={{ database_user | default('nextcloud') }}
+      - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
+      - POSTGRES_DB={{ database_name | default('nextcloud') }}
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+volumes:
+  nextcloud-data:
+    driver: local
+  nextcloud-db:
+    driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

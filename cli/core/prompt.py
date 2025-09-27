@@ -1,129 +1,96 @@
-from typing import Dict, Any, List, Optional
-from collections import OrderedDict
+from __future__ import annotations
+
+from typing import Dict, Any, List, Callable
 import logging
 from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt
 from rich.table import Table
 
 from .variables import Variable, VariableCollection
-from .renderers import render_variable_table
 
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------
+# SECTION: PromptHandler Class
+# ---------------------------
+
 class PromptHandler:
-  """Interactive prompt handler for collecting template variables.
+  """Simple interactive prompt handler for collecting template variables."""
 
-  Simplified design:
-  - Single entrypoint: collect_variables(VariableCollection)
-  - Asks only for variables that don't have values
-  - Clear, compact output with a summary table
-  """
-
-  def __init__(self):
+  def __init__(self) -> None:
     self.console = Console()
 
-  def collect_variables(
-    self,
-    variables: VariableCollection,
-    template_name: str = "",
-    module_name: str = "",
-    template_var_order: List[str] = None,
-    module_var_order: List[str] = None,
-    sections: Optional[OrderedDict[str, Dict[str, Any]]] = None,
-  ) -> Dict[str, Any]:
-    """Collect values for variables that need input with an ordered, sectioned flow.
+  # --------------------------
+  # SECTION: Public Methods
+  # --------------------------
 
-    When sections metadata is provided, it defines the order, prompt text, and
-    toggle behavior for each section. Otherwise all variables are shown in a
-    single "General" group.
+  def collect_variables(self, variables: VariableCollection) -> dict[str, Any]:
+    """Collect values for variables by iterating through sections.
+    
+    Args:
+        variables: VariableCollection with organized sections and variables
+        
+    Returns:
+        Dict of variable names to collected values
     """
-    template_var_order = template_var_order or []
-    module_var_order = module_var_order or []
-
-    section_meta_list: List[Dict[str, Any]] = []
-    if sections:
-      section_meta_list = list(sections.values())
-    else:
-      section_meta_list = [
-        {
-          "title": "General",
-          "variables": variables.get_variable_names(),
-          "toggle": None,
-          "prompt": None,
-          "description": None,
-        }
-      ]
-
-    self._display_current_values(variables, sections)
-
     if not Confirm.ask("Customize any settings?", default=False):
       logger.info("User opted to keep all default values")
       return {}
 
     collected: Dict[str, Any] = {}
 
-    for section_meta in section_meta_list:
-      title = section_meta.get("title") or "General"
-      prompt_text = section_meta.get("prompt")
-      toggle_name = section_meta.get("toggle")
-      description_text = section_meta.get("description")
-      var_names = section_meta.get("variables", [])
-
-      # Filter to existing variables
-      variable_objects = [variables.get_variable(name) for name in var_names]
-      variable_objects = [var for var in variable_objects if var is not None]
-
-      if not variable_objects:
+    # Process each section
+    for section_key, section in variables._set.items():
+      if not section.variables:
         continue
 
-      toggle_var = None
-      if toggle_name:
-        toggle_var = variables.get_variable(toggle_name)
-        if toggle_var is None:
-          toggle_var = next((var for var in variable_objects if var.name == toggle_name), None)
+      # Always show section header first
+      self.console.print(f"\n[bold cyan]{section.title}[/bold cyan]")
+      if section.description:
+        self.console.print(f"[dim]{section.description}[/dim]")
+      self.console.print("─" * 40, style="dim")
 
-      if toggle_var:
-        enabled = self._prompt_bool(
-          prompt_text or f"Enable {title}?",
-          toggle_var.get_typed_value(),
-        )
-        if enabled != bool(toggle_var.get_typed_value()):
-          collected[toggle_var.name] = enabled
-          toggle_var.value = enabled
-        if not enabled:
+      # Handle section toggle - skip for required sections
+      if section.required:
+        # Required sections are always processed, no toggle prompt needed
+        logger.debug(f"Processing required section '{section.key}' without toggle prompt")
+      elif section.toggle:
+        toggle_var = section.variables.get(section.toggle)
+        if toggle_var:
+          prompt_text = section.prompt or f"Enable {section.title}?"
+          current_value = toggle_var.get_typed_value()
+          new_value = self._prompt_bool(prompt_text, current_value)
+          
+          if new_value != current_value:
+            collected[toggle_var.name] = new_value
+            toggle_var.value = new_value
+          
+          # Skip remaining variables in section if disabled
+          if not new_value:
+            continue
+
+      # Collect variables in this section
+      for var_name, variable in section.variables.items():
+        # Skip toggle variable (already handled)
+        if section.toggle and var_name == section.toggle:
           continue
-      elif prompt_text:
-        self.console.print(prompt_text, style="dim")
-
-      self.console.print(f"[bold magenta]{title}[/bold magenta]")
-      self.console.print("─" * 50, style="dim")
-      if description_text:
-        self.console.print(f"[dim]{description_text}[/dim]")
-
-      for var in variable_objects:
-        if toggle_var and var.name == toggle_var.name:
-          continue
-        current = var.get_typed_value()
-        new_value = self._prompt_variable(var)
-        if new_value != current:
-          collected[var.name] = new_value
-          var.value = new_value
-
-      self.console.print()
+          
+        current_value = variable.get_typed_value()
+        new_value = self._prompt_variable(variable)
+        
+        if new_value != current_value:
+          collected[var_name] = new_value
+          variable.value = new_value
 
     logger.info(f"Variable collection completed. Collected {len(collected)} values")
     return collected
 
-  def _display_current_values(
-    self,
-    variables: VariableCollection,
-    sections: Optional[OrderedDict[str, Dict[str, Any]]] = None,
-  ) -> None:
-    self.console.print(
-      render_variable_table(variables, title="Current Defaults", sections=sections)
-    )
+  # !SECTION
 
+  # ---------------------------
+  # SECTION: Private Methods
+  # ---------------------------
 
   def _prompt_variable(self, variable: Variable) -> Any:
     """Prompt for a single variable value based on its type."""
@@ -153,14 +120,14 @@ class PromptHandler:
         default_value = variable.value
         handler = self._get_prompt_handler(variable)
 
-  def _get_prompt_handler(self, variable: Variable):
+  def _get_prompt_handler(self, variable: Variable) -> Callable:
     """Return the prompt function for a variable type."""
-    if variable.type == "enum":
-      return lambda text, default: self._prompt_enum(text, variable.options or [], default)
-    return {
+    handlers = {
       "bool": self._prompt_bool,
       "int": self._prompt_int,
-    }.get(variable.type, self._prompt_string)
+      "enum": lambda text, default: self._prompt_enum(text, variable.options or [], default),
+    }
+    return handlers.get(variable.type, self._prompt_string)
 
   def _show_validation_error(self, message: str) -> None:
     """Display validation feedback consistently."""
@@ -189,16 +156,16 @@ class PromptHandler:
         logger.warning(f"Invalid default integer value: {default}")
     return IntPrompt.ask(prompt_text, default=default_int)
 
-  def _prompt_enum(self, prompt_text: str, options: List[str], default: Any = None) -> str:
+  def _prompt_enum(self, prompt_text: str, options: list[str], default: Any = None) -> str:
+    """Prompt for enum selection with validation."""
     if not options:
-      logger.warning("Enum variable has no options, falling back to string prompt")
       return self._prompt_string(prompt_text, default)
 
     self.console.print(f"  Options: {', '.join(options)}", style="dim")
 
-    if default and default not in options:
-      logger.warning(f"Default value '{default}' not in options {options}")
-      default = None
+    # Validate default is in options
+    if default and str(default) not in options:
+      default = options[0]
 
     while True:
       value = Prompt.ask(
@@ -208,39 +175,6 @@ class PromptHandler:
       )
       if value in options:
         return value
-      self.console.print(f"  [red]Invalid choice. Please select from: {', '.join(options)}[/red]")
+      self.console.print(f"[red]Invalid choice. Select from: {', '.join(options)}[/red]")
 
-  def display_variable_summary(self, collected_values: Dict[str, Any], template_name: str = ""):
-    """Display a summary of collected variable values."""
-    if not collected_values:
-      return
-
-    title = "Variable Summary"
-    if template_name:
-      title += f" - {template_name}"
-
-    table = Table(title=title, show_header=True, header_style="bold blue")
-    table.add_column("Variable", style="cyan", min_width=20)
-    table.add_column("Value", style="green")
-    table.add_column("Type", style="dim", justify="center")
-
-    for var_name in sorted(collected_values.keys()):
-      value = collected_values[var_name]
-      if isinstance(value, bool):
-        display_value = "true" if value else "false"  # No emojis per logging rules
-        var_type = "bool"
-      elif isinstance(value, int):
-        display_value = str(value)
-        var_type = "int"
-      else:
-        display_value = str(value) if value else ""
-        var_type = "str"
-
-      if len(display_value) > 50:
-        display_value = display_value[:47] + "..."
-
-      table.add_row(var_name, display_value, var_type)
-
-    self.console.print()
-    self.console.print(table)
-    self.console.print()
+# !SECTION

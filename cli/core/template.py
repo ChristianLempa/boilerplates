@@ -1,146 +1,292 @@
+from __future__ import annotations
+
 from .variables import Variable, VariableCollection
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple, Optional
+from typing import Any, Dict, List, Set
 from dataclasses import dataclass, field
-from collections import OrderedDict
 import logging
-import re
-from jinja2 import Environment, BaseLoader, meta, nodes, TemplateSyntaxError
+from jinja2 import Environment, BaseLoader, meta, nodes
 import frontmatter
 
 logger = logging.getLogger(__name__)
 
 
-def _log_variable_stage(stage: str, names) -> None:
-  """Helper to emit consistent debug output for variable lists."""
-  if not names:
-    return
-  if isinstance(names, (set, tuple)):
-    names = list(names)
-  logger.debug(f"{stage}: {names}")
+# -----------------------
+# SECTION: Metadata Class
+# -----------------------
 
+@dataclass
+class TemplateMetadata:
+  """Represents template metadata with proper typing."""
+  name: str
+  description: str
+  author: str
+  date: str
+  version: str
+  module: str = ""
+  tags: List[str] = field(default_factory=list)
+  files: List[str] = field(default_factory=list)
+  library: str = "unknown"
+
+  def __init__(self, post: frontmatter.Post, library_name: str | None = None) -> None:
+    """Initialize TemplateMetadata from frontmatter post."""
+    # Validate metadata format first
+    self._validate_metadata(post)
+    
+    # Extract metadata section
+    metadata_section = post.metadata.get("metadata", {})
+    
+    self.name = metadata_section.get("name", "")
+    self.description = metadata_section.get("description", "No description available")
+    self.author = metadata_section.get("author", "")
+    self.date = metadata_section.get("date", "")
+    self.version = metadata_section.get("version", "")
+    self.module = metadata_section.get("module", "")
+    self.tags = metadata_section.get("tags", []) or []
+    self.files = metadata_section.get("files", []) or []
+    self.library = library_name or "unknown"
+
+  @staticmethod
+  def _validate_metadata(post: frontmatter.Post) -> None:
+    """Validate that template has required 'metadata' section with all required fields."""
+    metadata_section = post.metadata.get("metadata")
+    if metadata_section is None:
+      raise ValueError("Template format error: missing 'metadata' section")
+    
+    # Validate that metadata section has all required fields
+    required_fields = ["name", "author", "version", "date", "description"]
+    missing_fields = [field for field in required_fields if not metadata_section.get(field)]
+    
+    if missing_fields:
+      raise ValueError(f"Template format error: missing required metadata fields: {missing_fields}")
+
+# !SECTION
+
+# -----------------------
+# SECTION: Template Class
+# -----------------------
 
 @dataclass
 class Template:
   """Represents a template file with frontmatter and content."""
 
-  # Required fields
-  file_path: Path
-  content: str = ""
-
-  # Frontmatter metadata
-  id: str = ""
-  name: str = ""
-  description: str = "No description available"
-  author: str = ""
-  date: str = ""
-  version: str = ""
-  module: str = ""
-  tags: List[str] = field(default_factory=list)
-  files: List[str] = field(default_factory=list)
-  library: str = ""
-  variable_sections: "OrderedDict[str, Dict[str, Any]]" = field(default_factory=OrderedDict, init=False)
-
-  # Extracted/merged variables
-  variables: VariableCollection = field(default_factory=VariableCollection, init=False)
-  # Source tracking for prompting and ordering
-  template_var_names: List[str] = field(default_factory=list, init=False)
-  module_var_names: List[str] = field(default_factory=list, init=False)
-
-  def render(self, variable_values: Optional[Dict[str, Any]] = None) -> str:
-    """Render the template with given variable overrides."""
-    if variable_values:
-      for name, value in variable_values.items():
-        var = self.variables.get_variable(name)
-        if var:
-          try:
-            var.value = var.convert(value)
-          except ValueError as exc:
-            raise ValueError(f"Invalid value for variable '{name}': {exc}")
-
-    env = self._create_jinja_env()
-    context = self.variables.to_jinja_context()
-    template = env.from_string(self.content)
-    return template.render(context)
-
-  def get_variable_names(self) -> List[str]:
-    """List variable names in insertion order."""
-    return self.variables.get_variable_names()
-
-  @classmethod
-  def from_file(
-    cls,
-    file_path: Path,
-    module_sections: Dict[str, Any] = None,
-    library_name: str = ""
-  ) -> "Template":
+  def __init__(self, file_path: Path, library_name: str) -> None:
     """Create a Template instance from a file path."""
     logger.debug(f"Loading template from file: {file_path}")
 
     try:
-      frontmatter_data, content = cls._parse_frontmatter(file_path)
-      template_id = file_path.parent.name
+      # Parse frontmatter and content from the file
+      logger.debug(f"Loading template from file: {file_path}")
+      with open(file_path, "r", encoding="utf-8") as f:
+        post = frontmatter.load(f)
 
-      template = cls(
-        file_path=file_path,
-        content=content,
-        id=template_id,
-        name=frontmatter_data.get("name", ""),
-        description=frontmatter_data.get("description", "No description available"),
-        author=frontmatter_data.get("author", ""),
-        date=frontmatter_data.get("date", ""),
-        version=frontmatter_data.get("version", ""),
-        module=frontmatter_data.get("module", ""),
-        tags=frontmatter_data.get("tags", []),
-        files=frontmatter_data.get("files", []),
-        library=library_name,
-      )
+      # Load metadata using the TemplateMetadata constructor
+      self.metadata = TemplateMetadata(post, library_name)
+      logger.debug(f"Loaded metadata: {self.metadata}")
 
-      logger.info(f"Loaded template '{template.id}' (v{template.version or 'unversioned'})")
+      # Validate 'kind' field presence
+      self._validate_kind(post)
 
-      module_section_defs = module_sections or {}
-      module_flat, module_section_meta = cls._flatten_sections(module_section_defs)
+      # Load module specifications
+      kind = post.metadata.get("kind", None)
+      module_specs = {}
+      if kind:
+        try:
+          import importlib
+          module = importlib.import_module(f"..modules.{kind}", package=__package__)
+          module_specs = getattr(module, 'spec', {})
+        except Exception as e:
+          raise ValueError(f"Error loading module specifications for kind '{kind}': {str(e)}")
+      
+      # Loading template variable specs - merge template specs with module specs
+      template_specs = post.metadata.get("spec", {})
+      
+      # Deep merge specs: merge vars within sections instead of replacing entire sections
+      # Preserve order: start with module spec order, then append template-only sections
+      merged_specs = {}
+      
+      # First, process all sections from module spec (preserves order)
+      for section_key in module_specs.keys():
+        module_section = module_specs.get(section_key, {})
+        template_section = template_specs.get(section_key, {})
+        
+        # Start with module section as base
+        merged_section = {**module_section}
+        
+        # Merge template section metadata (title, prompt, etc.)
+        for key in ['title', 'prompt', 'description', 'toggle', 'required']:
+          if key in template_section:
+            merged_section[key] = template_section[key]
+        
+        # Merge vars: template vars extend/override module vars
+        module_vars = module_section.get('vars', {})
+        template_vars = template_section.get('vars', {})
+        merged_section['vars'] = {**module_vars, **template_vars}
+        
+        merged_specs[section_key] = merged_section
+      
+      # Then, add any sections that exist only in template spec
+      for section_key in template_specs.keys():
+        if section_key not in module_specs:
+          template_section = template_specs[section_key]
+          merged_section = {**template_section}
+          merged_specs[section_key] = merged_section
+      
+      logger.debug(f"Loaded specs: {merged_specs}")
 
-      template_section_defs = frontmatter_data.get("variable_sections") or {}
-      legacy_frontmatter_vars = frontmatter_data.get("variables")
-      if legacy_frontmatter_vars:
-        template_section_defs = OrderedDict(template_section_defs)
-        template_section_defs["template_specific"] = {
-          "title": f"{template.name or template_id} Specific",
-          "prefix": "",
-          "vars": legacy_frontmatter_vars,
-        }
+      self.file_path = file_path
+      self.id = file_path.parent.name
 
-      template_flat, template_section_meta = cls._flatten_sections(template_section_defs)
+      self.content = post.content
+      logger.debug(f"Loaded content: {self.content}")
 
-      # Extract and merge variables (only those actually used)
-      variables, tpl_names, mod_names = cls._merge_variables(
-        content,
-        module_flat,
-        template_flat,
-        template_id,
-      )
-      template.variables = variables
-      template.template_var_names = tpl_names
-      template.module_var_names = mod_names
-      template.variable_sections = cls._combine_sections_meta(
-        module_section_meta,
-        template_section_meta,
-        template.variables,
-      )
+      # Extract variables used in template and their defaults
+      self.jinja_env = self._create_jinja_env()
+      ast = self.jinja_env.parse(self.content)
+      used_variables: Set[str] = meta.find_undeclared_variables(ast)
+      default_values: Dict[str, str] = self._extract_jinja_defaults(ast)
+      logger.debug(f"Used variables: {used_variables}, defaults: {default_values}")
 
-      logger.debug(
-        f"Final variables for template '{template.id}': {template.variables.get_variable_names()}"
-      )
+      # Validate that all used variables are defined in specs
+      self._validate_variable_definitions(used_variables, merged_specs)
 
-      return template
+      # Filter specs to only used variables and merge in Jinja defaults
+      filtered_specs = {}
+      for section_key, section_data in merged_specs.items():
+        if "vars" in section_data:
+          filtered_vars = {}
+          for var_name, var_data in section_data["vars"].items():
+            if var_name in used_variables:
+              # Determine origin: check where this variable comes from
+              module_has_var = (section_key in module_specs and 
+                               var_name in module_specs.get(section_key, {}).get("vars", {}))
+              template_has_var = (section_key in template_specs and 
+                                 var_name in template_specs.get(section_key, {}).get("vars", {}))
+              
+              if module_has_var and template_has_var:
+                origin = "module -> template"  # Template overrides module
+              elif template_has_var and not module_has_var:
+                origin = "template"  # Template-only variable
+              else:
+                origin = "module"  # Module-only variable
+              
+              # Merge in Jinja default and origin if present
+              var_data_with_origin = {**var_data, "origin": origin}
+              if var_name in default_values:
+                var_data_with_origin["default"] = default_values[var_name]
+              elif "default" not in var_data_with_origin:
+                var_data_with_origin["default"] = ""
+                logger.warning(f"No default specified for variable '{var_name}' in template '{self.id}'")
+              
+              filtered_vars[var_name] = var_data_with_origin
+          
+          if filtered_vars:  # Only include sections that have used variables
+            filtered_specs[section_key] = {**section_data, "vars": filtered_vars}
 
+      # Create VariableCollection from filtered specs
+      self.variables = VariableCollection(filtered_specs)
+
+      logger.info(f"Loaded template '{self.id}' (v{self.metadata.version})")
+
+    except ValueError as e:
+      # FIXME: Refactor error handling to avoid redundant catching and re-raising
+      # ValueError already logged in validation method - don't duplicate
+      raise
     except FileNotFoundError:
       logger.error(f"Template file not found: {file_path}")
       raise
     except Exception as e:
       logger.error(f"Error loading template from {file_path}: {str(e)}")
       raise
+
+  # ---------------------------
+  # SECTION: Validation Methods
+  # ---------------------------
+
+  @staticmethod
+  def _extract_jinja_defaults(ast: nodes.Node) -> dict[str, str]:
+    """Extract default values from Jinja2 template variables with default filters."""
+    defaults = {}
+    
+    def visit_node(node):
+      """Recursively visit AST nodes to find default filter usage."""
+      if isinstance(node, nodes.Filter):
+        # Check if this is a 'default' filter
+        if node.name == 'default' and len(node.args) > 0:
+          # Get the variable being filtered
+          if isinstance(node.node, nodes.Name):
+            var_name = node.node.name
+            # Get the default value (first argument to default filter)
+            default_arg = node.args[0]
+            if isinstance(default_arg, nodes.Const):
+              defaults[var_name] = str(default_arg.value)
+            elif isinstance(default_arg, nodes.Name):
+              defaults[var_name] = default_arg.name
+      
+      # Recursively visit child nodes
+      for child in node.iter_child_nodes():
+        visit_node(child)
+    
+    visit_node(ast)
+    return defaults
+
+  @staticmethod
+  def _validate_kind(post: frontmatter.Post) -> None:
+    """Validate that template has required 'kind' field."""
+    if not post.metadata.get("kind"):
+      raise ValueError("Template format error: missing 'kind' field")
+
+  def _validate_variable_definitions(self, used_variables: set[str], merged_specs: dict[str, Any]) -> None:
+    """Validate that all variables used in Jinja2 content are defined in the spec.
+    
+    Args:
+      used_variables: Set of variable names found in the Jinja2 template content
+      merged_specs: Combined module and template specifications
+      
+    Raises:
+      ValueError: If any used variables are not defined in the spec
+    """
+    # Collect all defined variables from all sections
+    defined_variables = set()
+    for section_data in merged_specs.values():
+      if "vars" in section_data and isinstance(section_data["vars"], dict):
+        defined_variables.update(section_data["vars"].keys())
+    
+    # Find variables used in template but not defined in spec
+    undefined_variables = used_variables - defined_variables
+    
+    if undefined_variables:
+      # Sort for consistent error messages
+      undefined_list = sorted(undefined_variables)
+      
+      # Create detailed error message
+      error_msg = (
+        f"Template validation error in '{self.id}': "
+        f"Variables used in template content but not defined in spec: {undefined_list}\n\n"
+        f"Please add these variables to your template spec or module spec. "
+        f"Example:\n"
+        f"spec:\n"
+        f"  general:\n"
+        f"    vars:\n"
+      )
+      
+      # Add example spec entries for each undefined variable
+      for var_name in undefined_list:
+        error_msg += (
+          f"      {var_name}:\n"
+          f"        type: str\n"
+          f"        description: Description for {var_name}\n"
+          f"        default: \"\"\n"
+        )
+      
+      logger.error(error_msg)
+      raise ValueError(error_msg)
+
+  # !SECTION
+
+  # ---------------------------------
+  # SECTION: Jinja2 Rendering Methods
+  # ---------------------------------
 
   @staticmethod
   def _create_jinja_env() -> Environment:
@@ -152,220 +298,10 @@ class Template:
       keep_trailing_newline=False,
     )
 
-  @staticmethod
-  def _parse_frontmatter(file_path: Path) -> Tuple[Dict[str, Any], str]:
-    """Parse frontmatter and content from a file."""
-    with open(file_path, "r", encoding="utf-8") as f:
-      post = frontmatter.load(f)
-    return post.metadata, post.content
-
-  @staticmethod
-  def _extract_template_variables(content: str) -> Set[str]:
-    """Extract variable names used in Jinja2 template content (flat names only).
-
-    Strategy:
-    - Use Jinja2 AST to find undeclared variables
-    - Ignore dotted and bracket access (templates should use flat names only)
-    """
-    try:
-      env = Template._create_jinja_env()
-      ast = env.parse(content)
-      root_variables = meta.find_undeclared_variables(ast)
-      logger.debug(f"Found variables: {sorted(root_variables)}")
-      return set(root_variables)
-    except TemplateSyntaxError as e:
-      logger.warning(f"Template syntax error while analyzing variables: {e}")
-      return set()
-    except Exception as e:
-      logger.warning(f"Error analyzing template variables: {e}")
-      return set()
-
-  @staticmethod
-  def _extract_jinja_defaults(content: str) -> Dict[str, str]:
-    """Extract default values from Jinja2 | default() filters for flat names."""
-    defaults: Dict[str, str] = {}
-    try:
-      # Flat var names only (no dots). Single or double quotes supported
-      default_pattern = r"{{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\|\s*default\(\s*['\"]([^'\"]*)['\"]\s*\)"
-      matches = re.findall(default_pattern, content)
-      for var_name, default_value in matches:
-        defaults[var_name.strip()] = default_value
-      logger.debug(f"Found Jinja2 defaults: {defaults}")
-      return defaults
-    except Exception as e:
-      logger.warning(f"Error extracting Jinja2 defaults: {e}")
-      return {}
-
-  @staticmethod
-  def _merge_variables(
-    content: str,
-    module_variables: Dict[str, Any],
-    template_variables: Dict[str, Any],
-    template_id: str,
-  ) -> Tuple[VariableCollection, List[str], List[str]]:
-    """Merge module + frontmatter vars, auto-create missing, and apply Jinja defaults.
-
-    Precedence (highest to lowest when a value exists):
-      1. Template frontmatter variables
-      2. Jinja | default() values (only if no value is set)
-      3. Module variables
-      4. Auto-created variables for what's used in content
-    """
-    used_variables = Template._extract_template_variables(content)
-    jinja_defaults = Template._extract_jinja_defaults(content)
-
-    declared_variables = set(module_variables.keys()) | set(template_variables.keys())
-    missing_declared = used_variables - declared_variables
-    if missing_declared:
-      raise ValueError(
-        "Unknown variables referenced in template: "
-        + ", ".join(sorted(missing_declared))
-      )
-
-    variables = VariableCollection()
-
-    # Keep only variables that are actually referenced in the template content,
-    # plus any explicitly defined in template frontmatter.
-    relevant_names = used_variables | set(template_variables.keys())
-
-    _log_variable_stage(
-      "Processing module variables",
-      list(module_variables.keys()) if module_variables else [],
-    )
-
-    variables.add_from_dict(module_variables, relevant_names, label="module")
-    variables.add_from_dict(template_variables, relevant_names, label="template")
-
-    template_var_names_ordered: List[str] = [n for n in template_variables.keys() if n in relevant_names]
-    module_var_names_ordered: List[str] = [n for n in module_variables.keys() if n in relevant_names]
-
-    variables.apply_jinja_defaults(jinja_defaults)
-
-    Template._ensure_defaults(variables, template_id)
-
-    logger.debug(
-      f"Smart merge: {len(relevant_names)} used, {len(variables)} defined = {len(variables)} final variables"
-    )
-    return variables, template_var_names_ordered, module_var_names_ordered
-
-  @staticmethod
-  def _ensure_defaults(variables: VariableCollection, template_id: str) -> None:
-    """Ensure every variable has a default value; raise if any are missing."""
-    missing: List[str] = []
-
-    for var_name in variables.get_variable_names():
-      variable = variables.get_variable(var_name)
-      if not variable:
-        continue
-      if variable.value not in (None, ""):
-        continue
-
-      missing.append(var_name)
-
-    if missing:
-      raise ValueError(
-        f"Missing default value(s) for variables {', '.join(missing)} in template '{template_id}'"
-      )
-
-  @staticmethod
-  def _flatten_sections(
-    section_defs: Dict[str, Any],
-  ) -> Tuple[Dict[str, Dict[str, Any]], "OrderedDict[str, Dict[str, Any]]"]:
-    flat: Dict[str, Dict[str, Any]] = {}
-    meta: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
-
-    if not section_defs:
-      return flat, meta
-
-    for key, data in section_defs.items():
-      if not isinstance(data, dict):
-        continue
-
-      title = data.get("title") or key.replace('_', ' ').title()
-      toggle_name = data.get("toggle")
-      vars_spec = data.get("vars") or {}
-
-      variables_list: List[str] = []
-      for var_name, spec in vars_spec.items():
-        spec = dict(spec)
-        spec.setdefault("section", title)
-        flat[var_name] = spec
-        variables_list.append(var_name)
-
-      if toggle_name:
-        if toggle_name not in flat:
-          flat[toggle_name] = {
-            "type": "bool",
-            "default": False,
-            "section": title,
-            "description": data.get("toggle_description", ""),
-          }
-        if toggle_name not in variables_list:
-          variables_list.insert(0, toggle_name)
-
-      meta[key] = {
-        "title": title,
-        "prompt": data.get("prompt"),
-        "description": data.get("description"),
-        "toggle": toggle_name,
-        "variables": variables_list,
-      }
-
-    return flat, meta
-
-  @staticmethod
-  def _combine_sections_meta(
-    module_meta: "OrderedDict[str, Dict[str, Any]]",
-    template_meta: "OrderedDict[str, Dict[str, Any]]",
-    variables: VariableCollection,
-  ) -> "OrderedDict[str, Dict[str, Any]]":
-    combined: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
-
-    def _add_meta(source: "OrderedDict[str, Dict[str, Any]]") -> None:
-      for key, meta in source.items():
-        existing = combined.get(key)
-        if existing:
-          existing["variables"].extend(v for v in meta["variables"] if v not in existing["variables"])
-          if meta.get("prompt"):
-            existing["prompt"] = meta["prompt"]
-          if meta.get("description"):
-            existing["description"] = meta["description"]
-          if meta.get("toggle"):
-            existing["toggle"] = meta["toggle"]
-          if meta.get("title"):
-            existing["title"] = meta["title"]
-        else:
-          combined[key] = {
-            "title": meta.get("title") or key.replace('_', ' ').title(),
-            "prompt": meta.get("prompt"),
-            "description": meta.get("description"),
-            "toggle": meta.get("toggle"),
-            "variables": list(meta.get("variables", [])),
-          }
-
-    _add_meta(module_meta)
-    _add_meta(template_meta)
-
-    # Filter out variables that are not present in the final collection
-    existing_names = set(variables.get_variable_names())
-    seen: Set[str] = set()
-    for key, meta in list(combined.items()):
-      filtered = [name for name in meta["variables"] if name in existing_names]
-      if not filtered:
-        del combined[key]
-        continue
-      meta["variables"] = filtered
-      seen.update(filtered)
-
-    # Add remaining variables that were not covered by sections
-    remaining = [name for name in existing_names if name not in seen]
-    if remaining:
-      combined["other"] = {
-        "title": "Other",
-        "prompt": None,
-        "description": None,
-        "toggle": None,
-        "variables": remaining,
-      }
-
-    return combined
+  def render(self, variables: dict[str, Any]) -> str:
+    """Render the template with the given variables."""
+    logger.debug(f"Rendering template '{self.id}' with variables: {variables}")
+    template = self.jinja_env.from_string(self.content)
+    return template.render(**variables)
+  
+  # !SECTION

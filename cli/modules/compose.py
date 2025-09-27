@@ -3,15 +3,7 @@ from collections import OrderedDict
 from ..core.module import Module
 from ..core.registry import registry
 
-
-class ComposeModule(Module):
-  """Docker Compose module."""
-
-  name = "compose"
-  description = "Manage Docker Compose configurations"
-  files = ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"]
-
-  variable_sections = OrderedDict(
+spec = OrderedDict(
     {
       "general": {
         "title": "General",
@@ -42,6 +34,11 @@ class ComposeModule(Module):
             "type": "enum",
             "options": ["unless-stopped", "always", "on-failure", "no"],
             "default": "unless-stopped",
+          },
+          "container_hostname": {
+            "description": "Container internal hostname",
+            "type": "str",
+            "default": "",
           },
         },
       },
@@ -76,22 +73,7 @@ class ComposeModule(Module):
             "description": "Expose ports via 'ports' mapping",
             "type": "bool",
             "default": False,
-          },
-          "service_port_http": {
-            "description": "HTTP service port (host)",
-            "type": "int",
-            "default": 8080,
-          },
-          "service_port_https": {
-            "description": "HTTPS service port (host)",
-            "type": "int",
-            "default": 8443,
-          },
-          "ports_http": {
-            "description": "Port for HTTP access to the service",
-            "type": "int",
-            "default": 5678,
-          },
+          }
         },
       },
       "traefik": {
@@ -134,6 +116,9 @@ class ComposeModule(Module):
       },
       "swarm": {
         "title": "Docker Swarm",
+        "prompt": "Enable Docker Swarm deployment?",
+        "toggle": "swarm_enabled",
+        "description": "Deploy service in Docker Swarm mode with replicas.",
         "vars": {
           "swarm_enabled": {
             "description": "Enable Docker Swarm mode",
@@ -147,60 +132,108 @@ class ComposeModule(Module):
           },
         },
       },
-      "nginx": {
-        "title": "Nginx Dashboard",
+      "database": {
+        "title": "Database",
+        "prompt": "Configure external database connection?",
+        "toggle": "database_enabled",
+        "description": "Connect to external database (PostgreSQL, MySQL, MariaDB, etc.)",
         "vars": {
-          "nginx_dashboard_enabled": {
-            "description": "Enable Nginx dashboard",
+          "database_enabled": {
+            "description": "Enable external database integration",
             "type": "bool",
             "default": False,
           },
-          "nginx_dashboard_port": {
-            "description": "Nginx dashboard port (host)",
-            "type": "int",
-            "default": 8081,
-          },
-        },
-      },
-      "postgres": {
-        "title": "PostgreSQL",
-        "prompt": "Configure external PostgreSQL database?",
-        "toggle": "postgres_enabled",
-        "vars": {
-          "postgres_enabled": {
-            "description": "Enable PostgreSQL integration",
-            "type": "bool",
-            "default": False,
-          },
-          "postgres_host": {
-            "description": "PostgreSQL host",
-            "type": "str",
+          "database_type": {
+            "description": "Database type",
+            "type": "enum",
+            "options": ["postgres", "mysql", "mariadb", "sqlite"],
             "default": "postgres",
           },
-          "postgres_port": {
-            "description": "PostgreSQL port",
+          "database_host": {
+            "description": "Database host",
+            "type": "str",
+            "default": "database",
+          },
+          "database_port": {
+            "description": "Database port",
             "type": "int",
             "default": 5432,
           },
-          "postgres_database": {
-            "description": "PostgreSQL database name",
+          "database_name": {
+            "description": "Database name",
             "type": "str",
             "default": "",
           },
-          "postgres_user": {
-            "description": "PostgreSQL user",
+          "database_user": {
+            "description": "Database user",
             "type": "str",
             "default": "",
           },
-          "postgres_password": {
-            "description": "PostgreSQL password",
+          "database_password": {
+            "description": "Database password",
             "type": "str",
             "default": "",
+          },
+        },
+      },
+      "email": {
+        "title": "Email Server",
+        "prompt": "Configure email server for notifications and user management?",
+        "toggle": "email_enabled",
+        "description": "Used for notifications, sign-ups, password resets, and alerts.",
+        "vars": {
+          "email_enabled": {
+            "description": "Enable email server configuration",
+            "type": "bool",
+            "default": False,
+          },
+          "email_host": {
+            "description": "SMTP server hostname",
+            "type": "str",
+            "default": "",
+          },
+          "email_port": {
+            "description": "SMTP server port",
+            "type": "int",
+            "default": 587,
+          },
+          "email_username": {
+            "description": "SMTP username",
+            "type": "str",
+            "default": "",
+          },
+          "email_password": {
+            "description": "SMTP password",
+            "type": "str",
+            "default": "",
+          },
+          "email_from": {
+            "description": "From email address",
+            "type": "str",
+            "default": "",
+          },
+          "email_use_tls": {
+            "description": "Use TLS encryption",
+            "type": "bool",
+            "default": True,
+          },
+          "email_use_ssl": {
+            "description": "Use SSL encryption",
+            "type": "bool",
+            "default": False,
           },
         },
       },
     }
   )
+
+
+class ComposeModule(Module):
+  """Docker Compose module."""
+
+  name = "compose"
+  description = "Manage Docker Compose configurations"
+  files = ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"]
 
 
 registry.register(ComposeModule)

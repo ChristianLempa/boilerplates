@@ -1,13 +1,15 @@
 ---
-name: "Node Exporter"
-description: "A Prometheus exporter for hardware and OS metrics"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - prometheus
-  - monitoring
-  - metrics
+kind: "compose"
+metadata:
+  name: "Node Exporter"
+  description: "A Prometheus exporter for hardware and OS metrics"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - prometheus
+    - monitoring
+    - metrics
 ---
 services:
   node_exporter:

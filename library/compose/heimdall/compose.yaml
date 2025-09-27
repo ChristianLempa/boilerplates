@@ -1,14 +1,16 @@
 ---
-name: "Heimdall"
-description: "An open-source dashboard for your web applications"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - heimdall
-  - dashboard
-  - monitoring
-  - observability
+kind: "compose"
+metadata:
+  name: "Heimdall"
+  description: "An open-source dashboard for your web applications"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - heimdall
+    - dashboard
+    - monitoring
+    - observability
 ---
 services:
   heimdall:

@@ -1,13 +1,15 @@
 ---
-name: "Uptime Kuma"
-description: "A self-hosted status monitoring solution"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - uptime-kuma
-  - monitoring
-  - self-hosted
+kind: "compose"
+metadata:
+  name: "Uptime Kuma"
+  description: "A self-hosted status monitoring solution"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - uptime-kuma
+    - monitoring
+    - self-hosted
 ---
 volumes:
   uptimekuma-data:

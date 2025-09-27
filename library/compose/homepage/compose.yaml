@@ -1,13 +1,15 @@
 ---
-name: "Homepage"
-description: "A self-hosted homepage for your web applications"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - homepage
-  - web
-  - dashboard
+kind: "compose"
+metadata:
+  name: "Homepage"
+  description: "A self-hosted homepage for your web applications"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - homepage
+    - web
+    - dashboard
 ---
 services:
   homepage:

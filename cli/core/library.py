@@ -1,17 +1,32 @@
+from __future__ import annotations
+
 from pathlib import Path
 import logging
+from typing import Optional
+
 logger = logging.getLogger(__name__)
 
+
+# -----------------------
+# SECTION: Library Class
+# -----------------------
 
 class Library:
   """Represents a single library with a specific path."""
   
-  def __init__(self, name: str, path: Path, priority: int = 0):
+  def __init__(self, name: str, path: Path, priority: int = 0) -> None:
+    """Initialize a library instance.
+    
+    Args:
+      name: Display name for the library
+      path: Path to the library directory
+      priority: Priority for library lookup (higher = checked first)
+    """
     self.name = name
     self.path = path
     self.priority = priority  # Higher priority = checked first
 
-  def find_by_id(self, module_name, files, template_id):
+  def find_by_id(self, module_name: str, files: list[str], template_id: str) -> tuple[Path, str]:
     """Find a template by its ID in this library.
     
     Args:
@@ -53,7 +68,7 @@ class Library:
     return template_path, self.name
 
 
-  def find(self, module_name, files, sort_results=False):
+  def find(self, module_name: str, files: list[str], sort_results: bool = False) -> list[tuple[Path, str]]:
     """Find templates in this library for a specific module.
     
     Args:
@@ -108,12 +123,17 @@ class Library:
     logger.debug(f"Found {len(template_dirs)} templates in module '{module_name}'")
     return template_dirs
 
+# !SECTION
+
+# -----------------------------
+# SECTION: LibraryManager Class
+# -----------------------------
 
 class LibraryManager:
   """Manages multiple libraries and provides methods to find templates."""
   
   # FIXME: For now this is static and only has one library
-  def __init__(self):
+  def __init__(self) -> None:
 
     # get the root path of the repository
     repo_root = Path(__file__).parent.parent.parent.resolve()
@@ -122,7 +142,7 @@ class LibraryManager:
       Library(name="default", path=repo_root / "library", priority=0)
     ]
 
-  def find_by_id(self, module_name, files, template_id):
+  def find_by_id(self, module_name: str, files: list[str], template_id: str) -> Optional[tuple[Path, str]]:
     """Find a template by its ID across all libraries.
     
     Args:
@@ -147,7 +167,7 @@ class LibraryManager:
     logger.debug(f"Template '{template_id}' not found in any library")
     return None
   
-  def find(self, module_name, files, sort_results=False):
+  def find(self, module_name: str, files: list[str], sort_results: bool = False) -> list[tuple[Path, str]]:
     """Find templates across all libraries for a specific module.
     
     Args:
@@ -187,4 +207,5 @@ class LibraryManager:
     
     logger.debug(f"Found {len(unique_templates)} unique templates total")
     return unique_templates
-  
+
+# !SECTION

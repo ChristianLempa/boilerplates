@@ -3,6 +3,8 @@
 Main entry point for the Boilerplates CLI application.
 This file serves as the primary executable when running the CLI.
 """
+from __future__ import annotations
+
 import importlib
 import logging
 import pkgutil
@@ -18,7 +20,7 @@ from cli.core.registry import registry
 app = Typer(no_args_is_help=True)
 console = Console()
 
-def setup_logging(log_level: str = "WARNING"):
+def setup_logging(log_level: str = "WARNING") -> None:
   """Configure the logging system with the specified log level.
   
   Args:
@@ -41,7 +43,7 @@ def setup_logging(log_level: str = "WARNING"):
       datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    logger = logging.getLogger('__name__')
+    logger = logging.getLogger(__name__)
     logger.setLevel(numeric_level)
   except Exception as e:
     raise RuntimeError(f"Failed to configure logging: {e}")
@@ -55,7 +57,7 @@ def main(
     "--log-level", 
     help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
   )
-):
+) -> None:
   """Main CLI application for managing boilerplates."""
   # Configure logging based on the provided log level
   setup_logging(log_level)
@@ -64,14 +66,14 @@ def main(
   ctx.ensure_object(dict)
   ctx.obj['log_level'] = log_level
 
-def init_app():
+def init_app() -> None:
   """Initialize the application by discovering and registering modules.
   
   Raises:
       ImportError: If critical module import operations fail
       RuntimeError: If application initialization fails
   """
-  logger = logging.getLogger('boilerplates')
+  logger = logging.getLogger(__name__)
   failed_imports = []
   failed_registrations = []
   
@@ -132,7 +134,7 @@ def init_app():
     details = "\n".join(error_details) if error_details else str(e)
     raise RuntimeError(f"Application initialization failed: {details}")
 
-def run():
+def run() -> None:
   """Run the CLI application."""
   try:
     init_app()

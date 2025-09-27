@@ -1,14 +1,23 @@
 ---
-name: "n8n"
-description: "Workflow automation and integration tool"
-version: "0.0.1"
-date: "2025-09-03"
-author: "Christian Lempa"
-tags:
-  - n8n
-  - automation
-  - workflows
-  - compose
+kind: "compose"
+metadata:
+  name: "n8n"
+  description: "Workflow automation and integration tool"
+  version: "0.0.1"
+  date: "2025-09-03"
+  author: "Christian Lempa"
+  tags:
+    - n8n
+    - automation
+    - workflows
+    - compose
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for n8n web interface"
+        type: int
+        default: 5678
 ---
 services:
   {{ service_name | default('n8n') }}:
@@ -27,13 +36,22 @@ services:
       - N8N_EDITOR_BASE_URL=http://{{ traefik_host | default('n8n.home.arpa') }}
       {% endif %}
       {% endif %}
-      {% if postgres_enabled %}
+      {% if database_enabled %}
+      {% if database_type == 'postgres' -%}
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST={{ postgres_host | default('postgres') }}
-      - DB_POSTGRESDB_PORT={{ postgres_port | default(5432) }}
-      - DB_POSTGRESDB_DATABASE={{ postgres_database | default('n8n') }}
-      - DB_POSTGRESDB_USER={{ postgres_user | default('n8n') }}
-      - DB_POSTGRESDB_PASSWORD={{ postgres_password | default('n8n') }}
+      - DB_POSTGRESDB_HOST={{ database_host | default('database') }}
+      - DB_POSTGRESDB_PORT={{ database_port | default(5432) }}
+      - DB_POSTGRESDB_DATABASE={{ database_name | default('n8n') }}
+      - DB_POSTGRESDB_USER={{ database_user | default('n8n') }}
+      - DB_POSTGRESDB_PASSWORD={{ database_password | default('n8n') }}
+      {% elif database_type == 'mysql' -%}
+      - DB_TYPE=mysqldb
+      - DB_MYSQLDB_HOST={{ database_host | default('database') }}
+      - DB_MYSQLDB_PORT={{ database_port | default(3306) }}
+      - DB_MYSQLDB_DATABASE={{ database_name | default('n8n') }}
+      - DB_MYSQLDB_USER={{ database_user | default('n8n') }}
+      - DB_MYSQLDB_PASSWORD={{ database_password | default('n8n') }}
+      {% endif %}
       {% endif %}
     volumes:
       - /etc/localtime:/etc/localtime:ro

@@ -1,13 +1,15 @@
 ---
-name: "Promtail"
-description: "An open-source log collection agent"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - promtail
-  - logging
-  - grafana
+kind: "compose"
+metadata:
+  name: "Promtail"
+  description: "An open-source log collection agent"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - promtail
+    - logging
+    - grafana
 ---
 services:
   promtail:

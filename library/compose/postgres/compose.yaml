@@ -1,55 +1,84 @@
 ---
-name: "PostgreSQL"
-description: "An open-source relational database management system"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - postgres
-  - database
-  - sql
+kind: "compose"
+metadata:
+  name: "PostgreSQL"
+  description: "An open-source relational database management system"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - postgres
+    - database
+    - sql
+spec:
+  postgres:
+    vars:
+      postgres_initdb_args:
+        description: "PostgreSQL initdb arguments"
+        type: str
+        default: "--data-checksums"
+      postgres_host_auth_method:
+        description: "PostgreSQL host authentication method"
+        type: str
+        default: ""
+      postgres_secrets_enabled:
+        description: "Use PostgreSQL secrets file for password"
+        type: bool
+        default: true
 ---
 services:
-  postgres:
+  {{ service_name | default('postgres') }}:
     image: docker.io/library/postgres:17.6
-    container_name: postgres
+    container_name: {{ container_name | default('postgres') }}
     environment:
-      - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS---data-checksums}
-      - POSTGRES_HOST_AUTH_METHOD=${POSTGRES_HOST_AUTH_METHOD-}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_INITDB_ARGS={{ postgres_initdb_args | default('--data-checksums') }}
+      {% if postgres_host_auth_method -%}
+      - POSTGRES_HOST_AUTH_METHOD={{ postgres_host_auth_method }}
+      {% endif %}
+      - POSTGRES_USER={{ database_user | default('postgres') }}
+      {% if postgres_secrets_enabled -%}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_DB=${POSTGRES_DB:-$POSTGRES_USER}
-      - TZ=${TZ:-UTC}
+      {% else -%}
+      - POSTGRES_PASSWORD={{ database_password | default('postgres') }}
+      {% endif %}
+      - POSTGRES_DB={{ database_name | default('postgres') }}
+      - TZ={{ container_timezone | default('UTC') }}
+    {% if ports_enabled %}
     ports:
-      - 5432:5432
+      - "{{ database_port | default(5432) }}:5432"
+    {% endif %}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "${POSTGRES_USER:-postgres}"']
+      test: ['CMD-SHELL', 'pg_isready -U "{{ database_user | default('postgres') }}"']
       start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 5
-    # (Optional)  When using custom network, see also
-    #             https://docs.docker.com/compose/compose-file/compose-file-v3/#networks
-    #
-    # networks:
-    #   - yournetwork
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if postgres_secrets_enabled %}
     secrets:
       - postgres_password
+    {% endif %}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: {{ restart_policy | default('unless-stopped') }}
 
-# (Optional)  When using custom network, see also
-#             https://docs.docker.com/compose/compose-file/compose-file-v3/#network-configuration-reference
-#
-# networks:
-#   yournetwork:
-#     external: true
-
+{% if postgres_secrets_enabled %}
 secrets:
   postgres_password:
     file: secret.postgres_password.txt
+{% endif %}
 
 volumes:
   postgres_data:
     driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

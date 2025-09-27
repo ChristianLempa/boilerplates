@@ -1,13 +1,15 @@
 ---
-name: "MariaDB"
-description: "An open-source relational database management system"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - mariadb
-  - database
-  - sql
+kind: "compose"
+metadata:
+  name: "MariaDB"
+  description: "An open-source relational database management system"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - mariadb
+    - database
+    - sql
 ---
 # (Optional) when using custom network
 # networks:

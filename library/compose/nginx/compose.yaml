@@ -1,67 +1,94 @@
 ---
-name: "Nginx"
-description: "An open-source web server"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - nginx
-  - web
-  - reverse-proxy
+kind: "compose"
+metadata:
+  name: "Nginx"
+  description: "An open-source web server"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - nginx
+    - web
+    - reverse-proxy
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for nginx service"
+        type: int
+        default: 8080
+      ports_https:
+        description: "HTTPS port for nginx service"
+        type: int
+        default: 8443
+  nginx:
+    vars:
+      nginx_dashboard_enabled:
+        description: "Enable nginx dashboard"
+        type: bool
+        default: false
+      nginx_dashboard_port:
+        description: "Nginx dashboard port"
+        type: int
+        default: 8081
 ---
 services:
-  {{ service_name }}:
+  {{ service_name | default('nginx') }}:
     image: docker.io/library/nginx:1.28.0-alpine
-    {% if not swarm %}
+    {% if not swarm_enabled %}
     container_name: {{ container_name | default('nginx') }}
     {% endif %}
-    {% if swarm %}
+    {% if swarm_enabled %}
     deploy:
-      replicas: {{ swarm.replicas | default(1) }}
-      {% if traefik %}
+      replicas: {{ swarm_replicas | default(1) }}
+      {% if traefik_enabled %}
       labels:
-        - traefik.enable={{ traefik }}
-        - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
-        - traefik.http.routers.{{ container_name }}.entrypoints=websecure
-        - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik.host }}`)
-        - traefik.http.routers.{{ container_name }}.tls={{ traefik.tls | default(true) }}
-        - traefik.http.routers.{{ container_name }}.tls.certresolver={{ traefik.certresolver }}
-        - traefik.http.routers.{{ container_name }}.service={{ container_name }}
+        - traefik.enable=true
+        - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
+        - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ container_name | default('nginx') }}.tls={{ traefik_tls_enabled | default(true) }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}.tls.certresolver={{ traefik_tls_certresolver }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}.service={{ container_name | default('nginx') }}
       {% endif %}
     {% endif %}
-    {% if not traefik %}
+    {% if ports_enabled %}
     ports:
-      - "{{ service_port_http | default(8080) }}:80"
-      - "{{ service_port_https | default(8443) }}:443"
-      {% if nginx_dashboard %}
-      - "{{ nginx_dashboard.port | default(8081) }}:8080"
+      - "{{ ports_http | default(8080) }}:80"
+      - "{{ ports_https | default(8443) }}:443"
+      {% if nginx_dashboard_enabled %}
+      - "{{ nginx_dashboard_port | default(8081) }}:8080"
       {% endif %}
     {% endif %}
     # volumes:
     #   - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
     #   - ./data:/usr/share/nginx/html:ro
-    {% if traefik and not swarm %}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
-      - traefik.enable={{ traefik  }}
-      - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
-      - traefik.http.routers.{{ container_name }}.entrypoints=websecure
-      - traefik.http.routers.{{ container_name }}.rule=Host(`{{ traefik.host }}`)
-      - traefik.http.routers.{{ container_name }}.tls={{ traefik.tls | default(true) }}
-      - traefik.http.routers.{{ container_name }}.tls.certresolver={{ traefik.certresolver }}
-      - traefik.http.routers.{{ container_name }}.service={{ container_name }}
+      - traefik.enable=true
+      - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
+      - traefik.http.routers.{{ container_name | default('nginx') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ container_name | default('nginx') }}.tls=true
+      - traefik.http.routers.{{ container_name | default('nginx') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+      - traefik.http.routers.{{ container_name | default('nginx') }}.service={{ container_name | default('nginx') }}
     {% endif %}
-    {% if network %}
+    {% if network_enabled %}
     networks:
-      - {{ network.name | default('bridge') }}
+      - {{ network_name | default('bridge') }}
     {% endif %}
-    {% if not swarm %}
-    restart: unless-stopped
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy | default('unless-stopped') }}
     {% endif %}
 
-{% if network %}
+{% if network_enabled %}
 networks:
-  {{ network.name | default('bridge') }}:
-    {% if network.external | default(true) %}
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
     external: true
     {% endif %}
 {% endif %}

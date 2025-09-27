@@ -1,55 +1,70 @@
 ---
-name: "Traefik"
-description: "An open-source edge router for microservices"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - traefik
-  - reverse-proxy
-  - load-balancer
+kind: "compose"
+metadata:
+  name: "Traefik"
+  description: "An open-source edge router for microservices"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - traefik
+    - reverse-proxy
+    - load-balancer
 files:
   - config/traefik.yaml
-variables:
-  acme_email:
-    display: "ACME Email"
-    description: "Email address for ACME (Let's Encrypt) registration"
-    type: "str"
-  traefik.host:
-    display: "Traefik Host"
-    description: "Domain name for Traefik dashboard"
-    type: "str"
-  database.name:
-    display: "Database Name"
-    description: "Name of the database"
-    type: "str"
+spec:
+  traefik:
+    vars:
+      acme_email:
+        description: "Email address for ACME (Let's Encrypt) registration"
+        type: str
+        default: ""
+  database:
+    vars:
+      database_name:
+        description: "Name of the database"
+        type: str
+        default: ""
 ---
 services:
-  traefik:
+  {{ service_name | default('traefik') }}:
     image: docker.io/library/traefik:v3.5.1
-    container_name: traefik
+    container_name: {{ container_name | default('traefik') }}
+    {% if ports_enabled %}
     ports:
       - 80:80
       - 443:443
       # --> (Optional) Enable Dashboard, don't do in production
       # - 8080:8080
       # <--
+    {% endif %}
     volumes:
       - /run/docker.sock:/run/docker.sock:ro
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
     environment:
-      - CF_DNS_API_TOKEN={{ acme_email }}  # Using template variable
-      {% if traefik.host -%}
-      - TRAEFIK_HOST={{ traefik.host }}
+      - TZ={{ container_timezone | default('UTC') }}
+      {% if acme_email -%}
+      - CF_DNS_API_TOKEN={{ acme_email }}
       {% endif %}
-      {% if database.name -%}
-      - DB_NAME={{ database.name }}
+      {% if traefik_host -%}
+      - TRAEFIK_HOST={{ traefik_host }}
       {% endif %}
+      {% if database_name -%}
+      - DB_NAME={{ database_name }}
+      {% endif %}
+    {% if network_enabled %}
     networks:
-      - frontend
-    restart: unless-stopped
+      - {{ network_name | default('frontend') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
 
+{% if network_enabled %}
 networks:
-  frontend:
-    external: true  # <-- (Optional) Change this to false if you want to create a new network
+  {{ network_name | default('frontend') }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+{% endif %}

@@ -1,13 +1,15 @@
 ---
-name: "Ansible Semaphore"
-description: "A powerful and flexible automation tool"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - "ansible"
-  - "automation"
-  - "semaphore"
+kind: "compose"
+metadata:
+  name: "Ansible Semaphore"
+  description: "A powerful and flexible automation tool"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - "ansible"
+    - "automation"
+    - "semaphore"
 ---
 volumes:
   semaphore-mysql:

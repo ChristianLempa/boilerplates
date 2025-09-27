@@ -1,107 +1,149 @@
 ---
-name: "Authentik"
-description: "An open-source identity and access management solution"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - "authentik"
-  - "identity"
-  - "access"
-  - "management"  
+kind: "compose"
+metadata:
+  name: "Authentik"
+  description: "An open-source identity and access management solution"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - "authentik"
+    - "identity"
+    - "access"
+    - "management"
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for Authentik web interface"
+        type: int
+        default: 9000
+      ports_https:
+        description: "HTTPS port for Authentik web interface"
+        type: int
+        default: 9443
+  authentik:
+    vars:
+      authentik_secret_key:
+        description: "Authentik secret key (generate with: openssl rand -base64 32)"
+        type: str
+        default: ""
+      authentik_error_reporting:
+        description: "Enable Authentik error reporting"
+        type: bool
+        default: false
+  database:
+    required: true
+  email:
+    vars:
+      email_timeout:
+        description: "Email timeout in seconds"
+        type: int
+        default: 10
 ---
 services:
-  server:
+  {{ service_name | default('authentik-server') }}:
     image: ghcr.io/goauthentik/server:2025.6.3
-    container_name: authentik-server
+    container_name: {{ container_name | default('authentik-server') }}
     command: server
     environment:
-      - AUTHENTIK_REDIS__HOST=authentik-redis
-      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
-      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER:-authentik}
-      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD:?error}
-      # (Required)  To generate a secret key run the following command:
-      #             echo $(openssl rand -base64 32)
-      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?error}
-      # (Optional)  Enable Error Reporting
-      - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING:-false}
-      # (Optional)  Enable Email Sending
-      #             Highly recommended to notify you about alerts and configuration issues.
-      - AUTHENTIK_EMAIL__HOST=${EMAIL_HOST:?error}
-      - AUTHENTIK_EMAIL__PORT=${EMAIL_PORT:-25}
-      - AUTHENTIK_EMAIL__USERNAME=${EMAIL_USERNAME:?error}
-      - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD:?error}
-      - AUTHENTIK_EMAIL__USE_TLS=${EMAIL_USE_TLS:-false}
-      - AUTHENTIK_EMAIL__USE_SSL=${EMAIL_USE_SSL:-false}
-      - AUTHENTIK_EMAIL__TIMEOUT=${EMAIL_TIMEOUT:-10}
-      - AUTHENTIK_EMAIL__FROM=${EMAIL_FROM:?error}
+      - TZ={{ container_timezone | default('UTC') }}
+      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
+      {% if authentik_secret_key -%}
+      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+      {% endif %}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
+      {% if email_enabled -%}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
+      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
+      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
+      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      {% endif %}
+    {% if ports_enabled %}
     ports:
-      # (Optional)  Remove these, if you're using a reverse proxy like Traefik.
-      - 9000:9000
-      - 9443:9443
+      - "{{ ports_http | default(9000) }}:9000"
+      - "{{ ports_https | default(9443) }}:9443"
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
     labels:
-      # (Optional)  Enable Traefik integration for the Authentik Web UI. For more information
-      #             about integrating other services with Traefik and Authentik, see the
-      #             documentation at https://goauthentik.io/docs/outposts/integrations/traefik
-      #             and the middleware example files in `docker-compose/traefik/config`.
       - traefik.enable=true
-      - traefik.http.services.authentik.loadbalancer.server.port=9000
-      - traefik.http.services.authentik.loadbalancer.server.scheme=http
-      - traefik.http.routers.authentik.entrypoints=websecure
-      - traefik.http.routers.authentik.rule=Host(`your-authentik-fqdn`)
-      - traefik.http.routers.authentik.tls=true
-      - traefik.http.routers.authentik.tls.certresolver=cloudflare
+      - traefik.http.services.{{ service_name | default('authentik') }}.loadbalancer.server.port=9000
+      - traefik.http.services.{{ service_name | default('authentik') }}.loadbalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name | default('authentik') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.tls=true
+      - traefik.http.routers.{{ service_name | default('authentik') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+    {% endif %}
     volumes:
       - ./media:/media
       - ./custom-templates:/templates
     depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+      - {{ service_name | default('authentik') }}-postgres
+      - {{ service_name | default('authentik') }}-redis
+    restart: {{ restart_policy | default('unless-stopped') }}
 
-  worker:
+  {{ service_name | default('authentik') }}-worker:
     image: ghcr.io/goauthentik/server:2025.6.3
-    container_name: authentik-worker
+    container_name: {{ service_name | default('authentik') }}-worker
     command: worker
     environment:
-      - AUTHENTIK_REDIS__HOST=authentik-redis
-      - AUTHENTIK_POSTGRESQL__HOST=authentik-db
-      - AUTHENTIK_POSTGRESQL__USER=${POSTGRES_USER:-authentik}
-      - AUTHENTIK_POSTGRESQL__NAME=${POSTGRES_DB:-authentik}
-      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD:?error}
-      # (Required)  To generate a secret key run the following command:
-      #             echo $(openssl rand -base64 32)
-      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY:?error}
-      # (Optional)  Enable Error Reporting
-      - AUTHENTIK_ERROR_REPORTING__ENABLED=${AUTHENTIK_ERROR_REPORTING:-false}
-      # (Optional)  Enable Email Sending
-      #             Highly recommended to notify you about alerts and configuration issues.
-      - AUTHENTIK_EMAIL__HOST=${EMAIL_HOST:?error}
-      - AUTHENTIK_EMAIL__PORT=${EMAIL_PORT:-25}
-      - AUTHENTIK_EMAIL__USERNAME=${EMAIL_USERNAME:?error}
-      - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD:?error}
-      - AUTHENTIK_EMAIL__USE_TLS=${EMAIL_USE_TLS:-false}
-      - AUTHENTIK_EMAIL__USE_SSL=${EMAIL_USE_SSL:-false}
-      - AUTHENTIK_EMAIL__TIMEOUT=${EMAIL_TIMEOUT:-10}
-      - AUTHENTIK_EMAIL__FROM=${EMAIL_FROM:?error}
-    # (Optional)  See more for the docker socket integration here:
-    #             https://goauthentik.io/docs/outposts/integrations/docker
+      - TZ={{ container_timezone | default('UTC') }}
+      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
+      {% if authentik_secret_key -%}
+      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+      {% endif %}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
+      {% if email_enabled -%}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
+      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
+      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
+      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      {% endif %}
     user: root
     volumes:
       - /run/docker.sock:/run/docker.sock
       - ./media:/media
       - ./certs:/certs
       - ./custom-templates:/templates
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
     depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+      - {{ service_name | default('authentik') }}-postgres
+      - {{ service_name | default('authentik') }}-redis
+    restart: {{ restart_policy | default('unless-stopped') }}
 
-  redis:
+  {{ service_name | default('authentik') }}-redis:
     image: docker.io/library/redis:8.2.1
-    container_name: authentik-redis
+    container_name: {{ service_name | default('authentik') }}-redis
     command: --save 60 1 --loglevel warning
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       start_period: 20s
@@ -110,32 +152,44 @@ services:
       timeout: 3s
     volumes:
       - redis_data:/data
-    restart: unless-stopped
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
 
-  postgres:
-    # (Optional) Add a PostgreSQL Database for Authentik
-    #   Alternatively, you can host your PostgreSQL database externally, and
-    #   change the connection settings in the `authentik-server` and
-    #   `authentik-worker`.
+  {{ service_name | default('authentik') }}-postgres:
     image: docker.io/library/postgres:17.6
-    container_name: authentik-db
+    container_name: {{ service_name | default('authentik') }}-db
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-authentik}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?error}
-      - POSTGRES_DB=${POSTGRES_DB:-authentik}
-      - TZ=${TZ:-UTC}
+      - POSTGRES_USER={{ database_user | default('authentik') }}
+      - POSTGRES_PASSWORD={{ database_password | default('authentik') }}
+      - POSTGRES_DB={{ database_name | default('authentik') }}
+      - TZ={{ container_timezone | default('UTC') }}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "${POSTGRES_USER:-authentik}"']
+      test: ['CMD-SHELL', 'pg_isready -U "{{ database_user | default('authentik') }}"']
       start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 5
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+      - database_data:/var/lib/postgresql/data
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
 
 volumes:
-  postgres_data:
+  database_data:
     driver: local
   redis_data:
     driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}
