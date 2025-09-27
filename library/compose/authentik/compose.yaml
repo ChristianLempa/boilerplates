@@ -34,6 +34,11 @@ spec:
         default: false
   database:
     required: true
+    vars:
+      database_external:
+        description: "Use an external database (if true, the internal postgres service will not be created)"
+        type: bool
+        default: false
   email:
     vars:
       email_timeout:
@@ -158,6 +163,7 @@ services:
     {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}
 
+  {{ if not database_external }}
   {{ service_name | default('authentik') }}-postgres:
     image: docker.io/library/postgres:17.6
     container_name: {{ service_name | default('authentik') }}-db
@@ -179,6 +185,7 @@ services:
       - {{ network_name | default('bridge') }}
     {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}
+  {{ endif }}
 
 volumes:
   database_data:
