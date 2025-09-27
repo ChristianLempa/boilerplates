@@ -14,7 +14,8 @@ services:
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
     environment:
-      - CF_DNS_API_TOKEN=your-cloudflare-api-token  # <-- Change this to your Cloudflare API Token
+      #- LEGO_DISABLE_CNAME_SUPPORT=true # <--- (Optional) Enable if CNAME Wildcard issues. See: https://doc.traefik.io/traefik/getting-started/faq/#why-does-lets-encrypt-wildcard-certificate-renewalgeneration-with-dns-challenge-fail
+      - CF_DNS_API_TOKEN=your-cloudflare-api-token  # <-- Change to your providers env-var and your generated API-key. For Cloudflare, see: https://go-acme.github.io/lego/dns/cloudflare/index.html#credentials
     networks:
       - frontend
     restart: unless-stopped
