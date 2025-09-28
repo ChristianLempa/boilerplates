@@ -26,12 +26,11 @@ class Library:
     self.path = path
     self.priority = priority  # Higher priority = checked first
 
-  def find_by_id(self, module_name: str, files: list[str], template_id: str) -> tuple[Path, str]:
+  def find_by_id(self, module_name: str, template_id: str) -> tuple[Path, str]:
     """Find a template by its ID in this library.
     
     Args:
         module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in the template directory
         template_id: The template ID to find
     
     Returns:
@@ -45,35 +44,19 @@ class Library:
     # Build the path to the specific template directory
     template_path = self.path / module_name / template_id
     
-    # Check if the template directory exists
-    if not template_path.exists():
+    # Check if the template directory and either template.yaml or template.yml exist
+    if not (template_path.is_dir() and ((template_path / "template.yaml").exists() or (template_path / "template.yml").exists())):
       raise FileNotFoundError(f"Template '{template_id}' not found in module '{module_name}' in library '{self.name}'")
-    
-    if not template_path.is_dir():
-      raise FileNotFoundError(f"Template '{template_id}' exists but is not a directory in module '{module_name}' in library '{self.name}'")
-    
-    # If files list is provided, verify at least one of the files exists
-    if files:
-      has_any_file = False
-      for file in files:
-        file_path = template_path / file
-        if file_path.exists():
-          has_any_file = True
-          break
-      
-      if not has_any_file:
-        raise FileNotFoundError(f"Template '{template_id}' found but missing any of the required files: {files}")
     
     logger.debug(f"Found template '{template_id}' at: {template_path}")
     return template_path, self.name
 
 
-  def find(self, module_name: str, files: list[str], sort_results: bool = False) -> list[tuple[Path, str]]:
+  def find(self, module_name: str, sort_results: bool = False) -> list[tuple[Path, str]]:
     """Find templates in this library for a specific module.
     
     Args:
         module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in template directories (optional filter)
         sort_results: Whether to return results sorted alphabetically
     
     Returns:
@@ -88,31 +71,15 @@ class Library:
     module_path = self.path / module_name
     
     # Check if the module directory exists
-    if not module_path.exists():
+    if not module_path.is_dir():
       raise FileNotFoundError(f"Module '{module_name}' not found in library '{self.name}'")
     
-    if not module_path.is_dir():
-      raise FileNotFoundError(f"Module '{module_name}' exists but is not a directory in library '{self.name}'")
-    
-    # Get all directories in the module path
+    # Get all directories in the module path that contain a template.yaml or template.yml file
     template_dirs = []
     try:
       for item in module_path.iterdir():
-        if item.is_dir():
-          # If files list is provided, check if template has any of the required files
-          if files:
-            has_any_file = False
-            for file in files:
-              file_path = item / file
-              if file_path.exists():
-                has_any_file = True
-                break
-
-            if has_any_file:
-              template_dirs.append((item, self.name))
-          else:
-            # No file requirements, include all directories
-            template_dirs.append((item, self.name))
+        if item.is_dir() and ((item / "template.yaml").exists() or (item / "template.yml").exists()):
+          template_dirs.append((item, self.name))
     except PermissionError as e:
       raise FileNotFoundError(f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}")
     
@@ -142,12 +109,11 @@ class LibraryManager:
       Library(name="default", path=repo_root / "library", priority=0)
     ]
 
-  def find_by_id(self, module_name: str, files: list[str], template_id: str) -> Optional[tuple[Path, str]]:
+  def find_by_id(self, module_name: str, template_id: str) -> Optional[tuple[Path, str]]:
     """Find a template by its ID across all libraries.
     
     Args:
         module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in the template directory
         template_id: The template ID to find
     
     Returns:
@@ -157,7 +123,7 @@ class LibraryManager:
     
     for library in sorted(self.libraries, key=lambda x: x.priority, reverse=True):
       try:
-        template_path, lib_name = library.find_by_id(module_name, files, template_id)
+        template_path, lib_name = library.find_by_id(module_name, template_id)
         logger.debug(f"Found template '{template_id}' in library '{library.name}'")
         return template_path, lib_name
       except FileNotFoundError:
@@ -167,12 +133,11 @@ class LibraryManager:
     logger.debug(f"Template '{template_id}' not found in any library")
     return None
   
-  def find(self, module_name: str, files: list[str], sort_results: bool = False) -> list[tuple[Path, str]]:
+  def find(self, module_name: str, sort_results: bool = False) -> list[tuple[Path, str]]:
     """Find templates across all libraries for a specific module.
     
     Args:
         module_name: The module name (e.g., 'compose', 'terraform')
-        files: List of files to look for in template directories (optional filter)
         sort_results: Whether to return results sorted alphabetically
     
     Returns:
@@ -184,7 +149,7 @@ class LibraryManager:
     
     for library in sorted(self.libraries, key=lambda x: x.priority, reverse=True):
       try:
-        templates = library.find(module_name, files, sort_results=False)  # Sort at the end
+        templates = library.find(module_name, sort_results=False)  # Sort at the end
         all_templates.extend(templates)
         logger.debug(f"Found {len(templates)} templates in library '{library.name}'")
       except FileNotFoundError:

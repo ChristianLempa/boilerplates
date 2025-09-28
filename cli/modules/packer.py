@@ -8,7 +8,6 @@ class PackerModule(Module):
   
   name: str = "packer"
   description: str = "Manage Packer templates and configurations"
-  files: list[str] = ["template.pkr.hcl", "build.pkr.hcl", "variables.pkr.hcl", "sources.pkr.hcl"]
 
 # Register the module
 registry.register(PackerModule)

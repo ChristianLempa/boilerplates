@@ -11,12 +11,10 @@ spec = OrderedDict(
           "service_name": {
             "description": "Service name",
             "type": "str",
-            "default": "",
           },
           "container_name": {
             "description": "Container name",
             "type": "str",
-            "default": "",
           },
           "container_timezone": {
             "description": "Container timezone (e.g., Europe/Berlin)",
@@ -38,7 +36,6 @@ spec = OrderedDict(
           "container_hostname": {
             "description": "Container internal hostname",
             "type": "str",
-            "default": "",
           },
         },
       },
@@ -90,7 +87,6 @@ spec = OrderedDict(
           "traefik_host": {
             "description": "Domain name for your service",
             "type": "hostname",
-            "default": "",
           },
           "traefik_entrypoint": {
             "description": "HTTP entrypoint (non-TLS)",
@@ -110,7 +106,6 @@ spec = OrderedDict(
           "traefik_tls_certresolver": {
             "description": "Traefik certificate resolver name",
             "type": "str",
-            "default": "",
           },
         },
       },
@@ -162,17 +157,14 @@ spec = OrderedDict(
           "database_name": {
             "description": "Database name",
             "type": "str",
-            "default": "",
           },
           "database_user": {
             "description": "Database user",
             "type": "str",
-            "default": "",
           },
           "database_password": {
             "description": "Database password",
             "type": "str",
-            "default": "",
           },
         },
       },
@@ -190,7 +182,6 @@ spec = OrderedDict(
           "email_host": {
             "description": "SMTP server hostname",
             "type": "str",
-            "default": "",
           },
           "email_port": {
             "description": "SMTP server port",
@@ -200,17 +191,14 @@ spec = OrderedDict(
           "email_username": {
             "description": "SMTP username",
             "type": "str",
-            "default": "",
           },
           "email_password": {
             "description": "SMTP password",
             "type": "str",
-            "default": "",
           },
           "email_from": {
             "description": "From email address",
             "type": "str",
-            "default": "",
           },
           "email_use_tls": {
             "description": "Use TLS encryption",
@@ -233,7 +221,6 @@ class ComposeModule(Module):
 
   name = "compose"
   description = "Manage Docker Compose configurations"
-  files = ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"]
 
 
 registry.register(ComposeModule)

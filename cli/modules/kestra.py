@@ -8,7 +8,6 @@ class KestraModule(Module):
   
   name: str = "kestra"
   description: str = "Manage Kestra workflows and configurations"
-  files: list[str] = ["inputs.yaml", "variables.yaml", "webhook.yaml", "flow.yml", "flow.yaml"]
 
 # Register the module
 registry.register(KestraModule)

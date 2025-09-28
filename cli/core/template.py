@@ -2,14 +2,28 @@ from __future__ import annotations
 
 from .variables import Variable, VariableCollection
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field
 import logging
-from jinja2 import Environment, BaseLoader, meta, nodes
+import os
+from jinja2 import Environment, FileSystemLoader, meta
 import frontmatter
 
 logger = logging.getLogger(__name__)
 
+
+# -----------------------
+# SECTION: TemplateFile Class
+# -----------------------
+
+@dataclass
+class TemplateFile:
+    """Represents a single file within a template directory."""
+    relative_path: Path
+    file_type: Literal['j2', 'static']
+    output_path: Path # The path it will have in the output directory
+
+# !SECTION
 
 # -----------------------
 # SECTION: Metadata Class
@@ -25,7 +39,7 @@ class TemplateMetadata:
   version: str
   module: str = ""
   tags: List[str] = field(default_factory=list)
-  files: List[str] = field(default_factory=list)
+  # files: List[str] = field(default_factory=list) # No longer needed, as TemplateFile handles this
   library: str = "unknown"
 
   def __init__(self, post: frontmatter.Post, library_name: str | None = None) -> None:
@@ -43,7 +57,7 @@ class TemplateMetadata:
     self.version = metadata_section.get("version", "")
     self.module = metadata_section.get("module", "")
     self.tags = metadata_section.get("tags", []) or []
-    self.files = metadata_section.get("files", []) or []
+    # self.files = metadata_section.get("files", []) or [] # No longer needed
     self.library = library_name or "unknown"
 
   @staticmethod
@@ -68,167 +82,157 @@ class TemplateMetadata:
 
 @dataclass
 class Template:
-  """Represents a template file with frontmatter and content."""
+  """Represents a template directory."""
 
-  def __init__(self, file_path: Path, library_name: str) -> None:
-    """Create a Template instance from a file path."""
-    logger.debug(f"Loading template from file: {file_path}")
+  def __init__(self, template_dir: Path, library_name: str) -> None:
+    """Create a Template instance from a directory path."""
+    logger.debug(f"Loading template from directory: {template_dir}")
+    self.template_dir = template_dir
+    self.id = template_dir.name
+    self.library_name = library_name
+
+    # Initialize caches for lazy loading
+    self.__module_specs: Optional[dict] = None
+    self.__merged_specs: Optional[dict] = None
+    self.__jinja_env: Optional[Environment] = None
+    self.__used_variables: Optional[Set[str]] = None
+    self.__variables: Optional[VariableCollection] = None
+    self.__template_files: Optional[List[TemplateFile]] = None # New attribute
 
     try:
-      # Parse frontmatter and content from the file
-      logger.debug(f"Loading template from file: {file_path}")
-      with open(file_path, "r", encoding="utf-8") as f:
-        post = frontmatter.load(f)
+      # Find and parse the main template file (template.yaml or template.yml)
+      main_template_path = self._find_main_template_file()
+      with open(main_template_path, "r", encoding="utf-8") as f:
+        self._post = frontmatter.load(f) # Store post for later access to spec
 
-      # Load metadata using the TemplateMetadata constructor
-      self.metadata = TemplateMetadata(post, library_name)
+      # Load metadata (always needed)
+      self.metadata = TemplateMetadata(self._post, library_name)
       logger.debug(f"Loaded metadata: {self.metadata}")
 
-      # Validate 'kind' field presence
-      self._validate_kind(post)
+      # Validate 'kind' field (always needed)
+      self._validate_kind(self._post)
 
-      # Load module specifications
-      kind = post.metadata.get("kind", None)
-      module_specs = {}
-      if kind:
-        try:
-          import importlib
-          module = importlib.import_module(f"..modules.{kind}", package=__package__)
-          module_specs = getattr(module, 'spec', {})
-        except Exception as e:
-          raise ValueError(f"Error loading module specifications for kind '{kind}': {str(e)}")
-      
-      # Loading template variable specs - merge template specs with module specs
-      template_specs = post.metadata.get("spec", {})
-      
-      # Deep merge specs: merge vars within sections instead of replacing entire sections
-      # Preserve order: start with module spec order, then append template-only sections
-      merged_specs = {}
-      
-      # First, process all sections from module spec (preserves order)
-      for section_key in module_specs.keys():
-        module_section = module_specs.get(section_key, {})
-        template_section = template_specs.get(section_key, {})
-        
-        # Start with module section as base
-        merged_section = {**module_section}
-        
-        # Merge template section metadata (title, prompt, etc.)
-        for key in ['title', 'prompt', 'description', 'toggle', 'required']:
-          if key in template_section:
-            merged_section[key] = template_section[key]
-        
-        # Merge vars: template vars extend/override module vars
-        module_vars = module_section.get('vars', {})
-        template_vars = template_section.get('vars', {})
-        merged_section['vars'] = {**module_vars, **template_vars}
-        
-        merged_specs[section_key] = merged_section
-      
-      # Then, add any sections that exist only in template spec
-      for section_key in template_specs.keys():
-        if section_key not in module_specs:
-          template_section = template_specs[section_key]
-          merged_section = {**template_section}
-          merged_specs[section_key] = merged_section
-      
-      logger.debug(f"Loaded specs: {merged_specs}")
-
-      self.file_path = file_path
-      self.id = file_path.parent.name
-
-      self.content = post.content
-      logger.debug(f"Loaded content: {self.content}")
-
-      # Extract variables used in template and their defaults
-      self.jinja_env = self._create_jinja_env()
-      ast = self.jinja_env.parse(self.content)
-      used_variables: Set[str] = meta.find_undeclared_variables(ast)
-      default_values: Dict[str, str] = self._extract_jinja_defaults(ast)
-      logger.debug(f"Used variables: {used_variables}, defaults: {default_values}")
-
-      # Validate that all used variables are defined in specs
-      self._validate_variable_definitions(used_variables, merged_specs)
-
-      # Filter specs to only used variables and merge in Jinja defaults
-      filtered_specs = {}
-      for section_key, section_data in merged_specs.items():
-        if "vars" in section_data:
-          filtered_vars = {}
-          for var_name, var_data in section_data["vars"].items():
-            if var_name in used_variables:
-              # Determine origin: check where this variable comes from
-              module_has_var = (section_key in module_specs and 
-                               var_name in module_specs.get(section_key, {}).get("vars", {}))
-              template_has_var = (section_key in template_specs and 
-                                 var_name in template_specs.get(section_key, {}).get("vars", {}))
-              
-              if module_has_var and template_has_var:
-                origin = "module -> template"  # Template overrides module
-              elif template_has_var and not module_has_var:
-                origin = "template"  # Template-only variable
-              else:
-                origin = "module"  # Module-only variable
-              
-              # Merge in Jinja default and origin if present
-              var_data_with_origin = {**var_data, "origin": origin}
-              if var_name in default_values:
-                var_data_with_origin["default"] = default_values[var_name]
-              elif "default" not in var_data_with_origin:
-                var_data_with_origin["default"] = ""
-                logger.warning(f"No default specified for variable '{var_name}' in template '{self.id}'")
-              
-              filtered_vars[var_name] = var_data_with_origin
-          
-          if filtered_vars:  # Only include sections that have used variables
-            filtered_specs[section_key] = {**section_data, "vars": filtered_vars}
-
-      # Create VariableCollection from filtered specs
-      self.variables = VariableCollection(filtered_specs)
+      # Collect file paths (relatively lightweight, needed for various lazy loads)
+      # This will now populate self.template_files
+      self._collect_template_files()
 
       logger.info(f"Loaded template '{self.id}' (v{self.metadata.version})")
 
-    except ValueError as e:
-      # FIXME: Refactor error handling to avoid redundant catching and re-raising
-      # ValueError already logged in validation method - don't duplicate
-      raise
-    except FileNotFoundError:
-      logger.error(f"Template file not found: {file_path}")
+    except (ValueError, FileNotFoundError) as e:
+      logger.error(f"Error loading template from {template_dir}: {e}")
       raise
     except Exception as e:
-      logger.error(f"Error loading template from {file_path}: {str(e)}")
+      logger.error(f"An unexpected error occurred while loading template {template_dir}: {e}")
       raise
+
+  def _find_main_template_file(self) -> Path:
+    """Find the main template file (template.yaml or template.yml)."""
+    for filename in ["template.yaml", "template.yml"]:
+      path = self.template_dir / filename
+      if path.exists():
+        return path
+    raise FileNotFoundError(f"Main template file (template.yaml or template.yml) not found in {self.template_dir}")
+
+  def _load_module_specs(self, kind: str) -> dict:
+    """Load specifications from the corresponding module."""
+    if not kind:
+      return {}
+    try:
+      import importlib
+      module = importlib.import_module(f"..modules.{kind}", package=__package__)
+      return getattr(module, 'spec', {})
+    except Exception as e:
+      raise ValueError(f"Error loading module specifications for kind '{kind}': {e}")
+
+  def _merge_specs(self, module_specs: dict, template_specs: dict) -> dict:
+    """Deep merge template specs with module specs."""
+    merged_specs = {}
+    for section_key in module_specs.keys():
+      module_section = module_specs.get(section_key, {})
+      template_section = template_specs.get(section_key, {})
+      merged_section = {**module_section}
+      for key in ['title', 'prompt', 'description', 'toggle', 'required']:
+        if key in template_section:
+          merged_section[key] = template_section[key]
+      module_vars = module_section.get('vars') if isinstance(module_section.get('vars'), dict) else {}
+      template_vars = template_section.get('vars') if isinstance(template_section.get('vars'), dict) else {}
+      merged_section['vars'] = {**module_vars, **template_vars}
+      merged_specs[section_key] = merged_section
+    
+    for section_key in template_specs.keys():
+      if section_key not in module_specs:
+        merged_specs[section_key] = {**template_specs[section_key]}
+        
+    return merged_specs
+
+  def _collect_template_files(self) -> None:
+    """Collects all TemplateFile objects in the template directory."""
+    template_files: List[TemplateFile] = []
+    
+    for root, _, files in os.walk(self.template_dir):
+      for filename in files:
+        file_path = Path(root) / filename
+        relative_path = file_path.relative_to(self.template_dir)
+        
+        # Skip the main template file
+        if filename in ["template.yaml", "template.yml"]:
+          continue
+        
+        if filename.endswith(".j2"):
+          file_type: Literal['j2', 'static'] = 'j2'
+          output_path = relative_path.with_suffix('') # Remove .j2 suffix
+        else:
+          file_type = 'static'
+          output_path = relative_path # Static files keep their name
+        
+        template_files.append(TemplateFile(relative_path=relative_path, file_type=file_type, output_path=output_path))
+          
+    self.__template_files = template_files
+
+  def _extract_all_used_variables(self) -> Set[str]:
+    """Extract all undeclared variables from all .j2 files in the template directory."""
+    used_variables: Set[str] = set()
+    for template_file in self.template_files: # Iterate over TemplateFile objects
+      if template_file.file_type == 'j2':
+        file_path = self.template_dir / template_file.relative_path
+        try:
+          with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            ast = self.jinja_env.parse(content) # Use lazy-loaded jinja_env
+            used_variables.update(meta.find_undeclared_variables(ast))
+        except Exception as e:
+          logger.warning(f"Could not parse Jinja2 variables from {file_path}: {e}")
+    return used_variables
+
+  def _filter_specs_to_used(self, used_variables: set, merged_specs: dict, module_specs: dict, template_specs: dict) -> dict:
+    """Filter specs to only include variables used in the templates."""
+    filtered_specs = {}
+    for section_key, section_data in merged_specs.items():
+      if "vars" in section_data and isinstance(section_data["vars"], dict):
+        filtered_vars = {}
+        for var_name, var_data in section_data["vars"].items():
+          if var_name in used_variables:
+            module_has_var = var_name in module_specs.get(section_key, {}).get("vars", {})
+            template_has_var = var_name in template_specs.get(section_key, {}).get("vars", {})
+            
+            if module_has_var and template_has_var:
+              origin = "module -> template"
+            elif template_has_var:
+              origin = "template"
+            else:
+              origin = "module"
+            
+            var_data_with_origin = {**var_data, "origin": origin}
+            
+            filtered_vars[var_name] = var_data_with_origin
+        
+        if filtered_vars:
+          filtered_specs[section_key] = {**section_data, "vars": filtered_vars}
+    return filtered_specs
 
   # ---------------------------
   # SECTION: Validation Methods
   # ---------------------------
-
-  @staticmethod
-  def _extract_jinja_defaults(ast: nodes.Node) -> dict[str, str]:
-    """Extract default values from Jinja2 template variables with default filters."""
-    defaults = {}
-    
-    def visit_node(node):
-      """Recursively visit AST nodes to find default filter usage."""
-      if isinstance(node, nodes.Filter):
-        # Check if this is a 'default' filter
-        if node.name == 'default' and len(node.args) > 0:
-          # Get the variable being filtered
-          if isinstance(node.node, nodes.Name):
-            var_name = node.node.name
-            # Get the default value (first argument to default filter)
-            default_arg = node.args[0]
-            if isinstance(default_arg, nodes.Const):
-              defaults[var_name] = str(default_arg.value)
-            elif isinstance(default_arg, nodes.Name):
-              defaults[var_name] = default_arg.name
-      
-      # Recursively visit child nodes
-      for child in node.iter_child_nodes():
-        visit_node(child)
-    
-    visit_node(ast)
-    return defaults
 
   @staticmethod
   def _validate_kind(post: frontmatter.Post) -> None:
@@ -237,48 +241,32 @@ class Template:
       raise ValueError("Template format error: missing 'kind' field")
 
   def _validate_variable_definitions(self, used_variables: set[str], merged_specs: dict[str, Any]) -> None:
-    """Validate that all variables used in Jinja2 content are defined in the spec.
-    
-    Args:
-      used_variables: Set of variable names found in the Jinja2 template content
-      merged_specs: Combined module and template specifications
-      
-    Raises:
-      ValueError: If any used variables are not defined in the spec
-    """
-    # Collect all defined variables from all sections
+    """Validate that all variables used in Jinja2 content are defined in the spec."""
     defined_variables = set()
     for section_data in merged_specs.values():
       if "vars" in section_data and isinstance(section_data["vars"], dict):
         defined_variables.update(section_data["vars"].keys())
     
-    # Find variables used in template but not defined in spec
     undefined_variables = used_variables - defined_variables
-    
     if undefined_variables:
-      # Sort for consistent error messages
       undefined_list = sorted(undefined_variables)
-      
-      # Create detailed error message
       error_msg = (
-        f"Template validation error in '{self.id}': "
-        f"Variables used in template content but not defined in spec: {undefined_list}\n\n"
-        f"Please add these variables to your template spec or module spec. "
-        f"Example:\n"
-        f"spec:\n"
-        f"  general:\n"
-        f"    vars:\n"
+          f"Template validation error in '{self.id}': "
+          f"Variables used in template content but not defined in spec: {undefined_list}\n\n"
+          f"Please add these variables to your template's template.yaml spec. "
+          f"Each variable must have a default value.\n\n"
+          f"Example:\n"
+          f"spec:\n"
+          f"  general:\n"
+          f"    vars:\n"
       )
-      
-      # Add example spec entries for each undefined variable
       for var_name in undefined_list:
-        error_msg += (
-          f"      {var_name}:\n"
-          f"        type: str\n"
-          f"        description: Description for {var_name}\n"
-          f"        default: \"\"\n"
-        )
-      
+          error_msg += (
+              f"      {var_name}:\n"
+              f"        type: str\n"
+              f"        description: Description for {var_name}\n"
+              f"        default: <your_default_value_here>\n"
+          )
       logger.error(error_msg)
       raise ValueError(error_msg)
 
@@ -289,19 +277,89 @@ class Template:
   # ---------------------------------
 
   @staticmethod
-  def _create_jinja_env() -> Environment:
+  def _create_jinja_env(searchpath: Path) -> Environment:
     """Create standardized Jinja2 environment for consistent template processing."""
     return Environment(
-      loader=BaseLoader(),
+      loader=FileSystemLoader(searchpath),
       trim_blocks=True,
       lstrip_blocks=True,
       keep_trailing_newline=False,
     )
 
-  def render(self, variables: dict[str, Any]) -> str:
-    """Render the template with the given variables."""
+  def render(self, variables: dict[str, Any]) -> Dict[str, str]:
+    """Render all .j2 files in the template directory."""
     logger.debug(f"Rendering template '{self.id}' with variables: {variables}")
-    template = self.jinja_env.from_string(self.content)
-    return template.render(**variables)
+    rendered_files = {}
+    for template_file in self.template_files: # Iterate over TemplateFile objects
+      if template_file.file_type == 'j2':
+        try:
+          template = self.jinja_env.get_template(str(template_file.relative_path)) # Use lazy-loaded jinja_env
+          rendered_content = template.render(**variables)
+          rendered_files[str(template_file.output_path)] = rendered_content
+        except Exception as e:
+          logger.error(f"Error rendering template file {template_file.relative_path}: {e}")
+          raise
+      elif template_file.file_type == 'static':
+          # For static files, just read their content and add to rendered_files
+          # This ensures static files are also part of the output dictionary
+          file_path = self.template_dir / template_file.relative_path
+          try:
+              with open(file_path, "r", encoding="utf-8") as f:
+                  content = f.read()
+                  rendered_files[str(template_file.output_path)] = content
+          except Exception as e:
+              logger.error(f"Error reading static file {file_path}: {e}")
+              raise
+          
+    return rendered_files
   
   # !SECTION
+
+  # ---------------------------
+  # SECTION: Lazy Loaded Properties
+  # ---------------------------
+
+  @property
+  def template_files(self) -> List[TemplateFile]:
+      if self.__template_files is None:
+          self._collect_template_files() # Populate self.__template_files
+      return self.__template_files
+
+  @property
+  def template_specs(self) -> dict:
+      return self._post.metadata.get("spec", {})
+
+  @property
+  def module_specs(self) -> dict:
+      if self.__module_specs is None:
+          kind = self._post.metadata.get("kind")
+          self.__module_specs = self._load_module_specs(kind)
+      return self.__module_specs
+
+  @property
+  def merged_specs(self) -> dict:
+      if self.__merged_specs is None:
+          self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)
+      return self.__merged_specs
+
+  @property
+  def jinja_env(self) -> Environment:
+      if self.__jinja_env is None:
+          self.__jinja_env = self._create_jinja_env(self.template_dir)
+      return self.__jinja_env
+
+  @property
+  def used_variables(self) -> Set[str]:
+      if self.__used_variables is None:
+          self.__used_variables = self._extract_all_used_variables()
+      return self.__used_variables
+
+  @property
+  def variables(self) -> VariableCollection:
+      if self.__variables is None:
+          # Validate that all used variables are defined
+          self._validate_variable_definitions(self.used_variables, self.merged_specs)
+          # Filter specs to only used variables
+          filtered_specs = self._filter_specs_to_used(self.used_variables, self.merged_specs, self.module_specs, self.template_specs)
+          self.__variables = VariableCollection(filtered_specs)
+      return self.__variables

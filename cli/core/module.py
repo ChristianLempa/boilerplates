@@ -1,25 +1,28 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-import logging
-from typer import Typer, Option, Argument, Context
+from typing import Any, Dict, List, Optional
+
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.table import Table
+from rich.tree import Tree
+from typer import Argument, Context, Option, Typer
 
 from .library import LibraryManager
-from .template import Template
 from .prompt import PromptHandler
+from .template import Template
 
 logger = logging.getLogger(__name__)
 console = Console()
 
 
-# -------------------------------
+# ------------------------------- 
 # SECTION: Helper Functions
-# -------------------------------
+# ------------------------------- 
 
 def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str, Any]:
   """Parse variable inputs from --var options and extra args.
@@ -61,17 +64,16 @@ class Module(ABC):
   """Streamlined base module that auto-detects variables from templates."""
   
   name: str | None = None
-  description: str | None = None  
-  files: list[str] | None = None
+  description: str | None = None
 
   def __init__(self) -> None:
-    if not all([self.name, self.description, self.files]):
+    if not all([self.name, self.description]):
       raise ValueError(
-        f"Module {self.__class__.__name__} must define name, description, and files"
+        f"Module {self.__class__.__name__} must define name and description"
       )
     
     logger.info(f"Initializing module '{self.name}'")
-    logger.debug(f"Module '{self.name}' configuration: files={self.files}, description='{self.description}'")
+    logger.debug(f"Module '{self.name}' configuration: description='{self.description}'")
     self.libraries = LibraryManager()
 
   # --------------------------
@@ -83,23 +85,14 @@ class Module(ABC):
     logger.debug(f"Listing templates for module '{self.name}'")
     templates = []
 
-    entries = self.libraries.find(self.name, self.files, sort_results=True)
+    entries = self.libraries.find(self.name, sort_results=True)
     for template_dir, library_name in entries:
-      # Find the first matching template file
-      template_file = None
-      for file_name in self.files:
-        candidate = template_dir / file_name
-        if candidate.exists():
-          template_file = candidate
-          break
-      
-      if template_file:
-        try:
-          template = Template(template_file, library_name=library_name)
-          templates.append(template)
-        except Exception as exc:
-          logger.error(f"Failed to load template from {template_file}: {exc}")
-          continue
+      try:
+        template = Template(template_dir, library_name=library_name)
+        templates.append(template)
+      except Exception as exc:
+        logger.error(f"Failed to load template from {template_dir}: {exc}")
+        continue
     
     if templates:
       logger.info(f"Listing {len(templates)} templates for module '{self.name}'")
@@ -145,82 +138,64 @@ class Module(ABC):
   def generate(
     self,
     id: str = Argument(..., help="Template ID"),
-    out: Optional[Path] = Option(None, "--out", "-o"),
+    out: Optional[Path] = Option(None, "--out", "-o", help="Output directory"),
     interactive: bool = Option(True, "--interactive/--no-interactive", "-i/-n", help="Enable interactive prompting for variables"),
     var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Use KEY=VALUE or --var KEY VALUE"),
     ctx: Context = None,
   ) -> None:
-    """Generate from template.
-
-    Supports variable overrides via:
-      --var KEY=VALUE
-      --var KEY VALUE
-    """
+    """Generate from template."""
 
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
     template = self._load_template_by_id(id)
 
-    # Build variable overrides from Typer-collected options and any extra args BEFORE displaying template
-    extra_args = []
-    try:
-      if ctx is not None and hasattr(ctx, "args"):
-        extra_args = list(ctx.args)
-    except Exception:
-      extra_args = []
-
+    extra_args = list(ctx.args) if ctx and hasattr(ctx, "args") else []
     cli_overrides = parse_var_inputs(var or [], extra_args)
     if cli_overrides:
       logger.info(f"Received {len(cli_overrides)} variable overrides from CLI")
-      # Apply CLI overrides to template variables before display
       if template.variables:
         successful_overrides = template.variables.apply_overrides(cli_overrides, " -> cli")
         if successful_overrides:
           logger.debug(f"Applied CLI overrides for: {', '.join(successful_overrides)}")
 
-    # Show template details with CLI overrides already applied
     self._display_template_details(template, id)
-    console.print()  # Add spacing before variable collection
+    console.print()
 
-    # Collect variable values interactively if enabled
     variable_values = {}
     if interactive and template.variables:
       prompt_handler = PromptHandler()
-      
-      # Collect values with simplified sectioned flow
       collected_values = prompt_handler.collect_variables(template.variables)
-      
       if collected_values:
         variable_values.update(collected_values)
         logger.info(f"Collected {len(collected_values)} variable values from user input")
 
-    # CLI overrides are already applied to the template variables, so collect all current values
-    # This includes defaults, interactive changes, and CLI overrides
     if template.variables:
       variable_values.update(template.variables.get_all_values())
 
-    # Render template with collected values
     try:
-      rendered_content = template.render(variable_values)
+      # Validate all variables before rendering
+      if template.variables:
+        template.variables.validate_all()
+      
+      rendered_files = template.render(variable_values)
       logger.info(f"Successfully rendered template '{id}'")
       
-      # Output handling
-      if out:
-        # Write to specified file
-        out.parent.mkdir(parents=True, exist_ok=True)
-        with open(out, 'w', encoding='utf-8') as f:
-          f.write(rendered_content)
-        console.print(f"[green]Generated template to: {out}[/green]")
-        logger.info(f"Template written to file: {out}")
-      else:
-        # Output to stdout
-        console.print("\n\n[bold blue]Generated Template:[/bold blue]")
-        console.print("─" * 50)
-        console.print(rendered_content)
-        logger.info("Template output to stdout")
-        
+      output_dir = out
+      if not output_dir:
+        output_dir_str = Prompt.ask("Enter output directory", default=".")
+        output_dir = Path(output_dir_str)
+      
+      for file_path, content in rendered_files.items():
+        full_path = output_dir / file_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(full_path, 'w', encoding='utf-8') as f:
+          f.write(content)
+        console.print(f"[green]Generated file: {full_path}[/green]")
+      
+      logger.info(f"Template written to directory: {output_dir}")
+
     except Exception as e:
-      logger.error(f"Error rendering template '{id}': {str(e)}")
-      console.print(f"[red]Error generating template: {str(e)}[/red]")
+      logger.error(f"Error rendering template '{id}': {e}")
+      console.print(f"[red]Error generating template: {e}[/red]")
       raise
 
   # !SECTION
@@ -234,23 +209,18 @@ class Module(ABC):
     """Register module commands with the main app."""
     logger.debug(f"Registering CLI commands for module '{cls.name}'")
     
-    # Create a module instance
     module_instance = cls()
     
-    # Create subapp for this module
     module_app = Typer(help=cls.description)
     
-    # Register commands directly on the instance
     module_app.command("list")(module_instance.list)
     module_app.command("show")(module_instance.show)
     
-    # Generate command needs special handling for context
     module_app.command(
       "generate", 
       context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
     )(module_instance.generate)
     
-    # Add the module subapp to main app
     app.add_typer(module_app, name=cls.name, help=cls.description)
     logger.info(f"Module '{cls.name}' CLI commands registered")
 
@@ -261,49 +231,64 @@ class Module(ABC):
   # --------------------------
 
   def _load_template_by_id(self, template_id: str) -> Template:
-    result = self.libraries.find_by_id(self.name, self.files, template_id)
+    result = self.libraries.find_by_id(self.name, template_id)
     if not result:
       logger.debug(f"Template '{template_id}' not found in module '{self.name}'")
       raise FileNotFoundError(f"Template '{template_id}' not found in module '{self.name}'")
 
     template_dir, library_name = result
     
-    # Find the first matching template file
-    template_file = None
-    for file_name in self.files:
-      candidate = template_dir / file_name
-      if candidate.exists():
-        template_file = candidate
-        break
-    
-    if not template_file:
-      raise FileNotFoundError(f"Template directory '{template_dir}' missing expected files {self.files}")
-    
     try:
-      return Template(template_file, library_name=library_name)
-    except ValueError as exc:
-      # FIXME: Refactor error handling chain to avoid redundant exception wrapping
-      # ValueError (like validation errors) already logged - just re-raise with context
+      return Template(template_dir, library_name=library_name)
+    except (ValueError, FileNotFoundError) as exc:
       raise FileNotFoundError(f"Template '{template_id}' validation failed in module '{self.name}'") from exc
     except Exception as exc:
-      logger.error(f"Failed to load template from {template_file}: {exc}")
-      raise FileNotFoundError(f"Template file for '{template_id}' not found in module '{self.name}'") from exc
+      logger.error(f"Failed to load template from {template_dir}: {exc}")
+      raise FileNotFoundError(f"Template '{template_id}' could not be loaded in module '{self.name}'") from exc
 
   def _display_template_details(self, template: Template, template_id: str) -> None:
-    """Display template information panel and variables table.
+    """Display template information panel and variables table."""
     
-    Args:
-      template: The Template object to display
-      template_id: The template ID for display purposes
-    """
-    # Show template info panel
+    # Print the main panel
     console.print(Panel(
       f"[bold]{template.metadata.name or 'Unnamed Template'}[/bold]\n\n{template.metadata.description or 'No description available'}", 
       title=f"Template: {template_id}", 
       subtitle=f"Module: {self.name}"
     ))
     
-    # Show variables table if any variables exist
+    # Build the file structure tree
+    file_tree = Tree("[bold blue]Template File Structure:[/bold blue]")
+    
+    # Create a dictionary to hold the tree nodes for directories
+    # This will allow us to build a proper tree structure
+    tree_nodes = {Path('.'): file_tree} # Root of the template directory
+
+    for template_file in sorted(template.template_files, key=lambda f: f.relative_path):
+        parts = template_file.relative_path.parts
+        current_path = Path('.')
+        current_node = file_tree
+
+        # Build the directory path in the tree
+        for part in parts[:-1]: # Iterate through directories
+            current_path = current_path / part
+            if current_path not in tree_nodes:
+                new_node = current_node.add(f"\uf07b [bold blue]{part}[/bold blue]") # Folder icon
+                tree_nodes[current_path] = new_node
+                current_node = new_node
+            else:
+                current_node = tree_nodes[current_path]
+
+        # Add the file to the appropriate directory node
+        if template_file.file_type == 'j2':
+            current_node.add(f"[green]\ue235 {template_file.relative_path.name}[/green]") # Jinja2 file icon
+        elif template_file.file_type == 'static':
+            current_node.add(f"[yellow]\uf15b {template_file.relative_path.name}[/yellow]") # Generic file icon
+            
+    # Print the file tree separately if it has content
+    if file_tree.children: # Check if any files were added to the branches
+        console.print() # Add spacing
+        console.print(file_tree) # Print the Tree object directly
+
     if template.variables and template.variables._set:
       console.print()  # Add spacing
       
@@ -378,4 +363,3 @@ class Module(ABC):
       console.print(variables_table)
 
 # !SECTION
-

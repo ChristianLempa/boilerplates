@@ -8,7 +8,6 @@ class TerraformModule(Module):
   
   name: str = "terraform"
   description: str = "Manage Terraform configurations"
-  files: list[str] = ["main.tf", "variables.tf", "outputs.tf", "versions.tf"]
 
 # Register the module
 registry.register(TerraformModule)

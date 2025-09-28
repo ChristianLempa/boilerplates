@@ -1,0 +1,26 @@
+---
+kind: "compose"
+metadata:
+  name: "Nginx"
+  description: "An open-source web server"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - nginx
+    - web
+    - reverse-proxy
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for nginx service"
+        type: int
+        default: 8080
+      ports_https:
+        description: "HTTPS port for nginx service"
+        type: int
+        default: 8443
+  nginx:
+    vars:
+---

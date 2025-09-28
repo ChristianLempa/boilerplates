@@ -61,6 +61,11 @@ class Variable:
       except ValueError as exc:
         raise ValueError(f"Invalid default for variable '{self.name}': {exc}")
 
+  def validate(self, value: Any) -> None:
+    """Validate a value based on the variable's type and constraints."""
+    if self.type not in ["bool"] and (value is None or value == ""):
+      raise ValueError("value cannot be empty")
+
   # -------------------------
   # SECTION: Type Conversion
   # -------------------------
@@ -340,8 +345,24 @@ class VariableCollection:
       # Log errors but don't stop the process
       logger.warning(f"Some CLI overrides failed: {'; '.join(errors)}")
     
-    return successful_overrides
+  def validate_all(self) -> None:
+    """Validate all variables in the collection, skipping disabled sections."""
+    for section in self._set.values():
+      # Check if the section is disabled by a toggle
+      if section.toggle:
+        toggle_var = section.variables.get(section.toggle)
+        if toggle_var and not toggle_var.get_typed_value():
+          logger.debug(f"Skipping validation for disabled section: '{section.key}'")
+          continue  # Skip this entire section
+
+      for var_name, variable in section.variables.items():
+        try:
+          variable.validate(variable.value)
+        except ValueError as e:
+          raise ValueError(f"Validation failed for variable '{var_name}': {e}") from e
 
   # !SECTION
+
+# !SECTION
 
 # !SECTION

@@ -58,40 +58,48 @@ The CLI application is built with a modular and extensible architecture.
 
 ### Template Format
 
-Templates use YAML frontmatter for metadata, followed by the actual template content with Jinja2 syntax. Example:
+Templates are directory-based. Each template is a directory containing all the necessary files and subdirectories for the boilerplate.
+
+#### Main Template File
+
+Every template directory must contain a main template file named either `template.yaml` or `template.yml`. This file serves as the entry point and contains the template's metadata and variable specifications in YAML frontmatter format.
+
+Example `template.yaml`:
 
 ```yaml
 ---
-kind: "compose|terraform|ansible|kubernetes|..."
+kind: "compose"
 metadata:
-  name: "Template Name"
-  description: "Template description"
-  version: "0.0.1"
-  date: "2023-10-01"
+  name: "My Nginx Template"
+  description: "A template for a simple Nginx service."
+  version: "0.1.0"
   author: "Christian Lempa"
-  tags:
-    - tag1
-    - tag2
 spec:
-  section1:
-    description: "Description of section1"
-    prompt: "Do you want to configure section1?"
-    toggle: "section1_enabled"
-    required: false|true
-    section1_enabled:
-      type: "bool"
-      description: "Enable section1"
-      default: false
-    section1_var2:
-      type: "string|int|bool|list|dict"
-      description: "Description of var1"
-      default: "default_value"
+  general:
+    vars:
+      nginx_version:
+        type: "string"
+        description: "The Nginx version to use."
+        default: "latest"
 ---
-# Actual template content with Jinja2 syntax
-services:
-  my_service:
-    image: "{{ section1_var2 | default('nginx') }}"
-    ...
+```
+
+#### Template Files
+
+-   **Jinja2 Templates (`.j2`)**: Any file within the template directory that has a `.j2` extension will be rendered by the Jinja2 engine. The `.j2` extension is removed from the final output file name (e.g., `config.json.j2` becomes `config.json`). These files can use `{% include %}` and `{% import %}` statements to share code with other files in the template directory.
+
+-   **Static Files**: Any file without a `.j2` extension is treated as a static file and will be copied to the output directory as-is, preserving its relative path and filename.
+
+#### Example Directory Structure
+
+```
+library/compose/my-nginx-template/
+├── template.yaml
+├── compose.yaml.j2
+├── config/
+│   └── nginx.conf.j2
+└── static/
+    └── README.md
 ```
 
 #### Variables
@@ -103,9 +111,8 @@ Variables are a cornerstone of the CLI, allowing for dynamic and customizable te
 Variables are sourced and merged from multiple locations, with later sources overriding earlier ones:
 
 1.  **Module `spec` (Lowest Precedence)**: Each module (e.g., `cli/modules/compose.py`) can define a base `spec` dictionary. This provides default variables and sections for all templates of that `kind`.
-2.  **Template `spec`**: The `spec` block within a template file's frontmatter can override or extend the module's `spec`. This allows a template to customize variable descriptions, defaults, or add new variables.
-3.  **Jinja2 `default` Filter**: A `default` filter used directly in the template content (e.g., `{{ my_var | default('value') }}`) will override any `default` value defined in the `spec` blocks.
-4.  **CLI Overrides (`--var`) (Highest Precedence)**: Providing a variable via the command line (`--var KEY=VALUE`) has the highest priority and will override any default or previously set value.
+2.  **Template `spec`**: The `spec` block within the `template.yaml` or `template.yml` file can override or extend the module's `spec`. This is the single source of truth for defaults within the template.
+3.  **CLI Overrides (`--var`) (Highest Precedence)**: Providing a variable via the command line (`--var KEY=VALUE`) has the highest priority and will override any default or previously set value.
 
 The `Variable.origin` attribute is updated to reflect this chain (e.g., `module -> template -> cli`).
 
@@ -122,13 +129,15 @@ The `Variable.origin` attribute is updated to reflect this chain (e.g., `module 
 - During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
 - If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
 
+## Future Improvements
+
 ### Managing TODOs as GitHub Issues
 
 We use a convention to manage TODO items as GitHub issues directly from the codebase. This allows us to track our work and link it back to the specific code that needs attention.
 
 The format for a TODO item is:
 
-`* TODO[<issue-number>-<slug>] <description>`
+`TODO[<issue-number>-<slug>] <description>`
 
 -   `<issue-number>`: The GitHub issue number.
 -   `<slug>`: A short, descriptive slug for the epic or feature.
@@ -142,16 +151,16 @@ gh issue create --title "<title>" --body "<description>" --assignee "@me" --proj
 
 After creating the issue, update the TODO line in the `AGENTS.md` file with the issue number and a descriptive slug.
 
-## Future Improvements
-
 ### Work in Progress
 
 * TODO[1242-secret-support] Consider creating a "secret" variable type that automatically handles sensitive data and masks input during prompts, which also should be set via .env file and not directly in the compose files or other templates.
-  * Implement multi-file support for templates, allowing jinja2 in other files as well
-  * Mask secrets in rendering output (e.g. when displaying the final docker-compose file, mask secret values)
-  * Add support for --out to specify a directory
+* TODO[1244-mask-secrets] Mask secrets in rendering output (e.g. when displaying the final docker-compose file, mask secret values)
+* TODO[1245-out-directory] Add support for --out to specify a directory
 * TODO[1246-validation-rules] Add support for more complex validation rules for environment variables, such as regex patterns or value ranges.
 * TODO[1247-user-overrides] Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
 * TODO[1248-installation-script] Add an installation script when cloning the repo and setup necessary commands
 * TODO[1249-update-script] Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
 * TODO[1250-compose-deploy] Add compose deploy command to deploy a generated compose project to a local or remote docker environment
+* TODO[1251-centralize-display-logic] Create a DisplayManager class to handle all rich rendering.
+* TODO[1252-simplify-variable-handling] Refactor Variable and VariableCollection classes to simplify validation and initialization.
+* TODO[1253-streamline-prompting] Refactor PromptHandler to streamline validation and default value logic.

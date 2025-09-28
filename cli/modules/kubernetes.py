@@ -8,8 +8,6 @@ class KubernetesModule(Module):
   
   name: str = "kubernetes"
   description: str = "Manage Kubernetes manifests and configurations"
-  files: list[str] = ["deployment.yml", "deployment.yaml", "service.yml", "service.yaml", 
-                      "manifest.yml", "manifest.yaml", "values.yml", "values.yaml"]
 
 # Register the module
 registry.register(KubernetesModule)

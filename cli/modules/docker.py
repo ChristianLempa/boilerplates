@@ -8,7 +8,6 @@ class DockerModule(Module):
   
   name: str = "docker"
   description: str = "Manage Docker configurations and files"
-  files: list[str] = ["Dockerfile", "dockerfile", ".dockerignore"]
 
 # Register the module
 registry.register(DockerModule)

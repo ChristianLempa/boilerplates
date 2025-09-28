@@ -8,7 +8,6 @@ class GitHubActionsModule(Module):
   
   name: str = "github-actions"
   description: str = "Manage GitHub Actions workflows"
-  files: list[str] = ["action.yml", "action.yaml", "workflow.yml", "workflow.yaml"]
 
 # Register the module
 registry.register(GitHubActionsModule)

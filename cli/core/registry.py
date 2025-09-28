@@ -28,7 +28,7 @@ class ModuleRegistry:
     
     self._modules[module_class.name] = module_class
     logger.info(f"Registered module '{module_class.name}' (total modules: {len(self._modules)})")
-    logger.debug(f"Module '{module_class.name}' details: description='{module_class.description}', files={module_class.files}")
+    logger.debug(f"Module '{module_class.name}' details: description='{module_class.description}'")
   
   def iter_module_classes(self) -> Iterator[tuple[str, Type]]:
     """Yield registered module classes without instantiating them."""

@@ -8,7 +8,6 @@ class VagrantModule(Module):
   
   name: str = "vagrant"
   description: str = "Manage Vagrant configurations and files"
-  files: list[str] = ["Vagrantfile", "vagrantfile"]
 
 # Register the module
 registry.register(VagrantModule)
