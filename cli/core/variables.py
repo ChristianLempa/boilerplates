@@ -93,6 +93,42 @@ class Variable:
     # Default to string conversion
     return str(value)
 
+  # -------------------------
+  # SECTION: Helper Methods for Validation
+  # -------------------------
+
+  def _handle_empty_string(self, value: Any) -> Optional[str]:
+    """Handle empty string values consistently across converters.
+    
+    Returns:
+        None if value is empty string, the stripped string otherwise
+    """
+    if isinstance(value, str):
+      stripped = value.strip()
+      return None if stripped == "" else stripped
+    return str(value) if value is not None else None
+
+  def _safe_convert(self, value: Any, converter_func, target_type: str) -> Any:
+    """Safely convert value using provided converter function with consistent error handling.
+    
+    Args:
+        value: Value to convert
+        converter_func: Function to perform the conversion
+        target_type: Human-readable name of target type for error messages
+        
+    Returns:
+        Converted value
+        
+    Raises:
+        ValueError: If conversion fails
+    """
+    try:
+      return converter_func(value)
+    except (TypeError, ValueError) as exc:
+      raise ValueError(f"value must be {target_type}") from exc
+
+  # !SECTION
+
   def _convert_bool(self, value: Any) -> bool:
     """Convert value to boolean."""
     if isinstance(value, bool):
@@ -109,32 +145,33 @@ class Variable:
     """Convert value to integer."""
     if isinstance(value, int):
       return value
-    if isinstance(value, str) and value.strip() == "":
+    
+    string_val = self._handle_empty_string(value)
+    if string_val is None:
       return None
-    try:
-      return int(value)
-    except (TypeError, ValueError) as exc:
-      raise ValueError("value must be an integer") from exc
+      
+    return self._safe_convert(string_val, int, "an integer")
 
   def _convert_float(self, value: Any) -> Optional[float]:
     """Convert value to float."""
     if isinstance(value, float):
       return value
-    if isinstance(value, str) and value.strip() == "":
+      
+    string_val = self._handle_empty_string(value)
+    if string_val is None:
       return None
-    try:
-      return float(value)
-    except (TypeError, ValueError) as exc:
-      raise ValueError("value must be a float") from exc
+      
+    return self._safe_convert(string_val, float, "a float")
 
   def _convert_enum(self, value: Any) -> Optional[str]:
     """Convert value to enum option."""
-    if value == "":
+    string_val = self._handle_empty_string(value)
+    if string_val is None:
       return None
-    val = str(value)
-    if self.options and val not in self.options:
+      
+    if self.options and string_val not in self.options:
       raise ValueError(f"value must be one of: {', '.join(self.options)}")
-    return val
+    return string_val
 
   def _convert_hostname(self, value: Any) -> str:
     """Convert and validate hostname."""
@@ -247,30 +284,54 @@ class VariableCollection:
     
     # Initialize sections and their variables
     for section_key, section_data in spec.items():
-      if not isinstance(section_data, dict):
-        continue
+      if isinstance(section_data, dict):
+        section = self._create_section(section_key, section_data)
+        self._set[section_key] = section
+
+  # -------------------------
+  # SECTION: Initialization Helper Methods
+  # -------------------------
+
+  def _create_section(self, section_key: str, section_data: dict[str, Any]) -> VariableSection:
+    """Create a VariableSection from section key and data.
+    
+    Args:
+        section_key: The key identifier for the section
+        section_data: Dictionary containing section configuration
         
-      # Create section data with the key included
-      section_init_data = {
-        "key": section_key,
-        "title": section_data.get("title", section_key.replace("_", " ").title()),
-        "prompt": section_data.get("prompt"),
-        "description": section_data.get("description"),
-        "toggle": section_data.get("toggle"),
-        "required": section_data.get("required", section_key == "general")
-      }
-      
-      section = VariableSection(section_init_data)
-      
-      # Initialize variables in this section
-      if "vars" in section_data:
-        for var_name, var_data in section_data["vars"].items():
-          # Add variable name to the data
-          var_init_data = {"name": var_name, **var_data}
-          variable = Variable(var_init_data)
-          section.variables[var_name] = variable
-      
-      self._set[section_key] = section
+    Returns:
+        Initialized VariableSection with variables
+    """
+    section_init_data = {
+      "key": section_key,
+      "title": section_data.get("title", section_key.replace("_", " ").title()),
+      "prompt": section_data.get("prompt"),
+      "description": section_data.get("description"),
+      "toggle": section_data.get("toggle"),
+      "required": section_data.get("required", section_key == "general")
+    }
+    
+    section = VariableSection(section_init_data)
+    
+    # Initialize variables in this section
+    if "vars" in section_data:
+      self._populate_section_variables(section, section_data["vars"])
+    
+    return section
+
+  def _populate_section_variables(self, section: VariableSection, vars_data: dict[str, Any]) -> None:
+    """Populate a section with variables from vars data.
+    
+    Args:
+        section: The VariableSection to populate
+        vars_data: Dictionary mapping variable names to their configurations
+    """
+    for var_name, var_data in vars_data.items():
+      var_init_data = {"name": var_name, **var_data}
+      variable = Variable(var_init_data)
+      section.variables[var_name] = variable
+
+  # !SECTION
 
   # -------------------------
   # SECTION: Helper Methods
