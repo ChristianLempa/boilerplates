@@ -5,46 +5,51 @@ global:
 
 # --> (Optional) Change log level and format here ...
 #     - level: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
-# log:
-#  level: ERROR
-# <--
+{% if traefik_log_level is defined %}
+log:
+  level: {{ traefik_log_level }}
+{% endif %}
 
 # --> (Optional) Enable accesslog here ...
-# accesslog: {}
-# <--
+{% if traefik_accesslog_enabled %}
+accesslog: {}
+{% endif %}
 
 # --> (Optional) Enable API and Dashboard here, don't do in production
-# api:
-#   dashboard: true
-#   insecure: true
-# <--
+{% if dashboard_enabled %}
+api:
+  dashboard: true
+  insecure: true
+{% endif %}
 
 # -- Change EntryPoints here...
 entryPoints:
   web:
     address: :80
     # --> (Optional) Redirect all HTTP to HTTPS
-    # http:
-    #   redirections:
-    #     entryPoint:
-    #       to: websecure
-    #       scheme: https
-    # <--
+    {% if traefik_redirect_http_to_https %}
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+    {% endif %}
   websecure:
     address: :443
 
 # -- Configure your CertificateResolver here...
 certificatesResolvers:
-  cloudflare:
+  {{ traefik_acme_dns_provider }}:
     acme:
       email: {{ acme_email }}
-      storage: /var/traefik/certs/cloudflare-acme.json
+      storage: /var/traefik/certs/acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
-        provider: cloudflare  # <-- (Optional) Change this to your DNS provider
+        provider: {{ traefik_acme_dns_provider }}
         resolvers:
-          - "1.1.1.1:53"
-          - "8.8.8.8:53"
+{% for resolver in traefik_acme_dns_resolvers %}
+          - "{{ resolver }}"
+{% endfor %}
 
 # --> (Optional) Disable TLS Cert verification check
 # serversTransport:
@@ -53,10 +58,8 @@ certificatesResolvers:
 
 providers:
   docker:
-    exposedByDefault: false  # <-- (Optional) Change this to true if you want to expose all services
-    # Specify discovery network - This ensures correct name resolving and possible issues with containers, that are in multiple networks.
-    # E.g. Database container in a separate network and a container in the frontend and database network.
-    network: frontend
+    exposedByDefault: false
+    network: {{ network_name }}
   file:
     directory: /etc/traefik
     watch: true

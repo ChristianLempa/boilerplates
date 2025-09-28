@@ -1,3 +1,4 @@
+
 ---
 kind: "compose"
 metadata:
@@ -22,6 +23,35 @@ spec:
         type: "email"
         description: "Email address for ACME (Let's Encrypt) registration"
         default: ""
+      traefik_log_level:
+        type: "enum"
+        description: "Traefik log level"
+        default: "INFO"
+        values:
+          - "TRACE"
+          - "DEBUG"
+          - "INFO"
+          - "WARN"
+          - "ERROR"
+          - "FATAL"
+      traefik_accesslog_enabled:
+        type: "bool"
+        description: "Enable Traefik access log"
+        default: false
+      traefik_redirect_http_to_https:
+        type: "bool"
+        description: "Redirect all HTTP to HTTPS"
+        default: true
+      traefik_acme_dns_provider:
+        type: "string"
+        description: "ACME DNS provider"
+        default: "cloudflare"
+      traefik_acme_dns_resolvers:
+        type: "list"
+        description: "ACME DNS resolvers"
+        default:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
   ports:
     prompt: "Expose ports via 'ports' mapping?"
     toggle: "ports_enabled"
