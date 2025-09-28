@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Loki
+  description: Docker compose setup for loki
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - loki
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      loki_version:
+        type: string
+        description: Loki version
+        default: latest
+
+---

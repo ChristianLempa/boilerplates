@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Cadvisor
+  description: Docker compose setup for cadvisor
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - cadvisor
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      cadvisor_version:
+        type: string
+        description: Cadvisor version
+        default: latest
+
+---

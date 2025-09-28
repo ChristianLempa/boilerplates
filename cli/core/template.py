@@ -211,7 +211,11 @@ class Template:
       if "vars" in section_data and isinstance(section_data["vars"], dict):
         filtered_vars = {}
         for var_name, var_data in section_data["vars"].items():
-          if var_name in used_variables:
+          is_used = var_name in used_variables
+          is_sensitive = var_data.get("sensitive", False)
+          
+          # Include variables that are either used in templates OR marked as sensitive
+          if is_used or is_sensitive:
             module_has_var = var_name in module_specs.get(section_key, {}).get("vars", {})
             template_has_var = var_name in template_specs.get(section_key, {}).get("vars", {})
             
@@ -286,15 +290,16 @@ class Template:
       keep_trailing_newline=False,
     )
 
-  def render(self, variables: dict[str, Any]) -> Dict[str, str]:
+  def render(self, variables: VariableCollection) -> Dict[str, str]:
     """Render all .j2 files in the template directory."""
-    logger.debug(f"Rendering template '{self.id}' with variables: {variables}")
+    variable_values = variables.get_all_values()
+    logger.debug(f"Rendering template '{self.id}' with variables: {variable_values}")
     rendered_files = {}
     for template_file in self.template_files: # Iterate over TemplateFile objects
       if template_file.file_type == 'j2':
         try:
           template = self.jinja_env.get_template(str(template_file.relative_path)) # Use lazy-loaded jinja_env
-          rendered_content = template.render(**variables)
+          rendered_content = template.render(**variable_values)
           rendered_files[str(template_file.output_path)] = rendered_content
         except Exception as e:
           logger.error(f"Error rendering template file {template_file.relative_path}: {e}")
@@ -312,6 +317,18 @@ class Template:
               raise
           
     return rendered_files
+
+  def mask_sensitive_values(self, rendered_files: Dict[str, str], variables: VariableCollection) -> Dict[str, str]:
+    """Mask sensitive values in rendered files."""
+    masked_files = {}
+    sensitive_vars = variables.get_sensitive_variables()
+    
+    for file_path, content in rendered_files.items():
+      for var_name, var_value in sensitive_vars.items():
+        content = content.replace(str(var_value), "********")
+      masked_files[file_path] = content
+      
+    return masked_files
   
   # !SECTION
 

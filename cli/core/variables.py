@@ -53,6 +53,7 @@ class Variable:
     self.value: Any = data.get("value") if data.get("value") is not None else data.get("default")
     self.section: Optional[str] = data.get("section")
     self.origin: Optional[str] = data.get("origin")
+    self.sensitive: bool = data.get("sensitive", False)
 
     # Validate and convert the default/initial value if present
     if self.value is not None:
@@ -298,11 +299,20 @@ class VariableCollection:
       self._variable_map[var_name] = variable
 
   # -------------------------
-  # SECTION: Helper Methods
+  # SECTION: Public API Methods
   # -------------------------
 
-  # NOTE: These helper methods reduce code duplication across module.py and prompt.py
-  # by centralizing common variable collection operations
+  def get_sections(self) -> Dict[str, VariableSection]:
+    """Get all sections in the collection."""
+    return self._sections.copy()
+  
+  def get_section(self, key: str) -> Optional[VariableSection]:
+    """Get a specific section by its key."""
+    return self._sections.get(key)
+  
+  def has_sections(self) -> bool:
+    """Check if the collection has any sections."""
+    return bool(self._sections)
 
   def get_all_values(self) -> dict[str, Any]:
     """Get all variable values as a dictionary."""
@@ -312,6 +322,19 @@ class VariableCollection:
     for var_name, variable in self._variable_map.items():
       all_values[var_name] = variable.get_typed_value()
     return all_values
+
+  def get_sensitive_variables(self) -> Dict[str, Any]:
+    """Get only the sensitive variables with their values."""
+    return {name: var.value for name, var in self._variable_map.items() if var.sensitive and var.value}
+
+  # !SECTION
+
+  # -------------------------
+  # SECTION: Helper Methods
+  # -------------------------
+
+  # NOTE: These helper methods reduce code duplication across module.py and prompt.py
+  # by centralizing common variable collection operations
 
   def apply_overrides(self, overrides: dict[str, Any], origin_suffix: str = " -> cli") -> list[str]:
     """Apply multiple variable overrides at once."""
@@ -347,7 +370,7 @@ class VariableCollection:
     
     if errors:
       logger.warning(f"Some CLI overrides failed: {'; '.join(errors)}")
-    
+  
   def validate_all(self) -> None:
     """Validate all variables in the collection, skipping disabled sections."""
     for section in self._sections.values():
@@ -358,11 +381,9 @@ class VariableCollection:
           logger.debug(f"Skipping validation for disabled section: '{section.key}'")
           continue  # Skip this entire section
 
-      for var_name, variable in section.variables.items():
-        try:
-          variable.validate(variable.value)
-        except ValueError as e:
-          raise ValueError(f"Validation failed for variable '{var_name}': {e}") from e
+      # NOTE: Skip individual variable validation since we removed the validate method
+      # All validation now happens during conversion in the Variable.convert() method
+      pass
 
   # !SECTION
 

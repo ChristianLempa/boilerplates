@@ -1,0 +1,27 @@
+# (Optional) when using custom network
+# networks:
+#   yournetwork:
+#     external: true
+volumes:
+  mariadb-data:
+services:
+  mariadb:
+    image: docker.io/library/mariadb:12.0.2
+    # (Optional) remove this section when you don't want to expose
+    ports:
+      - 3306:3306
+    environment:
+      # (Optional) remove this section, when using random, or empty root password
+      - MARIADB_ROOT_PASSWORD=your-root-password
+      # (Optional) when using random, or empty root password
+      # - MARIADB_RANDOM_ROOT_PASSWORD=true
+      # - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=true
+      - MARIADB_DATABASE=your-database
+      - MARIADB_USER=your-user
+      - MARIADB_PASSWORD=your-password
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    # (Optional) when using custom network
+    # networks:
+    #   - yournetwork
+    restart: unless-stopped

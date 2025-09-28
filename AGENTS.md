@@ -102,6 +102,37 @@ library/compose/my-nginx-template/
     └── README.md
 ```
 
+#### Sub-Templates
+
+Sub-templates are specialized templates that use dot notation in their directory names to create related template variations or components. They provide a way to organize templates hierarchically and create focused, reusable configurations.
+
+**Directory Naming Convention:**
+- Sub-templates use dot notation: `parent.sub-name`
+- Example: `traefik.authentik-middleware`, `traefik.external-service`
+- The parent name should match an existing template for logical grouping
+
+**Visibility:**
+- By default, sub-templates are hidden from the standard `list` command
+- Use `list --all` to show all templates including sub-templates
+- This keeps the default view clean while providing access to specialized templates
+
+**Usage Examples:**
+```bash
+# Show only main templates (default behavior)
+python3 -m cli compose list
+
+# Show all templates including sub-templates
+python3 -m cli compose list --all
+
+# Generate a sub-template
+python3 -m cli compose generate traefik.authentik-middleware
+```
+
+**Common Use Cases:**
+- Configuration variations (e.g., `service.production`, `service.development`)
+- Component templates (e.g., `traefik.middleware`, `traefik.router`)
+- Environment-specific templates (e.g., `app.docker`, `app.kubernetes`)
+
 #### Variables
 
 Variables are a cornerstone of the CLI, allowing for dynamic and customizable template generation. They are defined and processed with a clear precedence and logic.
@@ -153,14 +184,9 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 
 ### Work in Progress
 
-* TODO[1242-secret-support] Consider creating a "secret" variable type that automatically handles sensitive data and masks input during prompts, which also should be set via .env file and not directly in the compose files or other templates.
-* TODO[1244-mask-secrets] Mask secrets in rendering output (e.g. when displaying the final docker-compose file, mask secret values)
-* TODO[1245-out-directory] Add support for --out to specify a directory
-* TODO[1246-validation-rules] Add support for more complex validation rules for environment variables, such as regex patterns or value ranges.
 * TODO[1247-user-overrides] Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
 * TODO[1248-installation-script] Add an installation script when cloning the repo and setup necessary commands
 * TODO[1249-update-script] Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
 * TODO[1250-compose-deploy] Add compose deploy command to deploy a generated compose project to a local or remote docker environment
 * TODO[1251-centralize-display-logic] Create a DisplayManager class to handle all rich rendering.
-* TODO[1252-simplify-variable-handling] Refactor Variable and VariableCollection classes to simplify validation and initialization.
 * TODO[1253-streamline-prompting] Refactor PromptHandler to streamline validation and default value logic.

@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Promtail
+  description: Docker compose setup for promtail
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - promtail
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      promtail_version:
+        type: string
+        description: Promtail version
+        default: latest
+
+---

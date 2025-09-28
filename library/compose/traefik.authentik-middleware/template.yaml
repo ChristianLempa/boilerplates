@@ -1,0 +1,26 @@
+---
+kind: "compose"
+metadata:
+  name: "Traefik Authentik Middleware"
+  description: "Authentication middleware for Traefik using Authentik forward auth"
+  version: "0.1.0"
+  author: "Christian Lempa"
+  date: "2025-09-28"
+  tags:
+    - traefik
+    - authentik
+    - middleware
+    - authentication
+    - forward-auth
+spec:
+  general:
+    vars:
+      authentik_outpost_url:
+        type: "url"
+        description: "Authentik outpost URL"
+        default: "http://your-authentik-outpost-fqdn:9000"
+      middleware_name:
+        type: "string"
+        description: "Name of the middleware"
+        default: "authentik-middleware"
+---

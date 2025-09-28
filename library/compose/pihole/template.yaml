@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Pihole
+  description: Docker compose setup for pihole
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - pihole
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      pihole_version:
+        type: string
+        description: Pihole version
+        default: latest
+
+---

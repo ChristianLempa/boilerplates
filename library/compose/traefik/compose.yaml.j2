@@ -1,0 +1,36 @@
+services:
+  {{ service_name }}:
+    image: docker.io/library/traefik:{{ traefik_version }}
+    container_name: {{ container_name }}
+    {% if ports_enabled %}
+    ports:
+      - "80:80"
+      - "443:443"
+      {% if dashboard_enabled %}
+      - "8080:8080"  # Dashboard (don't use in production)
+      {% endif %}
+    {% endif %}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/:/etc/traefik/:ro
+      - ./certs/:/var/traefik/certs/:rw
+    environment:
+      - TZ={{ container_timezone }}
+      {% if acme_email %}
+      - ACME_EMAIL={{ acme_email }}
+      {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name }}
+    {% endif %}
+    restart: {{ restart_policy }}
+
+{% if network_enabled %}
+networks:
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+{% endif %}

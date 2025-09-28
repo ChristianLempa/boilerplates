@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Gitlab
+  description: Docker compose setup for gitlab
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - gitlab
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      gitlab_version:
+        type: string
+        description: Gitlab version
+        default: latest
+
+---

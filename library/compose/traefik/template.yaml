@@ -1,0 +1,37 @@
+---
+kind: "compose"
+metadata:
+  name: "Traefik"
+  description: "Modern reverse proxy and load balancer for microservices"
+  version: "0.1.0"
+  author: "Christian Lempa"
+  date: "2025-09-28"
+  tags:
+    - traefik
+    - reverse-proxy
+    - load-balancer
+    - edge-router
+spec:
+  general:
+    vars:
+      traefik_version:
+        type: "string"
+        description: "Traefik version"
+        default: "v3.5.1"
+      acme_email:
+        type: "email"
+        description: "Email address for ACME (Let's Encrypt) registration"
+        default: ""
+  ports:
+    prompt: "Expose ports via 'ports' mapping?"
+    toggle: "ports_enabled"
+    vars:
+      ports_enabled:
+        type: "bool"
+        description: "Expose ports via 'ports' mapping"
+        default: true
+      dashboard_enabled:
+        type: "bool"
+        description: "Enable Traefik dashboard (don't use in production)"
+        default: false
+---

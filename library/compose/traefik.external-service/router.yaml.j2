@@ -1,0 +1,17 @@
+http:
+  routers:
+    {{ service_name }}:
+      rule: "Host(`{{ hostname }}`)"
+      entryPoints:
+        - https
+      tls:
+        certResolver: {{ cert_resolver }}
+      service: {{ service_name }}
+      middlewares:
+        - {{ middleware_name }}@file
+
+  services:
+    {{ service_name }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ backend_ip }}:{{ backend_port }}"

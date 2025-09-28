@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Wazuh.Manager
+  description: Docker compose setup for wazuh.manager
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - wazuh.manager
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      wazuh.manager_version:
+        type: string
+        description: Wazuh.Manager version
+        default: latest
+
+---

@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Openwebui
+  description: Docker compose setup for openwebui
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - openwebui
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      openwebui_version:
+        type: string
+        description: Openwebui version
+        default: latest
+
+---

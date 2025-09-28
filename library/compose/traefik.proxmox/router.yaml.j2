@@ -1,0 +1,26 @@
+http:
+  routers:
+    {{ service_name }}:
+      rule: "Host(`{{ hostname }}`)"
+      entryPoints:
+        - https
+      tls:
+        certResolver: {{ cert_resolver }}
+      service: {{ service_name }}
+      middlewares:
+{% if enable_auth_middleware %}
+        - {{ auth_middleware_name }}@file
+{% endif %}
+        - {{ service_name }}-headers
+
+  services:
+    {{ service_name }}:
+      loadBalancer:
+        servers:
+          - url: "https://{{ proxmox_backend_ip }}:{{ proxmox_backend_port }}/"
+
+  middlewares:
+    {{ service_name }}-headers:
+      headers:
+        customRequestHeaders:
+          Host: "{{ hostname }}"

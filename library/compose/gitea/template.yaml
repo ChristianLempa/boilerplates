@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Server
+  description: Docker compose setup for server
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - server
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      server_version:
+        type: string
+        description: Server version
+        default: latest
+
+---

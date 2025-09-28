@@ -1,0 +1,39 @@
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:v0.6.26
+    container_name: openwebui
+    ports:
+      - "8080:8080"
+    environment:
+      # Ollama Config
+      - OLLAMA_BASE_URL=http://ollama.example.com:11434
+      # Authentik SSO Config
+      - ENABLE_OAUTH_SIGNUP=true
+      - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false
+      - OAUTH_PROVIDER_NAME=authentik
+      - OPENID_PROVIDER_URL=https://authentik.example.com/application/o/openwebui-slug/.well-known/openid-configuration
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - OAUTH_SCOPES=openid email profile
+      - OPENID_REDIRECT_URI=https://openwebui.example.com/oauth/oidc/callback
+    volumes:
+      - data:/app/backend/data:rw
+    networks:
+      - frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.openwebui.rule=Host(`openwebui.example.com`)
+      - traefik.http.routers.openwebui.entrypoints=websecure
+      - traefik.http.routers.openwebui.tls=true
+      - traefik.http.routers.openwebui.tls.certresolver=cloudflare
+      - traefik.http.routers.openwebui.service=openwebui
+      - traefik.http.services.openwebui.loadBalancer.server.port=8080
+    restart: unless-stopped
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  frontend:
+    external: true

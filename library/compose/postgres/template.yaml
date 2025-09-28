@@ -1,0 +1,22 @@
+---
+kind: compose
+metadata:
+  name: PostgreSQL
+  description: Advanced open-source relational database
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - postgresql
+  - database
+  - sql
+  - relational
+spec:
+  general:
+    vars:
+      postgres_version:
+        type: string
+        description: PostgreSQL version
+        default: latest
+
+---

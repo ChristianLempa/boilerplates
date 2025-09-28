@@ -1,0 +1,38 @@
+services:
+  {{ service_name | default('homer') }}:
+    image: docker.io/b4bz/homer:v25.08.1
+    container_name: {{ container_name | default('homer') }}
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http | default(8080) }}:8080"
+    {% endif %}
+    volumes:
+      - /etc/homer/assets/:/www/assets
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('homer') }}.loadbalancer.server.port=8080
+      - traefik.http.routers.{{ service_name | default('homer') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('homer') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('homer') }}.tls=true
+      - traefik.http.routers.{{ service_name | default('homer') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('homer') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

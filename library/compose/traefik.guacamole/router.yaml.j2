@@ -1,0 +1,15 @@
+http:
+  routers:
+    {{ service_name }}:
+      rule: "Host(`{{ hostname }}`)"
+      entryPoints:
+        - https
+      tls:
+        certResolver: {{ cert_resolver }}
+      service: {{ service_name }}
+
+  services:
+    {{ service_name }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ guacamole_backend_ip }}:{{ guacamole_backend_port }}/"

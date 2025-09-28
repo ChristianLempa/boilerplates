@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Twingate_Connector
+  description: Docker compose setup for twingate_connector
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - twingate_connector
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      twingate_connector_version:
+        type: string
+        description: Twingate_Connector version
+        default: latest
+
+---

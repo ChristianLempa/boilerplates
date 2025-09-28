@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Nextcloud-App
+  description: Docker compose setup for nextcloud-app
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - nextcloud-app
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      nextcloud-app_version:
+        type: string
+        description: Nextcloud-App version
+        default: latest
+
+---

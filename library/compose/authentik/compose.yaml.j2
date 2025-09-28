@@ -1,0 +1,154 @@
+services:
+  {{ service_name | default('authentik-server') }}:
+    image: ghcr.io/goauthentik/server:2025.6.3
+    container_name: {{ container_name | default('authentik-server') }}
+    command: server
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
+      {% if authentik_secret_key -%}
+      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+      {% endif %}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
+      {% if email_enabled -%}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
+      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
+      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
+      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      {% endif %}
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http | default(9000) }}:9000"
+      - "{{ ports_https | default(9443) }}:9443"
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('authentik') }}.loadbalancer.server.port=9000
+      - traefik.http.services.{{ service_name | default('authentik') }}.loadbalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name | default('authentik') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.tls=true
+      - traefik.http.routers.{{ service_name | default('authentik') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('authentik') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+    {% endif %}
+    volumes:
+      - ./media:/media
+      - ./custom-templates:/templates
+    depends_on:
+      - {{ service_name | default('authentik') }}-postgres
+      - {{ service_name | default('authentik') }}-redis
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {{ service_name | default('authentik') }}-worker:
+    image: ghcr.io/goauthentik/server:2025.6.3
+    container_name: {{ service_name | default('authentik') }}-worker
+    command: worker
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
+      {% if authentik_secret_key -%}
+      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
+      {% endif %}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
+      {% if email_enabled -%}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
+      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
+      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
+      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      {% endif %}
+    user: root
+    volumes:
+      - /run/docker.sock:/run/docker.sock
+      - ./media:/media
+      - ./certs:/certs
+      - ./custom-templates:/templates
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    depends_on:
+      - {{ service_name | default('authentik') }}-postgres
+      - {{ service_name | default('authentik') }}-redis
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {{ service_name | default('authentik') }}-redis:
+    image: docker.io/library/redis:8.2.1
+    container_name: {{ service_name | default('authentik') }}-redis
+    command: --save 60 1 --loglevel warning
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - redis_data:/data
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {{ if not database_external }}
+  {{ service_name | default('authentik') }}-postgres:
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name | default('authentik') }}-db
+    environment:
+      - POSTGRES_USER={{ database_user | default('authentik') }}
+      - POSTGRES_PASSWORD={{ database_password | default('authentik') }}
+      - POSTGRES_DB={{ database_name | default('authentik') }}
+      - TZ={{ container_timezone | default('UTC') }}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "{{ database_user | default('authentik') }}"']
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+  {{ endif }}
+
+volumes:
+  database_data:
+    driver: local
+  redis_data:
+    driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

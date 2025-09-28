@@ -1,0 +1,31 @@
+http:
+  routers:
+    {{ service_name }}:
+      rule: "Host(`{{ hostname }}`)"
+      entryPoints:
+        - https
+      tls:
+        certResolver: {{ cert_resolver }}
+      service: {{ service_name }}
+      middlewares:
+        - {{ service_name }}-dav
+        - {{ service_name }}-secure-headers
+
+  services:
+    {{ service_name }}:
+      loadBalancer:
+        servers:
+          - url: "http://{{ nextcloud_backend_ip }}:{{ nextcloud_backend_port }}/"
+
+  middlewares:
+    {{ service_name }}-dav:
+      redirectRegex:
+        regex: "https://(.*)/.well-known/(?:card|cal)dav"
+        replacement: "https://${1}/remote.php/dav/"
+
+    {{ service_name }}-secure-headers:
+      headers:
+        accessControlMaxAge: 100
+        hostsProxyHeaders:
+          - "X-Forwarded-Host"
+        referrerPolicy: "same-origin"

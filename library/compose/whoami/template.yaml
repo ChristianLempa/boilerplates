@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Whoami
+  description: Docker compose setup for whoami
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - whoami
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      whoami_version:
+        type: string
+        description: Whoami version
+        default: latest
+
+---

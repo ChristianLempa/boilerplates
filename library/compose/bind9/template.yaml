@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Bind9
+  description: Docker compose setup for bind9
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - bind9
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      bind9_version:
+        type: string
+        description: Bind9 version
+        default: latest
+
+---

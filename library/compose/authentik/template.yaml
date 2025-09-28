@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Authentik-Server
+  description: Docker compose setup for authentik-server
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - authentik-server
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      authentik-server_version:
+        type: string
+        description: Authentik-Server version
+        default: latest
+
+---

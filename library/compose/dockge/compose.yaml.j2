@@ -1,0 +1,30 @@
+services:
+  dockge:
+    container_name: dockge
+    image: docker.io/louislam/dockge:1.5.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockge-data:/app/data
+      - /your-stacks-path:/your-stacks-path  # <-- Change this to your stacks path
+    environment:
+      - DOCKGE_STACKS_DIR=/your-stacks-path  # <-- Change this to your stacks path
+    # --> (Optional) When using traefik
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.dockge-http.entrypoints=web
+    #   - traefik.http.routers.dockge-http.rule=Host(`your-dockge-fqdn`)  # <-- Change this to your FQDN
+    #   - traefik.http.routers.dockge-https.entrypoints=websecure
+    #   - traefik.http.routers.dockge-https.rule=Host(`your-dockge-fqdn`)  # <-- Change this to your FQDN
+    #   - traefik.http.routers.dockge-https.tls=true
+    #   - traefik.http.routers.dockge-https.tls.certresolver=cloudflare
+    # networks:
+    #   - frontend
+    # <--
+    restart: unless-stopped
+volumes:
+  dockge-data:
+# --> (Optional) When using traefik
+# networks:
+#   frontend:
+#     external: true
+# <--

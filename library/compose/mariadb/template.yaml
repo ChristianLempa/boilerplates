@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Volumes
+  description: Docker compose setup for volumes
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - volumes
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      volumes_version:
+        type: string
+        description: Volumes version
+        default: latest
+
+---

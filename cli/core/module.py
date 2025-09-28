@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Confirm
 from rich.table import Table
 from rich.tree import Tree
 from typer import Argument, Context, Option, Typer
@@ -62,9 +62,6 @@ def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str,
 
 class Module(ABC):
   """Streamlined base module that auto-detects variables from templates."""
-  
-  name: str | None = None
-  description: str | None = None
 
   def __init__(self) -> None:
     if not all([self.name, self.description]):
@@ -80,9 +77,13 @@ class Module(ABC):
   # SECTION: Public Commands
   # --------------------------
 
-  def list(self) -> list[Template]:
-    """List all templates."""
-    logger.debug(f"Listing templates for module '{self.name}'")
+  def list(
+    self, 
+    filter_name: Optional[str] = Argument(None, help="Filter templates by name (e.g., 'traefik' shows traefik.*)"),
+    all_templates: bool = Option(False, "--all", "-a", help="Show all templates including sub-templates")
+  ) -> list[Template]:
+    """List templates with optional filtering."""
+    logger.debug(f"Listing templates for module '{self.name}' with filter='{filter_name}', all={all_templates}")
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
@@ -94,30 +95,39 @@ class Module(ABC):
         logger.error(f"Failed to load template from {template_dir}: {exc}")
         continue
     
-    if templates:
-      logger.info(f"Listing {len(templates)} templates for module '{self.name}'")
+    # Apply filtering logic
+    filtered_templates = self._filter_templates(templates, filter_name, all_templates)
+    
+    if filtered_templates:
+      # Group templates for hierarchical display
+      grouped_templates = self._group_templates(filtered_templates)
+      
+      logger.info(f"Listing {len(filtered_templates)} templates for module '{self.name}'")
       table = Table(title=f"{self.name.capitalize()} templates")
       table.add_column("ID", style="bold", no_wrap=True)
       table.add_column("Name")
       table.add_column("Description")
       table.add_column("Version", no_wrap=True)
-      table.add_column("Tags")
       table.add_column("Library", no_wrap=True)
 
-      for template in templates:
+      for template_info in grouped_templates:
+        template = template_info['template']
+        indent = template_info['indent']
         name = template.metadata.name or 'Unnamed Template'
         desc = template.metadata.description or 'No description available'
         version = template.metadata.version or ''
-        tags_list = template.metadata.tags or []
-        tags = ", ".join(tags_list) if isinstance(tags_list, list) else str(tags_list)
         library = template.metadata.library or ''
-        table.add_row(template.id, name, desc, version, tags, library)
+
+        # Add indentation for sub-templates
+        template_id = f"{indent}{template.id}"
+        table.add_row(template_id, name, desc, version, library)
 
       console.print(table)
     else:
-      logger.info(f"No templates found for module '{self.name}'")
+      filter_msg = f" matching '{filter_name}'" if filter_name else ""
+      logger.info(f"No templates found for module '{self.name}'{filter_msg}")
 
-    return templates
+    return filtered_templates
 
   def show(
     self,
@@ -176,14 +186,23 @@ class Module(ABC):
       if template.variables:
         template.variables.validate_all()
       
-      rendered_files = template.render(variable_values)
+      rendered_files = template.render(template.variables)
       logger.info(f"Successfully rendered template '{id}'")
+      output_dir = out or Path(".")
+
+      # Check if the directory is empty and confirm overwrite if necessary
+      if output_dir.exists() and any(output_dir.iterdir()):
+        if interactive:
+          if not Confirm.ask(f"Output directory '{output_dir}' is not empty. Overwrite files?", default=False):
+            console.print("[yellow]Generation cancelled.[/yellow]")
+            return
+        else:
+          logger.warning(f"Output directory '{output_dir}' is not empty. Existing files may be overwritten.")
       
-      output_dir = out
-      if not output_dir:
-        output_dir_str = Prompt.ask("Enter output directory", default=".")
-        output_dir = Path(output_dir_str)
-      
+      # Create the output directory if it doesn't exist
+      output_dir.mkdir(parents=True, exist_ok=True)
+
+      # Write rendered files to the output directory
       for file_path, content in rendered_files.items():
         full_path = output_dir / file_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -192,6 +211,13 @@ class Module(ABC):
         console.print(f"[green]Generated file: {full_path}[/green]")
       
       logger.info(f"Template written to directory: {output_dir}")
+
+      # If no output directory was specified, print the masked content to the console
+      if not out:
+        console.print("\n[bold]Rendered output (sensitive values masked):[/bold]")
+        masked_files = template.mask_sensitive_values(rendered_files, template.variables)
+        for file_path, content in masked_files.items():
+          console.print(Panel(content, title=file_path, border_style="green"))
 
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")
@@ -227,6 +253,89 @@ class Module(ABC):
   # !SECTION
 
   # --------------------------
+  # SECTION: Template Organization Methods
+  # --------------------------
+
+  def _filter_templates(self, templates: list[Template], filter_name: Optional[str], all_templates: bool) -> list[Template]:
+    """Filter templates based on name and sub-template visibility."""
+    filtered = []
+    
+    for template in templates:
+      template_id = template.id
+      is_sub_template = '.' in template_id
+      
+      # If we have a filter, apply it
+      if filter_name:
+        if is_sub_template:
+          # For sub-templates, check if they start with filter_name.
+          if template_id.startswith(f"{filter_name}."):
+            filtered.append(template)
+        else:
+          # For main templates, exact match
+          if template_id == filter_name:
+            filtered.append(template)
+      else:
+        # No filter - include based on all_templates flag
+        if not all_templates and is_sub_template:
+          continue
+        filtered.append(template)
+    
+    return filtered
+
+  def _group_templates(self, templates: list[Template]) -> list[dict]:
+    """Group templates hierarchically for display."""
+    grouped = []
+    main_templates = {}
+    sub_templates = []
+    
+    # Separate main templates and sub-templates
+    for template in templates:
+      if '.' in template.id:
+        sub_templates.append(template)
+      else:
+        main_templates[template.id] = template
+        grouped.append({
+          'template': template,
+          'indent': '',
+          'is_main': True
+        })
+    
+    # Sort sub-templates by parent
+    sub_templates.sort(key=lambda t: t.id)
+    
+    # Insert sub-templates after their parents
+    for sub_template in sub_templates:
+      parent_name = sub_template.id.split('.')[0]
+      
+      # Find where to insert this sub-template
+      insert_index = -1
+      for i, item in enumerate(grouped):
+        if item['template'].id == parent_name:
+          # Find the last sub-template for this parent
+          j = i + 1
+          while j < len(grouped) and not grouped[j]['is_main']:
+            j += 1
+          insert_index = j
+          break
+      
+      sub_name = sub_template.id.split('.', 1)[1]  # Get part after first dot
+      sub_template_info = {
+        'template': sub_template,
+        'indent': '├─ ' if insert_index < len(grouped) - 1 else '└─ ',
+        'is_main': False
+      }
+      
+      if insert_index >= 0:
+        grouped.insert(insert_index, sub_template_info)
+      else:
+        # Parent not found, add at end
+        grouped.append(sub_template_info)
+    
+    return grouped
+
+  # !SECTION
+
+  # --------------------------
   # SECTION: Private Methods
   # --------------------------
 
@@ -249,12 +358,16 @@ class Module(ABC):
   def _display_template_details(self, template: Template, template_id: str) -> None:
     """Display template information panel and variables table."""
     
-    # Print the main panel
-    console.print(Panel(
-      f"[bold]{template.metadata.name or 'Unnamed Template'}[/bold]\n\n{template.metadata.description or 'No description available'}", 
-      title=f"Template: {template_id}", 
-      subtitle=f"Module: {self.name}"
-    ))
+    # Build metadata info text
+    info_lines = []
+    info_lines.append(f"{template.metadata.description or 'No description available'}")
+    info_lines.append("")  # Empty line
+    
+    # Print template information with simple heading
+    template_name = template.metadata.name or 'Unnamed Template'
+    console.print(f"[bold blue]{template_name} ({template_id} - [cyan]{template.metadata.version or 'Not specified'}[/cyan])[/bold blue]")
+    for line in info_lines:
+      console.print(line)
     
     # Build the file structure tree
     file_tree = Tree("[bold blue]Template File Structure:[/bold blue]")
@@ -289,11 +402,14 @@ class Module(ABC):
         console.print() # Add spacing
         console.print(file_tree) # Print the Tree object directly
 
-    if template.variables and template.variables._set:
+    if template.variables and template.variables.has_sections():
       console.print()  # Add spacing
       
+      # Print variables heading
+      console.print(f"[bold blue]Template Variables:[/bold blue]")
+      
       # Create variables table
-      variables_table = Table(title="Template Variables", show_header=True, header_style="bold blue")
+      variables_table = Table(show_header=True, header_style="bold blue")
       variables_table.add_column("Variable", style="cyan", no_wrap=True)
       variables_table.add_column("Type", style="magenta")
       variables_table.add_column("Default", style="green")
@@ -302,7 +418,7 @@ class Module(ABC):
       
       # Add variables grouped by section
       first_section = True
-      for section_key, section in template.variables._set.items():
+      for section_key, section in template.variables.get_sections().items():
         if section.variables:
           # Add spacing between sections (except before first section)
           if not first_section:
@@ -348,7 +464,9 @@ class Module(ABC):
             
             # Format default value
             default_val = str(variable.value) if variable.value is not None else ""
-            if len(default_val) > 30:
+            if variable.sensitive:
+              default_val = "********"
+            elif len(default_val) > 30:
               default_val = default_val[:27] + "..."
             
             variables_table.add_row(

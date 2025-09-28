@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Homepage
+  description: Docker compose setup for homepage
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - homepage
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      homepage_version:
+        type: string
+        description: Homepage version
+        default: latest
+
+---

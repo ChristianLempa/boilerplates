@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Dockge
+  description: Docker compose setup for dockge
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - dockge
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      dockge_version:
+        type: string
+        description: Dockge version
+        default: latest
+
+---

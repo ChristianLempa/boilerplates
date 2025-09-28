@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Clamav
+  description: Docker compose setup for clamav
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - clamav
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      clamav_version:
+        type: string
+        description: Clamav version
+        default: latest
+
+---

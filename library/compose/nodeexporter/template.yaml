@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Node_Exporter
+  description: Docker compose setup for node_exporter
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - node_exporter
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      node_exporter_version:
+        type: string
+        description: Node_Exporter version
+        default: latest
+
+---

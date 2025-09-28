@@ -1,0 +1,21 @@
+---
+kind: compose
+metadata:
+  name: Gitlab-Runner
+  description: Docker compose setup for gitlab-runner
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - gitlab-runner
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      gitlab-runner_version:
+        type: string
+        description: Gitlab-Runner version
+        default: latest
+
+---

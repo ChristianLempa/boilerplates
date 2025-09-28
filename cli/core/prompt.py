@@ -41,7 +41,7 @@ class PromptHandler:
     collected: Dict[str, Any] = {}
 
     # Process each section
-    for section_key, section in variables._set.items():
+    for section_key, section in variables.get_sections().items():
       if not section.variables:
         continue
 
@@ -127,17 +127,18 @@ class PromptHandler:
       "int": self._prompt_int,
       "enum": lambda text, default: self._prompt_enum(text, variable.options or [], default),
     }
-    return handlers.get(variable.type, self._prompt_string)
+    return handlers.get(variable.type, lambda text, default: self._prompt_string(text, default, is_sensitive=variable.sensitive))
 
   def _show_validation_error(self, message: str) -> None:
     """Display validation feedback consistently."""
     self.console.print(f"[red]{message}[/red]")
 
-  def _prompt_string(self, prompt_text: str, default: Any = None) -> str:
+  def _prompt_string(self, prompt_text: str, default: Any = None, is_sensitive: bool = False) -> str:
     value = Prompt.ask(
       prompt_text,
       default=str(default) if default is not None else "",
       show_default=True,
+      password=is_sensitive
     )
     return value.strip() if value else ""
 
