@@ -21,145 +21,117 @@ This repository contains a sophisticated collection of templates (called boilerp
 
 ## Development Setup
 
-### Installation and Dependencies
-
-```bash
-# Install in development mode
-pip install -e .
-
-# Install from requirements
-pip install -r requirements.txt
-```
-
 ### Running the CLI
 
 ```bash
-# Run via Python module
-python -m cli --help
+# Running commands
+python3 -m cli
 
-# Run via installed command
-boilerplate --help
-
-# Example module usage
-boilerplate terraform --help
-boilerplate compose config list
+# Debugging commands
+python3 -m cli --log-level DEBUG compose list
 ```
 
 ## Common Development Tasks
 
-### Testing and Validation
-
-```bash
-# Lint YAML files (used in CI)
-yamllint --strict -- $(git ls-files '*.yaml' '*.yml')
-
-# Run CLI with debug logging
-boilerplate --log-level DEBUG [command]
-```
-
-### Adding New Modules
-
-1. Create new module file: `cli/modules/[module_name].py`
-2. Implement module class inheriting from `BaseModule` in the file
-3. Add module to imports in `cli/__main__.py`
-4. Create corresponding template directory in `library/[module_name]/`
-
 ## Architecture Notes
-
-### CLI Architecture
-
-- **Modular Design**: Each technology (terraform, docker, etc.) is implemented as a separate module
-- **Configuration Management**: Per-module configuration stored in `~/.boilerplates/[module].json`
-- **Template System**: Uses Jinja2 for template processing with frontmatter metadata
-- **Rich UI**: Uses Rich library for enhanced terminal output and tables
 
 ### Key Components
 
-- `ConfigManager`: Handles module-specific configuration persistence
-- `BaseModule`: Abstract base class providing shared commands (config management)
-- Module Commands: Each module implements technology-specific operations
-- Template Library: Structured collection of boilerplates with metadata
-- `Template.variable_sections`: Ordered sections with merged metadata and defaults (combined from module variable sections and template frontmatter)
-- `PromptHandler`: Interactive prompting based on vars_map and template usage
+The CLI application is built with a modular and extensible architecture.
+
+- **`cli/__main__.py`**: The main entry point using `Typer`. It dynamically discovers and imports modules from the `cli/modules` directory, registering their commands with the main application.
+
+- **`cli/core/registry.py`**: Provides a `ModuleRegistry` which acts as a central store for all discovered module classes. This avoids magic and keeps module registration explicit.
+
+- **`cli/core/module.py`**: Defines the abstract `Module` base class. Each technology (e.g., `compose`, `terraform`) is a subclass of `Module`. It standardizes the `list`, `show`, and `generate` commands and handles their registration.
+
+- **`cli/core/library.py`**: Implements the `LibraryManager` and `Library` classes, which are responsible for finding template files within the `library/` directory. It supports a priority system, allowing different template sources to override each other.
+
+- **`cli/core/template.py`**: Contains the `Template` class, which is the heart of the engine. It parses a template file, separating the YAML frontmatter (metadata, variable specifications) from the Jinja2 content. It intelligently merges variable definitions from both the module and the template file.
+
+- **`cli/core/variables.py`**: Defines the data structures for managing variables:
+  - `Variable`: Represents a single variable, including its type, validation rules, and default value.
+  - `VariableSection`: Groups variables into logical sections for better presentation and conditional logic.
+  - `VariableCollection`: Manages the entire set of sections and variables for a template.
+
+- **`cli/core/prompt.py`**: The `PromptHandler` provides the interactive CLI experience. It uses the `rich` library to prompt the user for variable values, organized by the sections defined in the `VariableCollection`.
 
 ### Template Format
 
-Templates use YAML frontmatter for metadata:
+Templates use YAML frontmatter for metadata, followed by the actual template content with Jinja2 syntax. Example:
 
 ```yaml
 ---
-name: "Template Name"
-description: "Template description"
-version: "0.0.1"
-date: "2023-10-01"
-author: "Christian Lempa"
-tags:
-  - tag1
-  - tag2
+kind: "compose|terraform|ansible|kubernetes|..."
+metadata:
+  name: "Template Name"
+  description: "Template description"
+  version: "0.0.1"
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - tag1
+    - tag2
+spec:
+  section1:
+    description: "Description of section1"
+    prompt: "Do you want to configure section1?"
+    toggle: "section1_enabled"
+    required: false|true
+    section1_enabled:
+      type: "bool"
+      description: "Enable section1"
+      default: false
+    section1_var2:
+      type: "string|int|bool|list|dict"
+      description: "Description of var1"
+      default: "default_value"
 ---
-[Template content here]
+# Actual template content with Jinja2 syntax
+services:
+  my_service:
+    image: "{{ section1_var2 | default('nginx') }}"
+    ...
 ```
 
-## Important Rules and Conventions
+#### Variables
 
-- **Docker Compose**: Default to `compose.yaml` filename (not `docker-compose.yml`)
-- **Logging Standards**: No emojis, avoid multi-lines, use proper log levels
-- **Comment Anchors**: Use for TODOs, FIXMEs, notes, and links in source code
-- **Spaces in Python**: Prefer using 2 Spaces for indentation
+Variables are a cornerstone of the CLI, allowing for dynamic and customizable template generation. They are defined and processed with a clear precedence and logic.
 
-## Architecture Optimization (2025-09-07)
+**1. Definition and Precedence:**
 
-The codebase has been optimized following the ARCHITECTURE_OPTIMIZATION.md plan:
+Variables are sourced and merged from multiple locations, with later sources overriding earlier ones:
 
-### Simplified Variable System (2025-09)
-- Replaced custom registry with a unified variables map (vars_map) on Template
-- Module variables are defined via nested `variable_sections` blocks and merged with template frontmatter sections
-- Dotted names (e.g., traefik.tls.certresolver) imply hierarchy for prompting/sections
-- No separate Variable/Registry classes needed
+1.  **Module `spec` (Lowest Precedence)**: Each module (e.g., `cli/modules/compose.py`) can define a base `spec` dictionary. This provides default variables and sections for all templates of that `kind`.
+2.  **Template `spec`**: The `spec` block within a template file's frontmatter can override or extend the module's `spec`. This allows a template to customize variable descriptions, defaults, or add new variables.
+3.  **Jinja2 `default` Filter**: A `default` filter used directly in the template content (e.g., `{{ my_var | default('value') }}`) will override any `default` value defined in the `spec` blocks.
+4.  **CLI Overrides (`--var`) (Highest Precedence)**: Providing a variable via the command line (`--var KEY=VALUE`) has the highest priority and will override any default or previously set value.
 
-### Streamlined Module System
-- Removed decorator pattern (@register_module)
-- Direct module registration with registry.register()
-- Class attributes instead of runtime __init__ modification
-- Simplified module implementation
+The `Variable.origin` attribute is updated to reflect this chain (e.g., `module -> template -> cli`).
 
-### Clean Registry
-- Removed runtime __init__ modifications
-- Simple explicit registration
-- No decorator magic
+**2. Required Sections:**
 
-### Module Implementation Pattern
-```python
-from ..core.module import Module
-from ..core.registry import registry
-from ..core.variables import Variable
+- A section in the `spec` can be marked as `required: true`.
+- The `general` section is implicitly required by default.
+- During an interactive session, users must provide inputs for all variables within a required section and cannot skip it.
 
-class ExampleModule(Module):
-  """Module description."""
-  
-  name = "example"
-  description = "Manage example configurations"
-  files = ["example.conf", "example.yaml"]
-  
-  def _init_variables(self):
-    """Initialize module-specific variables."""
-    # Register groups
-    self.variables.register_group("general", "General Settings")
-    
-    # Register variables
-    self.variables.register_variable(Variable(
-      name="var_name",
-      description="Variable description",
-      group="general"
-    ))
+**3. Toggle Settings (Conditional Sections):**
 
-# Register the module
-registry.register(ExampleModule)
-```
+- A section can be made conditional by setting the `toggle` property to the name of a boolean variable within that same section.
+- **Example**: `toggle: "advanced_enabled"`
+- During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
+- If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
 
-## Configuration
+## Future Improvements
 
-- YAML linting configured with max 160 character line length
-- Python 3.9+ required
-- Rich markup mode enabled for enhanced CLI output
-- Logging configurable via `--log-level` flag
+### Work in Progress
+
+* TODO[1-secret-support] Consider creating a "secret" variable type that automatically handles sensitive data and masks input during prompts, which also should be set via .env file and not directly in the compose files or other templates.
+  * Implement multi-file support for templates, allowing jinja2 in other files as well
+  * Mask secrets in rendering output (e.g. when displaying the final docker-compose file, mask secret values)
+  * Add support for --out to specify a directory
+* Add support for more complex validation rules for environment variables, such as regex patterns or value ranges.
+* Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
+* Add an installation script when cloning the repo and setup necessary commands
+* Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
+* Add compose deploy command to deploy a generated compose project to a local or remote docker environment
