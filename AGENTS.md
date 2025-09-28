@@ -122,16 +122,36 @@ The `Variable.origin` attribute is updated to reflect this chain (e.g., `module 
 - During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
 - If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
 
+### Managing TODOs as GitHub Issues
+
+We use a convention to manage TODO items as GitHub issues directly from the codebase. This allows us to track our work and link it back to the specific code that needs attention.
+
+The format for a TODO item is:
+
+`* TODO[<issue-number>-<slug>] <description>`
+
+-   `<issue-number>`: The GitHub issue number.
+-   `<slug>`: A short, descriptive slug for the epic or feature.
+-   `<description>`: The description of the TODO item.
+
+When you find a TODO item that has not been converted to an issue yet (i.e., it's missing the `[<issue-number>-<slug>]` part), you can create an issue for it using the `gh` CLI:
+
+```bash
+gh issue create --title "<title>" --body "<description>" --assignee "@me" --project "<project-name>" --label "<label>"
+```
+
+After creating the issue, update the TODO line in the `AGENTS.md` file with the issue number and a descriptive slug.
+
 ## Future Improvements
 
 ### Work in Progress
 
-* TODO[1-secret-support] Consider creating a "secret" variable type that automatically handles sensitive data and masks input during prompts, which also should be set via .env file and not directly in the compose files or other templates.
+* TODO[1242-secret-support] Consider creating a "secret" variable type that automatically handles sensitive data and masks input during prompts, which also should be set via .env file and not directly in the compose files or other templates.
   * Implement multi-file support for templates, allowing jinja2 in other files as well
   * Mask secrets in rendering output (e.g. when displaying the final docker-compose file, mask secret values)
   * Add support for --out to specify a directory
-* Add support for more complex validation rules for environment variables, such as regex patterns or value ranges.
-* Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
-* Add an installation script when cloning the repo and setup necessary commands
-* Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
-* Add compose deploy command to deploy a generated compose project to a local or remote docker environment
+* TODO[1246-validation-rules] Add support for more complex validation rules for environment variables, such as regex patterns or value ranges.
+* TODO[1247-user-overrides] Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
+* TODO[1248-installation-script] Add an installation script when cloning the repo and setup necessary commands
+* TODO[1249-update-script] Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
+* TODO[1250-compose-deploy] Add compose deploy command to deploy a generated compose project to a local or remote docker environment
