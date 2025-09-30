@@ -58,6 +58,8 @@ The CLI application is built with a modular and extensible architecture.
 
 - **`cli/core/prompt.py`**: The `PromptHandler` provides the interactive CLI experience. It uses the `rich` library to prompt the user for variable values, organized by the sections defined in the `VariableCollection`.
 
+- **`cli/core/display.py`**: The `DisplayManager` handles all output rendering using `rich`. It provides consistent and visually appealing displays for lists, search results, variable summaries, and error messages.
+
 ### Template Format
 
 Templates are directory-based. Each template is a directory containing all the necessary files and subdirectories for the boilerplate.

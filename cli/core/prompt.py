@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt
 from rich.table import Table
 
+from .display import DisplayManager
 from .variables import Variable, VariableCollection
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class PromptHandler:
 
   def __init__(self) -> None:
     self.console = Console()
+    self.display = DisplayManager()
 
   # --------------------------
   # SECTION: Public Methods
@@ -46,10 +48,7 @@ class PromptHandler:
         continue
 
       # Always show section header first
-      self.console.print(f"\n[bold cyan]{section.title}[/bold cyan]")
-      if section.description:
-        self.console.print(f"[dim]{section.description}[/dim]")
-      self.console.print("─" * 40, style="dim")
+      self.display.display_section_header(section.title, section.description)
 
       # Handle section toggle - skip for required sections
       if section.required:
@@ -131,7 +130,7 @@ class PromptHandler:
 
   def _show_validation_error(self, message: str) -> None:
     """Display validation feedback consistently."""
-    self.console.print(f"[red]{message}[/red]")
+    self.display.display_validation_error(message)
 
   def _prompt_string(self, prompt_text: str, default: Any = None, is_sensitive: bool = False) -> str:
     value = Prompt.ask(

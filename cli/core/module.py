@@ -8,10 +8,9 @@ from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
-from rich.table import Table
-from rich.tree import Tree
 from typer import Argument, Context, Option, Typer
 
+from .display import DisplayManager
 from .library import LibraryManager
 from .prompt import PromptHandler
 from .template import Template
@@ -72,6 +71,7 @@ class Module(ABC):
     logger.info(f"Initializing module '{self.name}'")
     logger.debug(f"Module '{self.name}' configuration: description='{self.description}'")
     self.libraries = LibraryManager()
+    self.display = DisplayManager()
 
   # --------------------------
   # SECTION: Public Commands
@@ -79,11 +79,10 @@ class Module(ABC):
 
   def list(
     self, 
-    filter_name: Optional[str] = Argument(None, help="Filter templates by name (e.g., 'traefik' shows traefik.*)"),
     all_templates: bool = Option(False, "--all", "-a", help="Show all templates including sub-templates")
   ) -> list[Template]:
-    """List templates with optional filtering."""
-    logger.debug(f"Listing templates for module '{self.name}' with filter='{filter_name}', all={all_templates}")
+    """List all templates."""
+    logger.debug(f"Listing templates for module '{self.name}' with all={all_templates}")
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
@@ -96,38 +95,59 @@ class Module(ABC):
         continue
     
     # Apply filtering logic
-    filtered_templates = self._filter_templates(templates, filter_name, all_templates)
+    filtered_templates = self._filter_templates(templates, None, all_templates)
     
     if filtered_templates:
       # Group templates for hierarchical display
       grouped_templates = self._group_templates(filtered_templates)
       
-      logger.info(f"Listing {len(filtered_templates)} templates for module '{self.name}'")
-      table = Table(title=f"{self.name.capitalize()} templates")
-      table.add_column("ID", style="bold", no_wrap=True)
-      table.add_column("Name")
-      table.add_column("Description")
-      table.add_column("Version", no_wrap=True)
-      table.add_column("Library", no_wrap=True)
-
-      for template_info in grouped_templates:
-        template = template_info['template']
-        indent = template_info['indent']
-        name = template.metadata.name or 'Unnamed Template'
-        desc = template.metadata.description or 'No description available'
-        version = template.metadata.version or ''
-        library = template.metadata.library or ''
-
-        # Add indentation for sub-templates
-        template_id = f"{indent}{template.id}"
-        table.add_row(template_id, name, desc, version, library)
-
-      console.print(table)
+      self.display.display_templates_table(
+        grouped_templates,
+        self.name,
+        f"{self.name.capitalize()} templates"
+      )
     else:
-      filter_msg = f" matching '{filter_name}'" if filter_name else ""
-      logger.info(f"No templates found for module '{self.name}'{filter_msg}")
+      logger.info(f"No templates found for module '{self.name}'")
 
     return filtered_templates
+
+  def search(
+    self,
+    query: str = Argument(..., help="Search string to filter templates by ID"),
+    all_templates: bool = Option(False, "--all", "-a", help="Show all templates including sub-templates")
+  ) -> list[Template]:
+    """Search for templates by ID containing the search string."""
+    logger.debug(f"Searching templates for module '{self.name}' with query='{query}', all={all_templates}")
+    templates = []
+
+    entries = self.libraries.find(self.name, sort_results=True)
+    for template_dir, library_name in entries:
+      try:
+        template = Template(template_dir, library_name=library_name)
+        templates.append(template)
+      except Exception as exc:
+        logger.error(f"Failed to load template from {template_dir}: {exc}")
+        continue
+    
+    # Apply search filtering
+    filtered_templates = self._search_templates(templates, query, all_templates)
+    
+    if filtered_templates:
+      # Group templates for hierarchical display
+      grouped_templates = self._group_templates(filtered_templates)
+      
+      logger.info(f"Found {len(filtered_templates)} templates matching '{query}' for module '{self.name}'")
+      self.display.display_templates_table(
+        grouped_templates,
+        self.name,
+        f"{self.name.capitalize()} templates matching '{query}'"
+      )
+    else:
+      logger.info(f"No templates found matching '{query}' for module '{self.name}'")
+      console.print(f"[yellow]No templates found matching '{query}' for module '{self.name}'[/yellow]")
+
+    return filtered_templates
+
 
   def show(
     self,
@@ -240,6 +260,7 @@ class Module(ABC):
     module_app = Typer(help=cls.description)
     
     module_app.command("list")(module_instance.list)
+    module_app.command("search")(module_instance.search)
     module_app.command("show")(module_instance.show)
     
     module_app.command(
@@ -264,20 +285,28 @@ class Module(ABC):
       template_id = template.id
       is_sub_template = '.' in template_id
       
-      # If we have a filter, apply it
-      if filter_name:
-        if is_sub_template:
-          # For sub-templates, check if they start with filter_name.
-          if template_id.startswith(f"{filter_name}."):
-            filtered.append(template)
-        else:
-          # For main templates, exact match
-          if template_id == filter_name:
-            filtered.append(template)
-      else:
-        # No filter - include based on all_templates flag
-        if not all_templates and is_sub_template:
-          continue
+      # No filter - include based on all_templates flag
+      if not all_templates and is_sub_template:
+        continue
+      filtered.append(template)
+    
+    return filtered
+  
+  def _search_templates(self, templates: list[Template], query: str, all_templates: bool) -> list[Template]:
+    """Search templates by ID containing the query string."""
+    filtered = []
+    query_lower = query.lower()
+    
+    for template in templates:
+      template_id = template.id
+      is_sub_template = '.' in template_id
+      
+      # Skip sub-templates if not showing all
+      if not all_templates and is_sub_template:
+        continue
+      
+      # Check if query is contained in the template ID
+      if query_lower in template_id.lower():
         filtered.append(template)
     
     return filtered
@@ -303,33 +332,38 @@ class Module(ABC):
     # Sort sub-templates by parent
     sub_templates.sort(key=lambda t: t.id)
     
-    # Insert sub-templates after their parents
+    # Group sub-templates by parent for proper indentation
+    sub_by_parent = {}
     for sub_template in sub_templates:
       parent_name = sub_template.id.split('.')[0]
-      
-      # Find where to insert this sub-template
+      if parent_name not in sub_by_parent:
+        sub_by_parent[parent_name] = []
+      sub_by_parent[parent_name].append(sub_template)
+    
+    # Insert sub-templates after their parents with proper indentation
+    for parent_name, parent_subs in sub_by_parent.items():
+      # Find the parent in the grouped list
       insert_index = -1
       for i, item in enumerate(grouped):
         if item['template'].id == parent_name:
-          # Find the last sub-template for this parent
-          j = i + 1
-          while j < len(grouped) and not grouped[j]['is_main']:
-            j += 1
-          insert_index = j
+          insert_index = i + 1
           break
       
-      sub_name = sub_template.id.split('.', 1)[1]  # Get part after first dot
-      sub_template_info = {
-        'template': sub_template,
-        'indent': '├─ ' if insert_index < len(grouped) - 1 else '└─ ',
-        'is_main': False
-      }
-      
-      if insert_index >= 0:
-        grouped.insert(insert_index, sub_template_info)
-      else:
-        # Parent not found, add at end
-        grouped.append(sub_template_info)
+      # Add each sub-template with proper indentation
+      for idx, sub_template in enumerate(parent_subs):
+        is_last = (idx == len(parent_subs) - 1)
+        sub_template_info = {
+          'template': sub_template,
+          'indent': '└─ ' if is_last else '├─ ',
+          'is_main': False
+        }
+        
+        if insert_index >= 0:
+          grouped.insert(insert_index, sub_template_info)
+          insert_index += 1
+        else:
+          # Parent not found, add at end
+          grouped.append(sub_template_info)
     
     return grouped
 
@@ -357,127 +391,6 @@ class Module(ABC):
 
   def _display_template_details(self, template: Template, template_id: str) -> None:
     """Display template information panel and variables table."""
-    
-    # Build metadata info text
-    info_lines = []
-    info_lines.append(f"{template.metadata.description or 'No description available'}")
-    info_lines.append("")  # Empty line
-    
-    # Print template information with simple heading
-    template_name = template.metadata.name or 'Unnamed Template'
-    console.print(f"[bold blue]{template_name} ({template_id} - [cyan]{template.metadata.version or 'Not specified'}[/cyan])[/bold blue]")
-    for line in info_lines:
-      console.print(line)
-    
-    # Build the file structure tree
-    file_tree = Tree("[bold blue]Template File Structure:[/bold blue]")
-    
-    # Create a dictionary to hold the tree nodes for directories
-    # This will allow us to build a proper tree structure
-    tree_nodes = {Path('.'): file_tree} # Root of the template directory
-
-    for template_file in sorted(template.template_files, key=lambda f: f.relative_path):
-        parts = template_file.relative_path.parts
-        current_path = Path('.')
-        current_node = file_tree
-
-        # Build the directory path in the tree
-        for part in parts[:-1]: # Iterate through directories
-            current_path = current_path / part
-            if current_path not in tree_nodes:
-                new_node = current_node.add(f"\uf07b [bold blue]{part}[/bold blue]") # Folder icon
-                tree_nodes[current_path] = new_node
-                current_node = new_node
-            else:
-                current_node = tree_nodes[current_path]
-
-        # Add the file to the appropriate directory node
-        if template_file.file_type == 'j2':
-            current_node.add(f"[green]\ue235 {template_file.relative_path.name}[/green]") # Jinja2 file icon
-        elif template_file.file_type == 'static':
-            current_node.add(f"[yellow]\uf15b {template_file.relative_path.name}[/yellow]") # Generic file icon
-            
-    # Print the file tree separately if it has content
-    if file_tree.children: # Check if any files were added to the branches
-        console.print() # Add spacing
-        console.print(file_tree) # Print the Tree object directly
-
-    if template.variables and template.variables.has_sections():
-      console.print()  # Add spacing
-      
-      # Print variables heading
-      console.print(f"[bold blue]Template Variables:[/bold blue]")
-      
-      # Create variables table
-      variables_table = Table(show_header=True, header_style="bold blue")
-      variables_table.add_column("Variable", style="cyan", no_wrap=True)
-      variables_table.add_column("Type", style="magenta")
-      variables_table.add_column("Default", style="green")
-      variables_table.add_column("Description", style="white")
-      variables_table.add_column("Origin", style="yellow")
-      
-      # Add variables grouped by section
-      first_section = True
-      for section_key, section in template.variables.get_sections().items():
-        if section.variables:
-          # Add spacing between sections (except before first section)
-          if not first_section:
-            variables_table.add_row("", "", "", "", "", style="dim")
-          first_section = False
-          
-          # Check if section should be dimmed (toggle is False)
-          is_dimmed = False
-          
-          if section.toggle:
-            toggle_var = section.variables.get(section.toggle)
-            if toggle_var:
-              # Get the actual typed value and check if it's falsy
-              try:
-                toggle_value = toggle_var.get_typed_value()
-                if not toggle_value:
-                  is_dimmed = True
-              except Exception as e:
-                # Fallback to raw value check
-                if not toggle_var.value:
-                  is_dimmed = True
-              
-          # Add section header row with proper styling
-          disabled_text = " (disabled)" if is_dimmed else ""
-          required_text = " [yellow](required)[/yellow]" if section.required else ""
-          
-          if is_dimmed:
-            # Use Rich markup for dimmed bold text
-            header_text = f"[bold dim]{section.title}{required_text}{disabled_text}[/bold dim]"
-          else:
-            # Use Rich markup for bold text
-            header_text = f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
-          
-          variables_table.add_row(
-            header_text,
-            "", "", "", ""
-          )
-          
-          # Add variables in this section
-          for var_name, variable in section.variables.items():
-            # Apply dim style to ALL variables if section toggle is False
-            row_style = "dim" if is_dimmed else None
-            
-            # Format default value
-            default_val = str(variable.value) if variable.value is not None else ""
-            if variable.sensitive:
-              default_val = "********"
-            elif len(default_val) > 30:
-              default_val = default_val[:27] + "..."
-            
-            variables_table.add_row(
-              f"  {var_name}",
-              variable.type or "str",
-              default_val,
-              variable.description or "",
-              variable.origin or "unknown",
-              style=row_style
-            )
-      
-      console.print(variables_table)
+    self.display.display_template_details(template, template_id)
 
 # !SECTION
