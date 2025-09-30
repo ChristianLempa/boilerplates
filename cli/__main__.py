@@ -53,14 +53,20 @@ def setup_logging(log_level: str = "WARNING") -> None:
 def main(
   ctx: Context,
   log_level: Optional[str] = Option(
-    "WARNING", 
-    "--log-level", 
-    help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+    None,
+    "--log-level",
+    help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If omitted, logging is disabled."
   )
 ) -> None:
   """Main CLI application for managing boilerplates."""
-  # Configure logging based on the provided log level
-  setup_logging(log_level)
+  # Disable logging by default; only enable when user provides --log-level
+  if log_level:
+    # Re-enable logging and configure
+    logging.disable(logging.NOTSET)
+    setup_logging(log_level)
+  else:
+    # Silence all logging (including third-party) unless user explicitly requests it
+    logging.disable(logging.CRITICAL)
   
   # Store log level in context for potential use by other commands
   ctx.ensure_object(dict)

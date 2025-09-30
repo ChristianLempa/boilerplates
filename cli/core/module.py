@@ -8,7 +8,7 @@ from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
-from typer import Argument, Context, Option, Typer
+from typer import Argument, Context, Option, Typer, Exit
 
 from .display import DisplayManager
 from .library import LibraryManager
@@ -242,7 +242,8 @@ class Module(ABC):
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")
       console.print(f"[red]Error generating template: {e}[/red]")
-      raise
+      # Stop execution without letting Typer/Click print the exception again.
+      raise Exit(code=1)
 
   # !SECTION
 

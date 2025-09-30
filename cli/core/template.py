@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import logging
 import os
 from jinja2 import Environment, FileSystemLoader, meta
+from jinja2 import nodes
+from jinja2.visitor import NodeVisitor
 import frontmatter
 
 logger = logging.getLogger(__name__)
@@ -51,7 +53,14 @@ class TemplateMetadata:
     metadata_section = post.metadata.get("metadata", {})
     
     self.name = metadata_section.get("name", "")
-    self.description = metadata_section.get("description", "No description available")
+    # YAML block scalar (|) preserves a trailing newline. Remove only trailing newlines
+    # while preserving internal newlines/formatting.
+    raw_description = metadata_section.get("description", "")
+    if isinstance(raw_description, str):
+      description = raw_description.rstrip("\n")
+    else:
+      description = str(raw_description)
+    self.description = description or "No description available"
     self.author = metadata_section.get("author", "")
     self.date = metadata_section.get("date", "")
     self.version = metadata_section.get("version", "")
@@ -156,7 +165,27 @@ class Template:
           merged_section[key] = template_section[key]
       module_vars = module_section.get('vars') if isinstance(module_section.get('vars'), dict) else {}
       template_vars = template_section.get('vars') if isinstance(template_section.get('vars'), dict) else {}
-      merged_section['vars'] = {**module_vars, **template_vars}
+
+      # Deep-merge variables while preserving the ordering from the module spec.
+      # Template-only variables are appended at the end in template order.
+      from collections import OrderedDict
+
+      merged_vars: OrderedDict = OrderedDict()
+
+      # First, keep module variables in their original order, merging any
+      # template-provided keys for the same variable.
+      for var_name, mod_var in module_vars.items():
+        mod_var = mod_var or {}
+        tmpl_var = template_vars.get(var_name, {}) or {}
+        merged_vars[var_name] = {**mod_var, **tmpl_var}
+
+      # Then, append any template-only variables in the template's order.
+      for var_name, tmpl_var in template_vars.items():
+        if var_name in merged_vars:
+          continue
+        merged_vars[var_name] = {**(tmpl_var or {})}
+
+      merged_section['vars'] = merged_vars
       merged_specs[section_key] = merged_section
     
     for section_key in template_specs.keys():
@@ -203,6 +232,54 @@ class Template:
         except Exception as e:
           logger.warning(f"Could not parse Jinja2 variables from {file_path}: {e}")
     return used_variables
+
+  def _extract_jinja_default_values(self) -> dict[str, object]:
+    """Scan all .j2 files and extract literal arguments to the `default` filter.
+
+    Returns a mapping var_name -> literal_value for simple cases like
+    {{ var | default("value") }} or {{ var | default(123) }}.
+    This does not attempt to evaluate complex expressions.
+    """
+    defaults: dict[str, object] = {}
+
+    class _DefaultVisitor(NodeVisitor):
+      def __init__(self):
+        self.found: dict[str, object] = {}
+
+      def visit_Filter(self, node: nodes.Filter) -> None:  # type: ignore[override]
+        try:
+          if getattr(node, 'name', None) == 'default' and node.args:
+            # target variable name when filter is applied directly to a Name
+            target = None
+            if isinstance(node.node, nodes.Name):
+              target = node.node.name
+
+            # first arg literal
+            first = node.args[0]
+            if isinstance(first, nodes.Const) and target:
+              self.found[target] = first.value
+        except Exception:
+          # Be resilient to unexpected node shapes
+          pass
+        # continue traversal
+        self.generic_visit(node)
+
+    visitor = _DefaultVisitor()
+
+    for template_file in self.template_files:
+      if template_file.file_type != 'j2':
+        continue
+      file_path = self.template_dir / template_file.relative_path
+      try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+          content = f.read()
+        ast = self.jinja_env.parse(content)
+        visitor.visit(ast)
+      except Exception:
+        # skip failures - this extraction is best-effort only
+        continue
+
+    return visitor.found
 
   def _filter_specs_to_used(self, used_variables: set, merged_specs: dict, module_specs: dict, template_specs: dict) -> dict:
     """Filter specs to only include variables used in the templates."""
@@ -378,5 +455,20 @@ class Template:
           self._validate_variable_definitions(self.used_variables, self.merged_specs)
           # Filter specs to only used variables
           filtered_specs = self._filter_specs_to_used(self.used_variables, self.merged_specs, self.module_specs, self.template_specs)
+
+          # Best-effort: extract literal defaults from Jinja `default()` filter and
+          # merge them into the filtered_specs when no default exists there.
+          try:
+            jinja_defaults = self._extract_jinja_default_values()
+            for section_key, section_data in filtered_specs.items():
+              vars_dict = section_data.get('vars', {})
+              for var_name, var_data in vars_dict.items():
+                if 'default' not in var_data or var_data.get('default') in (None, ''):
+                  if var_name in jinja_defaults:
+                    var_data['default'] = jinja_defaults[var_name]
+          except Exception:
+            # keep behavior stable on any extraction errors
+            pass
+
           self.__variables = VariableCollection(filtered_specs)
       return self.__variables

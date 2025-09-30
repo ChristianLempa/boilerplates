@@ -54,6 +54,8 @@ class Variable:
     self.section: Optional[str] = data.get("section")
     self.origin: Optional[str] = data.get("origin")
     self.sensitive: bool = data.get("sensitive", False)
+    # Optional extra explanation used by interactive prompts
+    self.extra: Optional[str] = data.get("extra")
 
     # Validate and convert the default/initial value if present
     if self.value is not None:
@@ -95,6 +97,10 @@ class Variable:
   def convert(self, value: Any) -> Any:
     """Validate and convert a raw value based on the variable type."""
     if value is None:
+      return None
+
+    # Treat empty strings as None to avoid storing "" for missing values.
+    if isinstance(value, str) and value.strip() == "":
       return None
 
     # Type conversion mapping for cleaner code
@@ -161,7 +167,7 @@ class Variable:
     """Convert and validate hostname."""
     val = str(value).strip()
     if not val:
-      return ""
+      return None
     if val.lower() != "localhost":
       self._validate_regex_pattern(val, HOSTNAME_REGEX, "value must be a valid hostname")
     return val
@@ -170,7 +176,7 @@ class Variable:
     """Convert and validate URL."""
     val = str(value).strip()
     if not val:
-      return ""
+      return None
     parsed = urlparse(val)
     self._validate_url_structure(parsed)
     return val
@@ -179,7 +185,7 @@ class Variable:
     """Convert and validate email."""
     val = str(value).strip()
     if not val:
-      return ""
+      return None
     self._validate_regex_pattern(val, EMAIL_REGEX, "value must be a valid email address")
     return val
 
@@ -373,6 +379,8 @@ class VariableCollection:
   
   def validate_all(self) -> None:
     """Validate all variables in the collection, skipping disabled sections."""
+    errors: list[str] = []
+
     for section in self._sections.values():
       # Check if the section is disabled by a toggle
       if section.toggle:
@@ -381,9 +389,28 @@ class VariableCollection:
           logger.debug(f"Skipping validation for disabled section: '{section.key}'")
           continue  # Skip this entire section
 
-      # NOTE: Skip individual variable validation since we removed the validate method
-      # All validation now happens during conversion in the Variable.convert() method
-      pass
+      # Validate each variable in the section
+      for var_name, variable in section.variables.items():
+        try:
+          # If value is None, treat as missing
+          if variable.value is None:
+            errors.append(f"{section.key}.{var_name} (missing)")
+            continue
+
+          # Attempt to convert/validate typed value
+          typed = variable.get_typed_value()
+
+          # For non-boolean types, treat None or empty string as invalid
+          if variable.type not in ("bool",) and (typed is None or typed == ""):
+            errors.append(f"{section.key}.{var_name} (empty)")
+
+        except ValueError as e:
+          errors.append(f"{section.key}.{var_name} (invalid: {e})")
+
+    if errors:
+      error_msg = "Variable validation failed: " + ", ".join(errors)
+      logger.error(error_msg)
+      raise ValueError(error_msg)
 
   # !SECTION
 

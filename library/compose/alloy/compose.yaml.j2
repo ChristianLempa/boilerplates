@@ -13,7 +13,7 @@ services:
       - "12345:12345"
     {% endif %}
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy
+      - ./config/config.alloy:/etc/alloy/config.alloy
       - alloy_data:/var/lib/alloy/data
       - /:/rootfs:ro
       - /run:/run:ro

@@ -194,6 +194,5 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 
 ### Work in Progress
 
-* TODO[1247-user-overrides] Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
-* TODO[1250-compose-deploy] Add compose deploy command to deploy a generated compose project to a local or remote docker environment
-* TODO[1251-centralize-display-logic] Create a DisplayManager class to handle all rich rendering.
+* TODO Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
+* TODO Add compose deploy command to deploy a generated compose project to a local or remote docker environment

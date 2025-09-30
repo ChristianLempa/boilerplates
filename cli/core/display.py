@@ -30,7 +30,7 @@ class DisplayManager:
         table = Table(title=title)
         table.add_column("ID", style="bold", no_wrap=True)
         table.add_column("Name")
-        table.add_column("Description")
+        table.add_column("Tags")
         table.add_column("Version", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
@@ -38,12 +38,13 @@ class DisplayManager:
             template = template_info["template"]
             indent = template_info["indent"]
             name = template.metadata.name or "Unnamed Template"
-            desc = template.metadata.description or "No description available"
+            tags_list = template.metadata.tags or []
+            tags = ", ".join(tags_list) if tags_list else "-"
             version = template.metadata.version or ""
             library = template.metadata.library or ""
 
             template_id = f"{indent}{template.id}"
-            table.add_row(template_id, name, desc, version, library)
+            table.add_row(template_id, name, tags, version, library)
 
         console.print(table)
 
@@ -77,7 +78,11 @@ class DisplayManager:
 
     def _display_file_tree(self, template: Template) -> None:
         """Display the file structure of a template."""
-        file_tree = Tree("[bold blue]Template File Structure:[/bold blue]")
+        # Preserve the heading, then use the template id as the root directory label
+        console.print()
+        console.print("[bold blue]Template File Structure:[/bold blue]")
+        # Use the template id as the root directory label (folder glyph + white name)
+        file_tree = Tree(f"\uf07b [white]{template.id}[/white]")
         tree_nodes = {Path("."): file_tree}
 
         for template_file in sorted(
@@ -90,23 +95,34 @@ class DisplayManager:
             for part in parts[:-1]:
                 current_path = current_path / part
                 if current_path not in tree_nodes:
-                    new_node = current_node.add(f"uf07b [bold blue]{part}[/bold blue]")
+                    new_node = current_node.add(f"\uf07b [white]{part}[/white]")
                     tree_nodes[current_path] = new_node
                     current_node = new_node
                 else:
                     current_node = tree_nodes[current_path]
 
+            # Determine display name (use output_path to detect final filename)
+            display_name = template_file.output_path.name if hasattr(template_file, 'output_path') else template_file.relative_path.name
+
+            # Default icons: use Nerd Font private-use-area codepoints (PUA).
+            # Docker (Font Awesome) is typically U+F308. Default file U+F15B.
+            docker_icon = "\uf308"
+            default_file_icon = "\uf15b"
+            j2_icon = "\ue235"
+
             if template_file.file_type == "j2":
-                current_node.add(
-                    f"[green]ue235 {template_file.relative_path.name}[/green]"
-                )
+                # Detect common docker compose filenames from the resulting output path
+                lower_name = display_name.lower()
+                compose_names = {"docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"}
+                if lower_name in compose_names or lower_name.startswith("docker-compose") or "compose" in lower_name:
+                    icon = docker_icon
+                else:
+                    icon = j2_icon
+                current_node.add(f"[white]{icon} {display_name}[/white]")
             elif template_file.file_type == "static":
-                current_node.add(
-                    f"[yellow]uf15b {template_file.relative_path.name}[/yellow]"
-                )
+                current_node.add(f"[white]{default_file_icon} {display_name}[/white]")
 
         if file_tree.children:
-            console.print()
             console.print(file_tree)
 
     def _display_variables_table(self, template: Template) -> None:
