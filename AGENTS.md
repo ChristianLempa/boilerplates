@@ -6,6 +6,8 @@ This file provides guidance to AI Agents when working with code in this reposito
 
 This repository contains a sophisticated collection of templates (called boilerplates) for managing infrastructure across multiple technologies including Terraform, Docker, Ansible, Kubernetes, etc. The project also includes a Python CLI application that allows an easy management, creation, and deployment of boilerplates.
 
+The CLI is a Python application built with Typer for the command-line interface and Jinja2 for templating.
+
 ## Repository Structure
 
 - `cli/` - Python CLI application source code
@@ -43,7 +45,7 @@ The CLI application is built with a modular and extensible architecture.
 
 - **`cli/core/registry.py`**: Provides a `ModuleRegistry` which acts as a central store for all discovered module classes. This avoids magic and keeps module registration explicit.
 
-- **`cli/core/module.py`**: Defines the abstract `Module` base class. Each technology (e.g., `compose`, `terraform`) is a subclass of `Module`. It standardizes the `list`, `show`, and `generate` commands and handles their registration.
+- **`cli/core/module.py`**: Defines the abstract `Module` base class. Each technology (e.g., `compose`, `terraform`) is a subclass of `Module`. It standardizes the `list`, `search`, `show`, and `generate` commands and handles their registration.
 
 - **`cli/core/library.py`**: Implements the `LibraryManager` and `Library` classes, which are responsible for finding template files within the `library/` directory. It supports a priority system, allowing different template sources to override each other.
 
@@ -124,6 +126,12 @@ python3 -m cli compose list
 # Show all templates including sub-templates
 python3 -m cli compose list --all
 
+# Search for templates by ID
+python3 -m cli compose search traefik
+
+# Search for templates including sub-templates
+python3 -m cli compose search authentik --all
+
 # Generate a sub-template
 python3 -m cli compose generate traefik.authentik-middleware
 ```
@@ -185,6 +193,5 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 ### Work in Progress
 
 * TODO[1247-user-overrides] Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
-* TODO[1249-update-script] Add an automatic update script to keep the tool up-to-date with the latest version from the repository.
 * TODO[1250-compose-deploy] Add compose deploy command to deploy a generated compose project to a local or remote docker environment
 * TODO[1251-centralize-display-logic] Create a DisplayManager class to handle all rich rendering.
