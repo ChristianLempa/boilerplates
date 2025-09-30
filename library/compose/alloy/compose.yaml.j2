@@ -5,12 +5,12 @@ services:
     hostname: {{ container_hostname }}
     command:
       - run
-      - --server.http.listen-addr=0.0.0.0:12345
+      - --server.http.listen-addr=0.0.0.0:{{ ports_main | default("12345") }}
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
     {% if ports_enabled %}
     ports:
-      - "12345:12345"
+      - "{{ ports_main | default("12345") }}:12345"
     {% endif %}
     volumes:
       - ./config/config.alloy:/etc/alloy/config.alloy

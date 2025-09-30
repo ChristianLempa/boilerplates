@@ -1,0 +1,13 @@
+---
+kind: compose
+metadata:
+  name: Alloy - Docker Logs
+  description: Minimal fragment to collect Docker container logs for Alloy.
+  version: 0.0.1
+  author: Christian Lempa
+  date: '2025-09-30'
+spec:
+  general:
+    vars: {}
+
+---

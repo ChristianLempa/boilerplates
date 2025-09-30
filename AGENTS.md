@@ -78,6 +78,7 @@ metadata:
   description: "A template for a simple Nginx service."
   version: "0.1.0"
   author: "Christian Lempa"
+  date: "2024-10-01"
 spec:
   general:
     vars:

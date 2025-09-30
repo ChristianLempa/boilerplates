@@ -1,0 +1,53 @@
+/* Targets: define remote endpoints used by these fragments */
+
+loki.write "default" {
+  endpoint {
+    url = "{{ loki_url }}"
+  }
+  external_labels = {}
+}
+
+// SECTION: SYSTEM LOGS & JOURNAL
+
+loki.source.journal "journal" {
+  max_age       = "24h0m0s"
+  relabel_rules = discovery.relabel.journal.rules
+  forward_to    = [loki.write.default.receiver]
+  labels        = {component = string.format("%s-journal", constants.hostname)}
+  // NOTE: This is important to fix https://github.com/grafana/alloy/issues/924
+  path          = "/var/log/journal"
+}
+
+local.file_match "system" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/var/log/{syslog,messages,*.log}",
+    instance    = constants.hostname,
+    job         = string.format("%s-logs", constants.hostname),
+  }]
+}
+
+discovery.relabel "journal" {
+  targets = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal__boot_id"]
+    target_label  = "boot_id"
+  }
+  rule {
+    source_labels = ["__journal__transport"]
+    target_label  = "transport"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.file "system" {
+  targets    = local.file_match.system.targets
+  forward_to = [loki.write.default.receiver]
+}

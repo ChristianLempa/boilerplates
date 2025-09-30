@@ -3,7 +3,10 @@ kind: compose
 metadata:
   name: Grafana Alloy
   description: |
-    Open-source telemetry collector and a distribution of the OpenTelemetry Collector, designed to gather and process logs, metrics, traces, and profiles from your applications and infrastructure. It integrates features from the OpenTelemetry Collector and Prometheus, offering programmable pipelines with a rich, expression-based syntax and support for multiple observability ecosystems. Alloy functions as a powerful, high-performance, and vendor-neutral tool for observability, acting as a successor to the Grafana Agent and providing enhanced features for scaling and managing telemetry data.
+    Grafana Alloy is an open telemetry collector distribution that gathers and
+    processes logs, metrics, traces and profiles. It combines features from the
+    OpenTelemetry Collector and Prometheus and provides programmable pipelines
+    and high-performance, vendor-neutral observability.
 
     Project: https://grafana.com/docs/alloy/
     Source: https://github.com/grafana/alloy
@@ -19,4 +22,10 @@ spec:
     vars:
       container_hostname:
         extra: This is needed because when alloy runs in a container, it doesn't know the hostname of the docker host.
+  ports:
+    vars:
+      ports_main:
+        type: int
+        description: Main port for Alloy HTTP server
+        default: 12345
 ---

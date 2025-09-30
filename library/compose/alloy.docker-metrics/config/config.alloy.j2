@@ -1,0 +1,18 @@
+/* Targets: define remote write endpoint(s) used by these fragments */
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "{{ prometheus_url }}"
+  }
+}
+
+prometheus.exporter.cadvisor "dockermetrics" {
+  docker_host = "unix:///var/run/docker.sock"
+  storage_duration = "5m"
+}
+
+prometheus.scrape "dockermetrics" {
+  targets    = prometheus.exporter.cadvisor.dockermetrics.targets
+  forward_to = [ prometheus.remote_write.default.receiver ]
+  scrape_interval = "10s"
+}
