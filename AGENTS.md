@@ -86,7 +86,6 @@ spec:
         type: "string"
         description: "The Nginx version to use."
         default: "latest"
----
 ```
 
 #### Template Files

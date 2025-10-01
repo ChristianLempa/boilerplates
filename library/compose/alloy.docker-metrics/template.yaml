@@ -13,5 +13,3 @@ spec:
         type: url
         description: Prometheus remote write endpoint (http or https)
         default: "http://prometheus:9090/api/v1/write"
-
----

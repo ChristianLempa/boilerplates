@@ -28,4 +28,3 @@ spec:
         type: int
         description: Main port for Alloy HTTP server
         default: 12345
----

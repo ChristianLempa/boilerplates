@@ -13,6 +13,3 @@ spec:
         type: url
         description: URL for Loki write endpoint (http or https)
         default: "http://loki:3100/loki/api/v1/push"
-
-
----
