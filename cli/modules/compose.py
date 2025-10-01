@@ -69,7 +69,7 @@ spec = OrderedDict(
           "ports_enabled": {
             "description": "Expose ports via 'ports' mapping",
             "type": "bool",
-            "default": False,
+            "default": True,
           }
         },
       },
@@ -83,6 +83,11 @@ spec = OrderedDict(
             "description": "Enable Traefik reverse proxy integration",
             "type": "bool",
             "default": False,
+          },
+          "traefik_network": {
+            "description": "Traefik network name",
+            "type": "str",
+            "default": "traefik",
           },
           "traefik_host": {
             "description": "Domain name for your service",
@@ -202,6 +207,35 @@ spec = OrderedDict(
             "description": "Use SSL encryption",
             "type": "bool",
             "default": False,
+          },
+        },
+      },
+      "authentik": {
+        "title": "Authentik SSO",
+        "prompt": "Configure Authentik SSO integration?",
+        "toggle": "authentik_enabled",
+        "description": "Single Sign-On using Authentik identity provider.",
+        "vars": {
+          "authentik_enabled": {
+            "description": "Enable Authentik SSO integration",
+            "type": "bool",
+            "default": False,
+          },
+          "authentik_url": {
+            "description": "Authentik base URL (e.g., https://auth.example.com)",
+            "type": "str",
+          },
+          "authentik_slug": {
+            "description": "Authentik application slug",
+            "type": "str",
+          },
+          "authentik_client_id": {
+            "description": "OAuth client ID from Authentik provider",
+            "type": "str",
+          },
+          "authentik_client_secret": {
+            "description": "OAuth client secret from Authentik provider",
+            "type": "str",
           },
         },
       },

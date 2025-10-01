@@ -2,14 +2,17 @@
 kind: compose
 metadata:
   name: Grafana Alloy
-  description: |
-    Grafana Alloy is an open telemetry collector distribution that gathers and
-    processes logs, metrics, traces and profiles. It combines features from the
-    OpenTelemetry Collector and Prometheus and provides programmable pipelines
-    and high-performance, vendor-neutral observability.
+  description: >
+    Grafana Alloy is an open telemetry collector distribution that gathers
+    and processes logs, metrics, traces and profiles. It combines features
+    from the OpenTelemetry Collector and Prometheus and provides programmable
+    pipelines and high-performance, vendor-neutral observability.
+
 
     Project: https://grafana.com/docs/alloy/
+
     Source: https://github.com/grafana/alloy
+
     Documentation: https://grafana.com/docs/alloy/latest/
   version: 0.0.1
   author: Christian Lempa

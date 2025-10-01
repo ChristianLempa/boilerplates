@@ -1,21 +1,65 @@
 ---
 kind: compose
 metadata:
-  name: Gitlab
-  description: Docker compose setup for gitlab
+  name: GitLab
+  description: >
+    GitLab is a web-based DevOps lifecycle tool that provides a Git repository
+    manager providing wiki, issue-tracking, and CI/CD pipeline features, using
+    an open-source license, developed by GitLab Inc.
+
+    Project: https://about.gitlab.com/
+
+    Source: https://gitlab.com/gitlab-org/gitlab
+
+    Documentation: https://docs.gitlab.com/
   version: 0.1.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - gitlab
-  - docker
-  - compose
+    - git
+    - devops
+    - ci-cd
 spec:
   general:
     vars:
-      gitlab_version:
+      external_url:
         type: string
-        description: Gitlab version
-        default: latest
-
----
+        description: External URL for GitLab (e.g., https://gitlab.example.com)
+        default: 'https://gitlab.example.com'
+      ssh_port:
+        type: int
+        description: SSH port for Git operations
+        default: 2424
+  ports:
+    vars:
+      ports_enabled:
+        description: Expose HTTP/HTTPS ports (disabled if using Traefik)
+      ports_http:
+        type: int
+        description: HTTP port (disabled if using Traefik)
+        default: 80
+      ports_https:
+        type: int
+        description: HTTPS port (disabled if using Traefik)
+        default: 443
+  registry:
+    description: GitLab Container Registry configuration
+    required: false
+    toggle: registry_enabled
+    vars:
+      registry_enabled:
+        type: bool
+        description: Enable GitLab Container Registry
+        default: false
+      registry_external_url:
+        type: string
+        description: External URL for Container Registry
+        default: 'https://registry.example.com'
+      registry_hostname:
+        type: string
+        description: Hostname for Container Registry (when using Traefik)
+        default: registry.example.com
+      registry_port:
+        type: int
+        description: Internal port for Container Registry
+        default: 5678

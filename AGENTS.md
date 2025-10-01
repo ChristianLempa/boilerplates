@@ -72,20 +72,28 @@ Example `template.yaml`:
 
 ```yaml
 ---
-kind: "compose"
+kind: compose
 metadata:
-  name: "My Nginx Template"
-  description: "A template for a simple Nginx service."
-  version: "0.1.0"
-  author: "Christian Lempa"
-  date: "2024-10-01"
+  name: My Nginx Template
+  description: >
+    A template for a simple Nginx service.
+
+
+    Project: https://...
+
+    Source: https://
+
+    Documentation: https://
+  version: 0.1.0
+  author: Christian Lempa
+  date: '2024-10-01'
 spec:
   general:
     vars:
       nginx_version:
-        type: "string"
-        description: "The Nginx version to use."
-        default: "latest"
+        type: string
+        description: The Nginx version to use.
+        default: latest
 ```
 
 #### Template Files
@@ -167,6 +175,7 @@ The `Variable.origin` attribute is updated to reflect this chain (e.g., `module 
 
 - A section can be made conditional by setting the `toggle` property to the name of a boolean variable within that same section.
 - **Example**: `toggle: "advanced_enabled"`
+- **Validation**: The toggle variable MUST be of type `bool`. This is validated at load-time by `VariableCollection._validate_section_toggle()`.
 - During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
 - If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
 
@@ -194,7 +203,7 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 
 ### Work in Progress
 
-* FIXME We need proper validation to ensure all variable names are unique across all sections
+* FIXME We need proper validation to ensure all variable names are unique across all sections (currently allowed but could cause conflicts)
 * FIXME Insufficient Error Messages for Template Loading
 * FIXME Excessive Generic Exception Catching
 * FIXME No Rollback on Config Write Failures: If writing config fails partway through, the config file can be left in a corrupted state. There's no atomic write operation.
@@ -208,3 +217,40 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 * TODO Template Validation Command: A command to validate the structure and variable definitions of a template without generating it.
 * TODO Interactive Variable Prompt Improvements: The interactive prompt could be improved with better navigation, help text, and validation feedback.
 * TODO Better Error Recovery in Jinja2 Rendering
+
+## Best Practices for Template Development
+
+### Template Structure
+- Always include a main `template.yaml` or `template.yml` file
+- Use descriptive template IDs (directory names) with lowercase and hyphens
+- Use dot notation for sub-templates (e.g., `parent.sub-name`)
+- Place Jinja2 templates in subdirectories when appropriate (e.g., `config/`)
+
+### Variable Definitions
+- Define variables in module specs for common, reusable settings
+- Define variables in template specs for template-specific settings
+- Only override specific fields in templates (don't redefine entire variables)
+- Use descriptive variable names with underscores (e.g., `external_url`, `smtp_port`)
+- Always specify `type` for new variables
+- Provide sensible `default` values when possible
+
+### Jinja2 Templates
+- Use `.j2` extension for all Jinja2 template files
+- Use conditional blocks (`{% if %}`) for optional features
+- Keep template logic simple and readable
+- Use comments to explain complex logic
+- Test with different variable combinations
+
+### Module Specs
+- Define common sections that apply to all templates of that kind
+- Use toggle variables for optional sections
+- Provide comprehensive descriptions for user guidance
+- Group related variables into logical sections
+- Validate toggle variables are boolean type
+
+### Testing Templates
+- Test generation with default values
+- Test with toggle sections enabled and disabled
+- Test with edge cases (empty values, special characters)
+- Verify yamllint compliance for YAML files
+- Check that generated files are syntactically valid

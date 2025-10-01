@@ -1,0 +1,24 @@
+services:
+  gitlab:
+    image: docker.io/gitlab/gitlab-ce:18.3.1-ce.0
+    container_name: gitlab
+    shm_size: '256m'
+    volumes:
+      - ./config/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2424:22"
+    restart: unless-stopped
+
+volumes:
+  gitlab-config:
+    driver: local
+  gitlab-logs:
+    driver: local
+  gitlab-data:
+    driver: local
+

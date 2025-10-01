@@ -44,6 +44,9 @@ class Variable:
     if "name" not in data:
       raise ValueError("Variable data must contain 'name' key")
     
+    # Track which fields were explicitly provided in source data
+    self._explicit_fields: Set[str] = set(data.keys())
+    
     # Initialize fields
     self.name: str = data["name"]
     self.description: Optional[str] = data.get("description") or data.get("display", "")
@@ -359,7 +362,15 @@ class Variable:
     if update:
       data.update(update)
     
-    return Variable(data)
+    # Create new variable
+    cloned = Variable(data)
+    
+    # Preserve explicit fields from original, and add any update keys
+    cloned._explicit_fields = self._explicit_fields.copy()
+    if update:
+      cloned._explicit_fields.update(update.keys())
+    
+    return cloned
   
   # !SECTION
 
@@ -582,6 +593,39 @@ class VariableCollection:
       section.variables[var_name] = variable
       # NOTE: Populate the direct lookup map for efficient access.
       self._variable_map[var_name] = variable
+    
+    # Validate toggle variable after all variables are added
+    self._validate_section_toggle(section)
+    # FIXME: Add more section-level validation here as needed:
+    #   - Validate that variable names don't conflict across sections (currently allowed but could be confusing)
+    #   - Validate that required sections have at least one non-toggle variable
+    #   - Validate that enum variables have non-empty options lists
+    #   - Validate that variable names follow naming conventions (e.g., lowercase_with_underscores)
+    #   - Validate that default values are compatible with their type definitions
+
+  def _validate_section_toggle(self, section: VariableSection) -> None:
+    """Validate that toggle variable exists and is of type bool.
+    
+    Args:
+        section: The section to validate
+        
+    Raises:
+        ValueError: If toggle variable doesn't exist or is not boolean type
+    """
+    if not section.toggle:
+      return
+    
+    toggle_var = section.variables.get(section.toggle)
+    if not toggle_var:
+      raise ValueError(
+        f"Section '{section.key}' has toggle '{section.toggle}' but variable does not exist"
+      )
+    
+    if toggle_var.type != "bool":
+      raise ValueError(
+        f"Section '{section.key}' toggle variable '{section.toggle}' must be type 'bool', "
+        f"but is type '{toggle_var.type}'"
+      )
 
   # -------------------------
   # SECTION: Public API Methods
@@ -796,21 +840,21 @@ class VariableCollection:
         # Variable exists in both - merge with other taking precedence
         self_var = merged_section.variables[var_name]
         
-        # Build update dict with other's values taking precedence
+        # Build update dict with ONLY explicitly provided fields from other
         update = {}
-        if other_var.type:
+        if 'type' in other_var._explicit_fields and other_var.type:
           update['type'] = other_var.type
-        if other_var.value is not None:
+        if ('value' in other_var._explicit_fields or 'default' in other_var._explicit_fields) and other_var.value is not None:
           update['value'] = other_var.value
-        if other_var.description:
+        if 'description' in other_var._explicit_fields and other_var.description:
           update['description'] = other_var.description
-        if other_var.prompt:
+        if 'prompt' in other_var._explicit_fields and other_var.prompt:
           update['prompt'] = other_var.prompt
-        if other_var.options:
+        if 'options' in other_var._explicit_fields and other_var.options:
           update['options'] = other_var.options
-        if other_var.sensitive:
+        if 'sensitive' in other_var._explicit_fields and other_var.sensitive:
           update['sensitive'] = other_var.sensitive
-        if other_var.extra:
+        if 'extra' in other_var._explicit_fields and other_var.extra:
           update['extra'] = other_var.extra
         
         # Update origin tracking (only keep the current source, not the chain)
