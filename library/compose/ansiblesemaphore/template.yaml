@@ -7,15 +7,6 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
-spec:
-  general:
-    vars:
-      volumes_version:
-        type: string
-        description: Volumes version
-        default: latest
-
----
+    - ansible
+    - terraform
+spec: {}

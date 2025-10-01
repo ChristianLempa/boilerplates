@@ -194,5 +194,17 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 
 ### Work in Progress
 
-* TODO Add configuration support to allow users to override module and template spec with their own (e.g. defaults -> compose -> spec -> general ...)
+* FIXME We need proper validation to ensure all variable names are unique across all sections
+* FIXME Insufficient Error Messages for Template Loading
+* FIXME Excessive Generic Exception Catching
+* FIXME No Rollback on Config Write Failures: If writing config fails partway through, the config file can be left in a corrupted state. There's no atomic write operation.
+* FIXME Inconsistent Logging Levels: Some important operations use `DEBUG` when they should use `INFO`, and vice versa.
+* TODO Memory Inefficiency in Template File Collection: The template loads all file paths into memory immediately, even when only metadata is needed (like for `list` command). This is wasteful when listing many templates.
+* TODO Missing Input Validation in ConfigManager
 * TODO Add compose deploy command to deploy a generated compose project to a local or remote docker environment
+* TODO No Caching for Module Specs: Each template loads module specs independently. If listing 50 compose templates, the compose module spec is imported 50 times.
+* TODO Missing Type Hints in Some Functions: While most code has type hints, some functions are missing them, reducing IDE support and static analysis capability.
+* TODO No Dry-Run Mode for Generate Command: A dry-run mode would allow users to see what files would be generated without actually writing them to disk.
+* TODO Template Validation Command: A command to validate the structure and variable definitions of a template without generating it.
+* TODO Interactive Variable Prompt Improvements: The interactive prompt could be improved with better navigation, help text, and validation feedback.
+* TODO Better Error Recovery in Jinja2 Rendering

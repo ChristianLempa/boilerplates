@@ -163,6 +163,20 @@ class Module(ABC):
       console.print(f"[red]Template '{id}' not found in module '{self.name}'[/red]")
       return
     
+    # Apply config defaults (same as in generate)
+    # This ensures the display shows the actual defaults that will be used
+    if template.variables:
+      from .config import ConfigManager
+      config = ConfigManager()
+      config_defaults = config.get_defaults(self.name)
+      
+      if config_defaults:
+        logger.debug(f"Loading config defaults for module '{self.name}'")
+        # Apply config defaults (this respects the variable types and validation)
+        successful = template.variables.apply_defaults(config_defaults, "config")
+        if successful:
+          logger.debug(f"Applied config defaults for: {', '.join(successful)}")
+    
     self._display_template_details(template, id)
 
   def generate(
@@ -173,17 +187,39 @@ class Module(ABC):
     var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Use KEY=VALUE or --var KEY VALUE"),
     ctx: Context = None,
   ) -> None:
-    """Generate from template."""
+    """Generate from template.
+    
+    Variable precedence chain (lowest to highest):
+    1. Module spec (defined in cli/modules/*.py)
+    2. Template spec (from template.yaml)
+    3. Config defaults (from ~/.config/boilerplates/config.yaml)
+    4. CLI overrides (--var flags)
+    """
 
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
     template = self._load_template_by_id(id)
 
+    # Apply config defaults (precedence: config > template > module)
+    # Config only sets VALUES, not the spec structure
+    if template.variables:
+      from .config import ConfigManager
+      config = ConfigManager()
+      config_defaults = config.get_defaults(self.name)
+      
+      if config_defaults:
+        logger.info(f"Loading config defaults for module '{self.name}'")
+        # Apply config defaults (this respects the variable types and validation)
+        successful = template.variables.apply_defaults(config_defaults, "config")
+        if successful:
+          logger.debug(f"Applied config defaults for: {', '.join(successful)}")
+    
+    # Apply CLI overrides (highest precedence)
     extra_args = list(ctx.args) if ctx and hasattr(ctx, "args") else []
     cli_overrides = parse_var_inputs(var or [], extra_args)
     if cli_overrides:
       logger.info(f"Received {len(cli_overrides)} variable overrides from CLI")
       if template.variables:
-        successful_overrides = template.variables.apply_overrides(cli_overrides, " -> cli")
+        successful_overrides = template.variables.apply_defaults(cli_overrides, "cli")
         if successful_overrides:
           logger.debug(f"Applied CLI overrides for: {', '.join(successful_overrides)}")
 
@@ -245,6 +281,139 @@ class Module(ABC):
       # Stop execution without letting Typer/Click print the exception again.
       raise Exit(code=1)
 
+  # --------------------------
+  # SECTION: Config Commands
+  # --------------------------
+
+  def config_get(
+    self,
+    var_name: Optional[str] = Argument(None, help="Variable name to get (omit to show all defaults)"),
+  ) -> None:
+    """Get config default value(s) for this module.
+    
+    Examples:
+        # Get all defaults for module
+        cli compose config get
+        
+        # Get specific variable default
+        cli compose config get service_name
+    """
+    from .config import ConfigManager
+    config = ConfigManager()
+    
+    if var_name:
+      # Get specific variable default
+      value = config.get_default_value(self.name, var_name)
+      if value is not None:
+        console.print(f"[green]{var_name}[/green] = [yellow]{value}[/yellow]")
+      else:
+        console.print(f"[red]No default set for variable '{var_name}' in module '{self.name}'[/red]")
+    else:
+      # Show all defaults (flat list)
+      defaults = config.get_defaults(self.name)
+      if defaults:
+        console.print(f"[bold]Config defaults for module '{self.name}':[/bold]\n")
+        for var_name, var_value in defaults.items():
+          console.print(f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]")
+      else:
+        console.print(f"[yellow]No defaults configured for module '{self.name}'[/yellow]")
+
+  def config_set(
+    self,
+    var_name: str = Argument(..., help="Variable name to set default for"),
+    value: str = Argument(..., help="Default value"),
+  ) -> None:
+    """Set a default value for a variable in config.
+    
+    This only sets the DEFAULT VALUE, not the variable spec.
+    The variable must be defined in the module or template spec.
+    
+    Examples:
+        # Set default value
+        cli compose config set service_name my-awesome-app
+        
+        # Set author for all compose templates
+        cli compose config set author "Christian Lempa"
+    """
+    from .config import ConfigManager
+    config = ConfigManager()
+    
+    # Set the default value
+    config.set_default_value(self.name, var_name, value)
+    console.print(f"[green]✓ Set default:[/green] [cyan]{var_name}[/cyan] = [yellow]{value}[/yellow]")
+    console.print(f"\n[dim]This will be used as the default value when generating templates with this module.[/dim]")
+
+  def config_remove(
+    self,
+    var_name: str = Argument(..., help="Variable name to remove"),
+  ) -> None:
+    """Remove a specific default variable value.
+    
+    Examples:
+        # Remove a default value
+        cli compose config remove service_name
+    """
+    from .config import ConfigManager
+    config = ConfigManager()
+    defaults = config.get_defaults(self.name)
+    
+    if not defaults:
+      console.print(f"[yellow]No defaults configured for module '{self.name}'[/yellow]")
+      return
+    
+    if var_name in defaults:
+      del defaults[var_name]
+      config.set_defaults(self.name, defaults)
+      console.print(f"[green]✓ Removed default for '{var_name}'[/green]")
+    else:
+      console.print(f"[red]No default found for variable '{var_name}'[/red]")
+
+  def config_clear(
+    self,
+    var_name: Optional[str] = Argument(None, help="Variable name to clear (omit to clear all defaults)"),
+    force: bool = Option(False, "--force", "-f", help="Skip confirmation prompt"),
+  ) -> None:
+    """Clear config default value(s) for this module.
+    
+    Examples:
+        # Clear specific variable default
+        cli compose config clear service_name
+        
+        # Clear all defaults for module
+        cli compose config clear --force
+    """
+    from .config import ConfigManager
+    config = ConfigManager()
+    defaults = config.get_defaults(self.name)
+    
+    if not defaults:
+      console.print(f"[yellow]No defaults configured for module '{self.name}'[/yellow]")
+      return
+    
+    if var_name:
+      # Clear specific variable
+      if var_name in defaults:
+        del defaults[var_name]
+        config.set_defaults(self.name, defaults)
+        console.print(f"[green]✓ Cleared default for '{var_name}'[/green]")
+      else:
+        console.print(f"[red]No default found for variable '{var_name}'[/red]")
+    else:
+      # Clear all defaults
+      if not force:
+        console.print(f"[bold yellow]⚠️  Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
+        console.print()
+        # Show what will be cleared
+        for var_name, var_value in defaults.items():
+          console.print(f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]")
+        console.print()
+        if not Confirm.ask(f"[bold red]Are you sure?[/bold red]", default=False):
+          console.print("[green]Operation cancelled.[/green]")
+          return
+      
+      config.clear_defaults(self.name)
+      console.print(f"[green]✓ Cleared all defaults for module '{self.name}'[/green]")
+
   # !SECTION
 
   # ------------------------------
@@ -268,6 +437,14 @@ class Module(ABC):
       "generate", 
       context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
     )(module_instance.generate)
+    
+    # Add config commands (simplified - only manage default values)
+    config_app = Typer(help="Manage default values for template variables")
+    config_app.command("get", help="Get default value(s)")(module_instance.config_get)
+    config_app.command("set", help="Set a default value")(module_instance.config_set)
+    config_app.command("remove", help="Remove a specific default value")(module_instance.config_remove)
+    config_app.command("clear", help="Clear default value(s)")(module_instance.config_clear)
+    module_app.add_typer(config_app, name="config")
     
     app.add_typer(module_app, name=cls.name, help=cls.description)
     logger.info(f"Module '{cls.name}' CLI commands registered")

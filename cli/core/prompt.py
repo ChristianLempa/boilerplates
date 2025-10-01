@@ -65,8 +65,8 @@ class PromptHandler:
             collected[toggle_var.name] = new_value
             toggle_var.value = new_value
           
-          # Skip remaining variables in section if disabled
-          if not new_value:
+          # Use section's native is_enabled() method
+          if not section.is_enabled():
             continue
 
       # Collect variables in this section
@@ -95,15 +95,10 @@ class PromptHandler:
   def _prompt_variable(self, variable: Variable, required: bool = False) -> Any:
     """Prompt for a single variable value based on its type."""
     logger.debug(f"Prompting for variable '{variable.name}' (type: {variable.type})")
-    prompt_text = variable.prompt or variable.description or variable.name
-
-    # Normalize default value once and reuse. This centralizes handling for
-    # enums, bools, ints and strings and avoids duplicated fallback logic.
-    default_value = self._normalize_default(variable)
-
-    # Friendly hint for common semantic types — only show if a default exists
-    if default_value is not None and variable.type in ["hostname", "email", "url"]:
-      prompt_text += f" ({variable.type})"
+    
+    # Use variable's native methods for prompt text and default value
+    prompt_text = variable.get_prompt_text()
+    default_value = variable.get_normalized_default()
 
     # If variable is required and there's no default, mark it in the prompt
     if required and default_value is None:
@@ -111,11 +106,10 @@ class PromptHandler:
 
     handler = self._get_prompt_handler(variable)
 
-    # Attach the optional 'extra' explanation inline (dimmed) so it appears
-    # after the main question rather than before it.
-    if getattr(variable, 'extra', None):
-      # Put the extra hint inline (same line) instead of on the next line.
-      prompt_text = f"{prompt_text} [dim]{variable.extra}[/dim]"
+    # Add validation hint (includes both extra text and enum options)
+    hint = variable.get_validation_hint()
+    if hint:
+      prompt_text = f"{prompt_text} [dim]{hint}[/dim]"
 
     while True:
       try:
@@ -137,46 +131,6 @@ class PromptHandler:
         logger.error(f"Error prompting for variable '{variable.name}': {str(e)}")
         default_value = variable.value
         handler = self._get_prompt_handler(variable)
-
-  def _normalize_default(self, variable: Variable) -> Any:
-    """Return a normalized default suitable for prompt handlers.
-
-    Tries to use the typed value if available, otherwise falls back to the raw
-    stored value. For enums, ensures the default is one of the options.
-    """
-    try:
-      typed = variable.get_typed_value()
-    except Exception:
-      typed = variable.value
-
-    # Special-case enums: ensure default is valid
-    if variable.type == "enum":
-      options = variable.options or []
-      if not options:
-        return typed
-      # If typed is falsy or not in options, pick first option as fallback
-      if typed is None or str(typed) not in options:
-        return options[0]
-      return str(typed)
-
-    # For booleans and ints return as-is (handlers will accept these types)
-    if variable.type == "bool":
-      if isinstance(typed, bool):
-        return typed
-      if typed is None:
-        return None
-      return bool(typed)
-
-    if variable.type == "int":
-      try:
-        return int(typed) if typed is not None and typed != "" else None
-      except Exception:
-        return None
-
-    # Default: return string or None
-    if typed is None:
-      return None
-    return str(typed)
 
   def _get_prompt_handler(self, variable: Variable) -> Callable:
     """Return the prompt function for a variable type."""
@@ -221,20 +175,13 @@ class PromptHandler:
     return IntPrompt.ask(prompt_text, default=default_int)
 
   def _prompt_enum(self, prompt_text: str, options: list[str], default: Any = None, extra: str | None = None) -> str:
-    """Prompt for enum selection with validation. """
+    """Prompt for enum selection with validation.
+    
+    Note: prompt_text should already include hint from variable.get_validation_hint()
+    but we keep this for backward compatibility and fallback.
+    """
     if not options:
       return self._prompt_string(prompt_text, default)
-
-    # Build a single inline hint that contains both the options and any extra
-    # explanation, rendered dimmed and appended to the prompt on one line.
-    hint_parts: list[str] = []
-    hint_parts.append(f"Options: {', '.join(options)}")
-    if extra:
-      hint_parts.append(extra)
-
-    # Show options and extra inline (same line) in a single dimmed block.
-    options_text = f" [dim]{' — '.join(hint_parts)}[/dim]"
-    prompt_text_with_options = prompt_text + options_text
 
     # Validate default is in options
     if default and str(default) not in options:
@@ -242,7 +189,7 @@ class PromptHandler:
 
     while True:
       value = Prompt.ask(
-        prompt_text_with_options,
+        prompt_text,
         default=str(default) if default else options[0],
         show_default=True,
       )

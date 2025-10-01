@@ -149,11 +149,8 @@ class DisplayManager:
                 variables_table.add_row("", "", "", "", "", style="dim")
             first_section = False
 
-            is_dimmed = False
-            if section.toggle:
-                toggle_var = section.variables.get(section.toggle)
-                if toggle_var and not toggle_var.get_typed_value():
-                    is_dimmed = True
+            # Use section's native is_enabled() method
+            is_dimmed = not section.is_enabled()
 
             disabled_text = " (disabled)" if is_dimmed else ""
             required_text = " [yellow](required)[/yellow]" if section.required else ""
@@ -162,11 +159,8 @@ class DisplayManager:
 
             for var_name, variable in section.variables.items():
                 row_style = "dim" if is_dimmed else None
-                default_val = str(variable.value) if variable.value is not None else ""
-                if variable.sensitive:
-                    default_val = "********"
-                elif len(default_val) > 30:
-                    default_val = default_val[:27] + "..."
+                # Use variable's native get_display_value() method
+                default_val = variable.get_display_value(mask_sensitive=True, max_length=30)
 
                 variables_table.add_row(
                     f"  {var_name}",
@@ -178,3 +172,69 @@ class DisplayManager:
                 )
 
         console.print(variables_table)
+
+    def display_config_tree(self, spec: dict, module_name: str, show_all: bool = False) -> None:
+        """Display configuration spec as a tree view.
+        
+        Args:
+            spec: The configuration spec dictionary
+            module_name: Name of the module
+            show_all: If True, show all details including descriptions
+        """
+        if not spec:
+            console.print(f"[yellow]No configuration found for module '{module_name}'[/yellow]")
+            return
+
+        # Create root tree node
+        tree = Tree(f"[bold blue]\ue5fc {str.capitalize(module_name)} Configuration[/bold blue]")
+
+        for section_name, section_data in spec.items():
+            if not isinstance(section_data, dict):
+                continue
+
+            # Determine if this is a section with variables
+            # Guard against None from empty YAML sections
+            section_vars = section_data.get("vars") or {}
+            section_desc = section_data.get("description", "")
+            section_required = section_data.get("required", False)
+            section_toggle = section_data.get("toggle", None)
+
+            # Build section label
+            section_label = f"[cyan]{section_name}[/cyan]"
+            if section_required:
+                section_label += " [yellow](required)[/yellow]"
+            if section_toggle:
+                section_label += f" [dim](toggle: {section_toggle})[/dim]"
+            
+            if show_all and section_desc:
+                section_label += f"\n  [dim]{section_desc}[/dim]"
+
+            section_node = tree.add(section_label)
+
+            # Add variables
+            if section_vars:
+                for var_name, var_data in section_vars.items():
+                    if isinstance(var_data, dict):
+                        var_type = var_data.get("type", "string")
+                        var_default = var_data.get("default", "")
+                        var_desc = var_data.get("description", "")
+                        var_sensitive = var_data.get("sensitive", False)
+
+                        # Build variable label
+                        var_label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
+                        
+                        if var_default is not None and var_default != "":
+                            display_val = "********" if var_sensitive else str(var_default)
+                            if not var_sensitive and len(display_val) > 30:
+                                display_val = display_val[:27] + "..."
+                            var_label += f" = [yellow]{display_val}[/yellow]"
+                        
+                        if show_all and var_desc:
+                            var_label += f"\n    [dim]{var_desc}[/dim]"
+                        
+                        section_node.add(var_label)
+                    else:
+                        # Simple key-value pair
+                        section_node.add(f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]")
+
+        console.print(tree)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 from urllib.parse import urlparse
 import logging
 import re
@@ -192,7 +192,175 @@ class Variable:
   def get_typed_value(self) -> Any:
     """Return the stored value converted to the appropriate Python type."""
     return self.convert(self.value)
-
+  
+  def to_dict(self) -> Dict[str, Any]:
+    """Serialize Variable to a dictionary for storage.
+    
+    Returns:
+        Dictionary representation of the variable with only relevant fields.
+    """
+    var_dict = {}
+    
+    if self.type:
+      var_dict["type"] = self.type
+    
+    if self.value is not None:
+      var_dict["default"] = self.value
+    
+    if self.description:
+      var_dict["description"] = self.description
+    
+    if self.prompt:
+      var_dict["prompt"] = self.prompt
+    
+    if self.sensitive:
+      var_dict["sensitive"] = self.sensitive
+    
+    if self.extra:
+      var_dict["extra"] = self.extra
+    
+    if self.options:
+      var_dict["options"] = self.options
+    
+    if self.origin:
+      var_dict["origin"] = self.origin
+    
+    return var_dict
+  
+  # -------------------------
+  # SECTION: Display Methods
+  # -------------------------
+  
+  def get_display_value(self, mask_sensitive: bool = True, max_length: int = 30) -> str:
+    """Get formatted display value with optional masking and truncation.
+    
+    Args:
+        mask_sensitive: If True, mask sensitive values with asterisks
+        max_length: Maximum length before truncation (0 = no limit)
+        
+    Returns:
+        Formatted string representation of the value
+    """
+    if self.value is None:
+      return ""
+    
+    # Mask sensitive values
+    if self.sensitive and mask_sensitive:
+      return "********"
+    
+    # Convert to string
+    display = str(self.value)
+    
+    # Truncate if needed
+    if max_length > 0 and len(display) > max_length:
+      return display[:max_length - 3] + "..."
+    
+    return display
+  
+  def get_normalized_default(self) -> Any:
+    """Get normalized default value suitable for prompts and display.
+    
+    Handles type conversion and provides sensible defaults for different types.
+    Especially useful for enum, bool, and int types in interactive prompts.
+    
+    Returns:
+        Normalized default value appropriate for the variable type
+    """
+    try:
+      typed = self.get_typed_value()
+    except Exception:
+      typed = self.value
+    
+    # Enum: ensure default is valid option
+    if self.type == "enum":
+      if not self.options:
+        return typed
+      # If typed is invalid or missing, use first option
+      if typed is None or str(typed) not in self.options:
+        return self.options[0]
+      return str(typed)
+    
+    # Boolean: return as bool type
+    if self.type == "bool":
+      if isinstance(typed, bool):
+        return typed
+      return None if typed is None else bool(typed)
+    
+    # Integer: return as int type
+    if self.type == "int":
+      try:
+        return int(typed) if typed is not None and typed != "" else None
+      except Exception:
+        return None
+    
+    # Default: return string or None
+    return None if typed is None else str(typed)
+  
+  def get_prompt_text(self) -> str:
+    """Get formatted prompt text for interactive input.
+    
+    Returns:
+        Prompt text with optional type hints and descriptions
+    """
+    prompt_text = self.prompt or self.description or self.name
+    
+    # Add type hint for semantic types if there's a default
+    if self.value is not None and self.type in ["hostname", "email", "url"]:
+      prompt_text += f" ({self.type})"
+    
+    return prompt_text
+  
+  def get_validation_hint(self) -> Optional[str]:
+    """Get validation hint for prompts (e.g., enum options).
+    
+    Returns:
+        Formatted hint string or None if no hint needed
+    """
+    hints = []
+    
+    # Add enum options
+    if self.type == "enum" and self.options:
+      hints.append(f"Options: {', '.join(self.options)}")
+    
+    # Add extra help text
+    if self.extra:
+      hints.append(self.extra)
+    
+    return " — ".join(hints) if hints else None
+  
+  def clone(self, update: Optional[Dict[str, Any]] = None) -> 'Variable':
+    """Create a deep copy of the variable with optional field updates.
+    
+    This is more efficient than converting to dict and back when copying variables.
+    
+    Args:
+        update: Optional dictionary of field updates to apply to the clone
+        
+    Returns:
+        New Variable instance with copied data
+        
+    Example:
+        var2 = var1.clone(update={'origin': 'template'})
+    """
+    data = {
+      'name': self.name,
+      'type': self.type,
+      'value': self.value,
+      'description': self.description,
+      'prompt': self.prompt,
+      'options': self.options.copy() if self.options else None,
+      'section': self.section,
+      'origin': self.origin,
+      'sensitive': self.sensitive,
+      'extra': self.extra,
+    }
+    
+    # Apply updates if provided
+    if update:
+      data.update(update)
+    
+    return Variable(data)
+  
   # !SECTION
 
 # !SECTION
@@ -230,6 +398,111 @@ class VariableSection:
 
   def variable_names(self) -> list[str]:
     return list(self.variables.keys())
+  
+  def to_dict(self) -> Dict[str, Any]:
+    """Serialize VariableSection to a dictionary for storage.
+    
+    Returns:
+        Dictionary representation of the section with all metadata and variables.
+    """
+    section_dict = {}
+    
+    if self.title:
+      section_dict["title"] = self.title
+    
+    if self.description:
+      section_dict["description"] = self.description
+    
+    if self.prompt:
+      section_dict["prompt"] = self.prompt
+    
+    if self.toggle:
+      section_dict["toggle"] = self.toggle
+    
+    # Always store required flag
+    section_dict["required"] = self.required
+    
+    # Serialize all variables using their own to_dict method
+    section_dict["vars"] = {}
+    for var_name, variable in self.variables.items():
+      section_dict["vars"][var_name] = variable.to_dict()
+    
+    return section_dict
+  
+  # -------------------------
+  # SECTION: State Methods
+  # -------------------------
+  
+  def is_enabled(self) -> bool:
+    """Check if section is currently enabled based on toggle variable.
+    
+    Returns:
+        True if section is enabled (no toggle or toggle is True), False otherwise
+    """
+    if not self.toggle:
+      return True
+    
+    toggle_var = self.variables.get(self.toggle)
+    if not toggle_var:
+      return True
+    
+    try:
+      return bool(toggle_var.get_typed_value())
+    except Exception:
+      return False
+  
+  def get_toggle_value(self) -> Optional[bool]:
+    """Get the current value of the toggle variable.
+    
+    Returns:
+        Boolean value of toggle variable, or None if no toggle exists
+    """
+    if not self.toggle:
+      return None
+    
+    toggle_var = self.variables.get(self.toggle)
+    if not toggle_var:
+      return None
+    
+    try:
+      return bool(toggle_var.get_typed_value())
+    except Exception:
+      return None
+  
+  def clone(self, origin_update: Optional[str] = None) -> 'VariableSection':
+    """Create a deep copy of the section with all variables.
+    
+    This is more efficient than converting to dict and back when copying sections.
+    
+    Args:
+        origin_update: Optional origin string to apply to all cloned variables
+        
+    Returns:
+        New VariableSection instance with deep-copied variables
+        
+    Example:
+        section2 = section1.clone(origin_update='template')
+    """
+    # Create new section with same metadata
+    cloned = VariableSection({
+      'key': self.key,
+      'title': self.title,
+      'prompt': self.prompt,
+      'description': self.description,
+      'toggle': self.toggle,
+      'required': self.required,
+    })
+    
+    # Deep copy all variables
+    for var_name, variable in self.variables.items():
+      if origin_update:
+        cloned.variables[var_name] = variable.clone(update={'origin': origin_update})
+      else:
+        cloned.variables[var_name] = variable.clone()
+    
+    return cloned
+  
+  # !SECTION
 
 # !SECTION
 
@@ -280,7 +553,9 @@ class VariableCollection:
         continue
       
       section = self._create_section(section_key, section_data)
-      self._initialize_variables(section, section_data.get("vars", {}))
+      # Guard against None from empty YAML sections (vars: with no content)
+      vars_data = section_data.get("vars") or {}
+      self._initialize_variables(section, vars_data)
       self._sections[section_key] = section
 
   def _create_section(self, key: str, data: dict[str, Any]) -> VariableSection:
@@ -297,6 +572,10 @@ class VariableCollection:
 
   def _initialize_variables(self, section: VariableSection, vars_data: dict[str, Any]) -> None:
     """Initialize variables for a section."""
+    # Guard against None from empty YAML sections
+    if vars_data is None:
+      vars_data = {}
+    
     for var_name, var_data in vars_data.items():
       var_init_data = {"name": var_name, **var_data}
       variable = Variable(var_init_data)
@@ -342,15 +621,23 @@ class VariableCollection:
   # NOTE: These helper methods reduce code duplication across module.py and prompt.py
   # by centralizing common variable collection operations
 
-  def apply_overrides(self, overrides: dict[str, Any], origin_suffix: str = " -> cli") -> list[str]:
-    """Apply multiple variable overrides at once."""
+  def apply_defaults(self, defaults: dict[str, Any], origin: str = "cli") -> list[str]:
+    """Apply default values to variables, updating their origin.
+    
+    Args:
+        defaults: Dictionary mapping variable names to their default values
+        origin: Source of these defaults (e.g., 'config', 'cli')
+        
+    Returns:
+        List of variable names that were successfully updated
+    """
     # NOTE: This method uses the _variable_map for a significant performance gain,
     # as it allows direct O(1) lookup of variables instead of iterating
     # through all sections to find a match.
-    successful_overrides = []
+    successful = []
     errors = []
     
-    for var_name, value in overrides.items():
+    for var_name, value in defaults.items():
       try:
         variable = self._variable_map.get(var_name)
         if not variable:
@@ -361,21 +648,20 @@ class VariableCollection:
         converted_value = variable.convert(value)
         variable.value = converted_value
         
-        # Update origin to show override
-        if variable.origin:
-          variable.origin = variable.origin + origin_suffix
-        else:
-          variable.origin = origin_suffix.lstrip(" -> ")
+        # Set origin to the current source (not a chain)
+        variable.origin = origin
         
-        successful_overrides.append(var_name)
+        successful.append(var_name)
           
       except ValueError as e:
-        error_msg = f"Invalid override value for '{var_name}': {value} - {e}"
+        error_msg = f"Invalid value for '{var_name}': {value} - {e}"
         errors.append(error_msg)
         logger.error(error_msg)
     
     if errors:
-      logger.warning(f"Some CLI overrides failed: {'; '.join(errors)}")
+      logger.warning(f"Some defaults failed to apply: {'; '.join(errors)}")
+    
+    return successful
   
   def validate_all(self) -> None:
     """Validate all variables in the collection, skipping disabled sections."""
@@ -411,6 +697,197 @@ class VariableCollection:
       error_msg = "Variable validation failed: " + ", ".join(errors)
       logger.error(error_msg)
       raise ValueError(error_msg)
+
+  def merge(self, other_spec: Union[Dict[str, Any], 'VariableCollection'], origin: str = "override") -> 'VariableCollection':
+    """Merge another spec or VariableCollection into this one with precedence tracking.
+    
+    OPTIMIZED: Works directly on objects without dict conversions for better performance.
+    
+    The other spec/collection has higher precedence and will override values in self.
+    Creates a new VariableCollection with merged data.
+    
+    Args:
+        other_spec: Either a spec dictionary or another VariableCollection to merge
+        origin: Origin label for variables from other_spec (e.g., 'template', 'config')
+        
+    Returns:
+        New VariableCollection with merged data
+        
+    Example:
+        module_vars = VariableCollection(module_spec)
+        template_vars = module_vars.merge(template_spec, origin='template')
+        # Variables from template_spec override module_spec
+        # Origins tracked: 'module' or 'module -> template'
+    """
+    # Convert dict to VariableCollection if needed (only once)
+    if isinstance(other_spec, dict):
+      other = VariableCollection(other_spec)
+    else:
+      other = other_spec
+    
+    # Create new collection without calling __init__ (optimization)
+    merged = VariableCollection.__new__(VariableCollection)
+    merged._sections = {}
+    merged._variable_map = {}
+    
+    # First pass: clone sections from self
+    for section_key, self_section in self._sections.items():
+      if section_key in other._sections:
+        # Section exists in both - will merge
+        merged._sections[section_key] = self._merge_sections(
+          self_section, 
+          other._sections[section_key], 
+          origin
+        )
+      else:
+        # Section only in self - clone it
+        merged._sections[section_key] = self_section.clone()
+    
+    # Second pass: add sections that only exist in other
+    for section_key, other_section in other._sections.items():
+      if section_key not in merged._sections:
+        # New section from other - clone with origin update
+        merged._sections[section_key] = other_section.clone(origin_update=origin)
+    
+    # Rebuild variable map for O(1) lookups
+    for section in merged._sections.values():
+      for var_name, variable in section.variables.items():
+        merged._variable_map[var_name] = variable
+    
+    return merged
+  
+  def _infer_origin_from_context(self) -> str:
+    """Infer origin from existing variables (fallback)."""
+    for section in self._sections.values():
+      for variable in section.variables.values():
+        if variable.origin:
+          return variable.origin
+    return "template"
+  
+  def _merge_sections(self, self_section: VariableSection, other_section: VariableSection, origin: str) -> VariableSection:
+    """Merge two sections, with other_section taking precedence.
+    
+    Args:
+        self_section: Base section
+        other_section: Section to merge in (takes precedence)
+        origin: Origin label for merged variables
+        
+    Returns:
+        New merged VariableSection
+    """
+    # Start with a clone of self_section
+    merged_section = self_section.clone()
+    
+    # Update section metadata from other (other takes precedence)
+    if other_section.title:
+      merged_section.title = other_section.title
+    if other_section.prompt:
+      merged_section.prompt = other_section.prompt
+    if other_section.description:
+      merged_section.description = other_section.description
+    if other_section.toggle:
+      merged_section.toggle = other_section.toggle
+    # Required flag always updated
+    merged_section.required = other_section.required
+    
+    # Merge variables
+    for var_name, other_var in other_section.variables.items():
+      if var_name in merged_section.variables:
+        # Variable exists in both - merge with other taking precedence
+        self_var = merged_section.variables[var_name]
+        
+        # Build update dict with other's values taking precedence
+        update = {}
+        if other_var.type:
+          update['type'] = other_var.type
+        if other_var.value is not None:
+          update['value'] = other_var.value
+        if other_var.description:
+          update['description'] = other_var.description
+        if other_var.prompt:
+          update['prompt'] = other_var.prompt
+        if other_var.options:
+          update['options'] = other_var.options
+        if other_var.sensitive:
+          update['sensitive'] = other_var.sensitive
+        if other_var.extra:
+          update['extra'] = other_var.extra
+        
+        # Update origin tracking (only keep the current source, not the chain)
+        update['origin'] = origin
+        
+        # Clone with updates
+        merged_section.variables[var_name] = self_var.clone(update=update)
+      else:
+        # New variable from other - clone with origin
+        merged_section.variables[var_name] = other_var.clone(update={'origin': origin})
+    
+    return merged_section
+  
+  def filter_to_used(self, used_variables: Set[str], keep_sensitive: bool = True) -> 'VariableCollection':
+    """Filter collection to only variables that are used (or sensitive).
+    
+    OPTIMIZED: Works directly on objects without dict conversions for better performance.
+    
+    Creates a new VariableCollection containing only the variables in used_variables.
+    Sections with no remaining variables are removed.
+    
+    Args:
+        used_variables: Set of variable names that are actually used
+        keep_sensitive: If True, also keep sensitive variables even if not in used set
+        
+    Returns:
+        New VariableCollection with filtered variables
+        
+    Example:
+        all_vars = VariableCollection(spec)
+        used_vars = all_vars.filter_to_used({'var1', 'var2', 'var3'})
+        # Only var1, var2, var3 (and any sensitive vars) remain
+    """
+    # Create new collection without calling __init__ (optimization)
+    filtered = VariableCollection.__new__(VariableCollection)
+    filtered._sections = {}
+    filtered._variable_map = {}
+    
+    # Filter each section
+    for section_key, section in self._sections.items():
+      # Create a new section with same metadata
+      filtered_section = VariableSection({
+        'key': section.key,
+        'title': section.title,
+        'prompt': section.prompt,
+        'description': section.description,
+        'toggle': section.toggle,
+        'required': section.required,
+      })
+      
+      # Clone only the variables that should be included
+      for var_name, variable in section.variables.items():
+        # Include if used OR if sensitive (and keep_sensitive is True)
+        should_include = (
+          var_name in used_variables or 
+          (keep_sensitive and variable.sensitive)
+        )
+        
+        if should_include:
+          filtered_section.variables[var_name] = variable.clone()
+      
+      # Only add section if it has variables
+      if filtered_section.variables:
+        filtered._sections[section_key] = filtered_section
+        # Add variables to map
+        for var_name, variable in filtered_section.variables.items():
+          filtered._variable_map[var_name] = variable
+    
+    return filtered
+  
+  def get_all_variable_names(self) -> Set[str]:
+    """Get set of all variable names across all sections.
+    
+    Returns:
+        Set of all variable names
+    """
+    return set(self._variable_map.keys())
 
   # !SECTION
 

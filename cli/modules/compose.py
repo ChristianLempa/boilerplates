@@ -138,12 +138,6 @@ spec = OrderedDict(
             "type": "bool",
             "default": False,
           },
-          "database_type": {
-            "description": "Database type",
-            "type": "enum",
-            "options": ["postgres", "mysql", "mariadb", "sqlite"],
-            "default": "postgres",
-          },
           "database_host": {
             "description": "Database host",
             "type": "str",
@@ -151,8 +145,7 @@ spec = OrderedDict(
           },
           "database_port": {
             "description": "Database port",
-            "type": "int",
-            "default": 5432,
+            "type": "int"
           },
           "database_name": {
             "description": "Database name",

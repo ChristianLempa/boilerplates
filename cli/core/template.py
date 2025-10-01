@@ -6,10 +6,10 @@ from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field
 import logging
 import os
+import yaml
 from jinja2 import Environment, FileSystemLoader, meta
 from jinja2 import nodes
 from jinja2.visitor import NodeVisitor
-import frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +44,18 @@ class TemplateMetadata:
   # files: List[str] = field(default_factory=list) # No longer needed, as TemplateFile handles this
   library: str = "unknown"
 
-  def __init__(self, post: frontmatter.Post, library_name: str | None = None) -> None:
-    """Initialize TemplateMetadata from frontmatter post."""
+  def __init__(self, template_data: dict, library_name: str | None = None) -> None:
+    """Initialize TemplateMetadata from parsed YAML template data.
+    
+    Args:
+        template_data: Parsed YAML data from template.yaml
+        library_name: Name of the library this template belongs to
+    """
     # Validate metadata format first
-    self._validate_metadata(post)
+    self._validate_metadata(template_data)
     
     # Extract metadata section
-    metadata_section = post.metadata.get("metadata", {})
+    metadata_section = template_data.get("metadata", {})
     
     self.name = metadata_section.get("name", "")
     # YAML block scalar (|) preserves a trailing newline. Remove only trailing newlines
@@ -70,9 +75,16 @@ class TemplateMetadata:
     self.library = library_name or "unknown"
 
   @staticmethod
-  def _validate_metadata(post: frontmatter.Post) -> None:
-    """Validate that template has required 'metadata' section with all required fields."""
-    metadata_section = post.metadata.get("metadata")
+  def _validate_metadata(template_data: dict) -> None:
+    """Validate that template has required 'metadata' section with all required fields.
+    
+    Args:
+        template_data: Parsed YAML data from template.yaml
+        
+    Raises:
+        ValueError: If metadata section is missing or incomplete
+    """
+    metadata_section = template_data.get("metadata")
     if metadata_section is None:
       raise ValueError("Template format error: missing 'metadata' section")
     
@@ -112,14 +124,30 @@ class Template:
       # Find and parse the main template file (template.yaml or template.yml)
       main_template_path = self._find_main_template_file()
       with open(main_template_path, "r", encoding="utf-8") as f:
-        self._post = frontmatter.load(f) # Store post for later access to spec
+        # Load all YAML documents (handles templates with empty lines before ---)
+        documents = list(yaml.safe_load_all(f))
+        
+        # Filter out None/empty documents and get the first non-empty one
+        valid_docs = [doc for doc in documents if doc is not None]
+        
+        if not valid_docs:
+          raise ValueError("Template file contains no valid YAML data")
+        
+        if len(valid_docs) > 1:
+          logger.warning(f"Template file contains multiple YAML documents, using the first one")
+        
+        self._template_data = valid_docs[0]
+      
+      # Validate template data
+      if not isinstance(self._template_data, dict):
+        raise ValueError("Template file must contain a valid YAML dictionary")
 
       # Load metadata (always needed)
-      self.metadata = TemplateMetadata(self._post, library_name)
+      self.metadata = TemplateMetadata(self._template_data, library_name)
       logger.debug(f"Loaded metadata: {self.metadata}")
 
       # Validate 'kind' field (always needed)
-      self._validate_kind(self._post)
+      self._validate_kind(self._template_data)
 
       # Collect file paths (relatively lightweight, needed for various lazy loads)
       # This will now populate self.template_files
@@ -154,45 +182,32 @@ class Template:
       raise ValueError(f"Error loading module specifications for kind '{kind}': {e}")
 
   def _merge_specs(self, module_specs: dict, template_specs: dict) -> dict:
-    """Deep merge template specs with module specs."""
-    merged_specs = {}
-    for section_key in module_specs.keys():
-      module_section = module_specs.get(section_key, {})
-      template_section = template_specs.get(section_key, {})
-      merged_section = {**module_section}
-      for key in ['title', 'prompt', 'description', 'toggle', 'required']:
-        if key in template_section:
-          merged_section[key] = template_section[key]
-      module_vars = module_section.get('vars') if isinstance(module_section.get('vars'), dict) else {}
-      template_vars = template_section.get('vars') if isinstance(template_section.get('vars'), dict) else {}
-
-      # Deep-merge variables while preserving the ordering from the module spec.
-      # Template-only variables are appended at the end in template order.
-      from collections import OrderedDict
-
-      merged_vars: OrderedDict = OrderedDict()
-
-      # First, keep module variables in their original order, merging any
-      # template-provided keys for the same variable.
-      for var_name, mod_var in module_vars.items():
-        mod_var = mod_var or {}
-        tmpl_var = template_vars.get(var_name, {}) or {}
-        merged_vars[var_name] = {**mod_var, **tmpl_var}
-
-      # Then, append any template-only variables in the template's order.
-      for var_name, tmpl_var in template_vars.items():
-        if var_name in merged_vars:
-          continue
-        merged_vars[var_name] = {**(tmpl_var or {})}
-
-      merged_section['vars'] = merged_vars
-      merged_specs[section_key] = merged_section
+    """Deep merge template specs with module specs using VariableCollection.
     
-    for section_key in template_specs.keys():
-      if section_key not in module_specs:
-        merged_specs[section_key] = {**template_specs[section_key]}
-        
-    return merged_specs
+    Uses VariableCollection's native merge() method for consistent merging logic.
+    Module specs are base, template specs override with origin tracking.
+    """
+    # Create VariableCollection from module specs (base)
+    module_collection = VariableCollection(module_specs) if module_specs else VariableCollection({})
+    
+    # Set origin for module variables
+    for section in module_collection.get_sections().values():
+      for variable in section.variables.values():
+        if not variable.origin:
+          variable.origin = "module"
+    
+    # Merge template specs into module specs (template overrides)
+    if template_specs:
+      merged_collection = module_collection.merge(template_specs, origin="template")
+    else:
+      merged_collection = module_collection
+    
+    # Convert back to dict format
+    merged_spec = {}
+    for section_key, section in merged_collection.get_sections().items():
+      merged_spec[section_key] = section.to_dict()
+    
+    return merged_spec
 
   def _collect_template_files(self) -> None:
     """Collects all TemplateFile objects in the template directory."""
@@ -282,33 +297,22 @@ class Template:
     return visitor.found
 
   def _filter_specs_to_used(self, used_variables: set, merged_specs: dict, module_specs: dict, template_specs: dict) -> dict:
-    """Filter specs to only include variables used in the templates."""
+    """Filter specs to only include variables used in templates using VariableCollection.
+    
+    Uses VariableCollection's native filter_to_used() method.
+    Keeps sensitive variables even if not used.
+    """
+    # Create VariableCollection from merged specs
+    merged_collection = VariableCollection(merged_specs)
+    
+    # Filter to only used variables (and sensitive ones)
+    filtered_collection = merged_collection.filter_to_used(used_variables, keep_sensitive=True)
+    
+    # Convert back to dict format
     filtered_specs = {}
-    for section_key, section_data in merged_specs.items():
-      if "vars" in section_data and isinstance(section_data["vars"], dict):
-        filtered_vars = {}
-        for var_name, var_data in section_data["vars"].items():
-          is_used = var_name in used_variables
-          is_sensitive = var_data.get("sensitive", False)
-          
-          # Include variables that are either used in templates OR marked as sensitive
-          if is_used or is_sensitive:
-            module_has_var = var_name in module_specs.get(section_key, {}).get("vars", {})
-            template_has_var = var_name in template_specs.get(section_key, {}).get("vars", {})
-            
-            if module_has_var and template_has_var:
-              origin = "module -> template"
-            elif template_has_var:
-              origin = "template"
-            else:
-              origin = "module"
-            
-            var_data_with_origin = {**var_data, "origin": origin}
-            
-            filtered_vars[var_name] = var_data_with_origin
-        
-        if filtered_vars:
-          filtered_specs[section_key] = {**section_data, "vars": filtered_vars}
+    for section_key, section in filtered_collection.get_sections().items():
+      filtered_specs[section_key] = section.to_dict()
+    
     return filtered_specs
 
   # ---------------------------
@@ -316,9 +320,16 @@ class Template:
   # ---------------------------
 
   @staticmethod
-  def _validate_kind(post: frontmatter.Post) -> None:
-    """Validate that template has required 'kind' field."""
-    if not post.metadata.get("kind"):
+  def _validate_kind(template_data: dict) -> None:
+    """Validate that template has required 'kind' field.
+    
+    Args:
+        template_data: Parsed YAML data from template.yaml
+        
+    Raises:
+        ValueError: If 'kind' field is missing
+    """
+    if not template_data.get("kind"):
       raise ValueError("Template format error: missing 'kind' field")
 
   def _validate_variable_definitions(self, used_variables: set[str], merged_specs: dict[str, Any]) -> None:
@@ -396,13 +407,18 @@ class Template:
     return rendered_files
 
   def mask_sensitive_values(self, rendered_files: Dict[str, str], variables: VariableCollection) -> Dict[str, str]:
-    """Mask sensitive values in rendered files."""
+    """Mask sensitive values in rendered files using Variable's native masking."""
     masked_files = {}
-    sensitive_vars = variables.get_sensitive_variables()
     
+    # Get all variables (not just sensitive ones) to use their native get_display_value()
     for file_path, content in rendered_files.items():
-      for var_name, var_value in sensitive_vars.items():
-        content = content.replace(str(var_value), "********")
+      # Iterate through all sections and variables
+      for section in variables.get_sections().values():
+        for variable in section.variables.values():
+          if variable.sensitive and variable.value:
+            # Use variable's native masking - always returns "********" for sensitive vars
+            masked_value = variable.get_display_value(mask_sensitive=True)
+            content = content.replace(str(variable.value), masked_value)
       masked_files[file_path] = content
       
     return masked_files
@@ -421,12 +437,14 @@ class Template:
 
   @property
   def template_specs(self) -> dict:
-      return self._post.metadata.get("spec", {})
+      """Get the spec section from template YAML data."""
+      return self._template_data.get("spec", {})
 
   @property
   def module_specs(self) -> dict:
+      """Get the spec from the module definition."""
       if self.__module_specs is None:
-          kind = self._post.metadata.get("kind")
+          kind = self._template_data.get("kind")
           self.__module_specs = self._load_module_specs(kind)
       return self.__module_specs
 
@@ -461,7 +479,8 @@ class Template:
           try:
             jinja_defaults = self._extract_jinja_default_values()
             for section_key, section_data in filtered_specs.items():
-              vars_dict = section_data.get('vars', {})
+              # Guard against None from empty YAML sections
+              vars_dict = section_data.get('vars') or {}
               for var_name, var_data in vars_dict.items():
                 if 'default' not in var_data or var_data.get('default') in (None, ''):
                   if var_name in jinja_defaults:

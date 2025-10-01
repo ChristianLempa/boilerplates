@@ -1,6 +1,3 @@
-volumes:
-  semaphore-mysql:
-    driver: local
 services:
   mysql:
     image: docker.io/library/mysql:8.4
@@ -40,3 +37,7 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql
+
+volumes:
+  semaphore-mysql:
+    driver: local
