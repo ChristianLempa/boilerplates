@@ -213,18 +213,21 @@ get_latest_release() {
   local api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
   local release_tag
   
-  log "Fetching latest release information..." >&2
+  # Note: Don't use log() here as this function's output is captured
+  # The calling function will log the result
   
   if command -v curl >/dev/null 2>&1; then
     release_tag=$(curl -fsSL "$api_url" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
   elif command -v wget >/dev/null 2>&1; then
     release_tag=$(wget -qO- "$api_url" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
   else
-    error "Neither curl nor wget found. Please install one of them."
+    echo "error: Neither curl nor wget found" >&2
+    return 1
   fi
   
   if [[ -z "$release_tag" ]]; then
-    error "Failed to fetch latest release tag"
+    echo "error: Failed to fetch latest release tag" >&2
+    return 1
   fi
   
   echo "$release_tag"
@@ -236,7 +239,11 @@ download_release() {
   
   # If version is "latest", resolve it to the actual version tag
   if [[ "$version" == "latest" ]]; then
+    log "Fetching latest release information..."
     version=$(get_latest_release)
+    if [[ $? -ne 0 ]] || [[ -z "$version" ]]; then
+      error "Failed to fetch latest release information"
+    fi
     log "Latest version is $version"
   fi
   
