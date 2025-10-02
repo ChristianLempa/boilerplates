@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Influxdb
   description: Docker compose setup for influxdb
-  version: 0.1.0
+  version: 2.7.12-alpine
   author: Christian Lempa
   date: '2025-09-28'
   tags:

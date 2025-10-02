@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Monitoring
   description: Docker compose setup for monitoring
-  version: 0.1.0
+  version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-09-28'
   tags:

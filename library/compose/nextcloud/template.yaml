@@ -13,7 +13,7 @@ metadata:
     Documentation: https://docs.nextcloud.com/
 
     GitHub: https://github.com/nextcloud/server
-  version: 0.1.0
+  version: 31.0.8-apache
   author: Christian Lempa
   date: '2025-10-02'
   tags:

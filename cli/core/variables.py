@@ -412,6 +412,17 @@ class VariableSection:
     self.toggle: Optional[str] = data.get("toggle")
     # Default "general" section to required=True, all others to required=False
     self.required: bool = data.get("required", data["key"] == "general")
+    # Section dependencies - can be string or list of strings
+    needs_value = data.get("needs")
+    if needs_value:
+      if isinstance(needs_value, str):
+        self.needs: List[str] = [needs_value]
+      elif isinstance(needs_value, list):
+        self.needs: List[str] = needs_value
+      else:
+        raise ValueError(f"Section '{self.key}' has invalid 'needs' value: must be string or list")
+    else:
+      self.needs: List[str] = []
 
   def variable_names(self) -> list[str]:
     return list(self.variables.keys())
@@ -435,6 +446,10 @@ class VariableSection:
     
     # Always store required flag
     section_dict["required"] = self.required
+    
+    # Store dependencies if any
+    if self.needs:
+      section_dict["needs"] = self.needs if len(self.needs) > 1 else self.needs[0]
     
     # Serialize all variables using their own to_dict method
     section_dict["vars"] = {}
@@ -504,6 +519,7 @@ class VariableSection:
       'description': self.description,
       'toggle': self.toggle,
       'required': self.required,
+      'needs': self.needs.copy() if self.needs else None,
     })
     
     # Deep copy all variables
@@ -558,6 +574,8 @@ class VariableCollection:
     # Variable objects contained in the _set structure.
     self._variable_map: Dict[str, Variable] = {}
     self._initialize_sections(spec)
+    # Validate dependencies after all sections are loaded
+    self._validate_dependencies()
 
   def _initialize_sections(self, spec: dict[str, Any]) -> None:
     """Initialize sections from the spec."""
@@ -578,7 +596,8 @@ class VariableCollection:
       "title": data.get("title", key.replace("_", " ").title()),
       "description": data.get("description"),
       "toggle": data.get("toggle"),
-      "required": data.get("required", key == "general")
+      "required": data.get("required", key == "general"),
+      "needs": data.get("needs")
     }
     return VariableSection(section_init_data)
 
@@ -629,19 +648,99 @@ class VariableCollection:
         f"Section '{section.key}' toggle variable '{section.toggle}' must be type 'bool', "
         f"but is type '{toggle_var.type}'"
       )
+  
+  def _validate_dependencies(self) -> None:
+    """Validate section dependencies for cycles and missing references.
+    
+    Raises:
+        ValueError: If circular dependencies or missing section references are found
+    """
+    # Check for missing dependencies
+    for section_key, section in self._sections.items():
+      for dep in section.needs:
+        if dep not in self._sections:
+          raise ValueError(
+            f"Section '{section_key}' depends on '{dep}', but '{dep}' does not exist"
+          )
+    
+    # Check for circular dependencies using depth-first search
+    visited = set()
+    rec_stack = set()
+    
+    def has_cycle(section_key: str) -> bool:
+      visited.add(section_key)
+      rec_stack.add(section_key)
+      
+      section = self._sections[section_key]
+      for dep in section.needs:
+        if dep not in visited:
+          if has_cycle(dep):
+            return True
+        elif dep in rec_stack:
+          raise ValueError(
+            f"Circular dependency detected: '{section_key}' depends on '{dep}', "
+            f"which creates a cycle"
+          )
+      
+      rec_stack.remove(section_key)
+      return False
+    
+    for section_key in self._sections:
+      if section_key not in visited:
+        has_cycle(section_key)
+  
+  def is_section_satisfied(self, section_key: str) -> bool:
+    """Check if all dependencies for a section are satisfied.
+    
+    A dependency is satisfied if:
+    1. The dependency section exists
+    2. The dependency section is enabled (if it has a toggle)
+    
+    Args:
+        section_key: The key of the section to check
+        
+    Returns:
+        True if all dependencies are satisfied, False otherwise
+    """
+    section = self._sections.get(section_key)
+    if not section:
+      return False
+    
+    # No dependencies = always satisfied
+    if not section.needs:
+      return True
+    
+    # Check each dependency
+    for dep_key in section.needs:
+      dep_section = self._sections.get(dep_key)
+      if not dep_section:
+        logger.warning(f"Section '{section_key}' depends on missing section '{dep_key}'")
+        return False
+      
+      # Check if dependency is enabled
+      if not dep_section.is_enabled():
+        logger.debug(f"Section '{section_key}' dependency '{dep_key}' is disabled")
+        return False
+    
+    return True
 
   def sort_sections(self) -> None:
     """Sort sections with the following priority:
     
-    1. Required sections first (in their original order)
-    2. Enabled sections next (in their original order)
-    3. Disabled sections last (in their original order)
+    1. Dependencies come before dependents (topological sort)
+    2. Required sections first (in their original order)
+    3. Enabled sections next (in their original order)
+    4. Disabled sections last (in their original order)
     
     This maintains the original ordering within each group while organizing
-    sections logically for display and user interaction.
+    sections logically for display and user interaction, and ensures that
+    sections are prompted in the correct dependency order.
     """
-    # Convert to list to maintain order during sorting
-    section_items = list(self._sections.items())
+    # First, perform topological sort to respect dependencies
+    sorted_keys = self._topological_sort()
+    
+    # Then apply priority sorting within dependency groups
+    section_items = [(key, self._sections[key]) for key in sorted_keys]
     
     # Define sort key: (priority, original_index)
     # Priority: 0 = required, 1 = enabled, 2 = disabled
@@ -656,6 +755,7 @@ class VariableCollection:
       return (priority, index)
     
     # Sort with original index to maintain order within each priority group
+    # Note: This preserves the topological order from earlier
     sorted_items = sorted(
       enumerate(section_items),
       key=get_sort_key
@@ -663,6 +763,44 @@ class VariableCollection:
     
     # Rebuild _sections dict in new order
     self._sections = {key: section for _, (key, section) in sorted_items}
+  
+  def _topological_sort(self) -> List[str]:
+    """Perform topological sort on sections based on dependencies.
+    
+    Uses Kahn's algorithm to ensure dependencies come before dependents.
+    Preserves original order when no dependencies exist.
+    
+    Returns:
+        List of section keys in topologically sorted order
+    """
+    # Calculate in-degree (number of dependencies) for each section
+    in_degree = {key: len(section.needs) for key, section in self._sections.items()}
+    
+    # Find all sections with no dependencies
+    queue = [key for key, degree in in_degree.items() if degree == 0]
+    result = []
+    
+    # Process sections in order
+    while queue:
+      # Sort queue to preserve original order when possible
+      queue.sort(key=lambda k: list(self._sections.keys()).index(k))
+      
+      current = queue.pop(0)
+      result.append(current)
+      
+      # Find sections that depend on current
+      for key, section in self._sections.items():
+        if current in section.needs:
+          in_degree[key] -= 1
+          if in_degree[key] == 0:
+            queue.append(key)
+    
+    # If not all sections processed, there's a cycle (shouldn't happen due to validation)
+    if len(result) != len(self._sections):
+      logger.warning("Topological sort incomplete - possible dependency cycle")
+      return list(self._sections.keys())
+    
+    return result
 
   # -------------------------
   # SECTION: Public API Methods
@@ -688,6 +826,35 @@ class VariableCollection:
     for var_name, variable in self._variable_map.items():
       all_values[var_name] = variable.get_typed_value()
     return all_values
+  
+  def get_satisfied_values(self) -> dict[str, Any]:
+    """Get variable values only from sections with satisfied dependencies.
+    
+    This respects both toggle states and section dependencies, ensuring that:
+    - Variables from disabled sections (toggle=false) are excluded
+    - Variables from sections with unsatisfied dependencies are excluded
+    
+    Returns:
+        Dictionary of variable names to values for satisfied sections only
+    """
+    satisfied_values = {}
+    
+    for section_key, section in self._sections.items():
+      # Skip sections with unsatisfied dependencies
+      if not self.is_section_satisfied(section_key):
+        logger.debug(f"Excluding variables from section '{section_key}' - dependencies not satisfied")
+        continue
+      
+      # Skip disabled sections (toggle check)
+      if not section.is_enabled():
+        logger.debug(f"Excluding variables from section '{section_key}' - section is disabled")
+        continue
+      
+      # Include all variables from this satisfied section
+      for var_name, variable in section.variables.items():
+        satisfied_values[var_name] = variable.get_typed_value()
+    
+    return satisfied_values
 
   def get_sensitive_variables(self) -> Dict[str, Any]:
     """Get only the sensitive variables with their values."""
@@ -745,10 +912,15 @@ class VariableCollection:
     return successful
   
   def validate_all(self) -> None:
-    """Validate all variables in the collection, skipping disabled sections."""
+    """Validate all variables in the collection, skipping disabled and unsatisfied sections."""
     errors: list[str] = []
 
-    for section in self._sections.values():
+    for section_key, section in self._sections.items():
+      # Skip sections with unsatisfied dependencies
+      if not self.is_section_satisfied(section_key):
+        logger.debug(f"Skipping validation for section '{section_key}' - dependencies not satisfied")
+        continue
+      
       # Check if the section is disabled by a toggle
       if section.toggle:
         toggle_var = section.variables.get(section.toggle)
@@ -873,6 +1045,9 @@ class VariableCollection:
       merged_section.toggle = other_section.toggle
     # Required flag always updated
     merged_section.required = other_section.required
+    # Needs/dependencies always updated
+    if other_section.needs:
+      merged_section.needs = other_section.needs.copy()
     
     # Merge variables
     for var_name, other_var in other_section.variables.items():
@@ -942,6 +1117,7 @@ class VariableCollection:
         'description': section.description,
         'toggle': section.toggle,
         'required': section.required,
+        'needs': section.needs.copy() if section.needs else None,
       })
       
       # Clone only the variables that should be included

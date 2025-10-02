@@ -47,6 +47,17 @@ class PromptHandler:
       if not section.variables:
         continue
 
+      # Check if dependencies are satisfied
+      if not variables.is_section_satisfied(section_key):
+        # Get list of unsatisfied dependencies for better user feedback
+        unsatisfied = [dep for dep in section.needs if not variables.is_section_satisfied(dep)]
+        dep_names = ", ".join(unsatisfied) if unsatisfied else "unknown"
+        self.console.print(
+          f"\n[dim]⊘ {section.title} (skipped - requires {dep_names} to be enabled)[/dim]"
+        )
+        logger.debug(f"Skipping section '{section_key}' - dependencies not satisfied: {dep_names}")
+        continue
+
       # Always show section header first
       self.display.display_section_header(section.title, section.description)
 

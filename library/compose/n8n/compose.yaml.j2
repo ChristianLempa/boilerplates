@@ -42,11 +42,13 @@ services:
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.{{ service_name | default('n8n') }}.rule=Host(`{{ traefik_host | default('n8n.home.arpa') }}`)
+      - traefik.http.routers.{{ service_name | default('n8n') }}-http.rule=Host(`{{ traefik_host | default('n8n.home.arpa') }}`)
+      - traefik.http.routers.{{ service_name | default('n8n') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('n8n') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('n8n') }}.tls=true
-      - traefik.http.routers.{{ service_name | default('n8n') }}.tls.certresolver={{ traefik_tls_certresolver | default('default') }}
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.rule=Host(`{{ traefik_host | default('n8n.home.arpa') }}`)
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.tls=true
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.tls.certresolver={{ traefik_tls_certresolver | default('default') }}
       {% else %}
       - traefik.http.routers.{{ service_name | default('n8n') }}.entrypoints={{ traefik_entrypoint | default('web') }}
       {% endif %}

@@ -14,7 +14,7 @@ metadata:
     Source: https://github.com/grafana/alloy
 
     Documentation: https://grafana.com/docs/alloy/latest/
-  version: 0.1.0
+  version: v1.10.2
   author: Christian Lempa
   date: '2025-10-02'
   tags:

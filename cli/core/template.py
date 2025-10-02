@@ -470,7 +470,8 @@ class Template:
 
   def render(self, variables: VariableCollection) -> Dict[str, str]:
     """Render all .j2 files in the template directory."""
-    variable_values = variables.get_all_values()
+    # Use get_satisfied_values() to exclude variables from sections with unsatisfied dependencies
+    variable_values = variables.get_satisfied_values()
     logger.debug(f"Rendering template '{self.id}' with variables: {variable_values}")
     rendered_files = {}
     for template_file in self.template_files: # Iterate over TemplateFile objects
@@ -478,6 +479,8 @@ class Template:
         try:
           template = self.jinja_env.get_template(str(template_file.relative_path)) # Use lazy-loaded jinja_env
           rendered_content = template.render(**variable_values)
+          # Sanitize the rendered content to remove excessive blank lines
+          rendered_content = self._sanitize_content(rendered_content, template_file.output_path)
           rendered_files[str(template_file.output_path)] = rendered_content
         except Exception as e:
           logger.error(f"Error rendering template file {template_file.relative_path}: {e}")
@@ -495,6 +498,56 @@ class Template:
               raise
           
     return rendered_files
+  
+  def _sanitize_content(self, content: str, file_path: Path) -> str:
+    """Sanitize rendered content by removing excessive blank lines.
+    
+    This function:
+    - Reduces multiple consecutive blank lines to a maximum of one blank line
+    - Preserves file structure and readability
+    - Removes trailing whitespace from lines
+    - Ensures file ends with a single newline
+    
+    Args:
+        content: The rendered content to sanitize
+        file_path: Path to the output file (used for file-type detection)
+        
+    Returns:
+        Sanitized content with cleaned up blank lines
+    """
+    if not content:
+      return content
+    
+    # Split content into lines
+    lines = content.split('\n')
+    sanitized_lines = []
+    blank_line_count = 0
+    
+    for line in lines:
+      # Remove trailing whitespace from the line
+      cleaned_line = line.rstrip()
+      
+      # Check if this is a blank line
+      if not cleaned_line:
+        blank_line_count += 1
+        # Only keep the first blank line in a sequence
+        if blank_line_count == 1:
+          sanitized_lines.append('')
+      else:
+        # Reset counter when we hit a non-blank line
+        blank_line_count = 0
+        sanitized_lines.append(cleaned_line)
+    
+    # Join lines back together
+    result = '\n'.join(sanitized_lines)
+    
+    # Remove leading blank lines
+    result = result.lstrip('\n')
+    
+    # Ensure file ends with exactly one newline
+    result = result.rstrip('\n') + '\n'
+    
+    return result
 
   def mask_sensitive_values(self, rendered_files: Dict[str, str], variables: VariableCollection) -> Dict[str, str]:
     """Mask sensitive values in rendered files using Variable's native masking."""

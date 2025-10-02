@@ -21,13 +21,13 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.services.{{ service_name | default('grafana') }}.loadbalancer.server.port=3000
-      - traefik.http.routers.{{ service_name | default('grafana') }}.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('grafana') }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('grafana') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('grafana') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('grafana') }}.tls=true
-      - traefik.http.routers.{{ service_name | default('grafana') }}.tls.certresolver={{ traefik_tls_certresolver }}
-      {% else %}
-      - traefik.http.routers.{{ service_name | default('grafana') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.routers.{{ service_name | default('grafana') }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('grafana') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('grafana') }}-https.tls=true
+      - traefik.http.routers.{{ service_name | default('grafana') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}

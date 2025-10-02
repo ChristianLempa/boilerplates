@@ -95,6 +95,14 @@ spec = OrderedDict(
             "type": "str",
             "default": "web",
           },
+        },
+      },
+      "traefik_tls": {
+        "title": "Traefik TLS/SSL",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Enable HTTPS/TLS for Traefik with certificate management.",
+        "vars": {
           "traefik_tls_enabled": {
             "description": "Enable HTTPS/TLS",
             "type": "bool",

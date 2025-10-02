@@ -3,7 +3,7 @@ kind: "compose"
 metadata:
   name: "Nginx"
   description: "An open-source web server"
-  version: "0.0.1"
+  version: 1.28.0-alpine
   date: "2023-10-01"
   author: "Christian Lempa"
   tags:

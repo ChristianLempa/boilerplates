@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: N8N
   description: Docker compose setup for n8n
-  version: 0.1.0
+  version: 1.110.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:

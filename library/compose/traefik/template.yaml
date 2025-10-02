@@ -1,10 +1,16 @@
-
 ---
-kind: "compose"
+kind: compose
 metadata:
-  name: "Traefik"
-  description: "Modern reverse proxy and load balancer for microservices"
-  version: "0.2.0"
+  name: Traefik
+  description: >
+    Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.
+    This template sets up Traefik with automatic HTTPS using Let's Encrypt and can be integrated with Authentik for SSO.
+
+
+    Project: https://traefik.io/
+
+    Documentation: https://doc.traefik.io/traefik/
+  version: v3.2
   author: "Christian Lempa"
   date: "2025-10-02"
   tags:
@@ -14,7 +20,7 @@ metadata:
     - edge-router
 spec:
   general:
-    name: "General"
+    title: "General"
     required: true
     vars:
       accesslog_enabled:
@@ -23,17 +29,17 @@ spec:
         default: false
   traefik:
     title: "Traefik Settings"
-    description: "Configure Traefik as a reverse proxy with TLS/ACME support"
+    description: "Configure Traefik as a reverse proxy"
+    required: true
+  traefik_tls:
+    title: "Traefik TLS Settings"
+    description: "Configure TLS/SSL with Let's Encrypt ACME"
+    needs: "traefik"
     vars:
-      traefik_tls_acme_email:
-        type: "str"
-        description: "Email address for ACME (Let's Encrypt) registration"
-        default: "admin@example.com"
-        extra: "Required when traefik_tls_enabled is true"
-      traefik_tls_redirect:
+      traefik_tls_enabled:
         type: "bool"
-        description: "Redirect all HTTP traffic to HTTPS"
-        default: true
+        description: "Enable HTTPS/TLS with ACME"
+        default: false
       traefik_tls_acme_provider:
         type: "enum"
         description: "ACME DNS challenge provider"
@@ -47,6 +53,15 @@ spec:
         default: "your-api-token-here"
         sensitive: true
         extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions"
+      traefik_tls_acme_email:
+        type: "str"
+        description: "Email address for ACME (Let's Encrypt) registration"
+        default: "admin@example.com"
+        extra: "Required for Let's Encrypt certificate requests"
+      traefik_tls_redirect:
+        type: "bool"
+        description: "Redirect all HTTP traffic to HTTPS"
+        default: true
   ports:
     name: "Ports"
     prompt: "Expose ports via 'ports' mapping?"
@@ -68,11 +83,8 @@ spec:
       network_name:
         default: "proxy"
   authentik:
-    title: "Authentik Middleware"
-    description: >
-      Configure Authentik forward auth middleware for Traefik.
-      This creates a middleware that can be referenced in your service labels
-      as 'authentik@file' (or with your custom middleware name).
+    title: Authentik Middleware
+    description: Enable Authentik SSO integration for Traefik
     vars:
       authentik_outpost_url:
         type: "url"

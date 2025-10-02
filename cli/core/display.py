@@ -158,7 +158,12 @@ class DisplayManager:
 
             disabled_text = " (disabled)" if is_dimmed else ""
             required_text = " [yellow](required)[/yellow]" if section.required else ""
-            header_text = f"[bold dim]{section.title}{required_text}{disabled_text}[/bold dim]" if is_dimmed else f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
+            # Add dependency information
+            needs_text = ""
+            if section.needs:
+              needs_list = ", ".join(section.needs)
+              needs_text = f" [dim](needs: {needs_list})[/dim]"
+            header_text = f"[bold dim]{section.title}{required_text}{needs_text}{disabled_text}[/bold dim]" if is_dimmed else f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
             variables_table.add_row(header_text, "", "", "", "")
 
             for var_name, variable in section.variables.items():
@@ -255,6 +260,7 @@ class DisplayManager:
             section_desc = section_data.get("description", "")
             section_required = section_data.get("required", False)
             section_toggle = section_data.get("toggle", None)
+            section_needs = section_data.get("needs", None)
 
             # Build section label
             section_label = f"[cyan]{section_name}[/cyan]"
@@ -262,6 +268,9 @@ class DisplayManager:
                 section_label += " [yellow](required)[/yellow]"
             if section_toggle:
                 section_label += f" [dim](toggle: {section_toggle})[/dim]"
+            if section_needs:
+                needs_str = ", ".join(section_needs) if isinstance(section_needs, list) else section_needs
+                section_label += f" [dim](needs: {needs_str})[/dim]"
             
             if show_all and section_desc:
                 section_label += f"\n  [dim]{section_desc}[/dim]"

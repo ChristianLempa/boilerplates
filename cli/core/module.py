@@ -171,7 +171,7 @@ class Module(ABC):
   def generate(
     self,
     id: str = Argument(..., help="Template ID"),
-    out: Optional[Path] = Option(None, "--out", "-o", help="Output directory"),
+    directory: Optional[str] = Argument(None, help="Output directory (defaults to template ID)"),
     interactive: bool = Option(True, "--interactive/--no-interactive", "-i/-n", help="Enable interactive prompting for variables"),
     var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Use KEY=VALUE or --var KEY VALUE"),
     ctx: Context = None,
@@ -183,6 +183,16 @@ class Module(ABC):
     2. Template spec (from template.yaml)
     3. Config defaults (from ~/.config/boilerplates/config.yaml)
     4. CLI overrides (--var flags)
+    
+    Examples:
+        # Generate to directory named after template
+        cli compose generate traefik
+        
+        # Generate to custom directory
+        cli compose generate traefik my-proxy
+        
+        # Generate with variables
+        cli compose generate traefik --var traefik_enabled=false
     """
 
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
@@ -224,7 +234,8 @@ class Module(ABC):
         logger.info(f"Collected {len(collected_values)} variable values from user input")
 
     if template.variables:
-      variable_values.update(template.variables.get_all_values())
+      # Use get_satisfied_values() to exclude variables from sections with unsatisfied dependencies
+      variable_values.update(template.variables.get_satisfied_values())
 
     try:
       # Validate all variables before rendering
@@ -239,17 +250,39 @@ class Module(ABC):
         raise Exit(code=1)
       
       logger.info(f"Successfully rendered template '{id}'")
-      output_dir = out or Path(".")
+      
+      # Determine output directory (default to template ID)
+      output_dir = Path(directory) if directory else Path(id)
+      
+      # Check if directory exists and is not empty
+      dir_exists = output_dir.exists()
+      dir_not_empty = dir_exists and any(output_dir.iterdir())
       
       # Check which files already exist
       existing_files = []
-      if output_dir.exists():
+      if dir_exists:
         for file_path in rendered_files.keys():
           full_path = output_dir / file_path
           if full_path.exists():
             existing_files.append(full_path)
       
-      # Display file generation confirmation
+      # Warn if directory is not empty (both interactive and non-interactive)
+      if dir_not_empty:
+        if interactive:
+          console.print(f"\n[yellow]⚠ Warning: Directory '{output_dir}' is not empty.[/yellow]")
+          if existing_files:
+            console.print(f"[yellow]  {len(existing_files)} file(s) will be overwritten.[/yellow]")
+          
+          if not Confirm.ask(f"Continue and potentially overwrite files in '{output_dir}'?", default=False):
+            console.print("[yellow]Generation cancelled.[/yellow]")
+            return
+        else:
+          # Non-interactive mode: show warning but continue
+          logger.warning(f"Directory '{output_dir}' is not empty")
+          if existing_files:
+            logger.warning(f"{len(existing_files)} file(s) will be overwritten")
+      
+      # Display file generation confirmation in interactive mode
       if interactive:
         self.display.display_file_generation_confirmation(
           output_dir, 
@@ -257,19 +290,11 @@ class Module(ABC):
           existing_files if existing_files else None
         )
         
-        # Ask for confirmation
-        if existing_files:
-          prompt_msg = f"[yellow][/yellow]  {len(existing_files)} file(s) will be overwritten. Continue?"
-        else:
-          prompt_msg = "Generate these files?"
-        
-        if not Confirm.ask(prompt_msg, default=True):
-          console.print("[yellow]Generation cancelled.[/yellow]")
-          return
-      else:
-        # Non-interactive mode: warn if files will be overwritten
-        if existing_files:
-          logger.warning(f"{len(existing_files)} file(s) will be overwritten in '{output_dir}'")
+        # Final confirmation (only if we didn't already ask about overwriting)
+        if not dir_not_empty:
+          if not Confirm.ask("Generate these files?", default=True):
+            console.print("[yellow]Generation cancelled.[/yellow]")
+            return
       
       # Create the output directory if it doesn't exist
       output_dir.mkdir(parents=True, exist_ok=True)
@@ -282,14 +307,8 @@ class Module(ABC):
           f.write(content)
         console.print(f"[green]Generated file: {file_path}[/green]")
       
+      console.print(f"\n[green]✓ Template generated successfully in '{output_dir}'[/green]")
       logger.info(f"Template written to directory: {output_dir}")
-
-      # If no output directory was specified, print the masked content to the console
-      if not out:
-        console.print("\n[bold]Rendered output (sensitive values masked):[/bold]")
-        masked_files = template.mask_sensitive_values(rendered_files, template.variables)
-        for file_path, content in masked_files.items():
-          console.print(Panel(content, title=file_path, border_style="green"))
 
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")

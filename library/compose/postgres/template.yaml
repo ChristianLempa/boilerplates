@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: PostgreSQL
   description: Advanced open-source relational database
-  version: 0.1.0
+  version: 17.6
   author: Christian Lempa
   date: '2025-09-28'
   tags:

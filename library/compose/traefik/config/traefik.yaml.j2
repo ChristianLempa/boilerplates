@@ -21,15 +21,17 @@ api:
 entryPoints:
   {{ traefik_entrypoint }}:
     address: :80
-    {% if traefik_tls_redirect %}
+    {% if traefik_tls_enabled and traefik_tls_redirect %}
     http:
       redirections:
         entryPoint:
           to: {{ traefik_tls_entrypoint }}
           scheme: https
     {% endif %}
+  {% if traefik_tls_enabled %}
   {{ traefik_tls_entrypoint }}:
     address: :443
+  {% endif %}
 
 {% if traefik_tls_enabled %}
 certificatesResolvers:

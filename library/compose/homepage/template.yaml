@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Homepage
   description: Docker compose setup for homepage
-  version: 0.1.0
+  version: v1.4.6
   author: Christian Lempa
   date: '2025-09-28'
   tags:

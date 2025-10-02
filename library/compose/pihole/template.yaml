@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Pihole
   description: Docker compose setup for pihole
-  version: 0.1.0
+  version: 2025.08.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:

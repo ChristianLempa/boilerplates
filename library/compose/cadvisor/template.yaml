@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Cadvisor
   description: Docker compose setup for cadvisor
-  version: 0.1.0
+  version: v0.52.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:

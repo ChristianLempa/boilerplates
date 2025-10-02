@@ -36,24 +36,29 @@ python3 -m cli compose list
 # Debugging commands
 python3 -m cli --log-level DEBUG compose list
 
+# Generate template to directory named after template (default)
+python3 -m cli compose generate nginx
+
+# Generate template to custom directory
+python3 -m cli compose generate nginx my-nginx-server
+
 # Generate template interactively (default - prompts for variables)
-python3 -m cli compose generate authentik --out /tmp/my-project
+python3 -m cli compose generate authentik
 
 # Generate template non-interactively (skips prompts, uses defaults and CLI variables)
-python3 -m cli compose generate authentik --out /tmp/my-project --no-interactive
+python3 -m cli compose generate authentik my-auth --no-interactive
 
 # Generate with variable overrides (non-interactive)
-python3 -m cli compose generate authentik \
+python3 -m cli compose generate authentik my-auth \
   --var service_name=auth \
   --var ports_enabled=false \
   --var database_type=postgres \
-  --out /tmp/my-project \
   --no-interactive
 
 # Show template details
 python3 -m cli compose show authentik
 
-# Managing default values (renamed from 'config' to 'defaults')
+# Managing default values
 python3 -m cli compose defaults set service_name my-app
 python3 -m cli compose defaults get
 python3 -m cli compose defaults list
@@ -128,6 +133,13 @@ spec:
 
 -   **Static Files**: Any file without a `.j2` extension is treated as a static file and will be copied to the output directory as-is, preserving its relative path and filename.
 
+-   **Content Sanitization**: All rendered Jinja2 templates are automatically sanitized to improve output quality:
+    - Multiple consecutive blank lines are reduced to a single blank line
+    - Leading blank lines are removed
+    - Trailing whitespace is stripped from each line
+    - Files are ensured to end with exactly one newline character
+    - This prevents common formatting issues from conditional Jinja2 blocks
+
 #### Example Directory Structure
 
 ```
@@ -167,6 +179,51 @@ The `Variable.origin` attribute is updated to reflect this chain (e.g., `module 
 - **Validation**: The toggle variable MUST be of type `bool`. This is validated at load-time by `VariableCollection._validate_section_toggle()`.
 - During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
 - If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
+
+**4. Section Dependencies:**
+
+- Sections can declare dependencies on other sections using the `needs` property.
+- **Example**: `needs: "traefik"` or `needs: ["database", "redis"]` for multiple dependencies.
+- **Purpose**: Ensures that dependent sections are only shown/processed when their dependency sections are enabled.
+- **Behavior**:
+  - During interactive prompting: If a dependency is not satisfied (disabled or not enabled), the dependent section is automatically skipped with a message like `⊘ Section Name (skipped - requires dependency_name to be enabled)`.
+  - During non-interactive generation: Variables from sections with unsatisfied dependencies are excluded from the Jinja2 rendering context.
+  - During validation: Sections with unsatisfied dependencies are skipped.
+- **Validation**: Dependencies are validated at template load time:
+  - Circular dependencies are detected and cause an error (e.g., A needs B, B needs A).
+  - Missing dependencies cause an error (e.g., A needs B, but B doesn't exist).
+  - Self-dependencies cause an error (e.g., A needs A).
+- **Sorting**: Sections are automatically sorted using topological sort to ensure dependencies come before dependents, while preserving the original order within priority groups (required, enabled, disabled).
+- **Use Cases**:
+  - Split complex configurations: e.g., `traefik` (basic) and `traefik_tls` (needs traefik) sections.
+  - Conditional features: e.g., `database_backup` (needs database) or `monitoring_alerts` (needs monitoring).
+  - Hierarchical settings: e.g., `email` (basic) and `email_advanced` (needs email) sections.
+
+**Example Section with Dependencies:**
+
+```yaml
+spec:
+  traefik:
+    title: "Traefik"
+    toggle: "traefik_enabled"
+    vars:
+      traefik_enabled:
+        type: "bool"
+        default: false
+      traefik_host:
+        type: "hostname"
+  
+  traefik_tls:
+    title: "Traefik TLS/SSL"
+    needs: "traefik"  # Only shown if traefik is enabled
+    toggle: "traefik_tls_enabled"
+    vars:
+      traefik_tls_enabled:
+        type: "bool"
+        default: true
+      traefik_tls_certresolver:
+        type: "str"
+```
 
 ## Future Improvements
 

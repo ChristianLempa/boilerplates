@@ -3,7 +3,7 @@ kind: compose
 metadata:
   name: Volumes
   description: Docker compose setup for volumes
-  version: 0.1.0
+  version: 8.4
   author: Christian Lempa
   date: '2025-09-28'
   tags:

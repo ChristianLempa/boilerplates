@@ -11,11 +11,16 @@ services:
       labels:
         - traefik.enable=true
         - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
-        - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}.rule=Host(`{{ traefik_host }}`)
-        - traefik.http.routers.{{ container_name | default('nginx') }}.tls={{ traefik_tls_enabled | default(true) }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}.tls.certresolver={{ traefik_tls_certresolver }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}.service={{ container_name | default('nginx') }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ container_name | default('nginx') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}-http.service={{ container_name | default('nginx') }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ container_name | default('nginx') }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ container_name | default('nginx') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls=true
+        - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        - traefik.http.routers.{{ container_name | default('nginx') }}-https.service={{ container_name | default('nginx') }}
+        {% endif %}
       {% endif %}
     {% endif %}
     {% if ports_enabled %}
@@ -30,15 +35,16 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
-      - traefik.http.routers.{{ container_name | default('nginx') }}.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ container_name | default('nginx') }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ container_name | default('nginx') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.routers.{{ container_name | default('nginx') }}-http.service={{ container_name | default('nginx') }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ container_name | default('nginx') }}.tls=true
-      - traefik.http.routers.{{ container_name | default('nginx') }}.tls.certresolver={{ traefik_tls_certresolver }}
-      {% else %}
-      - traefik.http.routers.{{ container_name | default('nginx') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.routers.{{ container_name | default('nginx') }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ container_name | default('nginx') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls=true
+      - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ container_name | default('nginx') }}-https.service={{ container_name | default('nginx') }}
       {% endif %}
-      - traefik.http.routers.{{ container_name | default('nginx') }}.service={{ container_name | default('nginx') }}
     {% endif %}
     {% if network_enabled %}
     networks:
