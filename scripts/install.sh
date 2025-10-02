@@ -260,15 +260,21 @@ download_release() {
   
   local temp_dir
   temp_dir=$(mktemp -d)
-  trap 'rm -rf "$temp_dir"' EXIT
   
   local archive_file="$temp_dir/boilerplates.tar.gz"
   
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$archive_file" "$download_url" || error "Failed to download release"
+    curl -fsSL -o "$archive_file" "$download_url" || {
+      rm -rf "$temp_dir"
+      error "Failed to download release"
+    }
   elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$archive_file" "$download_url" || error "Failed to download release"
+    wget -qO "$archive_file" "$download_url" || {
+      rm -rf "$temp_dir"
+      error "Failed to download release"
+    }
   else
+    rm -rf "$temp_dir"
     error "Neither curl nor wget found. Please install one of them."
   fi
   
@@ -284,17 +290,27 @@ download_release() {
   mkdir -p "$(dirname "$TARGET_DIR")"
   
   # Extract with strip-components to remove the top-level directory
-  tar -xzf "$archive_file" -C "$(dirname "$TARGET_DIR")"
+  tar -xzf "$archive_file" -C "$(dirname "$TARGET_DIR")" || {
+    rm -rf "$temp_dir"
+    error "Failed to extract release"
+  }
   
   # Rename extracted directory to target name
   local extracted_dir
   extracted_dir=$(dirname "$TARGET_DIR")/"$REPO_NAME-${version#v}"
   
   if [[ ! -d "$extracted_dir" ]]; then
+    rm -rf "$temp_dir"
     error "Extraction failed: expected directory $extracted_dir not found"
   fi
   
-  mv "$extracted_dir" "$TARGET_DIR"
+  mv "$extracted_dir" "$TARGET_DIR" || {
+    rm -rf "$temp_dir"
+    error "Failed to move extracted files to $TARGET_DIR"
+  }
+  
+  # Clean up temp directory
+  rm -rf "$temp_dir"
   
   log "Release extracted to $TARGET_DIR"
   
