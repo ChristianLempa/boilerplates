@@ -115,12 +115,23 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## Boilerplates CLI ${{ steps.version.outputs.tag }}
+            
+            Install using the installation script:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/refactor/boilerplates-v2/scripts/install.sh | bash
+            ```
+            
+            Or install a specific version:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/refactor/boilerplates-v2/scripts/install.sh | bash -s -- --version ${{ steps.version.outputs.tag }}
+            ```
           draft: false
           prerelease: >
             ${{ contains(steps.version.outputs.version, 'alpha') ||
             contains(steps.version.outputs.version, 'beta') ||
             contains(steps.version.outputs.version, 'rc') }}
-          generate_release_notes: true
           files: |
             dist/*.whl
             dist/*.tar.gz
