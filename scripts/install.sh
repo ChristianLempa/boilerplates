@@ -469,9 +469,9 @@ main() {
   local installed_version
   installed_version=$(check_current_version)
 
-  # Check if boilerplate is in PATH
+  # Check if boilerplates is in PATH
   local path_warning=""
-  if ! command -v boilerplate >/dev/null 2>&1; then
+  if ! command -v boilerplates >/dev/null 2>&1; then
     local user_bin
     user_bin="$(python3 -m site --user-base 2>/dev/null)/bin"
     
@@ -489,7 +489,7 @@ main() {
 
 ⚠️  PATH Configuration Required
 
-The 'boilerplate' command is not in your PATH. To use it, add this to SHELL_CONFIG:
+The 'boilerplates' command is not in your PATH. To use it, add this to SHELL_CONFIG:
 
   export PATH="$PATH:USER_BIN"
 
@@ -499,7 +499,7 @@ Then reload your shell:
 
 Or use the full path for now:
 
-  USER_BIN/boilerplate --help
+  USER_BIN/boilerplates --help
 PATHWARN
 )
     path_warning="${path_warning//SHELL_CONFIG/$shell_config}"
@@ -515,8 +515,8 @@ Location: $TARGET_DIR
 pipx environment: $pipx_info$path_warning
 
 To use the CLI:
-  boilerplate --help
-  boilerplate compose list
+  boilerplates --help
+  boilerplates compose list
 
 To update to the latest version:
   curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash

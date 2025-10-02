@@ -26,5 +26,4 @@ dependencies = [
 ]
 
 [project.scripts]
-boilerplate = "cli.__main__:run"
 boilerplates = "cli.__main__:run"
