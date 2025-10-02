@@ -52,27 +52,27 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           # Add changes
           git add pyproject.toml cli/__main__.py
-          
+
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No version changes needed"
           else
             # Commit the version updates
             git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-            
+
             # Delete the tag locally and remotely
             git tag -d ${{ steps.version.outputs.tag }}
             git push origin :refs/tags/${{ steps.version.outputs.tag }}
-            
+
             # Recreate the tag pointing to the new commit
             git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
-            
+
             # Push the new tag
             git push origin ${{ steps.version.outputs.tag }}
-            
+
             echo "✓ Tag ${{ steps.version.outputs.tag }} updated to point to version bump commit"
           fi
 
