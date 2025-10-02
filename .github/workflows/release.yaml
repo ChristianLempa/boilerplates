@@ -97,17 +97,18 @@ jobs:
           echo "Checking package integrity:"
           twine check dist/*
 
-      - name: Publish to PyPI
-        if: >
-          ${{ !contains(steps.version.outputs.version, 'alpha') &&
-          !contains(steps.version.outputs.version, 'beta') &&
-          !contains(steps.version.outputs.version, 'rc') }}
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          echo "Publishing to PyPI..."
-          twine upload dist/*
+      # PyPI publishing disabled for now - install via GitHub releases
+      # - name: Publish to PyPI
+      #   if: >
+      #     ${{ !contains(steps.version.outputs.version, 'alpha') &&
+      #     !contains(steps.version.outputs.version, 'beta') &&
+      #     !contains(steps.version.outputs.version, 'rc') }}
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      #   run: |
+      #     echo "Publishing to PyPI..."
+      #     twine upload dist/*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
