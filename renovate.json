@@ -13,11 +13,6 @@
   ],
   "ignorePaths": [],
   "useBaseBranchConfig": "merge",
-  "kubernetes": {
-    "managerFilePatterns": [
-      "/(^|/)library/kubernetes/.+/[^/]+\\.ya?ml$/"
-    ]
-  },
   "packageRules": [
     {
       "groupName": "devDependencies (non-major)",
@@ -133,12 +128,49 @@
       "customType": "regex",
       "description": "Update Docker images in Jinja2 compose templates",
       "fileMatch": [
-        "\\.j2$"
+        "library/compose/.+\\.j2$"
       ],
       "matchStrings": [
         "image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^\\s\\n{]+)"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Docker images in Helm values.yaml (repository + tag pattern)",
+      "fileMatch": [
+        "library/kubernetes/.+/helm/values\\.ya?ml$",
+        "library/kubernetes/.+\\.j2$"
+      ],
+      "matchStrings": [
+        "repository:\\s*[\"']?(?<depName>[^:\\s\"']+)[\"']?\\s*\\n\\s*tag:\\s*[\"']?(?<currentValue>[^\\s\"']+)[\"']?"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Terraform provider versions",
+      "fileMatch": [
+        "library/terraform/.+\\.tf$",
+        "library/terraform/.+\\.j2$"
+      ],
+      "matchStrings": [
+        "source\\s*=\\s*[\"'](?<depName>[^\"']+)[\"']\\s*\\n\\s*version\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
+      ],
+      "datasourceTemplate": "terraform-provider"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Terraform module versions",
+      "fileMatch": [
+        "library/terraform/.+\\.tf$",
+        "library/terraform/.+\\.j2$"
+      ],
+      "matchStrings": [
+        "source\\s*=\\s*[\"'](?<depName>[^\"'?]+)(?:\\?ref=(?<currentValue>[^\"']+))?[\"']"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
     }
   ],
   "postUpgradeTasks": {
@@ -146,7 +178,7 @@
       ".renovate/sync-template-version.sh"
     ],
     "fileFilters": [
-      "library/compose/**/template.yaml"
+      "library/**/template.yaml"
     ],
     "executionMode": "update"
   },
