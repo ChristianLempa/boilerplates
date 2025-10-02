@@ -126,19 +126,35 @@ ensure_pip() {
   case "$os_type" in
     debian)
       log "Installing pip via apt..."
-      sudo apt-get update && sudo apt-get install -y python3-pip python3-venv
+      if sudo apt-get update && sudo apt-get install -y python3-pip python3-venv; then
+        log "✓ pip installed via apt"
+      else
+        error "Failed to install pip via apt. Please run: sudo apt-get install python3-pip python3-venv"
+      fi
       ;;
     fedora)
       log "Installing pip via dnf..."
-      sudo dnf install -y python3-pip
+      if sudo dnf install -y python3-pip; then
+        log "✓ pip installed via dnf"
+      else
+        error "Failed to install pip via dnf. Please run: sudo dnf install python3-pip"
+      fi
       ;;
     rhel)
       log "Installing pip via yum..."
-      sudo yum install -y python3-pip
+      if sudo yum install -y python3-pip; then
+        log "✓ pip installed via yum"
+      else
+        error "Failed to install pip via yum. Please run: sudo yum install python3-pip"
+      fi
       ;;
     arch)
       log "Installing pip via pacman..."
-      sudo pacman -S --noconfirm python-pip
+      if sudo pacman -S --noconfirm python-pip; then
+        log "✓ pip installed via pacman"
+      else
+        error "Failed to install pip via pacman. Please run: sudo pacman -S python-pip"
+      fi
       ;;
     macos)
       # On macOS, pip usually comes with Python from Homebrew
@@ -146,15 +162,7 @@ ensure_pip() {
       python3 -m ensurepip --default-pip 2>/dev/null || true
       ;;
     *)
-      # Fallback: try to install pip using get-pip.py
-      log "Attempting to install pip using get-pip.py..."
-      if command -v curl >/dev/null 2>&1; then
-        curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
-      elif command -v wget >/dev/null 2>&1; then
-        wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
-      else
-        error "Could not download pip installer. Please install pip manually."
-      fi
+      error "Could not detect your OS or package manager. Please install pip manually: sudo apt install python3-pip (Debian/Ubuntu) or equivalent for your system."
       ;;
   esac
   
