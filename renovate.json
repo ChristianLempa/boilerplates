@@ -11,6 +11,7 @@
   "labels": [
     "renovate"
   ],
+  "ignorePaths": [],
   "kubernetes": {
     "managerFilePatterns": [
       "/(^|/)library/kubernetes/.+/[^/]+\\.ya?ml$/"
