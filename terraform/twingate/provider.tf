@@ -3,7 +3,7 @@ terraform {
   required_providers {
     twingate = {
       source = "Twingate/twingate"
-      version = "3.3.2"
+      version = "3.5.0"
     }
   }
 }
