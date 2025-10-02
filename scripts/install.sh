@@ -138,3 +138,7 @@ Usage:
 
 Update:
   curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
+EOF
+}
+
+main "$@"
