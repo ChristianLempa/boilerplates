@@ -3,27 +3,8 @@ services:
     image: ghcr.io/goauthentik/server:2025.6.3
     container_name: {{ container_name | default('authentik-server') }}
     command: server
-    environment:
-      - TZ={{ container_timezone | default('UTC') }}
-      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
-      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
-      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
-      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
-      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
-      {% if authentik_secret_key -%}
-      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
-      {% endif %}
-      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
-      {% if email_enabled -%}
-      - AUTHENTIK_EMAIL__HOST={{ email_host }}
-      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
-      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
-      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
-      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
-      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
-      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
-      - AUTHENTIK_EMAIL__FROM={{ email_from }}
-      {% endif %}
+    env_file:
+      - .env.authentik
     {% if ports_enabled %}
     ports:
       - "{{ ports_http | default(9000) }}:9000"
@@ -59,27 +40,8 @@ services:
     image: ghcr.io/goauthentik/server:2025.6.3
     container_name: {{ service_name | default('authentik') }}-worker
     command: worker
-    environment:
-      - TZ={{ container_timezone | default('UTC') }}
-      - AUTHENTIK_REDIS__HOST={{ service_name | default('authentik') }}-redis
-      - AUTHENTIK_POSTGRESQL__HOST={{ service_name | default('authentik') }}-postgres
-      - AUTHENTIK_POSTGRESQL__USER={{ database_user | default('authentik') }}
-      - AUTHENTIK_POSTGRESQL__NAME={{ database_name | default('authentik') }}
-      - AUTHENTIK_POSTGRESQL__PASSWORD={{ database_password | default('authentik') }}
-      {% if authentik_secret_key -%}
-      - AUTHENTIK_SECRET_KEY={{ authentik_secret_key }}
-      {% endif %}
-      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting | default(false) }}
-      {% if email_enabled -%}
-      - AUTHENTIK_EMAIL__HOST={{ email_host }}
-      - AUTHENTIK_EMAIL__PORT={{ email_port | default(25) }}
-      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
-      - AUTHENTIK_EMAIL__PASSWORD={{ email_password }}
-      - AUTHENTIK_EMAIL__USE_TLS={{ email_use_tls | default(false) }}
-      - AUTHENTIK_EMAIL__USE_SSL={{ email_use_ssl | default(false) }}
-      - AUTHENTIK_EMAIL__TIMEOUT={{ email_timeout | default(10) }}
-      - AUTHENTIK_EMAIL__FROM={{ email_from }}
-      {% endif %}
+    env_file:
+      - .env.authentik
     user: root
     volumes:
       - /run/docker.sock:/run/docker.sock
@@ -99,8 +61,6 @@ services:
     image: docker.io/library/redis:8.2.1
     container_name: {{ service_name | default('authentik') }}-redis
     command: --save 60 1 --loglevel warning
-    environment:
-      - TZ={{ container_timezone | default('UTC') }}
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       start_period: 20s
@@ -115,17 +75,14 @@ services:
     {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}
 
-  {{ if not database_external }}
+  {% if not database_external %}
   {{ service_name | default('authentik') }}-postgres:
     image: docker.io/library/postgres:17.6
     container_name: {{ service_name | default('authentik') }}-db
-    environment:
-      - POSTGRES_USER={{ database_user | default('authentik') }}
-      - POSTGRES_PASSWORD={{ database_password | default('authentik') }}
-      - POSTGRES_DB={{ database_name | default('authentik') }}
-      - TZ={{ container_timezone | default('UTC') }}
+    env_file:
+      - .env.postgres
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "{{ database_user | default('authentik') }}"']
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user | default('authentik') }}"]
       start_period: 30s
       interval: 10s
       timeout: 10s
@@ -137,7 +94,7 @@ services:
       - {{ network_name | default('bridge') }}
     {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}
-  {{ endif }}
+  {% endif %}
 
 volumes:
   database_data:

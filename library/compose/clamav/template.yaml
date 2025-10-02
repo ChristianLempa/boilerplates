@@ -17,5 +17,3 @@ spec:
         type: string
         description: Clamav version
         default: latest
-
----

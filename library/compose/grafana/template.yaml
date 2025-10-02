@@ -12,11 +12,15 @@ metadata:
   - observability
   - dashboard
 spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (3000)"
+        type: int
+        default: 3000
   general:
     vars:
       grafana_version:
         type: string
         description: Grafana version
         default: latest
-
----

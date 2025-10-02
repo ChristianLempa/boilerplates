@@ -19,9 +19,15 @@ class DisplayManager:
     """Handles all rich rendering for the CLI."""
 
     def display_templates_table(
-        self, templates: list[dict], module_name: str, title: str
+        self, templates: list, module_name: str, title: str
     ) -> None:
-        """Display a table of templates."""
+        """Display a table of templates.
+        
+        Args:
+            templates: List of Template objects
+            module_name: Name of the module
+            title: Title for the table
+        """
         if not templates:
             logger.info(f"No templates found for module '{module_name}'")
             return
@@ -34,17 +40,14 @@ class DisplayManager:
         table.add_column("Version", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
-        for template_info in templates:
-            template = template_info["template"]
-            indent = template_info["indent"]
+        for template in templates:
             name = template.metadata.name or "Unnamed Template"
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
             version = template.metadata.version or ""
             library = template.metadata.library or ""
 
-            template_id = f"{indent}{template.id}"
-            table.add_row(template_id, name, tags, version, library)
+            table.add_row(template.id, name, tags, version, library)
 
         console.print(table)
 
@@ -56,9 +59,10 @@ class DisplayManager:
 
     def display_section_header(self, title: str, description: str | None) -> None:
         """Display a section header."""
-        console.print(f"\n[bold cyan]{title}[/bold cyan]")
         if description:
-            console.print(f"[dim]{description}[/dim]")
+            console.print(f"\n[bold cyan]{title}[/bold cyan] [dim]- {description}[/dim]")
+        else:
+            console.print(f"\n[bold cyan]{title}[/bold cyan]")
         console.print("─" * 40, style="dim")
 
     def display_validation_error(self, message: str) -> None:
@@ -161,9 +165,13 @@ class DisplayManager:
                 row_style = "dim" if is_dimmed else None
                 # Use variable's native get_display_value() method
                 default_val = variable.get_display_value(mask_sensitive=True, max_length=30)
+                
+                # Add lock icon for sensitive variables
+                sensitive_icon = " \uf084" if variable.sensitive else ""
+                var_display = f"  {var_name}{sensitive_icon}"
 
                 variables_table.add_row(
-                    f"  {var_name}",
+                    var_display,
                     variable.type or "str",
                     default_val,
                     variable.description or "",
@@ -172,6 +180,55 @@ class DisplayManager:
                 )
 
         console.print(variables_table)
+
+    def display_file_generation_confirmation(
+        self, 
+        output_dir: Path, 
+        files: dict[str, str], 
+        existing_files: list[Path] | None = None
+    ) -> None:
+        """Display files to be generated with confirmation prompt.
+        
+        Args:
+            output_dir: The output directory path
+            files: Dictionary of file paths to content
+            existing_files: List of existing files that will be overwritten (if any)
+        """
+        console.print()
+        console.print("[bold]Files to be generated:[/bold]")
+        
+        # Create a tree view of files
+        file_tree = Tree(f"\uf07b [cyan]{output_dir.resolve()}[/cyan]")
+        tree_nodes = {Path("."): file_tree}
+        
+        # Sort files for better display
+        sorted_files = sorted(files.keys())
+        
+        for file_path_str in sorted_files:
+            file_path = Path(file_path_str)
+            parts = file_path.parts
+            current_path = Path(".")
+            current_node = file_tree
+            
+            # Build directory structure
+            for part in parts[:-1]:
+                current_path = current_path / part
+                if current_path not in tree_nodes:
+                    new_node = current_node.add(f"\uf07b [white]{part}[/white]")
+                    tree_nodes[current_path] = new_node
+                current_node = tree_nodes[current_path]
+            
+            # Add file with indicator if it will be overwritten
+            file_name = parts[-1]
+            full_path = output_dir / file_path
+            
+            if existing_files and full_path in existing_files:
+                current_node.add(f"\uf15c [yellow]{file_name}[/yellow] [red](will overwrite)[/red]")
+            else:
+                current_node.add(f"\uf15c [green]{file_name}[/green]")
+        
+        console.print(file_tree)
+        console.print()
 
     def display_config_tree(self, spec: dict, module_name: str, show_all: bool = False) -> None:
         """Display configuration spec as a tree view.

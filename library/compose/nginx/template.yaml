@@ -23,4 +23,7 @@ spec:
         default: 8443
   nginx:
     vars:
----
+      nginx_version:
+        description: "Nginx version"
+        type: str
+        default: "latest"

@@ -18,5 +18,15 @@ spec:
         type: string
         description: PostgreSQL version
         default: latest
-
----
+      postgres_secrets_enabled:
+        type: bool
+        description: "Enable Docker secrets for sensitive data"
+        default: false
+      postgres_initdb_args:
+        type: str
+        description: "PostgreSQL initialization arguments"
+        default: "--data-checksums"
+      postgres_host_auth_method:
+        type: str
+        description: "PostgreSQL host authentication method (leave empty for password-based)"
+        default: ""

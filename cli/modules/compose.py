@@ -41,7 +41,6 @@ spec = OrderedDict(
       },
       "network": {
         "title": "Network",
-        "prompt": "Enable custom network block?",
         "toggle": "network_enabled",
         "vars": {
           "network_enabled": {
@@ -63,7 +62,6 @@ spec = OrderedDict(
       },
       "ports": {
         "title": "Ports",
-        "prompt": "Expose ports via 'ports' mapping?",
         "toggle": "ports_enabled",
         "vars": {
           "ports_enabled": {
@@ -75,7 +73,6 @@ spec = OrderedDict(
       },
       "traefik": {
         "title": "Traefik",
-        "prompt": "Enable Traefik reverse proxy integration?",
         "toggle": "traefik_enabled",
         "description": "Traefik routes external traffic to your service.",
         "vars": {
@@ -116,7 +113,6 @@ spec = OrderedDict(
       },
       "swarm": {
         "title": "Docker Swarm",
-        "prompt": "Enable Docker Swarm deployment?",
         "toggle": "swarm_enabled",
         "description": "Deploy service in Docker Swarm mode with replicas.",
         "vars": {
@@ -134,12 +130,23 @@ spec = OrderedDict(
       },
       "database": {
         "title": "Database",
-        "prompt": "Configure external database connection?",
         "toggle": "database_enabled",
         "description": "Connect to external database (PostgreSQL, MySQL, MariaDB, etc.)",
         "vars": {
           "database_enabled": {
             "description": "Enable external database integration",
+            "type": "bool",
+            "default": False,
+          },
+          "database_type": {
+            "description": "Database type",
+            "type": "enum",
+            "options": ["postgres", "mysql", "mariadb"],
+            "default": "postgres",
+          },
+          "database_external": {
+            "description": "Use an external database server?",
+            "extra": "If 'no', a database container will be created in the compose project.",
             "type": "bool",
             "default": False,
           },
@@ -163,14 +170,14 @@ spec = OrderedDict(
           "database_password": {
             "description": "Database password",
             "type": "str",
+            "sensitive": True,
           },
         },
       },
       "email": {
         "title": "Email Server",
-        "prompt": "Configure email server for notifications and user management?",
         "toggle": "email_enabled",
-        "description": "Used for notifications, sign-ups, password resets, and alerts.",
+        "description": "Configure email server for notifications and user management.",
         "vars": {
           "email_enabled": {
             "description": "Enable email server configuration",
@@ -193,6 +200,7 @@ spec = OrderedDict(
           "email_password": {
             "description": "SMTP password",
             "type": "str",
+            "sensitive": True,
           },
           "email_from": {
             "description": "From email address",
@@ -207,14 +215,13 @@ spec = OrderedDict(
             "description": "Use SSL encryption",
             "type": "bool",
             "default": False,
-          },
+          }
         },
       },
       "authentik": {
         "title": "Authentik SSO",
-        "prompt": "Configure Authentik SSO integration?",
         "toggle": "authentik_enabled",
-        "description": "Single Sign-On using Authentik identity provider.",
+        "description": "Integrate with Authentik for Single Sign-On authentication.",
         "vars": {
           "authentik_enabled": {
             "description": "Enable Authentik SSO integration",
@@ -236,6 +243,7 @@ spec = OrderedDict(
           "authentik_client_secret": {
             "description": "OAuth client secret from Authentik provider",
             "type": "str",
+            "sensitive": True,
           },
         },
       },

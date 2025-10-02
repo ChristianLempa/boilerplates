@@ -1,6 +1,0 @@
-http:
-  middlewares:
-    {{ middleware_name }}:
-      forwardAuth:
-        address: "http://{{ ldap_auth_backend_ip }}:{{ ldap_auth_backend_port }}/auth"
-        trustForwardHeader: true

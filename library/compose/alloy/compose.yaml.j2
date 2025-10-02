@@ -15,12 +15,20 @@ services:
     volumes:
       - ./config/config.alloy:/etc/alloy/config.alloy
       - alloy_data:/var/lib/alloy/data
+      {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
+      - /sys:/sys:ro
+      {% endif %}
+      {% if logs_enabled and logs_system %}
       - /run:/run:ro
       - /var/log:/var/log:ro
-      - /sys:/sys:ro
+      {% endif %}
+      {% if (logs_enabled and logs_docker) or (metrics_enabled and metrics_docker) %}
       - /var/lib/docker/:/var/lib/docker/:ro
+      {% endif %}
+      {% if metrics_enabled and metrics_system %}
       - /run/udev/data:/run/udev/data:ro
+      {% endif %}
     {% if network_enabled %}
     networks:
       - {{ network_name | default("bridge") }}

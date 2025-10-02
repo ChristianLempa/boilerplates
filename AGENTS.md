@@ -12,13 +12,14 @@ The CLI is a Python application built with Typer for the command-line interface 
 
 - `cli/` - Python CLI application source code
   - `cli/core/` - Core functionality (app, config, commands, logging)
-  - `cli/modules/` - Technology-specific modules (terraform, docker, compose, etc.)
-- `library/` - Template collections organized by technology
-  - `library/terraform/` - OpenTofu/Terraform templates and examples
-  - `library/compose/` - Docker Compose configurations
-  - `library/proxmox/` - Packer templates for Proxmox
+  - `cli/modules/` - Technology-specific modules (terraform, docker, compose, config, etc.)
+- `library/` - Template collections organized by module
   - `library/ansible/` - Ansible playbooks and configurations
+  - `library/ci/` - CI/CD automation templates (GitHub Actions, GitLab CI, Kestra)
+  - `library/config/` - Application-specific configuration templates
+  - `library/compose/` - Docker Compose configurations
   - `library/kubernetes/` - Kubernetes deployments
+  - `library/terraform/` - OpenTofu/Terraform templates and examples
   - And more...
 
 ## Development Setup
@@ -26,11 +27,36 @@ The CLI is a Python application built with Typer for the command-line interface 
 ### Running the CLI
 
 ```bash
-# Running commands
+# List available commands
 python3 -m cli
+
+# List templates for a module
+python3 -m cli compose list
 
 # Debugging commands
 python3 -m cli --log-level DEBUG compose list
+
+# Generate template interactively (default - prompts for variables)
+python3 -m cli compose generate authentik --out /tmp/my-project
+
+# Generate template non-interactively (skips prompts, uses defaults and CLI variables)
+python3 -m cli compose generate authentik --out /tmp/my-project --no-interactive
+
+# Generate with variable overrides (non-interactive)
+python3 -m cli compose generate authentik \
+  --var service_name=auth \
+  --var ports_enabled=false \
+  --var database_type=postgres \
+  --out /tmp/my-project \
+  --no-interactive
+
+# Show template details
+python3 -m cli compose show authentik
+
+# Managing default values (renamed from 'config' to 'defaults')
+python3 -m cli compose defaults set service_name my-app
+python3 -m cli compose defaults get
+python3 -m cli compose defaults list
 ```
 
 ## Common Development Tasks
@@ -114,43 +140,6 @@ library/compose/my-nginx-template/
     └── README.md
 ```
 
-#### Sub-Templates
-
-Sub-templates are specialized templates that use dot notation in their directory names to create related template variations or components. They provide a way to organize templates hierarchically and create focused, reusable configurations.
-
-**Directory Naming Convention:**
-- Sub-templates use dot notation: `parent.sub-name`
-- Example: `traefik.authentik-middleware`, `traefik.external-service`
-- The parent name should match an existing template for logical grouping
-
-**Visibility:**
-- By default, sub-templates are hidden from the standard `list` command
-- Use `list --all` to show all templates including sub-templates
-- This keeps the default view clean while providing access to specialized templates
-
-**Usage Examples:**
-```bash
-# Show only main templates (default behavior)
-python3 -m cli compose list
-
-# Show all templates including sub-templates
-python3 -m cli compose list --all
-
-# Search for templates by ID
-python3 -m cli compose search traefik
-
-# Search for templates including sub-templates
-python3 -m cli compose search authentik --all
-
-# Generate a sub-template
-python3 -m cli compose generate traefik.authentik-middleware
-```
-
-**Common Use Cases:**
-- Configuration variations (e.g., `service.production`, `service.development`)
-- Component templates (e.g., `traefik.middleware`, `traefik.router`)
-- Environment-specific templates (e.g., `app.docker`, `app.kubernetes`)
-
 #### Variables
 
 Variables are a cornerstone of the CLI, allowing for dynamic and customizable template generation. They are defined and processed with a clear precedence and logic.
@@ -217,29 +206,60 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 * TODO Template Validation Command: A command to validate the structure and variable definitions of a template without generating it.
 * TODO Interactive Variable Prompt Improvements: The interactive prompt could be improved with better navigation, help text, and validation feedback.
 * TODO Better Error Recovery in Jinja2 Rendering
+* TODO Icon Management Class in DisplayManager: Create a centralized icon management system in `cli/core/display.py` to standardize icons used throughout the CLI for file types (.yaml, .j2, .json, etc.), status indicators (success, warning, error, info), and UI elements. This would improve consistency, make icons easier to maintain, and allow for theme customization.
 
 ## Best Practices for Template Development
 
 ### Template Structure
 - Always include a main `template.yaml` or `template.yml` file
 - Use descriptive template IDs (directory names) with lowercase and hyphens
-- Use dot notation for sub-templates (e.g., `parent.sub-name`)
 - Place Jinja2 templates in subdirectories when appropriate (e.g., `config/`)
+- For application-specific configs, create templates in the `config` module instead of using complex directory structures
 
 ### Variable Definitions
-- Define variables in module specs for common, reusable settings
-- Define variables in template specs for template-specific settings
-- Only override specific fields in templates (don't redefine entire variables)
-- Use descriptive variable names with underscores (e.g., `external_url`, `smtp_port`)
-- Always specify `type` for new variables
-- Provide sensible `default` values when possible
+- **Prefer module spec variables first**: Always check if a variable exists in the module spec before adding template-specific variables. Use existing module variables where possible to maintain consistency across templates.
+- **Override module variables when needed**: If a module variable needs different behavior for a specific template, override its `description`, `default`, or `extra` properties in the template spec rather than creating a new variable.
+- **Add template-specific variables only when necessary**: Only create new variables in the template spec when they are truly unique to that template and don't fit into existing module variables.
+- Use descriptive names with underscores (e.g., `external_url`, `smtp_port`)
+- Always specify `type` and provide sensible `default` values
+- Mark sensitive data with `sensitive: true` and `autogenerated: true` for auto-generated secrets
+- Use `pwgen` filter for password generation: `{{ secret_key if secret_key else (none | pwgen(50)) }}`
+
+**Example**: For the Traefik template, use the existing `authentik` section from the module spec instead of creating custom `authentik_middleware_*` variables. Override the section's `description` and `extra` to provide Traefik-specific guidance.
 
 ### Jinja2 Templates
-- Use `.j2` extension for all Jinja2 template files
-- Use conditional blocks (`{% if %}`) for optional features
-- Keep template logic simple and readable
-- Use comments to explain complex logic
-- Test with different variable combinations
+- Use `.j2` extension and always use `| default()` filter for safe fallbacks
+- Use conditional blocks for optional features and keep logic simple
+- Add descriptive comments in generated files
+
+### Docker Compose Specific Practices
+
+#### Variable Naming Conventions
+- **Service/Container**: `service_name`, `container_name`, `container_timezone`, `restart_policy`
+- **Application**: Prefix with app name (e.g., `authentik_secret_key`, `gitea_root_url`)
+- **Database**: `database_type`, `database_enabled`, `database_external`, `database_host`, `database_port`, `database_name`, `database_user`, `database_password`
+- **Network**: `network_enabled`, `network_name`, `network_external`
+- **Traefik**: `traefik_enabled`, `traefik_host`, `traefik_tls_enabled`, `traefik_tls_entrypoint`, `traefik_tls_certresolver`
+- **Ports**: `ports_enabled`, `ports_http`, `ports_https`, `ports_ssh`
+- **Email**: `email_enabled`, `email_host`, `email_port`, `email_username`, `email_password`, `email_from`
+
+#### Scoped Environment Files
+Use separate `.env.{service}.j2` files for different services (e.g., `.env.authentik.j2`, `.env.postgres.j2`):
+
+- Benefits: Better security, cleaner organization, easier management, reusable configs
+- Usage: Reference via `env_file` directive in `compose.yaml.j2`
+- Structure: Group related settings with comments (e.g., `# Database Connection`)
+
+#### Common Toggle Patterns
+- `database_enabled`, `email_enabled`, `traefik_enabled`, `ports_enabled`, `network_enabled`
+
+#### Docker Compose Template Patterns
+- Always define `depends_on` for startup ordering and use named volumes for persistence
+- Include health checks for database services
+- Use `{% if not database_external %}` for conditional service creation
+- Group Traefik labels logically with proper service/router configuration
+- Always include `restart: {{ restart_policy | default('unless-stopped') }}`
+- Support both internal and external databases/services with conditionals
 
 ### Module Specs
 - Define common sections that apply to all templates of that kind

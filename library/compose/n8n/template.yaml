@@ -11,11 +11,15 @@ metadata:
   - docker
   - compose
 spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (5678)"
+        type: int
+        default: 5678
   general:
     vars:
       n8n_version:
         type: string
         description: N8N version
         default: latest
-
----

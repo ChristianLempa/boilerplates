@@ -3,63 +3,58 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 
-# --> (Optional) Change log level and format here ...
-#     - level: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
-{% if traefik_log_level is defined %}
+{% if container_loglevel is defined %}
 log:
-  level: {{ traefik_log_level }}
+  level: {{ container_loglevel | upper }}
 {% endif %}
 
-# --> (Optional) Enable accesslog here ...
-{% if traefik_accesslog_enabled %}
+{% if accesslog_enabled %}
 accesslog: {}
 {% endif %}
 
-# --> (Optional) Enable API and Dashboard here, don't do in production
-{% if dashboard_enabled %}
+{% if traefik_dashboard_enabled %}
 api:
   dashboard: true
   insecure: true
 {% endif %}
 
-# -- Change EntryPoints here...
 entryPoints:
-  web:
+  {{ traefik_entrypoint }}:
     address: :80
-    # --> (Optional) Redirect all HTTP to HTTPS
-    {% if traefik_redirect_http_to_https %}
+    {% if traefik_tls_redirect %}
     http:
       redirections:
         entryPoint:
-          to: websecure
+          to: {{ traefik_tls_entrypoint }}
           scheme: https
     {% endif %}
-  websecure:
+  {{ traefik_tls_entrypoint }}:
     address: :443
 
-# -- Configure your CertificateResolver here...
+{% if traefik_tls_enabled %}
 certificatesResolvers:
-  {{ traefik_acme_dns_provider }}:
+  {{ traefik_tls_certresolver | default('cloudflare') }}:
     acme:
-      email: {{ acme_email }}
+      email: {{ traefik_tls_acme_email }}
       storage: /var/traefik/certs/acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
-        provider: {{ traefik_acme_dns_provider }}
+        provider: {{ traefik_tls_acme_provider | default('cloudflare') }}
         resolvers:
-{% for resolver in traefik_acme_dns_resolvers %}
-          - "{{ resolver }}"
-{% endfor %}
+          - 1.1.1.1:53
+          - 8.8.8.8:53
+{% endif %}
 
-# --> (Optional) Disable TLS Cert verification check
+# NOTE: If using self-signed certificates in your backend services, uncomment the following section
+# to disable certificate verification (not recommended for production use).
+# ---
 # serversTransport:
 #   insecureSkipVerify: true
-# <--
 
 providers:
   docker:
     exposedByDefault: false
     network: {{ network_name }}
   file:
-    directory: /etc/traefik
+    directory: /etc/traefik/files
     watch: true

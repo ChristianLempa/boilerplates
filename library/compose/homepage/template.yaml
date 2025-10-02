@@ -17,5 +17,3 @@ spec:
         type: string
         description: Homepage version
         default: latest
-
----

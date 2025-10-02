@@ -1,89 +1,74 @@
 services:
-  server:
+  {{ service_name | default('gitea') }}:
     image: docker.io/gitea/gitea:1.24.5
-    container_name: gitea-server
-    environment:
-      - USER_UID=1000
-      - USER_GID=1000
-      # -- Change your database settings here...
-      # --> PostgreSQL
-      - GITEA__database__DB_TYPE=postgres
-      - GITEA__database__HOST=${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}
-      - GITEA__database__NAME=${POSTGRES_DB:?POSTGRES_DB not set}
-      - GITEA__database__USER=${POSTGRES_USER:?POSTGRES_USER not set}
-      - GITEA__database__PASSWD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
-      # <--
-      # --> OR MySQL
-      # - GITEA__database__DB_TYPE=mysql
-      # - GITEA__database__HOST=db:3306
-      # - GITEA__database__NAME=${MYSQL_DATABASE:?MYSQL_DATABASE not set}
-      # - GITEA__database__USER=${MYSQL_USER:?MYSQL_USER not set}
-      # - GITEA__database__PASSWD=${MYSQL_PASSWORD:?MYSQL_PASSWORD not set}
-      # <--
-      # -- (Optional) Change your server settings here...
-      - GITEA__server__SSH_PORT=2221  # <-- (Optional) Replace with your desired SSH port
-      - GITEA__server__ROOT_URL=http://your-fqdn  # <-- Replace with your FQDN
-    # --> (Optional) When using traefik...
-    # networks:
-    #   - frontend
-    # <--
-    # --> (Optional) When using an internal database...
-    #   - backend
-    # <--
+    container_name: {{ container_name | default('gitea-server') }}
+    env_file:
+      - .env.gitea
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http | default(3000) }}:3000"
+      - "{{ ports_ssh | default(2221) }}:22"
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('gitea') }}.loadbalancer.server.port=3000
+      - traefik.http.services.{{ service_name | default('gitea') }}.loadbalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name | default('gitea') }}.rule=Host(`{{ traefik_host }}`)
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('gitea') }}.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('gitea') }}.tls=true
+      - traefik.http.routers.{{ service_name | default('gitea') }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('gitea') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+    {% endif %}
     volumes:
       - gitea-data:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    ports:
-      # --> (Optional) Remove when using traefik...
-      - "3000:3000"
-      # <--
-      - "2221:22"  # <-- (Optional) Replace with your desired SSH port
-      # --> (Optional) When using internal database...
-    # depends_on:
-    #   - db
-    # <--
-    # --> (Optional) When using traefik...
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.http.services.gitea.loadbalancer.server.port=3000
-    #   - traefik.http.services.gitea.loadbalancer.server.scheme=http
-    #   - traefik.http.routers.gitea-https.entrypoints=websecure
-    #   - traefik.http.routers.gitea-https.rule=Host(`your-fqdn`)  # <-- Replace with your FQDN
-    #   - traefik.http.routers.gitea-https.tls=true
-    #   - traefik.http.routers.gitea-https.tls.certresolver=your-certresolver  # <-- Replace with your certresolver
-    # <--
-    restart: unless-stopped
+    depends_on:
+      - {{ service_name | default('gitea') }}-postgres
+    restart: {{ restart_policy | default('unless-stopped') }}
 
-# --> When using internal database
-# db:
-#   image: docker.io/library/postgres:17.5
-#   container_name: gitea-db
-#   environment:
-#     - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER not set}
-#     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
-#     - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB not set}
-#   networks:
-#     - backend
-#   volumes:
-#     - gitea-db:/var/lib/postgresql/data
-#   restart: unless-stopped
-# <--
+  {% if not database_external %}
+  {{ service_name | default('gitea') }}-postgres:
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name | default('gitea') }}-db
+    env_file:
+      - .env.postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user | default('gitea') }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - gitea-db:/var/lib/postgresql/data
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+  {% endif %}
 
 volumes:
   gitea-data:
     driver: local
-# --> When using internal database
-# gitea-db:
-#   driver: local
-# <--
+  {% if not database_external %}
+  gitea-db:
+    driver: local
+  {% endif %}
 
-# --> (Optional) When using traefik...
-# networks:
-#   frontend:
-#     external: true
-# <--
-# --> (Optional) When using an internal database...
-#   backend:
-#     external: true
-# <--
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}
+

@@ -11,11 +11,19 @@ metadata:
   - docker
   - compose
 spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (80)"
+        type: int
+        default: 80
+      ports_https:
+        description: "Host port for HTTPS (443)"
+        type: int
+        default: 443
   general:
     vars:
       whoami_version:
         type: string
         description: Whoami version
         default: latest
-
----

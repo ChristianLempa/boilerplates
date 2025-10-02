@@ -17,5 +17,3 @@ spec:
         type: string
         description: Wazuh.Manager version
         default: latest
-
----

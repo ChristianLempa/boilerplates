@@ -11,11 +11,15 @@ metadata:
   - docker
   - compose
 spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (8080)"
+        type: int
+        default: 8080
   general:
     vars:
       homer_version:
         type: string
         description: Homer version
         default: latest
-
----

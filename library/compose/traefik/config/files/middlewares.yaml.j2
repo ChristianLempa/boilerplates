@@ -1,0 +1,66 @@
+---
+# Traefik Dynamic Middleware Configuration
+# This file is watched by Traefik and changes are applied automatically
+
+http:
+  middlewares:
+{% if authentik_enabled %}
+    # Authentik Forward Auth Middleware
+    # Use this middleware in your service labels: traefik.http.routers.myservice.middlewares={{ traefik_authentik_middleware_name }}@file
+    {{ traefik_authentik_middleware_name }}:
+      forwardAuth:
+        address: {{ authentik_outpost_url }}/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+
+{% endif %}
+    # Example: Custom Headers Middleware
+    # Uncomment and customize as needed
+    # custom-headers:
+    #   headers:
+    #     customRequestHeaders:
+    #       X-Custom-Header: "value"
+    #     customResponseHeaders:
+    #       X-Custom-Response: "value"
+
+    # Example: Rate Limiting Middleware
+    # Uncomment and customize as needed
+    # rate-limit:
+    #   rateLimit:
+    #     average: 100
+    #     burst: 50
+    #     period: 1s
+
+    # Example: IP Whitelist Middleware
+    # Uncomment and customize as needed
+    # ip-whitelist:
+    #   ipWhiteList:
+    #     sourceRange:
+    #       - "192.168.1.0/24"
+    #       - "10.0.0.0/8"
+
+    # Example: Basic Auth Middleware
+    # Uncomment and customize as needed
+    # Generate passwords with: htpasswd -nb user password
+    # basic-auth:
+    #   basicAuth:
+    #     users:
+    #       - "admin:$apr1$..."
+
+    # Example: Redirect Scheme Middleware
+    # Uncomment and customize as needed
+    # redirect-to-https:
+    #   redirectScheme:
+    #     scheme: https
+    #     permanent: true

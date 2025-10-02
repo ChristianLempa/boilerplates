@@ -4,9 +4,9 @@ kind: "compose"
 metadata:
   name: "Traefik"
   description: "Modern reverse proxy and load balancer for microservices"
-  version: "0.1.0"
+  version: "0.2.0"
   author: "Christian Lempa"
-  date: "2025-09-28"
+  date: "2025-10-02"
   tags:
     - traefik
     - reverse-proxy
@@ -14,45 +14,41 @@ metadata:
     - edge-router
 spec:
   general:
+    name: "General"
+    required: true
     vars:
-      traefik_version:
-        type: "string"
-        description: "Traefik version"
-        default: "v3.5.1"
-      acme_email:
-        type: "email"
-        description: "Email address for ACME (Let's Encrypt) registration"
-        default: ""
-      traefik_log_level:
-        type: "enum"
-        description: "Traefik log level"
-        default: "INFO"
-        values:
-          - "TRACE"
-          - "DEBUG"
-          - "INFO"
-          - "WARN"
-          - "ERROR"
-          - "FATAL"
-      traefik_accesslog_enabled:
+      accesslog_enabled:
         type: "bool"
         description: "Enable Traefik access log"
         default: false
-      traefik_redirect_http_to_https:
+  traefik:
+    title: "Traefik Settings"
+    description: "Configure Traefik as a reverse proxy with TLS/ACME support"
+    vars:
+      traefik_tls_acme_email:
+        type: "str"
+        description: "Email address for ACME (Let's Encrypt) registration"
+        default: "admin@example.com"
+        extra: "Required when traefik_tls_enabled is true"
+      traefik_tls_redirect:
         type: "bool"
-        description: "Redirect all HTTP to HTTPS"
+        description: "Redirect all HTTP traffic to HTTPS"
         default: true
-      traefik_acme_dns_provider:
-        type: "string"
-        description: "ACME DNS provider"
+      traefik_tls_acme_provider:
+        type: "enum"
+        description: "ACME DNS challenge provider"
         default: "cloudflare"
-      traefik_acme_dns_resolvers:
-        type: "list"
-        description: "ACME DNS resolvers"
-        default:
-          - "1.1.1.1:53"
-          - "8.8.8.8:53"
+        options:
+          - "cloudflare"
+        extra: "DNS provider for domain validation"
+      traefik_tls_acme_token:
+        type: "str"
+        description: "DNS provider API token"
+        default: "your-api-token-here"
+        sensitive: true
+        extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions"
   ports:
+    name: "Ports"
     prompt: "Expose ports via 'ports' mapping?"
     toggle: "ports_enabled"
     vars:
@@ -60,8 +56,30 @@ spec:
         type: "bool"
         description: "Expose ports via 'ports' mapping"
         default: true
-      dashboard_enabled:
+      traefik_dashboard_enabled:
         type: "bool"
         description: "Enable Traefik dashboard (don't use in production)"
         default: false
----
+        extra: "Exposes dashboard on port 8080 in insecure mode"
+  network:
+    vars:
+      network_enabled:
+        default: true
+      network_name:
+        default: "proxy"
+  authentik:
+    title: "Authentik Middleware"
+    description: >
+      Configure Authentik forward auth middleware for Traefik.
+      This creates a middleware that can be referenced in your service labels
+      as 'authentik@file' (or with your custom middleware name).
+    vars:
+      authentik_outpost_url:
+        type: "url"
+        description: "Authentik outpost URL (e.g., http://authentik-outpost:9000)"
+        default: "http://authentik-outpost:9000"
+      traefik_authentik_middleware_name:
+        type: "str"
+        description: "Name of the Authentik middleware"
+        default: "authentik"
+        extra: "Reference this in router labels as '{name}@file'"

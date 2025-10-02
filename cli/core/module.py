@@ -77,12 +77,9 @@ class Module(ABC):
   # SECTION: Public Commands
   # --------------------------
 
-  def list(
-    self, 
-    all_templates: bool = Option(False, "--all", "-a", help="Show all templates including sub-templates")
-  ) -> list[Template]:
+  def list(self) -> list[Template]:
     """List all templates."""
-    logger.debug(f"Listing templates for module '{self.name}' with all={all_templates}")
+    logger.debug(f"Listing templates for module '{self.name}'")
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
@@ -94,15 +91,11 @@ class Module(ABC):
         logger.error(f"Failed to load template from {template_dir}: {exc}")
         continue
     
-    # Apply filtering logic
-    filtered_templates = self._filter_templates(templates, None, all_templates)
+    filtered_templates = templates
     
     if filtered_templates:
-      # Group templates for hierarchical display
-      grouped_templates = self._group_templates(filtered_templates)
-      
       self.display.display_templates_table(
-        grouped_templates,
+        filtered_templates,
         self.name,
         f"{self.name.capitalize()} templates"
       )
@@ -113,11 +106,10 @@ class Module(ABC):
 
   def search(
     self,
-    query: str = Argument(..., help="Search string to filter templates by ID"),
-    all_templates: bool = Option(False, "--all", "-a", help="Show all templates including sub-templates")
+    query: str = Argument(..., help="Search string to filter templates by ID")
   ) -> list[Template]:
     """Search for templates by ID containing the search string."""
-    logger.debug(f"Searching templates for module '{self.name}' with query='{query}', all={all_templates}")
+    logger.debug(f"Searching templates for module '{self.name}' with query='{query}'")
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
@@ -130,15 +122,12 @@ class Module(ABC):
         continue
     
     # Apply search filtering
-    filtered_templates = self._search_templates(templates, query, all_templates)
+    filtered_templates = [t for t in templates if query.lower() in t.id.lower()]
     
     if filtered_templates:
-      # Group templates for hierarchical display
-      grouped_templates = self._group_templates(filtered_templates)
-      
       logger.info(f"Found {len(filtered_templates)} templates matching '{query}' for module '{self.name}'")
       self.display.display_templates_table(
-        grouped_templates,
+        filtered_templates,
         self.name,
         f"{self.name.capitalize()} templates matching '{query}'"
       )
@@ -243,17 +232,44 @@ class Module(ABC):
         template.variables.validate_all()
       
       rendered_files = template.render(template.variables)
+      
+      # Safety check for render result
+      if not rendered_files:
+        console.print("[red]Error: Template rendering returned no files[/red]")
+        raise Exit(code=1)
+      
       logger.info(f"Successfully rendered template '{id}'")
       output_dir = out or Path(".")
-
-      # Check if the directory is empty and confirm overwrite if necessary
-      if output_dir.exists() and any(output_dir.iterdir()):
-        if interactive:
-          if not Confirm.ask(f"Output directory '{output_dir}' is not empty. Overwrite files?", default=False):
-            console.print("[yellow]Generation cancelled.[/yellow]")
-            return
+      
+      # Check which files already exist
+      existing_files = []
+      if output_dir.exists():
+        for file_path in rendered_files.keys():
+          full_path = output_dir / file_path
+          if full_path.exists():
+            existing_files.append(full_path)
+      
+      # Display file generation confirmation
+      if interactive:
+        self.display.display_file_generation_confirmation(
+          output_dir, 
+          rendered_files, 
+          existing_files if existing_files else None
+        )
+        
+        # Ask for confirmation
+        if existing_files:
+          prompt_msg = f"[yellow][/yellow]  {len(existing_files)} file(s) will be overwritten. Continue?"
         else:
-          logger.warning(f"Output directory '{output_dir}' is not empty. Existing files may be overwritten.")
+          prompt_msg = "Generate these files?"
+        
+        if not Confirm.ask(prompt_msg, default=True):
+          console.print("[yellow]Generation cancelled.[/yellow]")
+          return
+      else:
+        # Non-interactive mode: warn if files will be overwritten
+        if existing_files:
+          logger.warning(f"{len(existing_files)} file(s) will be overwritten in '{output_dir}'")
       
       # Create the output directory if it doesn't exist
       output_dir.mkdir(parents=True, exist_ok=True)
@@ -264,7 +280,7 @@ class Module(ABC):
         full_path.parent.mkdir(parents=True, exist_ok=True)
         with open(full_path, 'w', encoding='utf-8') as f:
           f.write(content)
-        console.print(f"[green]Generated file: {full_path}[/green]")
+        console.print(f"[green]Generated file: {file_path}[/green]")
       
       logger.info(f"Template written to directory: {output_dir}")
 
@@ -289,14 +305,14 @@ class Module(ABC):
     self,
     var_name: Optional[str] = Argument(None, help="Variable name to get (omit to show all defaults)"),
   ) -> None:
-    """Get config default value(s) for this module.
+    """Get default value(s) for this module.
     
     Examples:
         # Get all defaults for module
-        cli compose config get
+        cli compose defaults get
         
         # Get specific variable default
-        cli compose config get service_name
+        cli compose defaults get service_name
     """
     from .config import ConfigManager
     config = ConfigManager()
@@ -323,24 +339,24 @@ class Module(ABC):
     var_name: str = Argument(..., help="Variable name to set default for"),
     value: str = Argument(..., help="Default value"),
   ) -> None:
-    """Set a default value for a variable in config.
+    """Set a default value for a variable.
     
     This only sets the DEFAULT VALUE, not the variable spec.
     The variable must be defined in the module or template spec.
     
     Examples:
         # Set default value
-        cli compose config set service_name my-awesome-app
+        cli compose defaults set service_name my-awesome-app
         
         # Set author for all compose templates
-        cli compose config set author "Christian Lempa"
+        cli compose defaults set author "Christian Lempa"
     """
     from .config import ConfigManager
     config = ConfigManager()
     
     # Set the default value
     config.set_default_value(self.name, var_name, value)
-    console.print(f"[green]✓ Set default:[/green] [cyan]{var_name}[/cyan] = [yellow]{value}[/yellow]")
+    console.print(f"[green] Set default:[/green] [cyan]{var_name}[/cyan] = [yellow]{value}[/yellow]")
     console.print(f"\n[dim]This will be used as the default value when generating templates with this module.[/dim]")
 
   def config_remove(
@@ -351,7 +367,7 @@ class Module(ABC):
     
     Examples:
         # Remove a default value
-        cli compose config remove service_name
+        cli compose defaults remove service_name
     """
     from .config import ConfigManager
     config = ConfigManager()
@@ -364,7 +380,7 @@ class Module(ABC):
     if var_name in defaults:
       del defaults[var_name]
       config.set_defaults(self.name, defaults)
-      console.print(f"[green]✓ Removed default for '{var_name}'[/green]")
+      console.print(f"[green] Removed default for '{var_name}'[/green]")
     else:
       console.print(f"[red]No default found for variable '{var_name}'[/red]")
 
@@ -373,14 +389,14 @@ class Module(ABC):
     var_name: Optional[str] = Argument(None, help="Variable name to clear (omit to clear all defaults)"),
     force: bool = Option(False, "--force", "-f", help="Skip confirmation prompt"),
   ) -> None:
-    """Clear config default value(s) for this module.
+    """Clear default value(s) for this module.
     
     Examples:
         # Clear specific variable default
-        cli compose config clear service_name
+        cli compose defaults clear service_name
         
         # Clear all defaults for module
-        cli compose config clear --force
+        cli compose defaults clear --force
     """
     from .config import ConfigManager
     config = ConfigManager()
@@ -395,13 +411,13 @@ class Module(ABC):
       if var_name in defaults:
         del defaults[var_name]
         config.set_defaults(self.name, defaults)
-        console.print(f"[green]✓ Cleared default for '{var_name}'[/green]")
+        console.print(f"[green] Cleared default for '{var_name}'[/green]")
       else:
         console.print(f"[red]No default found for variable '{var_name}'[/red]")
     else:
       # Clear all defaults
       if not force:
-        console.print(f"[bold yellow]⚠️  Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
+        console.print(f"[bold yellow]  Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
         console.print()
         # Show what will be cleared
         for var_name, var_value in defaults.items():
@@ -412,7 +428,135 @@ class Module(ABC):
           return
       
       config.clear_defaults(self.name)
-      console.print(f"[green]✓ Cleared all defaults for module '{self.name}'[/green]")
+      console.print(f"[green] Cleared all defaults for module '{self.name}'[/green]")
+
+  def config_list(self) -> None:
+    """Display the defaults for this specific module in YAML format.
+    
+    Examples:
+        # Show the defaults for the current module
+        cli compose defaults list
+    """
+    from .config import ConfigManager
+    import yaml
+    
+    config = ConfigManager()
+    
+    # Get only the defaults for this module
+    defaults = config.get_defaults(self.name)
+    
+    if not defaults:
+      console.print(f"[yellow]No configuration found for module '{self.name}'[/yellow]")
+      console.print(f"\n[dim]Config file location: {config.get_config_path()}[/dim]")
+      return
+    
+    # Create a minimal config structure with only this module's defaults
+    module_config = {
+      "defaults": {
+        self.name: defaults
+      }
+    }
+    
+    # Convert config to YAML string
+    yaml_output = yaml.dump(module_config, default_flow_style=False, sort_keys=False)
+    
+    console.print(f"[bold]Configuration for module:[/bold] [cyan]{self.name}[/cyan]")
+    console.print(f"[dim]Config file: {config.get_config_path()}[/dim]\n")
+    console.print(Panel(yaml_output, title=f"{self.name.capitalize()} Config", border_style="blue"))
+
+  def validate(
+    self,
+    template_id: str = Argument(None, help="Template ID to validate (if omitted, validates all templates)"),
+    verbose: bool = Option(False, "--verbose", "-v", help="Show detailed validation information")
+  ) -> None:
+    """Validate templates for Jinja2 syntax errors and undefined variables.
+    
+    Examples:
+        # Validate all templates in this module
+        cli compose validate
+        
+        # Validate a specific template
+        cli compose validate gitlab
+        
+        # Validate with verbose output
+        cli compose validate --verbose
+    """
+    from rich.table import Table
+    
+    if template_id:
+      # Validate a specific template
+      try:
+        template = self._load_template_by_id(template_id)
+        console.print(f"[bold]Validating template:[/bold] [cyan]{template_id}[/cyan]\n")
+        
+        try:
+          # Trigger validation by accessing used_variables
+          _ = template.used_variables
+          # Trigger variable definition validation by accessing variables
+          _ = template.variables
+          console.print(f"[green] Template '{template_id}' is valid[/green]")
+          
+          if verbose:
+            console.print(f"\n[dim]Template path: {template.template_dir}[/dim]")
+            console.print(f"[dim]Found {len(template.used_variables)} variables[/dim]")
+        except ValueError as e:
+          console.print(f"[red] Validation failed for '{template_id}':[/red]")
+          console.print(f"\n{e}")
+          raise Exit(code=1)
+          
+      except Exception as e:
+        console.print(f"[red]Error loading template '{template_id}': {e}[/red]")
+        raise Exit(code=1)
+    else:
+      # Validate all templates
+      console.print(f"[bold]Validating all {self.name} templates...[/bold]\n")
+      
+      entries = self.libraries.find(self.name, sort_results=True)
+      total = len(entries)
+      valid_count = 0
+      invalid_count = 0
+      errors = []
+      
+      for template_dir, library_name in entries:
+        template_id = template_dir.name
+        try:
+          template = Template(template_dir, library_name=library_name)
+          # Trigger validation
+          _ = template.used_variables
+          _ = template.variables
+          valid_count += 1
+          if verbose:
+            console.print(f"[green][/green] {template_id}")
+        except ValueError as e:
+          invalid_count += 1
+          errors.append((template_id, str(e)))
+          if verbose:
+            console.print(f"[red][/red] {template_id}")
+        except Exception as e:
+          invalid_count += 1
+          errors.append((template_id, f"Load error: {e}"))
+          if verbose:
+            console.print(f"[yellow]?[/yellow] {template_id}")
+      
+      # Summary
+      console.print(f"\n[bold]Validation Summary:[/bold]")
+      summary_table = Table(show_header=False, box=None, padding=(0, 2))
+      summary_table.add_column(style="bold")
+      summary_table.add_column()
+      summary_table.add_row("Total templates:", str(total))
+      summary_table.add_row("[green]Valid:[/green]", str(valid_count))
+      summary_table.add_row("[red]Invalid:[/red]", str(invalid_count))
+      console.print(summary_table)
+      
+      # Show errors if any
+      if errors:
+        console.print(f"\n[bold red]Validation Errors:[/bold red]")
+        for template_id, error_msg in errors:
+          console.print(f"\n[yellow]Template:[/yellow] [cyan]{template_id}[/cyan]")
+          console.print(f"[dim]{error_msg}[/dim]")
+        raise Exit(code=1)
+      else:
+        console.print(f"\n[green] All templates are valid![/green]")
 
   # !SECTION
 
@@ -432,120 +576,28 @@ class Module(ABC):
     module_app.command("list")(module_instance.list)
     module_app.command("search")(module_instance.search)
     module_app.command("show")(module_instance.show)
+    module_app.command("validate")(module_instance.validate)
     
     module_app.command(
       "generate", 
       context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
     )(module_instance.generate)
     
-    # Add config commands (simplified - only manage default values)
-    config_app = Typer(help="Manage default values for template variables")
-    config_app.command("get", help="Get default value(s)")(module_instance.config_get)
-    config_app.command("set", help="Set a default value")(module_instance.config_set)
-    config_app.command("remove", help="Remove a specific default value")(module_instance.config_remove)
-    config_app.command("clear", help="Clear default value(s)")(module_instance.config_clear)
-    module_app.add_typer(config_app, name="config")
+    # Add defaults commands (simplified - only manage default values)
+    defaults_app = Typer(help="Manage default values for template variables")
+    defaults_app.command("get", help="Get default value(s)")(module_instance.config_get)
+    defaults_app.command("set", help="Set a default value")(module_instance.config_set)
+    defaults_app.command("remove", help="Remove a specific default value")(module_instance.config_remove)
+    defaults_app.command("clear", help="Clear default value(s)")(module_instance.config_clear)
+    defaults_app.command("list", help="Display the config for this module in YAML format")(module_instance.config_list)
+    module_app.add_typer(defaults_app, name="defaults")
     
     app.add_typer(module_app, name=cls.name, help=cls.description)
     logger.info(f"Module '{cls.name}' CLI commands registered")
 
   # !SECTION
 
-  # --------------------------
-  # SECTION: Template Organization Methods
-  # --------------------------
 
-  def _filter_templates(self, templates: list[Template], filter_name: Optional[str], all_templates: bool) -> list[Template]:
-    """Filter templates based on name and sub-template visibility."""
-    filtered = []
-    
-    for template in templates:
-      template_id = template.id
-      is_sub_template = '.' in template_id
-      
-      # No filter - include based on all_templates flag
-      if not all_templates and is_sub_template:
-        continue
-      filtered.append(template)
-    
-    return filtered
-  
-  def _search_templates(self, templates: list[Template], query: str, all_templates: bool) -> list[Template]:
-    """Search templates by ID containing the query string."""
-    filtered = []
-    query_lower = query.lower()
-    
-    for template in templates:
-      template_id = template.id
-      is_sub_template = '.' in template_id
-      
-      # Skip sub-templates if not showing all
-      if not all_templates and is_sub_template:
-        continue
-      
-      # Check if query is contained in the template ID
-      if query_lower in template_id.lower():
-        filtered.append(template)
-    
-    return filtered
-
-  def _group_templates(self, templates: list[Template]) -> list[dict]:
-    """Group templates hierarchically for display."""
-    grouped = []
-    main_templates = {}
-    sub_templates = []
-    
-    # Separate main templates and sub-templates
-    for template in templates:
-      if '.' in template.id:
-        sub_templates.append(template)
-      else:
-        main_templates[template.id] = template
-        grouped.append({
-          'template': template,
-          'indent': '',
-          'is_main': True
-        })
-    
-    # Sort sub-templates by parent
-    sub_templates.sort(key=lambda t: t.id)
-    
-    # Group sub-templates by parent for proper indentation
-    sub_by_parent = {}
-    for sub_template in sub_templates:
-      parent_name = sub_template.id.split('.')[0]
-      if parent_name not in sub_by_parent:
-        sub_by_parent[parent_name] = []
-      sub_by_parent[parent_name].append(sub_template)
-    
-    # Insert sub-templates after their parents with proper indentation
-    for parent_name, parent_subs in sub_by_parent.items():
-      # Find the parent in the grouped list
-      insert_index = -1
-      for i, item in enumerate(grouped):
-        if item['template'].id == parent_name:
-          insert_index = i + 1
-          break
-      
-      # Add each sub-template with proper indentation
-      for idx, sub_template in enumerate(parent_subs):
-        is_last = (idx == len(parent_subs) - 1)
-        sub_template_info = {
-          'template': sub_template,
-          'indent': '└─ ' if is_last else '├─ ',
-          'is_main': False
-        }
-        
-        if insert_index >= 0:
-          grouped.insert(insert_index, sub_template_info)
-          insert_index += 1
-        else:
-          # Parent not found, add at end
-          grouped.append(sub_template_info)
-    
-    return grouped
-
-  # !SECTION
 
   # --------------------------
   # SECTION: Private Methods

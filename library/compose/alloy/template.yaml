@@ -14,9 +14,9 @@ metadata:
     Source: https://github.com/grafana/alloy
 
     Documentation: https://grafana.com/docs/alloy/latest/
-  version: 0.0.1
+  version: 0.1.0
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-02'
   tags:
     - monitoring
     - grafana
@@ -31,3 +31,45 @@ spec:
         type: int
         description: Main port for Alloy HTTP server
         default: 12345
+  logs:
+    name: Log Collection
+    description: Configure log collection for Docker containers and system logs
+    toggle: logs_enabled
+    vars:
+      logs_enabled:
+        type: bool
+        description: Enable log collection
+        default: false
+      logs_loki_url:
+        type: url
+        description: Loki endpoint URL for sending logs
+        default: "http://loki:3100/loki/api/v1/push"
+      logs_docker:
+        type: bool
+        description: Enable Docker container log collection
+        default: true
+      logs_system:
+        type: bool
+        description: Enable system and journalctl log collection
+        default: true
+  metrics:
+    name: Metrics Collection
+    description: Configure metrics collection for Docker containers and system metrics
+    toggle: metrics_enabled
+    vars:
+      metrics_enabled:
+        type: bool
+        description: Enable metrics collection
+        default: false
+      metrics_prometheus_url:
+        type: url
+        description: Prometheus remote write endpoint
+        default: "http://prometheus:9090/api/v1/write"
+      metrics_docker:
+        type: bool
+        description: Enable Docker container metrics collection (cAdvisor)
+        default: true
+      metrics_system:
+        type: bool
+        description: Enable system (node) metrics collection
+        default: true

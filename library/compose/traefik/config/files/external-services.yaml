@@ -1,0 +1,73 @@
+---
+# Example: External Service Configuration
+# This is a commented example showing how to proxy to external services
+# Uncomment and customize for your needs
+
+# http:
+#   routers:
+#     # Example: Proxmox Router
+#     proxmox-router:
+#       rule: "Host(`proxmox.example.com`)"
+#       service: proxmox-service
+#       priority: 10
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: cloudflare
+#       middlewares:
+#         # Optional: Add authentication
+#         # - authentik@file
+#         # Optional: Add custom headers
+#         # - custom-headers@file
+#
+#     # Example: Router for a local service (Home Assistant, etc.)
+#     homeassistant-router:
+#       rule: "Host(`homeassistant.example.com`)"
+#       service: homeassistant-service
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: cloudflare
+#
+#     # Example: Router with path-based routing
+#     api-router:
+#       rule: "Host(`example.com`) && PathPrefix(`/api`)"
+#       service: api-service
+#       priority: 20
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: cloudflare
+#       middlewares:
+#         - rate-limit@file
+#
+#   services:
+#     # Example: Proxmox Service (HTTPS backend)
+#     proxmox-service:
+#       loadBalancer:
+#         servers:
+#           - url: "https://192.168.1.100:8006"
+#         serversTransport: insecure-transport
+#
+#     # Example: Home Assistant Service (HTTP backend)
+#     homeassistant-service:
+#       loadBalancer:
+#         servers:
+#           - url: "http://192.168.1.50:8123"
+#
+#     # Example: API Service with multiple backends (load balancing)
+#     api-service:
+#       loadBalancer:
+#         servers:
+#           - url: "http://192.168.1.10:8080"
+#           - url: "http://192.168.1.11:8080"
+#         sticky:
+#           cookie:
+#             name: api-sticky
+#             httpOnly: true
+#
+# # Example: Server Transport for insecure backends (skip TLS verification)
+# # Useful for services with self-signed certificates
+# serversTransports:
+#   insecure-transport:
+#     insecureSkipVerify: true

@@ -17,5 +17,3 @@ spec:
         type: string
         description: Cadvisor version
         default: latest
-
----

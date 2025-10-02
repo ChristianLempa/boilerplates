@@ -17,5 +17,3 @@ spec:
         type: string
         description: Volumes version
         default: latest
-
----

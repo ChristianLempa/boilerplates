@@ -234,8 +234,14 @@ class Template:
     self.__template_files = template_files
 
   def _extract_all_used_variables(self) -> Set[str]:
-    """Extract all undeclared variables from all .j2 files in the template directory."""
+    """Extract all undeclared variables from all .j2 files in the template directory.
+    
+    Raises:
+        ValueError: If any Jinja2 template has syntax errors
+    """
     used_variables: Set[str] = set()
+    syntax_errors = []
+    
     for template_file in self.template_files: # Iterate over TemplateFile objects
       if template_file.file_type == 'j2':
         file_path = self.template_dir / template_file.relative_path
@@ -245,7 +251,20 @@ class Template:
             ast = self.jinja_env.parse(content) # Use lazy-loaded jinja_env
             used_variables.update(meta.find_undeclared_variables(ast))
         except Exception as e:
-          logger.warning(f"Could not parse Jinja2 variables from {file_path}: {e}")
+          # Collect syntax errors instead of just warning
+          relative_path = file_path.relative_to(self.template_dir)
+          syntax_errors.append(f"  - {relative_path}: {e}")
+    
+    # Raise error if any syntax errors were found
+    if syntax_errors:
+      error_msg = (
+        f"Jinja2 syntax errors found in template '{self.id}':\n" +
+        "\n".join(syntax_errors) +
+        "\n\nPlease fix the syntax errors in the template files."
+      )
+      logger.error(error_msg)
+      raise ValueError(error_msg)
+    
     return used_variables
 
   def _extract_jinja_default_values(self) -> dict[str, object]:
@@ -300,13 +319,23 @@ class Template:
     """Filter specs to only include variables used in templates using VariableCollection.
     
     Uses VariableCollection's native filter_to_used() method.
-    Keeps sensitive variables even if not used.
+    Keeps sensitive variables only if they're defined in the template spec or actually used.
     """
+    # Build set of variables explicitly defined in template spec
+    template_defined_vars = set()
+    for section_data in (template_specs or {}).values():
+      if isinstance(section_data, dict) and 'vars' in section_data:
+        template_defined_vars.update(section_data['vars'].keys())
+    
     # Create VariableCollection from merged specs
     merged_collection = VariableCollection(merged_specs)
     
-    # Filter to only used variables (and sensitive ones)
-    filtered_collection = merged_collection.filter_to_used(used_variables, keep_sensitive=True)
+    # Filter to only used variables (and sensitive ones that are template-defined)
+    # We keep sensitive variables that are either:
+    # 1. Actually used in template files, OR
+    # 2. Explicitly defined in the template spec (even if not yet used)
+    variables_to_keep = used_variables | template_defined_vars
+    filtered_collection = merged_collection.filter_to_used(variables_to_keep, keep_sensitive=False)
     
     # Convert back to dict format
     filtered_specs = {}
@@ -370,13 +399,74 @@ class Template:
 
   @staticmethod
   def _create_jinja_env(searchpath: Path) -> Environment:
-    """Create standardized Jinja2 environment for consistent template processing."""
-    return Environment(
+    """Create standardized Jinja2 environment for consistent template processing.
+    
+    Includes custom filters for generating random values:
+    - random_string(length): Generate random alphanumeric string
+    - random_hex(length): Generate random hexadecimal string
+    - random_base64(length): Generate random base64 string
+    - random_uuid: Generate a UUID4
+    """
+    import secrets
+    import string
+    import base64
+    import uuid
+    
+    env = Environment(
       loader=FileSystemLoader(searchpath),
       trim_blocks=True,
       lstrip_blocks=True,
       keep_trailing_newline=False,
     )
+    
+    # Add custom filters for generating random values
+    def random_string(value: str = '', length: int = 32) -> str:
+      """Generate a random alphanumeric string of specified length.
+      
+      Usage: {{ '' | random_string(64) }} or {{ 'ignored' | random_string(32) }}
+      """
+      alphabet = string.ascii_letters + string.digits
+      return ''.join(secrets.choice(alphabet) for _ in range(length))
+    
+    def pwgen(value: str = '', length: int = 50) -> str:
+      """Generate a secure random string (mimics pwgen -s).
+      
+      Default length is 50 (matching Authentik recommendation).
+      Usage: {{ '' | pwgen }} or {{ '' | pwgen(64) }}
+      """
+      alphabet = string.ascii_letters + string.digits
+      return ''.join(secrets.choice(alphabet) for _ in range(length))
+    
+    def random_hex(value: str = '', length: int = 32) -> str:
+      """Generate a random hexadecimal string of specified length.
+      
+      Usage: {{ '' | random_hex(64) }}
+      """
+      return secrets.token_hex(length // 2)
+    
+    def random_base64(value: str = '', length: int = 32) -> str:
+      """Generate a random base64 string of specified length.
+      
+      Usage: {{ '' | random_base64(64) }}
+      """
+      num_bytes = (length * 3) // 4  # Convert length to approximate bytes
+      return base64.b64encode(secrets.token_bytes(num_bytes)).decode('utf-8')[:length]
+    
+    def random_uuid(value: str = '') -> str:
+      """Generate a random UUID4.
+      
+      Usage: {{ '' | random_uuid }}
+      """
+      return str(uuid.uuid4())
+    
+    # Register filters
+    env.filters['random_string'] = random_string
+    env.filters['pwgen'] = pwgen
+    env.filters['random_hex'] = random_hex
+    env.filters['random_base64'] = random_base64
+    env.filters['random_uuid'] = random_uuid
+    
+    return env
 
   def render(self, variables: VariableCollection) -> Dict[str, str]:
     """Render all .j2 files in the template directory."""
@@ -490,4 +580,6 @@ class Template:
             pass
 
           self.__variables = VariableCollection(filtered_specs)
+          # Sort sections: required first, then enabled, then disabled
+          self.__variables.sort_sections()
       return self.__variables

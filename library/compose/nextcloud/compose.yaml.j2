@@ -5,9 +5,9 @@ services:
     environment:
       - TZ={{ container_timezone | default('UTC') }}
       {% if database_type == 'mysql' -%}
-      - MYSQL_PASSWORD={{ mysql_password | default('nextcloud') }}
-      - MYSQL_DATABASE={{ mysql_database | default('nextcloud') }}
-      - MYSQL_USER={{ mysql_user | default('nextcloud') }}
+      - MYSQL_PASSWORD={{ database_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ database_name | default('nextcloud') }}
+      - MYSQL_USER={{ database_user | default('nextcloud') }}
       - MYSQL_HOST={{ service_name | default('nextcloud') }}-db
       {% elif database_type == 'postgres' -%}
       - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
@@ -51,12 +51,10 @@ services:
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     environment:
       - TZ={{ container_timezone | default('UTC') }}
-      {% if mysql_root_password_random -%}
       - MYSQL_RANDOM_ROOT_PASSWORD=true
-      {% endif %}
-      - MYSQL_PASSWORD={{ mysql_password | default('nextcloud') }}
-      - MYSQL_DATABASE={{ mysql_database | default('nextcloud') }}
-      - MYSQL_USER={{ mysql_user | default('nextcloud') }}
+      - MYSQL_PASSWORD={{ database_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ database_name | default('nextcloud') }}
+      - MYSQL_USER={{ database_user | default('nextcloud') }}
     volumes:
       - nextcloud-db:/var/lib/mysql
     {% elif database_type == 'postgres' -%}

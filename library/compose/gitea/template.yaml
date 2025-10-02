@@ -1,21 +1,54 @@
 ---
 kind: compose
 metadata:
-  name: Server
-  description: Docker compose setup for server
+  name: Gitea
+  description: >
+    Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service 
+    written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository 
+    hosting, code review, team collaboration, and more.
+
+
+    Project: https://gitea.io/
+
+    Documentation: https://docs.gitea.io/
+
+    GitHub: https://github.com/go-gitea/gitea
   version: 0.1.0
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-02'
   tags:
-  - server
-  - docker
-  - compose
+    - git
+    - version-control
+    - development
 spec:
-  general:
+  database:
+    required: true
+  ports:
     vars:
-      server_version:
-        type: string
-        description: Server version
-        default: latest
-
----
+      ports_http:
+        description: "Host port for HTTP web interface"
+        type: int
+        default: 3000
+      ports_ssh:
+        description: "Host port for SSH Git access"
+        type: int
+        default: 2221
+  gitea:
+    description: "Configure Gitea application settings"
+    required: true
+    vars:
+      gitea_root_url:
+        description: "Public URL for your Gitea instance (e.g., https://git.example.com)"
+        type: str
+      gitea_ssh_port:
+        description: "SSH port number (should match ports_ssh)"
+        type: int
+        default: 2221
+      user_uid:
+        description: "User UID for Gitea process"
+        type: int
+        default: 1000
+      user_gid:
+        description: "User GID for Gitea process"
+        type: int
+        default: 1000

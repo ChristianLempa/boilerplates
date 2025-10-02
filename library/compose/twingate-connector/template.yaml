@@ -17,5 +17,3 @@ spec:
         type: string
         description: Twingate_Connector version
         default: latest
-
----

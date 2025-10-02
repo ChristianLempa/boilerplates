@@ -17,5 +17,3 @@ spec:
         type: string
         description: Heimdall version
         default: latest
-
----

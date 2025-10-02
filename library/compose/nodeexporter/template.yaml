@@ -17,5 +17,3 @@ spec:
         type: string
         description: Node_Exporter version
         default: latest
-
----
