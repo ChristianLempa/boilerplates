@@ -119,18 +119,48 @@ ensure_pip() {
   
   log "pip not found. Attempting to install..."
   
-  # Try to install pip using get-pip.py
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
-  elif command -v wget >/dev/null 2>&1; then
-    wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
-  else
-    error "Could not download pip installer. Please install pip manually."
-  fi
+  # Detect OS and install pip using system package manager (preferred for modern Python)
+  local os_type
+  os_type=$(detect_os)
+  
+  case "$os_type" in
+    debian)
+      log "Installing pip via apt..."
+      sudo apt-get update && sudo apt-get install -y python3-pip python3-venv
+      ;;
+    fedora)
+      log "Installing pip via dnf..."
+      sudo dnf install -y python3-pip
+      ;;
+    rhel)
+      log "Installing pip via yum..."
+      sudo yum install -y python3-pip
+      ;;
+    arch)
+      log "Installing pip via pacman..."
+      sudo pacman -S --noconfirm python-pip
+      ;;
+    macos)
+      # On macOS, pip usually comes with Python from Homebrew
+      log "pip should be included with Python. Verifying..."
+      python3 -m ensurepip --default-pip 2>/dev/null || true
+      ;;
+    *)
+      # Fallback: try to install pip using get-pip.py
+      log "Attempting to install pip using get-pip.py..."
+      if command -v curl >/dev/null 2>&1; then
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
+      elif command -v wget >/dev/null 2>&1; then
+        wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
+      else
+        error "Could not download pip installer. Please install pip manually."
+      fi
+      ;;
+  esac
   
   # Verify installation
   if ! python3 -m pip --version >/dev/null 2>&1; then
-    error "Failed to install pip. Please install it manually."
+    error "Failed to install pip. Please install it manually using your system package manager."
   fi
   
   log "✓ pip installed successfully"
@@ -265,16 +295,66 @@ ensure_pipx() {
 
   log "pipx not found. Installing pipx..."
   
-  # Try to install pipx using pip
-  if python3 -m pip install --user pipx; then
-    log "✓ pipx installed successfully"
-  else
-    error "Failed to install pipx. Please install it manually: python3 -m pip install --user pipx"
-  fi
+  # Detect OS and try to install via package manager first (preferred for PEP 668 systems)
+  local os_type
+  os_type=$(detect_os)
+  
+  case "$os_type" in
+    debian)
+      log "Installing pipx via apt..."
+      if sudo apt-get update && sudo apt-get install -y pipx; then
+        log "✓ pipx installed via apt"
+        # Ensure pipx path is set up
+        pipx ensurepath >/dev/null 2>&1 || true
+      else
+        warn "Failed to install pipx via apt, trying pip..."
+        install_pipx_with_pip
+      fi
+      ;;
+    fedora)
+      log "Installing pipx via dnf..."
+      if sudo dnf install -y pipx; then
+        log "✓ pipx installed via dnf"
+      else
+        warn "Failed to install pipx via dnf, trying pip..."
+        install_pipx_with_pip
+      fi
+      ;;
+    arch)
+      log "Installing pipx via pacman..."
+      if sudo pacman -S --noconfirm python-pipx; then
+        log "✓ pipx installed via pacman"
+      else
+        warn "Failed to install pipx via pacman, trying pip..."
+        install_pipx_with_pip
+      fi
+      ;;
+    macos)
+      if command -v brew >/dev/null 2>&1; then
+        log "Installing pipx via Homebrew..."
+        if brew install pipx; then
+          log "✓ pipx installed via Homebrew"
+          # Ensure pipx path is set up
+          pipx ensurepath >/dev/null 2>&1 || true
+        else
+          warn "Failed to install pipx via Homebrew, trying pip..."
+          install_pipx_with_pip
+        fi
+      else
+        log "Homebrew not found, installing pipx via pip..."
+        install_pipx_with_pip
+      fi
+      ;;
+    *)
+      # Fallback to pip installation
+      install_pipx_with_pip
+      ;;
+  esac
 
   # Try to find pipx command
   if command -v pipx >/dev/null 2>&1; then
     PIPX_CMD="pipx"
+    log "✓ pipx is ready to use"
     return
   fi
 
@@ -287,7 +367,27 @@ ensure_pipx() {
     return
   fi
   
-  error "pipx installed but not found in PATH. Please add $(python3 -m site --user-base)/bin to your PATH."
+  error "pipx installed but not found in PATH. Please add $(python3 -m site --user-base)/bin to your PATH or restart your shell."
+}
+
+install_pipx_with_pip() {
+  log "Installing pipx using pip..."
+  
+  # Try with --user flag first (works on most systems)
+  if python3 -m pip install --user pipx 2>/dev/null; then
+    log "✓ pipx installed via pip --user"
+    return
+  fi
+  
+  # If that fails due to externally-managed-environment, try with --break-system-packages
+  # (only as a last resort and with clear warning)
+  warn "System has PEP 668 restrictions. Attempting installation with --break-system-packages..."
+  if python3 -m pip install --user --break-system-packages pipx 2>/dev/null; then
+    log "✓ pipx installed (with --break-system-packages)"
+    return
+  fi
+  
+  error "Failed to install pipx. Please install it manually: sudo apt install pipx (Debian/Ubuntu) or pip install --user pipx"
 }
 
 pipx_install() {
