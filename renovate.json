@@ -33,8 +33,7 @@
       "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibilty with an application",
       "enabled": false,
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "matchUpdateTypes": [
         "major",
@@ -48,8 +47,7 @@
       "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibilty with an application",
       "enabled": false,
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "matchUpdateTypes": [
         "major"
@@ -62,12 +60,11 @@
       "description": "Update MariaDB or PostgreSQL to the most recent release if they are standalone and not part of an application stack",
       "enabled": true,
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "matchFileNames": [
-        "docker-compose/mariadb/**",
-        "docker-compose/postgres/**"
+        "library/compose/mariadb/**",
+        "library/compose/postgres/**"
       ],
       "matchUpdateTypes": [
         "major",
@@ -81,8 +78,7 @@
     {
       "description": "Do not match Canonical's Ubuntu version suffix as a compatibility hint",
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?(?:-\\d+(?:\\.\\d+)+_edge)?$",
       "matchPackageNames": [
@@ -92,8 +88,7 @@
     {
       "description": "Catch a potential `security` suffix as part of the patch release as Grafana does not follow semver for security releases",
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+(?:-security-\\d+)?)$",
       "matchPackageNames": [
@@ -103,8 +98,7 @@
     {
       "description": "Over time Heimdall changed its versioning schema several times, ensure we only consider the current style",
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "versioning": "regex:^(?<major>\\d{1,2})\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?$",
       "matchPackageNames": [
@@ -114,8 +108,7 @@
     {
       "description": "Track stable releases of Nginx only",
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d*[02468])(\\.(?<patch>\\d+))?(?:-(?<compatibility>.*))?$",
       "matchPackageNames": [
@@ -125,8 +118,7 @@
     {
       "description": "Ignore erroneous version tags of Semaphore",
       "matchManagers": [
-        "docker-compose",
-        "dockerfile"
+        "custom.regex"
       ],
       "allowedVersions": "!/^v?2\\.19\\.10$/",
       "matchPackageNames": [
@@ -137,28 +129,25 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Update Longhorn images in Helm",
+      "description": "Update Docker images in Jinja2 compose templates",
       "managerFilePatterns": [
-        "/(^|/)library/kubernetes/longhorn/helm/values.yaml$/"
+        "/^library/compose/.+/compose\\.ya?ml\\.j2$/"
       ],
       "matchStrings": [
-        "engine:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "manager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "ui:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "instanceManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "shareManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "backingImageManager:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "supportBundleKit:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "attacher:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "provisioner:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "nodeDriverRegistrar:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "resizer:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "snapshotter:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?",
-        "livenessProbe:\\s*repository:\\s*\"?(?<depName>[^\"]+)\"?\\s*tag:\\s*\"?(?<currentValue>[^\"]+)\"?"
+        "image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^\\s\\n{]+)"
       ],
       "datasourceTemplate": "docker"
     }
   ],
+  "postUpgradeTasks": {
+    "commands": [
+      ".renovate/sync-template-version.sh"
+    ],
+    "fileFilters": [
+      "library/compose/**/template.yaml"
+    ],
+    "executionMode": "update"
+  },
   "prConcurrentLimit": 30,
   "prHourlyLimit": 5,
   "separateMinorPatch": true,
