@@ -240,8 +240,9 @@ download_release() {
   # If version is "latest", resolve it to the actual version tag
   if [[ "$version" == "latest" ]]; then
     log "Fetching latest release information..."
-    version=$(get_latest_release)
-    if [[ $? -ne 0 ]] || [[ -z "$version" ]]; then
+    version=$(get_latest_release 2>&1)
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]] || [[ -z "$version" ]] || [[ "$version" == error:* ]]; then
       error "Failed to fetch latest release information"
     fi
     log "Latest version is $version"
