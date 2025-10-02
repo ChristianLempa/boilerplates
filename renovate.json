@@ -132,7 +132,7 @@
       "customType": "regex",
       "description": "Update Docker images in Jinja2 compose templates",
       "fileMatch": [
-        "(^|/)\.j2$"
+        "\\.j2$"
       ],
       "matchStrings": [
         "image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^\\s\\n{]+)"
