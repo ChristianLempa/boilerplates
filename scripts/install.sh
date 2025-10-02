@@ -43,6 +43,99 @@ warn() {
   printf '[boilerplates][warn] %s\n' "$*" >&2
 }
 
+detect_os() {
+  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if command -v apt-get >/dev/null 2>&1; then
+      echo "debian"
+    elif command -v dnf >/dev/null 2>&1; then
+      echo "fedora"
+    elif command -v yum >/dev/null 2>&1; then
+      echo "rhel"
+    elif command -v pacman >/dev/null 2>&1; then
+      echo "arch"
+    else
+      echo "linux"
+    fi
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "macos"
+  else
+    echo "unknown"
+  fi
+}
+
+ensure_python3() {
+  if command -v python3 >/dev/null 2>&1; then
+    log "✓ Python3 is already installed"
+    return 0
+  fi
+  
+  log "Python3 not found. Attempting to install..."
+  local os_type
+  os_type=$(detect_os)
+  
+  case "$os_type" in
+    debian)
+      log "Detected Debian/Ubuntu. Installing python3..."
+      sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv
+      ;;
+    fedora)
+      log "Detected Fedora. Installing python3..."
+      sudo dnf install -y python3 python3-pip
+      ;;
+    rhel)
+      log "Detected RHEL/CentOS. Installing python3..."
+      sudo yum install -y python3 python3-pip
+      ;;
+    arch)
+      log "Detected Arch Linux. Installing python3..."
+      sudo pacman -S --noconfirm python python-pip
+      ;;
+    macos)
+      if command -v brew >/dev/null 2>&1; then
+        log "Detected macOS with Homebrew. Installing python3..."
+        brew install python3
+      else
+        error "Python3 not found and Homebrew is not installed. Please install Python3 manually from https://www.python.org/downloads/"
+      fi
+      ;;
+    *)
+      error "Could not automatically install Python3 on this system. Please install Python3 manually."
+      ;;
+  esac
+  
+  # Verify installation
+  if ! command -v python3 >/dev/null 2>&1; then
+    error "Failed to install Python3. Please install it manually."
+  fi
+  
+  log "✓ Python3 installed successfully"
+}
+
+ensure_pip() {
+  if python3 -m pip --version >/dev/null 2>&1; then
+    log "✓ pip is already installed"
+    return 0
+  fi
+  
+  log "pip not found. Attempting to install..."
+  
+  # Try to install pip using get-pip.py
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
+  else
+    error "Could not download pip installer. Please install pip manually."
+  fi
+  
+  # Verify installation
+  if ! python3 -m pip --version >/dev/null 2>&1; then
+    error "Failed to install pip. Please install it manually."
+  fi
+  
+  log "✓ pip installed successfully"
+}
+
 require_command() {
   command -v "$1" >/dev/null 2>&1 || error "Required command '$1' not found in PATH"
 }
@@ -165,25 +258,36 @@ download_release() {
 
 ensure_pipx() {
   if command -v pipx >/dev/null 2>&1; then
+    log "✓ pipx is already installed"
     PIPX_CMD="pipx"
     return
   fi
 
-  log "pipx not found; attempting user-level install"
-  python3 -m pip install --user pipx >/dev/null 2>&1 || warn "pipx install via pip failed"
+  log "pipx not found. Installing pipx..."
+  
+  # Try to install pipx using pip
+  if python3 -m pip install --user pipx; then
+    log "✓ pipx installed successfully"
+  else
+    error "Failed to install pipx. Please install it manually: python3 -m pip install --user pipx"
+  fi
 
+  # Try to find pipx command
   if command -v pipx >/dev/null 2>&1; then
     PIPX_CMD="pipx"
     return
   fi
 
+  # Check in user bin directory
   local user_bin
   user_bin="$(python3 -m site --user-base 2>/dev/null)/bin"
   if [[ -x "$user_bin/pipx" ]]; then
     PIPX_CMD="$user_bin/pipx"
-  else
-    error "pipx is required. Install it (e.g. 'python3 -m pip install --user pipx') and ensure it is on PATH."
+    log "✓ Found pipx at $PIPX_CMD"
+    return
   fi
+  
+  error "pipx installed but not found in PATH. Please add $(python3 -m site --user-base)/bin to your PATH."
 }
 
 pipx_install() {
@@ -202,9 +306,16 @@ check_current_version() {
 
 main() {
   parse_args "$@"
-  require_command python3
+  
+  log "Checking system dependencies..."
+  
+  # Ensure required tools are available
   require_command tar
-
+  
+  # Ensure Python3, pip, and pipx are installed
+  ensure_python3
+  ensure_pip
+  
   TARGET_DIR="$(make_absolute_path)"
   
   # Check if already installed
@@ -235,7 +346,7 @@ pipx environment: $pipx_info
 
 To use the CLI:
   boilerplate --help
-  boilerplate --version
+  boilerplate compose list
 
 To update to the latest version:
   curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
