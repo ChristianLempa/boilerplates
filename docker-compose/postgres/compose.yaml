@@ -1,7 +1,7 @@
 ---
 services:
   postgres:
-    image: docker.io/library/postgres:17.6
+    image: docker.io/library/postgres:18.0
     container_name: postgres
     environment:
       - POSTGRES_INITDB_ARGS=${POSTGRES_INITDB_ARGS---data-checksums}
