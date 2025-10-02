@@ -12,6 +12,7 @@
     "renovate"
   ],
   "ignorePaths": [],
+  "useBaseBranchConfig": "merge",
   "kubernetes": {
     "managerFilePatterns": [
       "/(^|/)library/kubernetes/.+/[^/]+\\.ya?ml$/"
