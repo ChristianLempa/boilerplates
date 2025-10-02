@@ -120,12 +120,12 @@ jobs:
             
             Install using the installation script:
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/refactor/boilerplates-v2/scripts/install.sh | bash
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/${{ steps.version.outputs.tag }}/scripts/install.sh | bash
             ```
             
             Or install a specific version:
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/refactor/boilerplates-v2/scripts/install.sh | bash -s -- --version ${{ steps.version.outputs.tag }}
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/${{ steps.version.outputs.tag }}/scripts/install.sh | bash -s -- --version ${{ steps.version.outputs.tag }}
             ```
           draft: false
           prerelease: >
