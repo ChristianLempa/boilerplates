@@ -312,8 +312,7 @@ class Module(ABC):
       
       # Display next steps if provided in template metadata
       if template.metadata.next_steps:
-        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
-        console.print(template.metadata.next_steps)
+        self.display.display_next_steps(template.metadata.next_steps, variable_values)
 
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")

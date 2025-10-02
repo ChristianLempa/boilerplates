@@ -9,7 +9,7 @@ services:
       - "{{ ports_http | default(8080) }}:8080"
     {% endif %}
     volumes:
-      - /etc/homer/assets/:/www/assets
+      - ./assets:/www/assets
     {% if network_enabled %}
     networks:
       - {{ network_name | default('bridge') }}

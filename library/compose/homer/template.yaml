@@ -2,13 +2,61 @@
 kind: compose
 metadata:
   name: Homer
-  description: Docker compose setup for homer
+  description: >
+    A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration file.
+
+
+    Project: https://github.com/bastienwirtz/homer
+
+    Documentation: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
   version: v25.08.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - dashboard
+  next_steps: |
+    1. Start the Homer dashboard:
+       docker compose up -d
+
+    2. Customize your dashboard:
+       - Edit assets/config.yml to add your services
+       - Organize services into groups (Applications, Monitoring, etc.)
+       - Add links to the navbar for quick access
+
+    3. Optional: Add a logo:
+       - Place your logo.png file in the assets/ directory
+       - Or update the logo path in assets/config.yml
+       - Supported formats: PNG, SVG, JPG
+
+    4. Optional: Customize the theme:
+       - Uncomment and modify the colors section in config.yml
+       - Available themes: default, sui
+       - See documentation for advanced theming options
+
+    5. Access your dashboard:
+       {% if traefik_enabled -%}
+       - Via Traefik: https://{{ traefik_host }}
+       {% if ports_enabled %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
+       {%- else -%}
+       - Open http://localhost:{{ ports_http }} in your browser
+       {%- endif %}
+
+    For more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
 spec:
+  general:
+    vars:
+      homer_title:
+        description: "Dashboard title"
+        type: str
+        default: "My Dashboard"
+      homer_subtitle:
+        description: "Dashboard subtitle"
+        type: str
+        default: "Homer"
+      homer_logo:
+        description: "Logo file path (relative to assets/)"
+        type: str
+        default: "logo.png"
   ports:
     vars:
       ports_http:

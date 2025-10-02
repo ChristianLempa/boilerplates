@@ -307,3 +307,26 @@ class DisplayManager:
                         section_node.add(f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]")
 
         console.print(tree)
+
+    def display_next_steps(self, next_steps: str, variable_values: dict) -> None:
+        """Display next steps after template generation, rendering them as a Jinja2 template.
+        
+        Args:
+            next_steps: The next_steps string from template metadata (may contain Jinja2 syntax)
+            variable_values: Dictionary of variable values to use for rendering
+        """
+        if not next_steps:
+            return
+        
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        
+        try:
+            from jinja2 import Template as Jinja2Template
+            next_steps_template = Jinja2Template(next_steps)
+            rendered_next_steps = next_steps_template.render(variable_values)
+            console.print(rendered_next_steps)
+        except Exception as e:
+            logger.warning(f"Failed to render next_steps as template: {e}")
+            # Fallback to plain text if rendering fails
+            console.print(next_steps)
+
