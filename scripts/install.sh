@@ -31,7 +31,7 @@ USAGE
 }
 
 log() {
-  printf '[boilerplates] %s\n' "$*"
+  printf '[boilerplates] %s\n' "$*" >&2
 }
 
 error() {
@@ -240,7 +240,7 @@ download_release() {
   # If version is "latest", resolve it to the actual version tag
   if [[ "$version" == "latest" ]]; then
     log "Fetching latest release information..."
-    version=$(get_latest_release 2>&1)
+    version=$(get_latest_release)
     local exit_code=$?
     if [[ $exit_code -ne 0 ]] || [[ -z "$version" ]] || [[ "$version" == error:* ]]; then
       error "Failed to fetch latest release information"
