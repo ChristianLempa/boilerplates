@@ -423,7 +423,8 @@ install_pipx_with_pip() {
 }
 
 pipx_install() {
-  "${PIPX_CMD}" ensurepath >/dev/null 2>&1 || warn "pipx ensurepath failed; make sure pipx's bin dir is on PATH"
+  log "Configuring pipx PATH..."
+  "${PIPX_CMD}" ensurepath 2>&1 | grep -v "^$" || true
   log "Installing/updating boilerplates via pipx"
   "${PIPX_CMD}" install --editable --force "$TARGET_DIR"
 }
@@ -468,13 +469,50 @@ main() {
   local installed_version
   installed_version=$(check_current_version)
 
+  # Check if boilerplate is in PATH
+  local path_warning=""
+  if ! command -v boilerplate >/dev/null 2>&1; then
+    local user_bin
+    user_bin="$(python3 -m site --user-base 2>/dev/null)/bin"
+    
+    # Detect shell and provide appropriate instructions
+    local shell_config
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+      shell_config="~/.bashrc"
+    elif [[ -n "${ZSH_VERSION:-}" ]]; then
+      shell_config="~/.zshrc"
+    else
+      shell_config="your shell's config file"
+    fi
+    
+    path_warning=$(cat <<'PATHWARN'
+
+⚠️  PATH Configuration Required
+
+The 'boilerplate' command is not in your PATH. To use it, add this to SHELL_CONFIG:
+
+  export PATH="$PATH:USER_BIN"
+
+Then reload your shell:
+
+  source SHELL_CONFIG
+
+Or use the full path for now:
+
+  USER_BIN/boilerplate --help
+PATHWARN
+)
+    path_warning="${path_warning//SHELL_CONFIG/$shell_config}"
+    path_warning="${path_warning//USER_BIN/$user_bin}"
+  fi
+
   cat <<EOF2
 
 ✓ Installation complete!
 
 Version: $installed_version
 Location: $TARGET_DIR
-pipx environment: $pipx_info
+pipx environment: $pipx_info$path_warning
 
 To use the CLI:
   boilerplate --help
