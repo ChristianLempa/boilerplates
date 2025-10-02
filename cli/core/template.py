@@ -43,6 +43,7 @@ class TemplateMetadata:
   tags: List[str] = field(default_factory=list)
   # files: List[str] = field(default_factory=list) # No longer needed, as TemplateFile handles this
   library: str = "unknown"
+  next_steps: str = ""
 
   def __init__(self, template_data: dict, library_name: str | None = None) -> None:
     """Initialize TemplateMetadata from parsed YAML template data.
@@ -73,6 +74,14 @@ class TemplateMetadata:
     self.tags = metadata_section.get("tags", []) or []
     # self.files = metadata_section.get("files", []) or [] # No longer needed
     self.library = library_name or "unknown"
+    
+    # Extract next_steps (optional)
+    raw_next_steps = metadata_section.get("next_steps", "")
+    if isinstance(raw_next_steps, str):
+      next_steps = raw_next_steps.rstrip("\n")
+    else:
+      next_steps = str(raw_next_steps) if raw_next_steps else ""
+    self.next_steps = next_steps
 
   @staticmethod
   def _validate_metadata(template_data: dict) -> None:

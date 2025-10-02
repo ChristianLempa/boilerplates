@@ -1,0 +1,67 @@
+// BIND9 Main Configuration File
+// Documentation: https://bind9.readthedocs.io/
+
+// Include TSIG keys for secure zone transfers
+include "/etc/bind/tsig.key";
+
+// ACL definitions for access control
+acl "trusted" {
+    127.0.0.1;
+    ::1;
+    10.0.0.0/8;
+    172.16.0.0/12;
+    192.168.0.0/16;
+};
+
+options {
+    directory "/var/cache/bind";
+    
+    // DNS forwarders for recursive queries
+    forwarders {
+        1.1.1.1;
+        8.8.8.8;
+    };
+    
+    // Allow recursion from trusted networks only
+    allow-recursion { trusted; };
+    
+    // Allow queries from any (adjust as needed)
+    allow-query { any; };
+    
+    // Disable zone transfers by default (enable per-zone with TSIG)
+    allow-transfer { none; };
+    
+    // DNSSEC validation
+    dnssec-validation auto;
+    
+    // Listen on all interfaces
+    listen-on { any; };
+    listen-on-v6 { any; };
+    
+    // Disable query logging (enable for debugging)
+    // querylog yes;
+};
+
+// Local zones
+zone "localhost" {
+    type master;
+    file "/etc/bind/db.local";
+};
+
+zone "127.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.127";
+};
+
+zone "0.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.0";
+};
+
+zone "255.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.255";
+};
+
+// Include your custom zones
+include "/etc/bind/named.conf.zones";

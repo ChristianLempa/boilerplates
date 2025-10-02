@@ -17,7 +17,14 @@ import cli.modules
 from cli.core.registry import registry
 # Using standard Python exceptions instead of custom ones
 
-app = Typer(no_args_is_help=True)
+# Version is automatically updated by CI/CD on release
+__version__ = "0.0.1"
+
+app = Typer(
+  no_args_is_help=True,
+  help="CLI tool for managing infrastructure boilerplates",
+  add_completion=True,
+)
 console = Console()
 
 def setup_logging(log_level: str = "WARNING") -> None:
@@ -48,17 +55,25 @@ def setup_logging(log_level: str = "WARNING") -> None:
   except Exception as e:
     raise RuntimeError(f"Failed to configure logging: {e}")
 
-
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
   ctx: Context,
+  version: Optional[bool] = Option(
+    None,
+    "--version",
+    "-v",
+    help="Show the application version and exit.",
+    is_flag=True,
+    callback=lambda v: console.print(f"boilerplates version {__version__}") or sys.exit(0) if v else None,
+    is_eager=True,
+  ),
   log_level: Optional[str] = Option(
     None,
     "--log-level",
     help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If omitted, logging is disabled."
   )
 ) -> None:
-  """Main CLI application for managing boilerplates."""
+  """CLI tool for managing infrastructure boilerplates."""
   # Disable logging by default; only enable when user provides --log-level
   if log_level:
     # Re-enable logging and configure

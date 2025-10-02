@@ -729,8 +729,8 @@ class VariableCollection:
     
     1. Dependencies come before dependents (topological sort)
     2. Required sections first (in their original order)
-    3. Enabled sections next (in their original order)
-    4. Disabled sections last (in their original order)
+    3. Enabled sections with satisfied dependencies next (in their original order)
+    4. Disabled sections or sections with unsatisfied dependencies last (in their original order)
     
     This maintains the original ordering within each group while organizing
     sections logically for display and user interaction, and ensures that
@@ -743,12 +743,12 @@ class VariableCollection:
     section_items = [(key, self._sections[key]) for key in sorted_keys]
     
     # Define sort key: (priority, original_index)
-    # Priority: 0 = required, 1 = enabled, 2 = disabled
+    # Priority: 0 = required, 1 = enabled with satisfied dependencies, 2 = disabled or unsatisfied dependencies
     def get_sort_key(item_with_index):
       index, (key, section) = item_with_index
       if section.required:
         priority = 0
-      elif section.is_enabled():
+      elif section.is_enabled() and self.is_section_satisfied(key):
         priority = 1
       else:
         priority = 2

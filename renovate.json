@@ -149,28 +149,15 @@
     },
     {
       "customType": "regex",
-      "description": "Update Terraform provider versions",
+      "description": "Update Terraform/OpenTofu providers and modules in templates",
       "fileMatch": [
         "library/terraform/.+\\.tf$",
         "library/terraform/.+\\.j2$"
       ],
       "matchStrings": [
-        "source\\s*=\\s*[\"'](?<depName>[^\"']+)[\"']\\s*\\n\\s*version\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
+        "(?:source|module)\\s*=\\s*[\"'](?<depName>[^\"']+)[\"'](?:[\\s\\S]*?)version\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
       ],
       "datasourceTemplate": "terraform-provider"
-    },
-    {
-      "customType": "regex",
-      "description": "Update Terraform module versions",
-      "fileMatch": [
-        "library/terraform/.+\\.tf$",
-        "library/terraform/.+\\.j2$"
-      ],
-      "matchStrings": [
-        "source\\s*=\\s*[\"'](?<depName>[^\"'?]+)(?:\\?ref=(?<currentValue>[^\"']+))?[\"']"
-      ],
-      "datasourceTemplate": "github-tags",
-      "versioningTemplate": "semver"
     }
   ],
   "postUpgradeTasks": {

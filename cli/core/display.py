@@ -44,7 +44,7 @@ class DisplayManager:
             name = template.metadata.name or "Unnamed Template"
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = template.metadata.version or ""
+            version = str(template.metadata.version) if template.metadata.version else ""
             library = template.metadata.library or ""
 
             table.add_row(template.id, name, tags, version, library)
@@ -72,7 +72,7 @@ class DisplayManager:
     def _display_template_header(self, template: Template, template_id: str) -> None:
         """Display the header for a template."""
         template_name = template.metadata.name or "Unnamed Template"
-        version = template.metadata.version or "Not specified"
+        version = str(template.metadata.version) if template.metadata.version else "Not specified"
         description = template.metadata.description or "No description available"
 
         console.print(
@@ -153,10 +153,13 @@ class DisplayManager:
                 variables_table.add_row("", "", "", "", "", style="dim")
             first_section = False
 
-            # Use section's native is_enabled() method
-            is_dimmed = not section.is_enabled()
+            # Check if section is enabled AND dependencies are satisfied
+            is_enabled = section.is_enabled()
+            dependencies_satisfied = template.variables.is_section_satisfied(section.key)
+            is_dimmed = not (is_enabled and dependencies_satisfied)
 
-            disabled_text = " (disabled)" if is_dimmed else ""
+            # Only show (disabled) if section has no dependencies (dependencies make it obvious)
+            disabled_text = " (disabled)" if (is_dimmed and not section.needs) else ""
             required_text = " [yellow](required)[/yellow]" if section.required else ""
             # Add dependency information
             needs_text = ""

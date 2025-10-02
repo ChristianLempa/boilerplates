@@ -15,12 +15,11 @@ The CLI is a Python application built with Typer for the command-line interface 
   - `cli/modules/` - Technology-specific modules (terraform, docker, compose, config, etc.)
 - `library/` - Template collections organized by module
   - `library/ansible/` - Ansible playbooks and configurations
-  - `library/ci/` - CI/CD automation templates (GitHub Actions, GitLab CI, Kestra)
-  - `library/config/` - Application-specific configuration templates
   - `library/compose/` - Docker Compose configurations
+  - `library/docker/` - Docker templates
   - `library/kubernetes/` - Kubernetes deployments
+  - `library/packer/` - Packer templates
   - `library/terraform/` - OpenTofu/Terraform templates and examples
-  - And more...
 
 ## Development Setup
 
@@ -324,10 +323,3 @@ Use separate `.env.{service}.j2` files for different services (e.g., `.env.authe
 - Provide comprehensive descriptions for user guidance
 - Group related variables into logical sections
 - Validate toggle variables are boolean type
-
-### Testing Templates
-- Test generation with default values
-- Test with toggle sections enabled and disabled
-- Test with edge cases (empty values, special characters)
-- Verify yamllint compliance for YAML files
-- Check that generated files are syntactically valid

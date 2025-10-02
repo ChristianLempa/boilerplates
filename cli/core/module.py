@@ -309,6 +309,11 @@ class Module(ABC):
       
       console.print(f"\n[green]✓ Template generated successfully in '{output_dir}'[/green]")
       logger.info(f"Template written to directory: {output_dir}")
+      
+      # Display next steps if provided in template metadata
+      if template.metadata.next_steps:
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        console.print(template.metadata.next_steps)
 
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")

@@ -37,6 +37,16 @@ spec = OrderedDict(
             "description": "Container internal hostname",
             "type": "str",
           },
+          "user_uid": {
+            "description": "User UID for container process",
+            "type": "int",
+            "default": 1000,
+          },
+          "user_gid": {
+            "description": "User GID for container process",
+            "type": "int",
+            "default": 1000,
+          },
         },
       },
       "network": {
@@ -139,7 +149,7 @@ spec = OrderedDict(
       "database": {
         "title": "Database",
         "toggle": "database_enabled",
-        "description": "Connect to external database (PostgreSQL, MySQL, MariaDB, etc.)",
+        "description": "Connect to external database (PostgreSQL or MySQL)",
         "vars": {
           "database_enabled": {
             "description": "Enable external database integration",
@@ -149,7 +159,7 @@ spec = OrderedDict(
           "database_type": {
             "description": "Database type",
             "type": "enum",
-            "options": ["postgres", "mysql", "mariadb"],
+            "options": ["postgres", "mysql"],
             "default": "postgres",
           },
           "database_external": {

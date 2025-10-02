@@ -1,0 +1,22 @@
+services:
+  bind9:
+    image: docker.io/ubuntu/bind9:9.20-24.10_edge
+    container_name: bind9
+    hostname: ns1
+    environment:
+      - TZ=America/New_York
+      - BIND9_USER=bind
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./config:/etc/bind
+      - bind9_zones:/var/lib/bind
+      - bind9_cache:/var/cache/bind
+    restart: unless-stopped
+
+volumes:
+  bind9_zones:
+    driver: local
+  bind9_cache:
+    driver: local

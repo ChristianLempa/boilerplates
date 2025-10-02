@@ -1,43 +1,97 @@
 services:
-  mysql:
-    image: docker.io/library/mysql:8.4
-    hostname: mysql
-    volumes:
-      - semaphore-mysql:/var/lib/mysql
-    environment:
-      - MYSQL_RANDOM_ROOT_PASSWORD=yes
-      - MYSQL_DATABASE=semaphore
-      - MYSQL_USER=semaphore
-      - MYSQL_PASSWORD=secret-password  # change!
-    restart: unless-stopped
-  semaphore:
-    container_name: ansiblesemaphore
+  {{ service_name | default('semaphore') }}:
     image: docker.io/semaphoreui/semaphore:v2.16.18
-    user: "${UID}:${GID}"
+    container_name: {{ container_name | default('semaphore') }}
+    user: "{{ user_uid | default(1000) }}:{{ user_gid | default(1000) }}"
+    env_file:
+      - .env.semaphore
+    {% if ports_enabled %}
     ports:
-      - 3000:3000
-    environment:
-      - SEMAPHORE_DB_USER=semaphore
-      - SEMAPHORE_DB_PASS=secret-password  # change!
-      - SEMAPHORE_DB_HOST=mysql
-      - SEMAPHORE_DB_PORT=3306
-      - SEMAPHORE_DB_DIALECT=mysql
-      - SEMAPHORE_DB=semaphore
-      - SEMAPHORE_PLAYBOOK_PATH=/tmp/semaphore/
-      - SEMAPHORE_ADMIN_PASSWORD=secret-admin-password  # change!
-      - SEMAPHORE_ADMIN_NAME=admin
-      - SEMAPHORE_ADMIN_EMAIL=admin@localhost
-      - SEMAPHORE_ADMIN=admin
-      - SEMAPHORE_ACCESS_KEY_ENCRYPTION=  # add to your access key encryption !
-      - ANSIBLE_HOST_KEY_CHECKING=false  # (optional) change to true if you want to enable host key checking
+      - "{{ ports_http | default(3000) }}:3000"
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('semaphore') }}.loadbalancer.server.port=3000
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-https.tls=true
+      - traefik.http.routers.{{ service_name | default('semaphore') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
     volumes:
-      - ./inventory/:/inventory:ro
-      - ./authorized-keys/:/authorized-keys:ro
-      - ./config/:/etc/semaphore:rw
-    restart: unless-stopped
+      - ./inventory:/inventory:ro
+      - ./authorized-keys:/authorized-keys:ro
+      - ./config:/etc/semaphore:rw
     depends_on:
-      - mysql
+      {% if database_type == 'mysql' %}
+      - {{ service_name | default('semaphore') }}-mysql
+      {% elif database_type == 'postgres' %}
+      - {{ service_name | default('semaphore') }}-postgres
+      {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {% if not database_external %}
+  {% if database_type == 'mysql' %}
+  {{ service_name | default('semaphore') }}-mysql:
+    image: docker.io/library/mysql:8.4
+    container_name: {{ service_name | default('semaphore') }}-mysql
+    env_file:
+      - .env.database
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "{{ database_user | default('semaphore') }}", "-p{{ database_password | default('semaphore') }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - database_data:/var/lib/mysql
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+  {% elif database_type == 'postgres' %}
+  {{ service_name | default('semaphore') }}-postgres:
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name | default('semaphore') }}-postgres
+    env_file:
+      - .env.database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user | default('semaphore') }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+  {% endif %}
+  {% endif %}
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+{% endif %}
 
 volumes:
-  semaphore-mysql:
+  {% if not database_external %}
+  database_data:
     driver: local
+  {% endif %}

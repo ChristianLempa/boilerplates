@@ -1,0 +1,32 @@
+// Custom DNS Zones Configuration
+// Add your authoritative zones here
+
+// Example zone for home.arpa
+zone "home.arpa" {
+    type master;
+    file "/var/lib/bind/db.home.arpa";
+
+    // Allow zone transfers using TSIG key
+    allow-transfer { key "transfer-key"; };
+
+    // Enable zone updates with TSIG (for dynamic DNS)
+    // allow-update { key "transfer-key"; };
+
+    // Enable DNSSEC inline signing (optional)
+    // dnssec-policy default;
+    // inline-signing yes;
+};
+
+// Example reverse zone for 192.168.1.0/24
+// zone "1.168.192.in-addr.arpa" {
+//     type master;
+//     file "/var/lib/bind/db.192.168.1";
+//     allow-transfer { key "transfer-key"; };
+// };
+
+// Secondary/Slave zone example
+// zone "secondary.example.com" {
+//     type slave;
+//     masters { 192.168.1.100 key transfer-key; };
+//     file "/var/lib/bind/db.secondary.example.com";
+// };

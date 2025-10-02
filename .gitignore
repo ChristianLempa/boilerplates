@@ -20,3 +20,6 @@
 
 # Packaging
 *.egg-info/
+
+# Installation tracking
+.installed-version
