@@ -7,10 +7,7 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - homer
-  - docker
-  - compose
-  draft: true
+    - dashboard
 spec:
   ports:
     vars:
@@ -18,9 +15,3 @@ spec:
         description: "Host port for HTTP (8080)"
         type: int
         default: 8080
-  general:
-    vars:
-      homer_version:
-        type: string
-        description: Homer version
-        default: latest
