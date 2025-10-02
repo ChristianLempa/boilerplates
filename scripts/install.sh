@@ -213,7 +213,7 @@ get_latest_release() {
   local api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
   local release_tag
   
-  log "Fetching latest release information..."
+  log "Fetching latest release information..." >&2
   
   if command -v curl >/dev/null 2>&1; then
     release_tag=$(curl -fsSL "$api_url" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
