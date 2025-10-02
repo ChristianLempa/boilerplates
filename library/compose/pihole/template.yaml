@@ -10,6 +10,7 @@ metadata:
   - pihole
   - docker
   - compose
+  draft: true
 spec:
   ports:
     vars:

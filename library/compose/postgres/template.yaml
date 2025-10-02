@@ -11,6 +11,7 @@ metadata:
   - database
   - sql
   - relational
+  draft: true
 spec:
   general:
     vars:

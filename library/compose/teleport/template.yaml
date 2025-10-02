@@ -10,6 +10,7 @@ metadata:
   - teleport
   - docker
   - compose
+  draft: true
 spec:
   general:
     vars:

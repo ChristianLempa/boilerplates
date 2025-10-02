@@ -10,6 +10,7 @@ metadata:
   - wazuh.manager
   - docker
   - compose
+  draft: true
 spec:
   general:
     vars:

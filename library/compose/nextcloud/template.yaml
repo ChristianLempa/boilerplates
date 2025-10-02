@@ -20,6 +20,7 @@ metadata:
     - cloud
     - file-sharing
     - collaboration
+  draft: true
 spec:
   database:
     required: true

@@ -10,6 +10,7 @@ metadata:
   - heimdall
   - docker
   - compose
+  draft: true
 spec:
   general:
     vars:

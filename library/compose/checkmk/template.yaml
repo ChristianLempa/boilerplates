@@ -7,9 +7,10 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - monitoring
-  - docker
-  - compose
+    - monitoring
+    - docker
+    - compose
+  draft: true
 spec:
   general:
     vars:

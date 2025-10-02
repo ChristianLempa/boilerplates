@@ -10,6 +10,7 @@ metadata:
     - nginx
     - web
     - reverse-proxy
+  draft: true
 spec:
   ports:
     vars:

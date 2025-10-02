@@ -25,9 +25,3 @@ spec:
         description: "Host port for Edge agent (8000)"
         type: int
         default: 8000
-  general:
-    vars:
-      portainer_version:
-        type: string
-        description: Portainer version
-        default: latest

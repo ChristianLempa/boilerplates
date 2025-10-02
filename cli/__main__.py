@@ -21,9 +21,9 @@ from cli.core.registry import registry
 __version__ = "0.0.1"
 
 app = Typer(
-  no_args_is_help=True,
-  help="CLI tool for managing infrastructure boilerplates",
+  help="CLI tool for managing infrastructure boilerplates.\n\n[dim]Easily generate, customize, and deploy templates for Docker Compose, Terraform, Kubernetes, and more.\n\n [white]Made with 💜 by [bold]Christian Lempa[/bold]",
   add_completion=True,
+  rich_markup_mode="rich",
 )
 console = Console()
 
@@ -86,6 +86,11 @@ def main(
   # Store log level in context for potential use by other commands
   ctx.ensure_object(dict)
   ctx.obj['log_level'] = log_level
+  
+  # If no subcommand is provided, show help and friendly intro
+  if ctx.invoked_subcommand is None:
+    console.print(ctx.get_help())
+    sys.exit(0)
 
 def init_app() -> None:
   """Initialize the application by discovering and registering modules.
