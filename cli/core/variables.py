@@ -9,21 +9,11 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# -----------------------
-# SECTION: Constants
-# -----------------------
-
 TRUE_VALUES = {"true", "1", "yes", "on"}
 FALSE_VALUES = {"false", "0", "no", "off"}
 HOSTNAME_REGEX = re.compile(r"^(?=.{1,253}$)(?!-)[A-Za-z0-9_-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9_-]{1,63}(?<!-))*$")
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-
-# !SECTION
-
-# ----------------------
-# SECTION: Variable Class
-# ----------------------
 
 class Variable:
   """Represents a single templating variable with lightweight validation."""
@@ -70,10 +60,6 @@ class Variable:
       except ValueError as exc:
         raise ValueError(f"Invalid default for variable '{self.name}': {exc}")
 
-  # -------------------------
-  # SECTION: Validation Helpers
-  # -------------------------
-
   def _validate_not_empty(self, value: Any, converted_value: Any) -> None:
     """Validate that a value is not empty for non-boolean types."""
     if self.type not in ["bool"] and (converted_value is None or converted_value == ""):
@@ -93,12 +79,6 @@ class Variable:
     """Validate that a parsed URL has required components."""
     if not (parsed_url.scheme and parsed_url.netloc):
       raise ValueError("value must be a valid URL (include scheme and host)")
-
-  # !SECTION
-
-  # -------------------------
-  # SECTION: Type Conversion
-  # -------------------------
 
   def convert(self, value: Any) -> Any:
     """Validate and convert a raw value based on the variable type."""
@@ -235,10 +215,6 @@ class Variable:
       var_dict["origin"] = self.origin
     
     return var_dict
-  
-  # -------------------------
-  # SECTION: Display Methods
-  # -------------------------
   
   def get_display_value(self, mask_sensitive: bool = True, max_length: int = 30) -> str:
     """Get formatted display value with optional masking and truncation.
@@ -379,14 +355,6 @@ class Variable:
     
     return cloned
   
-  # !SECTION
-
-# !SECTION
-
-# ----------------------------
-# SECTION: VariableSection Class
-# ----------------------------
-
 class VariableSection:
   """Groups variables together with shared metadata for presentation."""
 
@@ -458,10 +426,6 @@ class VariableSection:
     
     return section_dict
   
-  # -------------------------
-  # SECTION: State Methods
-  # -------------------------
-  
   def is_enabled(self) -> bool:
     """Check if section is currently enabled based on toggle variable.
     
@@ -530,14 +494,6 @@ class VariableSection:
         cloned.variables[var_name] = variable.clone()
     
     return cloned
-  
-  # !SECTION
-
-# !SECTION
-
-# --------------------------------
-# SECTION: VariableCollection Class
-# --------------------------------
 
 class VariableCollection:
   """Manages variables grouped by sections and builds Jinja context."""
@@ -802,10 +758,6 @@ class VariableCollection:
     
     return result
 
-  # -------------------------
-  # SECTION: Public API Methods
-  # -------------------------
-
   def get_sections(self) -> Dict[str, VariableSection]:
     """Get all sections in the collection."""
     return self._sections.copy()
@@ -859,15 +811,6 @@ class VariableCollection:
   def get_sensitive_variables(self) -> Dict[str, Any]:
     """Get only the sensitive variables with their values."""
     return {name: var.value for name, var in self._variable_map.items() if var.sensitive and var.value}
-
-  # !SECTION
-
-  # -------------------------
-  # SECTION: Helper Methods
-  # -------------------------
-
-  # NOTE: These helper methods reduce code duplication across module.py and prompt.py
-  # by centralizing common variable collection operations
 
   def apply_defaults(self, defaults: dict[str, Any], origin: str = "cli") -> list[str]:
     """Apply default values to variables, updating their origin.
@@ -1147,7 +1090,3 @@ class VariableCollection:
         Set of all variable names
     """
     return set(self._variable_map.keys())
-
-  # !SECTION
-
-# !SECTION

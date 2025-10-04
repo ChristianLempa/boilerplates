@@ -14,22 +14,12 @@ from jinja2.visitor import NodeVisitor
 logger = logging.getLogger(__name__)
 
 
-# -----------------------
-# SECTION: TemplateFile Class
-# -----------------------
-
 @dataclass
 class TemplateFile:
     """Represents a single file within a template directory."""
     relative_path: Path
     file_type: Literal['j2', 'static']
     output_path: Path # The path it will have in the output directory
-
-# !SECTION
-
-# -----------------------
-# SECTION: Metadata Class
-# -----------------------
 
 @dataclass
 class TemplateMetadata:
@@ -105,12 +95,6 @@ class TemplateMetadata:
     
     if missing_fields:
       raise ValueError(f"Template format error: missing required metadata fields: {missing_fields}")
-
-# !SECTION
-
-# -----------------------
-# SECTION: Template Class
-# -----------------------
 
 @dataclass
 class Template:
@@ -355,10 +339,6 @@ class Template:
     
     return filtered_specs
 
-  # ---------------------------
-  # SECTION: Validation Methods
-  # ---------------------------
-
   @staticmethod
   def _validate_kind(template_data: dict) -> None:
     """Validate that template has required 'kind' field.
@@ -401,12 +381,6 @@ class Template:
           )
       logger.error(error_msg)
       raise ValueError(error_msg)
-
-  # !SECTION
-
-  # ---------------------------------
-  # SECTION: Jinja2 Rendering Methods
-  # ---------------------------------
 
   @staticmethod
   def _create_jinja_env(searchpath: Path) -> Environment:
@@ -577,12 +551,6 @@ class Template:
       
     return masked_files
   
-  # !SECTION
-
-  # ---------------------------
-  # SECTION: Lazy Loaded Properties
-  # ---------------------------
-
   @property
   def template_files(self) -> List[TemplateFile]:
       if self.__template_files is None:

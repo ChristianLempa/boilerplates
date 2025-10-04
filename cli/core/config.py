@@ -89,11 +89,7 @@ class ConfigManager:
             Path to the configuration file.
         """
         return self.config_path
-    
-    # -------------------------
-    # SECTION: Defaults Management
-    # -------------------------
-    
+
     def get_defaults(self, module_name: str) -> Dict[str, Any]:
         """Get default variable values for a module.
         
@@ -168,13 +164,7 @@ class ConfigManager:
             del config["defaults"][module_name]
             self._write_config(config)
             logger.info(f"Cleared defaults for module '{module_name}'")
-    
-    # !SECTION
-    
-    # -------------------------
-    # SECTION: Preferences Management
-    # -------------------------
-    
+
     def get_preference(self, key: str) -> Optional[Any]:
         """Get a user preference value.
         
@@ -212,5 +202,3 @@ class ConfigManager:
         """
         config = self._read_config()
         return config.get("preferences", {})
-    
-    # !SECTION

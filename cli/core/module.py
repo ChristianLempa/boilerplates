@@ -19,10 +19,6 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
-# ------------------------------- 
-# SECTION: Helper Functions
-# ------------------------------- 
-
 def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str, Any]:
   """Parse variable inputs from --var options and extra args.
   
@@ -53,12 +49,6 @@ def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str,
   
   return variables
 
-# !SECTION
-
-# ---------------------
-# SECTION: Module Class
-# ---------------------
-
 class Module(ABC):
   """Streamlined base module that auto-detects variables from templates."""
 
@@ -72,10 +62,6 @@ class Module(ABC):
     logger.debug(f"Module '{self.name}' configuration: description='{self.description}'")
     self.libraries = LibraryManager()
     self.display = DisplayManager()
-
-  # --------------------------
-  # SECTION: Public Commands
-  # --------------------------
 
   def list(self) -> list[Template]:
     """List all templates."""
@@ -319,10 +305,6 @@ class Module(ABC):
       console.print(f"[red]Error generating template: {e}[/red]")
       # Stop execution without letting Typer/Click print the exception again.
       raise Exit(code=1)
-
-  # --------------------------
-  # SECTION: Config Commands
-  # --------------------------
 
   def config_get(
     self,
@@ -581,12 +563,6 @@ class Module(ABC):
       else:
         console.print(f"\n[green] All templates are valid![/green]")
 
-  # !SECTION
-
-  # ------------------------------
-  # SECTION: CLI Registration
-  # ------------------------------
-
   @classmethod
   def register_cli(cls, app: Typer) -> None:
     """Register module commands with the main app."""
@@ -618,14 +594,6 @@ class Module(ABC):
     app.add_typer(module_app, name=cls.name, help=cls.description)
     logger.info(f"Module '{cls.name}' CLI commands registered")
 
-  # !SECTION
-
-
-
-  # --------------------------
-  # SECTION: Private Methods
-  # --------------------------
-
   def _load_template_by_id(self, template_id: str) -> Template:
     result = self.libraries.find_by_id(self.name, template_id)
     if not result:
@@ -645,5 +613,3 @@ class Module(ABC):
   def _display_template_details(self, template: Template, template_id: str) -> None:
     """Display template information panel and variables table."""
     self.display.display_template_details(template, template_id)
-
-# !SECTION

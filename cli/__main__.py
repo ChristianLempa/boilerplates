@@ -17,8 +17,8 @@ import cli.modules
 from cli.core.registry import registry
 # Using standard Python exceptions instead of custom ones
 
-# Version is automatically updated by CI/CD on release
-__version__ = "0.0.1"
+# NOTE: Placeholder version - will be overwritten by release script (.github/workflows/release.yaml)
+__version__ = "0.0.0"
 
 app = Typer(
   help="CLI tool for managing infrastructure boilerplates.\n\n[dim]Easily generate, customize, and deploy templates for Docker Compose, Terraform, Kubernetes, and more.\n\n [white]Made with 💜 by [bold]Christian Lempa[/bold]",

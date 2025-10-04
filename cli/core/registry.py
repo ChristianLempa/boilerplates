@@ -7,10 +7,6 @@ from typing import Iterator, Type
 logger = logging.getLogger(__name__)
 
 
-# ------------------------------
-# SECTION: ModuleRegistry Class
-# ------------------------------
-
 class ModuleRegistry:
   """Simple module registry without magic."""
   
@@ -36,13 +32,5 @@ class ModuleRegistry:
     for name in sorted(self._modules.keys()):
       yield name, self._modules[name]
 
-# !SECTION
-
-# -------------------------
-# SECTION: Global Instance
-# -------------------------
-
 # Global registry
 registry = ModuleRegistry()
-
-# !SECTION

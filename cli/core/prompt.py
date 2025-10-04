@@ -12,20 +12,12 @@ from .variables import Variable, VariableCollection
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------
-# SECTION: PromptHandler Class
-# ---------------------------
-
 class PromptHandler:
   """Simple interactive prompt handler for collecting template variables."""
 
   def __init__(self) -> None:
     self.console = Console()
     self.display = DisplayManager()
-
-  # --------------------------
-  # SECTION: Public Methods
-  # --------------------------
 
   def collect_variables(self, variables: VariableCollection) -> dict[str, Any]:
     """Collect values for variables by iterating through sections.
@@ -97,12 +89,6 @@ class PromptHandler:
 
     logger.info(f"Variable collection completed. Collected {len(collected)} values")
     return collected
-
-  # !SECTION
-
-  # ---------------------------
-  # SECTION: Private Methods
-  # ---------------------------
 
   def _prompt_variable(self, variable: Variable, required: bool = False) -> Any:
     """Prompt for a single variable value based on its type."""
@@ -213,5 +199,3 @@ class PromptHandler:
       if value in options:
         return value
       self.console.print(f"[red]Invalid choice. Select from: {', '.join(options)}[/red]")
-
-# !SECTION

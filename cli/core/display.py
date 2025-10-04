@@ -329,4 +329,3 @@ class DisplayManager:
             logger.warning(f"Failed to render next_steps as template: {e}")
             # Fallback to plain text if rendering fails
             console.print(next_steps)
-

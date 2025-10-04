@@ -7,10 +7,6 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# -----------------------
-# SECTION: Library Class
-# -----------------------
-
 class Library:
   """Represents a single library with a specific path."""
   
@@ -137,12 +133,6 @@ class Library:
     logger.debug(f"Found {len(template_dirs)} templates in module '{module_name}'")
     return template_dirs
 
-# !SECTION
-
-# -----------------------------
-# SECTION: LibraryManager Class
-# -----------------------------
-
 class LibraryManager:
   """Manages multiple libraries and provides methods to find templates."""
   
@@ -219,5 +209,3 @@ class LibraryManager:
     
     logger.debug(f"Found {len(unique_templates)} unique templates total")
     return unique_templates
-
-# !SECTION
