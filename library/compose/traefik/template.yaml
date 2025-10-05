@@ -14,15 +14,17 @@ metadata:
   author: "Christian Lempa"
   date: "2025-10-02"
   tags:
-    - traefik
     - reverse-proxy
     - load-balancer
-    - edge-router
 spec:
   general:
     title: "General"
     required: true
     vars:
+      service_name:
+        default: "traefik"
+      container_name:
+        default: "traefik"
       accesslog_enabled:
         type: "bool"
         description: "Enable Traefik access log"
@@ -53,6 +55,11 @@ spec:
         default: "your-api-token-here"
         sensitive: true
         extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions"
+      traefik_tls_acme_secret_name:
+        type: "str"
+        description: "Docker Swarm secret name for API token (swarm mode only)"
+        default: "cloudflare_api_token"
+        extra: "The secret name to use in Docker Swarm for storing the API token"
       traefik_tls_acme_email:
         type: "str"
         description: "Email address for ACME (Let's Encrypt) registration"
@@ -63,14 +70,8 @@ spec:
         description: "Redirect all HTTP traffic to HTTPS"
         default: true
   ports:
-    name: "Ports"
-    prompt: "Expose ports via 'ports' mapping?"
     toggle: "ports_enabled"
     vars:
-      ports_enabled:
-        type: "bool"
-        description: "Expose ports via 'ports' mapping"
-        default: true
       traefik_dashboard_enabled:
         type: "bool"
         description: "Enable Traefik dashboard (don't use in production)"
@@ -82,6 +83,12 @@ spec:
         default: true
       network_name:
         default: "proxy"
+  swarm:
+    vars:
+      swarm_placement_mode:
+        default: "global"
+      swarm_placement_host:
+        description: "Placement constraint for node selection (optional)"
   authentik:
     title: Authentik Middleware
     description: Enable Authentik SSO integration for Traefik

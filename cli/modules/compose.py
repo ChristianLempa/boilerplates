@@ -144,6 +144,16 @@ spec = OrderedDict(
             "type": "int",
             "default": 1,
           },
+          "swarm_placement_mode": {
+            "description": "Swarm placement mode",
+            "type": "enum",
+            "options": ["global", "replicated"],
+            "default": "replicated"
+          },
+          "swarm_placement_host": {
+            "description": "Limit placement to specific node",
+            "type": "str",
+          }
         },
       },
       "database": {

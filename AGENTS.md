@@ -262,7 +262,7 @@ After creating the issue, update the TODO line in the `AGENTS.md` file with the 
 * TODO Template Validation Command: A command to validate the structure and variable definitions of a template without generating it.
 * TODO Interactive Variable Prompt Improvements: The interactive prompt could be improved with better navigation, help text, and validation feedback.
 * TODO Better Error Recovery in Jinja2 Rendering
-* TODO Icon Management Class in DisplayManager: Create a centralized icon management system in `cli/core/display.py` to standardize icons used throughout the CLI for file types (.yaml, .j2, .json, etc.), status indicators (success, warning, error, info), and UI elements. This would improve consistency, make icons easier to maintain, and allow for theme customization.
+* FIXME Make sure all outputs in module.py and display.py use the IconManager for consistent icons
 
 ## Best Practices for Template Development
 

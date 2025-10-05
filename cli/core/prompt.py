@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.prompt import Prompt, Confirm, IntPrompt
 from rich.table import Table
 
-from .display import DisplayManager
+from .display import DisplayManager, IconManager
 from .variables import Variable, VariableCollection
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class PromptHandler:
         unsatisfied = [dep for dep in section.needs if not variables.is_section_satisfied(dep)]
         dep_names = ", ".join(unsatisfied) if unsatisfied else "unknown"
         self.console.print(
-          f"\n[dim]⊘ {section.title} (skipped - requires {dep_names} to be enabled)[/dim]"
+          f"\n[dim]{IconManager.get_status_icon('skipped')} {section.title} (skipped - requires {dep_names} to be enabled)[/dim]"
         )
         logger.debug(f"Skipping section '{section_key}' - dependencies not satisfied: {dep_names}")
         continue

@@ -1,7 +1,9 @@
 services:
-  {{ service_name | default("traefik") }}:
+  {{ service_name }}:
     image: docker.io/library/traefik:v3.2
-    container_name: {{ container_name | default("traefik") }}
+    {% if not swarm_enabled %}
+    container_name: {{ container_name }}
+    {% endif %}
     {% if ports_enabled %}
     ports:
       - "80:80"
@@ -24,7 +26,30 @@ services:
     networks:
       - {{ network_name }}
     {% endif %}
+    {% if swarm_enabled %}
+    {% if traefik_tls_enabled %}
+    secrets:
+      - {{ traefik_tls_acme_secret_name }}
+    {% endif %}
+    deploy:
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - {{ swarm_placement_host }}
+      {% endif %}
+    {% else %}
     restart: {{ restart_policy }}
+    {% endif %}
+
+{% if swarm_enabled and traefik_tls_enabled %}
+secrets:
+  {{ traefik_tls_acme_secret_name }}:
+    external: true
+{% endif %}
 
 {% if network_enabled %}
 networks:
