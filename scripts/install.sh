@@ -76,6 +76,25 @@ get_latest_release() {
   echo "$result"
 }
 
+get_release_asset_url() {
+  local version="$1"
+  local api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/tags/$version"
+  local result
+  
+  if command -v curl >/dev/null 2>&1; then
+    result=$(curl -qfsSL --max-time 10 "$api_url" 2>/dev/null | \
+      sed -En 's/.*"browser_download_url": "([^"]*\.tar\.gz)".*/\1/p' | head -n1)
+  elif command -v wget >/dev/null 2>&1; then
+    result=$(wget --timeout=10 -qO- "$api_url" 2>/dev/null | \
+      sed -En 's/.*"browser_download_url": "([^"]*\.tar\.gz)".*/\1/p' | head -n1)
+  else
+    error "Neither curl nor wget found"
+  fi
+  
+  [[ -z "$result" ]] && error "No .tar.gz release asset found for $version"
+  echo "$result"
+}
+
 download_and_extract() {
   local version="$1"
   
@@ -89,15 +108,16 @@ download_and_extract() {
   # Ensure 'v' prefix
   [[ "$version" =~ ^v ]] || version="v$version"
   
-  local url="https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/tags/$version.tar.gz"
+  log "Finding release asset..."
+  local url=$(get_release_asset_url "$version")
+  
   local temp_dir=$(mktemp -d)
   local archive="$temp_dir/release.tar.gz"
-  local extract_dir="$temp_dir/extracted"
   
   # Ensure cleanup on exit
   trap '[[ -d "${temp_dir:-}" ]] && rm -rf "$temp_dir"' RETURN
   
-  log "Downloading $version..."
+  log "Downloading $version from release assets..."
   
   if command -v curl >/dev/null 2>&1; then
     curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed"
@@ -105,13 +125,13 @@ download_and_extract() {
     wget --timeout=30 -qO "$archive" "$url" || error "Download failed"
   fi
   
-  log "Extracting release..."
+  log "Extracting package..."
   
-  mkdir -p "$extract_dir"
-  tar -xzf "$archive" -C "$extract_dir" || error "Extraction failed"
+  # Extract directly to temp_dir (sdist tarballs have a top-level directory)
+  tar -xzf "$archive" -C "$temp_dir" || error "Extraction failed"
   
   # Find the extracted directory (should be boilerplates-X.Y.Z)
-  local source_dir=$(find "$extract_dir" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
+  local source_dir=$(find "$temp_dir" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
   [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
   
   # Verify essential files exist
