@@ -7,10 +7,10 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - grafana
-  - monitoring
-  - observability
-  - dashboard
+    - grafana
+    - monitoring
+    - observability
+    - dashboard
 spec:
   general:
     vars:

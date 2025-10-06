@@ -4,9 +4,6 @@ services:
     container_name: {{ container_name }}
     environment:
       - TZ={{ container_timezone }}
-      {% if container_hostname -%}
-      - GF_SERVER_DOMAIN={{ container_hostname }}
-      {% endif %}
     {% if ports_enabled %}
     ports:
       - "{{ ports_http }}:3000"

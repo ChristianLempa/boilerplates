@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from abc import ABC
 from pathlib import Path
 from typing import Any, Optional
@@ -17,6 +18,7 @@ from .template import Template
 
 logger = logging.getLogger(__name__)
 console = Console()
+console_err = Console(stderr=True)
 
 
 def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str, Any]:
@@ -63,7 +65,10 @@ class Module(ABC):
     self.libraries = LibraryManager()
     self.display = DisplayManager()
 
-  def list(self) -> list[Template]:
+  def list(
+    self,
+    raw: bool = Option(False, "--raw", help="Output raw list format instead of rich table")
+  ) -> list[Template]:
     """List all templates."""
     logger.debug(f"Listing templates for module '{self.name}'")
     templates = []
@@ -80,11 +85,23 @@ class Module(ABC):
     filtered_templates = templates
     
     if filtered_templates:
-      self.display.display_templates_table(
-        filtered_templates,
-        self.name,
-        f"{self.name.capitalize()} templates"
-      )
+      if raw:
+        # Output raw format (tab-separated values for easy filtering with awk/sed/cut)
+        # Format: ID\tNAME\tTAGS\tVERSION\tLIBRARY
+        for template in filtered_templates:
+          name = template.metadata.name or "Unnamed Template"
+          tags_list = template.metadata.tags or []
+          tags = ",".join(tags_list) if tags_list else "-"
+          version = str(template.metadata.version) if template.metadata.version else "-"
+          library = template.metadata.library or "-"
+          print(f"{template.id}\t{name}\t{tags}\t{version}\t{library}")
+      else:
+        # Output rich table format
+        self.display.display_templates_table(
+          filtered_templates,
+          self.name,
+          f"{self.name.capitalize()} templates"
+        )
     else:
       logger.info(f"No templates found for module '{self.name}'")
 
@@ -243,7 +260,7 @@ class Module(ABC):
       
       # Safety check for render result
       if not rendered_files:
-        console.print("[red]Error: Template rendering returned no files[/red]")
+        console_err.print("[red]Error: Template rendering returned no files[/red]")
         raise Exit(code=1)
       
       logger.info(f"Successfully rendered template '{id}'")
@@ -319,7 +336,7 @@ class Module(ABC):
 
     except Exception as e:
       logger.error(f"Error rendering template '{id}': {e}")
-      console.print(f"[red]Error generating template: {e}[/red]")
+      console_err.print(f"[red]Error generating template: {e}[/red]")
       # Stop execution without letting Typer/Click print the exception again.
       raise Exit(code=1)
 
