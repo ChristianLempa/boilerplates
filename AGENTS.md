@@ -1,12 +1,10 @@
 # AGENTS.md
 
-This file provides guidance to AI Agents when working with code in this repository.
+Guidance for AI Agents working with this repository.
 
 ## Project Overview
 
-This repository contains a sophisticated collection of templates (called boilerplates) for managing infrastructure across multiple technologies including Terraform, Docker, Ansible, Kubernetes, etc. The project also includes a Python CLI application that allows an easy management, creation, and deployment of boilerplates.
-
-The CLI is a Python application built with Typer for the command-line interface and Jinja2 for templating.
+A sophisticated collection of infrastructure templates (boilerplates) with a Python CLI for management. Supports Terraform, Docker, Ansible, Kubernetes, etc. Built with Typer (CLI) and Jinja2 (templating).
 
 ## Repository Structure
 
@@ -65,30 +63,44 @@ python3 -m cli compose defaults list
 
 ## Common Development Tasks
 
+## Release Management
+
+**Process:** Tag-based workflow via `.github/workflows/release.yaml`. Push a semver tag (e.g., `v1.2.3`) to trigger.
+
+**Workflow Steps:**
+1. Extracts version from tag
+2. Auto-updates `pyproject.toml` and `cli/__main__.py` with version
+3. Recreates tag pointing to version bump commit
+4. Builds wheel/tarball
+5. Creates GitHub release (marks alpha/beta/rc as pre-release)
+
+**Important:** Never manually edit version numbers - they're placeholders (`0.0.0`) that get auto-updated.
+
+**User Installation:**
+```bash
+# Latest
+curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash
+
+# Specific version
+curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash -s -- --version v1.2.3
+```
+
+The `install.sh` script downloads the release tarball and installs via pipx. PyPI publishing is currently disabled.
+
 ## Architecture Notes
 
 ### Key Components
 
-The CLI application is built with a modular and extensible architecture.
+Modular architecture with dynamic module discovery:
 
-- **`cli/__main__.py`**: The main entry point using `Typer`. It dynamically discovers and imports modules from the `cli/modules` directory, registering their commands with the main application.
-
-- **`cli/core/registry.py`**: Provides a `ModuleRegistry` which acts as a central store for all discovered module classes. This avoids magic and keeps module registration explicit.
-
-- **`cli/core/module.py`**: Defines the abstract `Module` base class. Each technology (e.g., `compose`, `terraform`) is a subclass of `Module`. It standardizes the `list`, `search`, `show`, and `generate` commands and handles their registration.
-
-- **`cli/core/library.py`**: Implements the `LibraryManager` and `Library` classes, which are responsible for finding template files within the `library/` directory. It supports a priority system, allowing different template sources to override each other.
-
-- **`cli/core/template.py`**: Contains the `Template` class, which is the heart of the engine. It parses a template file, separating the YAML frontmatter (metadata, variable specifications) from the Jinja2 content. It intelligently merges variable definitions from both the module and the template file.
-
-- **`cli/core/variables.py`**: Defines the data structures for managing variables:
-  - `Variable`: Represents a single variable, including its type, validation rules, and default value.
-  - `VariableSection`: Groups variables into logical sections for better presentation and conditional logic.
-  - `VariableCollection`: Manages the entire set of sections and variables for a template.
-
-- **`cli/core/prompt.py`**: The `PromptHandler` provides the interactive CLI experience. It uses the `rich` library to prompt the user for variable values, organized by the sections defined in the `VariableCollection`.
-
-- **`cli/core/display.py`**: The `DisplayManager` handles all output rendering using `rich`. It provides consistent and visually appealing displays for lists, search results, variable summaries, and error messages.
+- **`cli/__main__.py`**: Entry point. Auto-discovers modules and registers commands.
+- **`cli/core/registry.py`**: Central module class store.
+- **`cli/core/module.py`**: Abstract `Module` base class for standardized commands (list, search, show, generate).
+- **`cli/core/library.py`**: `LibraryManager` finds templates in `library/` with priority system.
+- **`cli/core/template.py`**: Parses templates, merges YAML frontmatter with Jinja2 content.
+- **`cli/core/variables.py`**: Variable data structures (`Variable`, `VariableSection`, `VariableCollection`).
+- **`cli/core/prompt.py`**: Interactive CLI prompts via `rich` library.
+- **`cli/core/display.py`**: Consistent output rendering.
 
 ### Template Format
 
@@ -96,9 +108,7 @@ Templates are directory-based. Each template is a directory containing all the n
 
 #### Main Template File
 
-Every template directory must contain a main template file named either `template.yaml` or `template.yml`. This file serves as the entry point and contains the template's metadata and variable specifications in YAML frontmatter format.
-
-Example `template.yaml`:
+Requires `template.yaml` or `template.yml` with metadata and variables in YAML frontmatter:
 
 ```yaml
 ---
@@ -128,16 +138,9 @@ spec:
 
 #### Template Files
 
--   **Jinja2 Templates (`.j2`)**: Any file within the template directory that has a `.j2` extension will be rendered by the Jinja2 engine. The `.j2` extension is removed from the final output file name (e.g., `config.json.j2` becomes `config.json`). These files can use `{% include %}` and `{% import %}` statements to share code with other files in the template directory.
-
--   **Static Files**: Any file without a `.j2` extension is treated as a static file and will be copied to the output directory as-is, preserving its relative path and filename.
-
--   **Content Sanitization**: All rendered Jinja2 templates are automatically sanitized to improve output quality:
-    - Multiple consecutive blank lines are reduced to a single blank line
-    - Leading blank lines are removed
-    - Trailing whitespace is stripped from each line
-    - Files are ensured to end with exactly one newline character
-    - This prevents common formatting issues from conditional Jinja2 blocks
+- **Jinja2 Templates (`.j2`)**: Rendered by Jinja2, `.j2` extension removed in output. Support `{% include %}` and `{% import %}`.
+- **Static Files**: Non-`.j2` files copied as-is.
+- **Sanitization**: Auto-sanitized (single blank lines, no leading blanks, trimmed whitespace, single trailing newline).
 
 #### Example Directory Structure
 
@@ -153,50 +156,15 @@ library/compose/my-nginx-template/
 
 #### Variables
 
-Variables are a cornerstone of the CLI, allowing for dynamic and customizable template generation. They are defined and processed with a clear precedence and logic.
+**Precedence** (lowest to highest):
+1. Module `spec` (defaults for all templates of that kind)
+2. Template `spec` (overrides module defaults)
+3. CLI `--var` (highest priority)
 
-**1. Definition and Precedence:**
-
-Variables are sourced and merged from multiple locations, with later sources overriding earlier ones:
-
-1.  **Module `spec` (Lowest Precedence)**: Each module (e.g., `cli/modules/compose.py`) can define a base `spec` dictionary. This provides default variables and sections for all templates of that `kind`.
-2.  **Template `spec`**: The `spec` block within the `template.yaml` or `template.yml` file can override or extend the module's `spec`. This is the single source of truth for defaults within the template.
-3.  **CLI Overrides (`--var`) (Highest Precedence)**: Providing a variable via the command line (`--var KEY=VALUE`) has the highest priority and will override any default or previously set value.
-
-The `Variable.origin` attribute is updated to reflect this chain (e.g., `module -> template -> cli`).
-
-**2. Required Sections:**
-
-- A section in the `spec` can be marked as `required: true`.
-- The `general` section is implicitly required by default.
-- During an interactive session, users must provide inputs for all variables within a required section and cannot skip it.
-
-**3. Toggle Settings (Conditional Sections):**
-
-- A section can be made conditional by setting the `toggle` property to the name of a boolean variable within that same section.
-- **Example**: `toggle: "advanced_enabled"`
-- **Validation**: The toggle variable MUST be of type `bool`. This is validated at load-time by `VariableCollection._validate_section_toggle()`.
-- During an interactive session, the CLI will first ask the user to enable or disable the section by prompting for the toggle variable (e.g., "Enable advanced settings?").
-- If the section is disabled (the toggle is `false`), all other variables within that section are skipped, and the section is visually dimmed in the summary table. This provides a clean way to manage optional or advanced configurations.
-
-**4. Section Dependencies:**
-
-- Sections can declare dependencies on other sections using the `needs` property.
-- **Example**: `needs: "traefik"` or `needs: ["database", "redis"]` for multiple dependencies.
-- **Purpose**: Ensures that dependent sections are only shown/processed when their dependency sections are enabled.
-- **Behavior**:
-  - During interactive prompting: If a dependency is not satisfied (disabled or not enabled), the dependent section is automatically skipped with a message like `⊘ Section Name (skipped - requires dependency_name to be enabled)`.
-  - During non-interactive generation: Variables from sections with unsatisfied dependencies are excluded from the Jinja2 rendering context.
-  - During validation: Sections with unsatisfied dependencies are skipped.
-- **Validation**: Dependencies are validated at template load time:
-  - Circular dependencies are detected and cause an error (e.g., A needs B, B needs A).
-  - Missing dependencies cause an error (e.g., A needs B, but B doesn't exist).
-  - Self-dependencies cause an error (e.g., A needs A).
-- **Sorting**: Sections are automatically sorted using topological sort to ensure dependencies come before dependents, while preserving the original order within priority groups (required, enabled, disabled).
-- **Use Cases**:
-  - Split complex configurations: e.g., `traefik` (basic) and `traefik_tls` (needs traefik) sections.
-  - Conditional features: e.g., `database_backup` (needs database) or `monitoring_alerts` (needs monitoring).
-  - Hierarchical settings: e.g., `email` (basic) and `email_advanced` (needs email) sections.
+**Key Features:**
+- **Required Sections**: Mark with `required: true` (general is implicit). Users must provide all values.
+- **Toggle Settings**: Conditional sections via `toggle: "bool_var_name"`. If false, section is skipped.
+- **Dependencies**: Use `needs: "section_name"` or `needs: ["sec1", "sec2"]`. Dependent sections only shown when dependencies are enabled. Auto-validated (detects circular/missing/self dependencies). Topologically sorted.
 
 **Example Section with Dependencies:**
 
@@ -224,62 +192,35 @@ spec:
         type: "str"
 ```
 
-## Best Practices for Template Development
+## Best Practices
 
 ### Template Structure
-- Always include a main `template.yaml` or `template.yml` file
-- Use descriptive template IDs (directory names) with lowercase and hyphens
-- Place Jinja2 templates in subdirectories when appropriate (e.g., `config/`)
-- For application-specific configs, create templates in the `config` module instead of using complex directory structures
+- Include `template.yaml`/`template.yml` with descriptive IDs (lowercase-with-hyphens)
+- Use subdirectories for Jinja2 templates (e.g., `config/`)
+- Prefer `config` module for app-specific configs vs complex directories
 
-### Variable Definitions
-- **Prefer module spec variables first**: Always check if a variable exists in the module spec before adding template-specific variables. Use existing module variables where possible to maintain consistency across templates.
-- **Override module variables when needed**: If a module variable needs different behavior for a specific template, override its `description`, `default`, or `extra` properties in the template spec rather than creating a new variable.
-- **Add template-specific variables only when necessary**: Only create new variables in the template spec when they are truly unique to that template and don't fit into existing module variables.
-- Use descriptive names with underscores (e.g., `external_url`, `smtp_port`)
-- Always specify `type` and provide sensible `default` values
-- Mark sensitive data with `sensitive: true` and `autogenerated: true` for auto-generated secrets
-- Use `pwgen` filter for password generation: `{{ secret_key if secret_key else (none | pwgen(50)) }}`
+### Variables
+- **Priority**: Prefer module spec → override when needed → add new only if unique
+- Use descriptive underscore names, always specify `type`
+- **Defaults**: Define sensible `default` values in `template.yaml` for all non-required variables (improves non-interactive generation)
+- **Credentials**: Mark with `sensitive: true` (hides input), `autogenerated: true` (auto-generates secure values when empty)
 
-**Example**: For the Traefik template, use the existing `authentik` section from the module spec instead of creating custom `authentik_middleware_*` variables. Override the section's `description` and `extra` to provide Traefik-specific guidance.
+### Jinja2
+- Keep logic simple, add descriptive comments
 
-### Jinja2 Templates
-- Use `.j2` extension and always use `| default()` filter for safe fallbacks
-- Use conditional blocks for optional features and keep logic simple
-- Add descriptive comments in generated files
+### Docker Compose
 
-### Docker Compose Specific Practices
+**Naming Conventions:**
+- Service: `service_name`, `container_name`, `container_timezone`, `restart_policy`
+- App: Prefix with app name (e.g., `authentik_secret_key`)
+- Database: `database_*` (type, enabled, external, host, port, name, user, password)
+- Network: `network_*` (enabled, name, external)
+- Traefik: `traefik_*` (enabled, host, tls_enabled, tls_entrypoint, tls_certresolver)
+- Ports: `ports_*` (enabled, http, https, ssh)
+- Email: `email_*` (enabled, host, port, username, password, from)
 
-#### Variable Naming Conventions
-- **Service/Container**: `service_name`, `container_name`, `container_timezone`, `restart_policy`
-- **Application**: Prefix with app name (e.g., `authentik_secret_key`, `gitea_root_url`)
-- **Database**: `database_type`, `database_enabled`, `database_external`, `database_host`, `database_port`, `database_name`, `database_user`, `database_password`
-- **Network**: `network_enabled`, `network_name`, `network_external`
-- **Traefik**: `traefik_enabled`, `traefik_host`, `traefik_tls_enabled`, `traefik_tls_entrypoint`, `traefik_tls_certresolver`
-- **Ports**: `ports_enabled`, `ports_http`, `ports_https`, `ports_ssh`
-- **Email**: `email_enabled`, `email_host`, `email_port`, `email_username`, `email_password`, `email_from`
-
-#### Scoped Environment Files
-Use separate `.env.{service}.j2` files for different services (e.g., `.env.authentik.j2`, `.env.postgres.j2`):
-
-- Benefits: Better security, cleaner organization, easier management, reusable configs
-- Usage: Reference via `env_file` directive in `compose.yaml.j2`
-- Structure: Group related settings with comments (e.g., `# Database Connection`)
-
-#### Common Toggle Patterns
-- `database_enabled`, `email_enabled`, `traefik_enabled`, `ports_enabled`, `network_enabled`
-
-#### Docker Compose Template Patterns
-- Always define `depends_on` for startup ordering and use named volumes for persistence
-- Include health checks for database services
-- Use `{% if not database_external %}` for conditional service creation
-- Group Traefik labels logically with proper service/router configuration
-- Always include `restart: {{ restart_policy | default('unless-stopped') }}`
-- Support both internal and external databases/services with conditionals
-
-### Module Specs
-- Define common sections that apply to all templates of that kind
-- Use toggle variables for optional sections
-- Provide comprehensive descriptions for user guidance
-- Group related variables into logical sections
-- Validate toggle variables are boolean type
+**Patterns:**
+- Use scoped `.env.{service}.j2` files for better security/organization
+- Always: `depends_on`, named volumes, health checks (DB), `restart: {{ restart_policy | default('unless-stopped') }}`
+- Conditionals: `{% if not database_external %}` for service creation
+- Common toggles: `database_enabled`, `email_enabled`, `traefik_enabled`, `ports_enabled`, `network_enabled`
