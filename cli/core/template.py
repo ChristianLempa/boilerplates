@@ -4,6 +4,7 @@ from .variables import Variable, VariableCollection
 from pathlib import Path
 from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field
+from functools import lru_cache
 import logging
 import os
 import yaml
@@ -144,9 +145,8 @@ class Template:
       # Validate 'kind' field (always needed)
       self._validate_kind(self._template_data)
 
-      # Collect file paths (relatively lightweight, needed for various lazy loads)
-      # This will now populate self.template_files
-      self._collect_template_files()
+      # NOTE: File collection is now lazy-loaded via the template_files property
+      # This significantly improves performance when listing many templates
 
       logger.info(f"Loaded template '{self.id}' (v{self.metadata.version})")
 
@@ -165,14 +165,31 @@ class Template:
         return path
     raise FileNotFoundError(f"Main template file (template.yaml or template.yml) not found in {self.template_dir}")
 
-  def _load_module_specs(self, kind: str) -> dict:
-    """Load specifications from the corresponding module."""
+  @staticmethod
+  @lru_cache(maxsize=32)
+  def _load_module_specs(kind: str) -> dict:
+    """Load specifications from the corresponding module with caching.
+    
+    Uses LRU cache to avoid re-loading the same module spec multiple times.
+    This significantly improves performance when listing many templates of the same kind.
+    
+    Args:
+        kind: The module kind (e.g., 'compose', 'terraform')
+        
+    Returns:
+        Dictionary containing the module's spec, or empty dict if kind is empty
+        
+    Raises:
+        ValueError: If module cannot be loaded or spec is invalid
+    """
     if not kind:
       return {}
     try:
       import importlib
-      module = importlib.import_module(f"..modules.{kind}", package=__package__)
-      return getattr(module, 'spec', {})
+      module = importlib.import_module(f"cli.modules.{kind}")
+      spec = getattr(module, 'spec', {})
+      logger.debug(f"Loaded and cached module spec for kind '{kind}'")
+      return spec
     except Exception as e:
       raise ValueError(f"Error loading module specifications for kind '{kind}': {e}")
 

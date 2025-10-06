@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from typer import Argument, Context, Option, Typer, Exit
 
-from .display import DisplayManager
+from .display import DisplayManager, IconManager
 from .library import LibraryManager
 from .prompt import PromptHandler
 from .template import Template
@@ -179,8 +179,9 @@ class Module(ABC):
     id: str = Argument(..., help="Template ID"),
     directory: Optional[str] = Argument(None, help="Output directory (defaults to template ID)"),
     interactive: bool = Option(True, "--interactive/--no-interactive", "-i/-n", help="Enable interactive prompting for variables"),
-    var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Use KEY=VALUE or --var KEY VALUE"),
+    var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE"),
     dry_run: bool = Option(False, "--dry-run", help="Preview template generation without writing files"),
+    show_files: bool = Option(False, "--show-files", help="Display generated file contents in plain text (use with --dry-run)"),
     ctx: Context = None,
   ) -> None:
     """Generate from template.
@@ -203,6 +204,9 @@ class Module(ABC):
         
         # Preview without writing files (dry run)
         cli compose generate traefik --dry-run
+        
+        # Preview and show generated file contents
+        cli compose generate traefik --dry-run --show-files
     """
 
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
@@ -283,7 +287,7 @@ class Module(ABC):
       # Warn if directory is not empty (both interactive and non-interactive)
       if dir_not_empty:
         if interactive:
-          console.print(f"\n[yellow]⚠ Warning: Directory '{output_dir}' is not empty.[/yellow]")
+          console.print(f"\n[yellow]{IconManager.get_status_icon('warning')} Warning: Directory '{output_dir}' is not empty.[/yellow]")
           if existing_files:
             console.print(f"[yellow]  {len(existing_files)} file(s) will be overwritten.[/yellow]")
           
@@ -312,7 +316,18 @@ class Module(ABC):
       
       # Skip file writing in dry-run mode
       if dry_run:
-        console.print(f"\n[yellow]✓ Dry run complete - no files were written[/yellow]")
+        # Display file contents if requested
+        if show_files:
+          console.print()
+          console.print("[bold blue]Generated Files:[/bold blue]")
+          console.print()
+          for file_path, content in sorted(rendered_files.items()):
+            console.print(f"[cyan]File:[/cyan] {file_path}")
+            print(f"{'─'*80}")
+            print(content)
+            print()  # Add blank line after content
+        
+        console.print(f"[yellow]{IconManager.get_status_icon('success')} Dry run complete - no files were written[/yellow]")
         console.print(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
         logger.info(f"Dry run completed for template '{id}'")
       else:
@@ -327,7 +342,7 @@ class Module(ABC):
             f.write(content)
           console.print(f"[green]Generated file: {file_path}[/green]")
         
-        console.print(f"\n[green]✓ Template generated successfully in '{output_dir}'[/green]")
+        console.print(f"\n[green]{IconManager.get_status_icon('success')} Template generated successfully in '{output_dir}'[/green]")
         logger.info(f"Template written to directory: {output_dir}")
       
       # Display next steps if provided in template metadata
@@ -375,17 +390,24 @@ class Module(ABC):
 
   def config_set(
     self,
-    var_name: str = Argument(..., help="Variable name to set default for"),
-    value: str = Argument(..., help="Default value"),
+    var_name: str = Argument(..., help="Variable name or var=value format"),
+    value: Optional[str] = Argument(None, help="Default value (not needed if using var=value format)"),
   ) -> None:
     """Set a default value for a variable.
     
     This only sets the DEFAULT VALUE, not the variable spec.
     The variable must be defined in the module or template spec.
     
+    Supports both formats:
+      - var_name value
+      - var_name=value
+    
     Examples:
-        # Set default value
+        # Set default value (format 1)
         cli compose defaults set service_name my-awesome-app
+        
+        # Set default value (format 2)
+        cli compose defaults set service_name=my-awesome-app
         
         # Set author for all compose templates
         cli compose defaults set author "Christian Lempa"
@@ -393,9 +415,24 @@ class Module(ABC):
     from .config import ConfigManager
     config = ConfigManager()
     
+    # Parse var_name and value - support both "var value" and "var=value" formats
+    if '=' in var_name and value is None:
+      # Format: var_name=value
+      parts = var_name.split('=', 1)
+      actual_var_name = parts[0]
+      actual_value = parts[1]
+    elif value is not None:
+      # Format: var_name value
+      actual_var_name = var_name
+      actual_value = value
+    else:
+      console_err.print(f"[red]Error: Missing value for variable '{var_name}'[/red]")
+      console_err.print(f"[dim]Usage: defaults set VAR_NAME VALUE or defaults set VAR_NAME=VALUE[/dim]")
+      raise Exit(code=1)
+    
     # Set the default value
-    config.set_default_value(self.name, var_name, value)
-    console.print(f"[green] Set default:[/green] [cyan]{var_name}[/cyan] = [yellow]{value}[/yellow]")
+    config.set_default_value(self.name, actual_var_name, actual_value)
+    console.print(f"[green]{IconManager.get_status_icon('success')} Set default:[/green] [cyan]{actual_var_name}[/cyan] = [yellow]{actual_value}[/yellow]")
     console.print(f"\n[dim]This will be used as the default value when generating templates with this module.[/dim]")
 
   def config_remove(
@@ -419,7 +456,7 @@ class Module(ABC):
     if var_name in defaults:
       del defaults[var_name]
       config.set_defaults(self.name, defaults)
-      console.print(f"[green] Removed default for '{var_name}'[/green]")
+      console.print(f"[green]{IconManager.get_status_icon('success')} Removed default for '{var_name}'[/green]")
     else:
       console.print(f"[red]No default found for variable '{var_name}'[/red]")
 
@@ -450,13 +487,13 @@ class Module(ABC):
       if var_name in defaults:
         del defaults[var_name]
         config.set_defaults(self.name, defaults)
-        console.print(f"[green] Cleared default for '{var_name}'[/green]")
+        console.print(f"[green]{IconManager.get_status_icon('success')} Cleared default for '{var_name}'[/green]")
       else:
         console.print(f"[red]No default found for variable '{var_name}'[/red]")
     else:
       # Clear all defaults
       if not force:
-        console.print(f"[bold yellow]  Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
+        console.print(f"[bold yellow]{IconManager.get_status_icon('warning')} Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
         console.print()
         # Show what will be cleared
         for var_name, var_value in defaults.items():
@@ -467,7 +504,7 @@ class Module(ABC):
           return
       
       config.clear_defaults(self.name)
-      console.print(f"[green] Cleared all defaults for module '{self.name}'[/green]")
+      console.print(f"[green]{IconManager.get_status_icon('success')} Cleared all defaults for module '{self.name}'[/green]")
 
   def config_list(self) -> None:
     """Display the defaults for this specific module in YAML format.
@@ -533,13 +570,13 @@ class Module(ABC):
           _ = template.used_variables
           # Trigger variable definition validation by accessing variables
           _ = template.variables
-          console.print(f"[green] Template '{template_id}' is valid[/green]")
+          console.print(f"[green]{IconManager.get_status_icon('success')} Template '{template_id}' is valid[/green]")
           
           if verbose:
             console.print(f"\n[dim]Template path: {template.template_dir}[/dim]")
             console.print(f"[dim]Found {len(template.used_variables)} variables[/dim]")
         except ValueError as e:
-          console.print(f"[red] Validation failed for '{template_id}':[/red]")
+          console.print(f"[red]{IconManager.get_status_icon('error')} Validation failed for '{template_id}':[/red]")
           console.print(f"\n{e}")
           raise Exit(code=1)
           
@@ -565,17 +602,17 @@ class Module(ABC):
           _ = template.variables
           valid_count += 1
           if verbose:
-            console.print(f"[green][/green] {template_id}")
+            console.print(f"[green]{IconManager.get_status_icon('success')}[/green] {template_id}")
         except ValueError as e:
           invalid_count += 1
           errors.append((template_id, str(e)))
           if verbose:
-            console.print(f"[red][/red] {template_id}")
+            console.print(f"[red]{IconManager.get_status_icon('error')}[/red] {template_id}")
         except Exception as e:
           invalid_count += 1
           errors.append((template_id, f"Load error: {e}"))
           if verbose:
-            console.print(f"[yellow]?[/yellow] {template_id}")
+            console.print(f"[yellow]{IconManager.get_status_icon('warning')}[/yellow] {template_id}")
       
       # Summary
       console.print(f"\n[bold]Validation Summary:[/bold]")
@@ -595,7 +632,7 @@ class Module(ABC):
           console.print(f"[dim]{error_msg}[/dim]")
         raise Exit(code=1)
       else:
-        console.print(f"\n[green] All templates are valid![/green]")
+        console.print(f"\n[green]{IconManager.get_status_icon('success')} All templates are valid![/green]")
 
   @classmethod
   def register_cli(cls, app: Typer) -> None:
