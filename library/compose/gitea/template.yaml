@@ -21,8 +21,21 @@ metadata:
     - version-control
     - development
 spec:
+  general:
+    vars:
+      service_name:
+        default: "gitea"
+      container_name:
+        default: "gitea"
   database:
     required: true
+    vars:
+      database_type:
+        default: "postgres"
+      database_name:
+        default: "gitea"
+      database_user:
+        default: "gitea"
   ports:
     vars:
       ports_http:
@@ -33,6 +46,10 @@ spec:
         description: "Host port for SSH Git access"
         type: int
         default: 2221
+  traefik:
+    vars:
+      traefik_host:
+        default: gitea.home.arpa
   gitea:
     description: "Configure Gitea application settings"
     required: true

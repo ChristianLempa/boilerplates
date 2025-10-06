@@ -11,6 +11,12 @@ metadata:
   - docker
   - compose
 spec:
+  general:
+    vars:
+      service_name:
+        default: "portainer"
+      container_name:
+        default: "portainer"
   ports:
     vars:
       ports_http:
@@ -25,3 +31,7 @@ spec:
         description: "Host port for Edge agent (8000)"
         type: int
         default: 8000
+  traefik:
+    vars:
+      traefik_host:
+        default: portainer.home.arpa

@@ -1,47 +1,58 @@
 services:
-  {{ service_name | default('portainer') }}:
-    container_name: {{ container_name | default('portainer') }}
+  {{ service_name }}:
+    container_name: {{ container_name }}
     image: docker.io/portainer/portainer-ce:2.33.1-alpine
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
     {% if ports_enabled %}
     ports:
-      - "{{ ports_http | default(9000) }}:9000"
-      - "{{ ports_https | default(9443) }}:9443"
-      - "{{ ports_edge | default(8000) }}:8000"
+      - "{{ ports_http }}:9000"
+      - "{{ ports_https }}:9443"
+      - "{{ ports_edge }}:8000"
     {% endif %}
     volumes:
       - /run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
-    {% if network_enabled %}
+    {% if network_enabled or traefik_enabled %}
     networks:
-      - {{ network_name | default('bridge') }}
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
     {% endif %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.http.services.{{ service_name | default('portainer') }}.loadbalancer.server.port=9000
-      - traefik.http.routers.{{ service_name | default('portainer') }}-http.service={{ service_name | default('portainer') }}
-      - traefik.http.routers.{{ service_name | default('portainer') }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('portainer') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=9000
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('portainer') }}-https.service={{ service_name | default('portainer') }}
-      - traefik.http.routers.{{ service_name | default('portainer') }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('portainer') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('portainer') }}-https.tls=true
-      - traefik.http.routers.{{ service_name | default('portainer') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy | default('unless-stopped') }}
+    restart: {{ restart_policy }}
 
 volumes:
   portainer-data:
     driver: local
 
-{% if network_enabled %}
+{% if network_enabled or traefik_enabled %}
 networks:
-  {{ network_name | default('bridge') }}:
+  {% if network_enabled %}
+  {{ network_name }}:
     {% if network_external %}
     external: true
     {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
 {% endif %}

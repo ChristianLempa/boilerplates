@@ -23,6 +23,10 @@ metadata:
 spec:
   general:
     vars:
+      service_name:
+        default: "gitlab"
+      container_name:
+        default: "gitlab"
       external_url:
         type: string
         description: External URL for GitLab (e.g., https://gitlab.example.com)
@@ -45,6 +49,10 @@ spec:
         type: int
         description: HTTPS port (disabled if using Traefik)
         default: 443
+  traefik:
+    vars:
+      traefik_host:
+        default: gitlab.home.arpa
   registry:
     description: GitLab Container Registry configuration
     required: false

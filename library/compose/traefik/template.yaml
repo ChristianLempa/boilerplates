@@ -16,6 +16,46 @@ metadata:
   tags:
     - reverse-proxy
     - load-balancer
+  next_steps: |
+    1. Start Traefik:
+       docker compose up -d
+
+    2. Configure your domain DNS:
+       - Point your domain A/AAAA records to your server IP
+       {% if traefik_tls_enabled -%}
+       - Configure DNS API credentials in .env file
+       - Ensure {{ traefik_tls_acme_provider }} API token has DNS edit permissions
+       {%- endif %}
+
+    3. Access the dashboard:
+       {% if traefik_dashboard_enabled -%}
+       - Dashboard: http://localhost:8080
+       - WARNING: Dashboard is in insecure mode - don't use in production!
+       {%- else -%}
+       - Dashboard is disabled (secure production setup)
+       - Enable it temporarily by setting traefik_dashboard_enabled=true
+       {%- endif %}
+
+    4. Deploy your services:
+       - Ensure services use the '{{ network_name }}' network
+       - Add Traefik labels to your service containers
+       - Services will be automatically discovered and routed
+
+    5. Configuration files:
+       - Static config: config/traefik.yml
+       - Dynamic config: config/conf.d/*.yml
+       {% if traefik_tls_enabled -%}
+       - TLS certificates: certs/acme.json
+       {%- endif %}
+
+    6. Security recommendations:
+       - Disable dashboard in production (traefik_dashboard_enabled=false)
+       - Use TLS/HTTPS for all services
+       - Store API tokens in Docker secrets (Swarm) or secure vaults
+       - Regularly update Traefik to latest version
+       - Review and limit network exposure
+
+    For more information, visit: https://doc.traefik.io/traefik/
 spec:
   general:
     title: "General"

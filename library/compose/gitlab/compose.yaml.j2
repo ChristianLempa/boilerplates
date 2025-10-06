@@ -1,7 +1,7 @@
 services:
-  {{ service_name | default('gitlab') }}:
+  {{ service_name }}:
     image: docker.io/gitlab/gitlab-ce:18.3.1-ce.0
-    container_name: {{ container_name | default('gitlab') }}
+    container_name: {{ container_name }}
     shm_size: '256m'
 {% if traefik_enabled %}
     networks:
@@ -28,11 +28,11 @@ services:
       - traefik.http.services.{{ container_name }}.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ container_name }}-http.service={{ container_name }}
       - traefik.http.routers.{{ container_name }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.routers.{{ container_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ container_name }}-https.service={{ container_name }}
       - traefik.http.routers.{{ container_name }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ container_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ container_name }}-https.tls=true
       - traefik.http.routers.{{ container_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
@@ -41,11 +41,11 @@ services:
       - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ container_name }}-registry-http.service={{ container_name }}-registry
       - traefik.http.routers.{{ container_name }}-registry-http.rule=Host(`{{ registry_hostname }}`)
-      - traefik.http.routers.{{ container_name }}-registry-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.routers.{{ container_name }}-registry-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ container_name }}-registry-https.service={{ container_name }}-registry
       - traefik.http.routers.{{ container_name }}-registry-https.rule=Host(`{{ registry_hostname }}`)
-      - traefik.http.routers.{{ container_name }}-registry-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ container_name }}-registry-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ container_name }}-registry-https.tls=true
       - traefik.http.routers.{{ container_name }}-registry-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}

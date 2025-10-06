@@ -45,6 +45,10 @@ metadata:
 spec:
   general:
     vars:
+      service_name:
+        default: "homer"
+      container_name:
+        default: "homer"
       homer_title:
         description: "Dashboard title"
         type: str
@@ -63,3 +67,7 @@ spec:
         description: "Host port for HTTP (8080)"
         type: int
         default: 8080
+  traefik:
+    vars:
+      traefik_host:
+        default: homer.home.arpa

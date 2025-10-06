@@ -1,45 +1,56 @@
 services:
-  {{ service_name | default('grafana') }}:
+  {{ service_name }}:
     image: docker.io/grafana/grafana-oss:12.1.1
-    container_name: {{ container_name | default('grafana') }}
+    container_name: {{ container_name }}
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
       {% if container_hostname -%}
       - GF_SERVER_DOMAIN={{ container_hostname }}
       {% endif %}
     {% if ports_enabled %}
     ports:
-      - "{{ ports_http | default(3000) }}:3000"
+      - "{{ ports_http }}:3000"
     {% endif %}
     volumes:
       - grafana-data:/var/lib/grafana
-    {% if network_enabled %}
+    {% if network_enabled or traefik_enabled %}
     networks:
-      - {{ network_name | default('bridge') }}
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
     {% endif %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.http.services.{{ service_name | default('grafana') }}.loadbalancer.server.port=3000
-      - traefik.http.routers.{{ service_name | default('grafana') }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('grafana') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=3000
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('grafana') }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('grafana') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('grafana') }}-https.tls=true
-      - traefik.http.routers.{{ service_name | default('grafana') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy | default('unless-stopped') }}
+    restart: {{ restart_policy }}
 
 volumes:
   grafana-data:
     driver: local
 
-{% if network_enabled %}
+{% if network_enabled or traefik_enabled %}
 networks:
-  {{ network_name | default('bridge') }}:
+  {% if network_enabled %}
+  {{ network_name }}:
     {% if network_external %}
     external: true
     {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
 {% endif %}

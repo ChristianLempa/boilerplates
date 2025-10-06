@@ -43,6 +43,7 @@ metadata:
        docker exec bind9 named-checkzone home.arpa /var/lib/bind/db.home.arpa
 
     For more information, visit: https://bind9.readthedocs.io/
+  draft: true
 spec:
   general:
     vars:
