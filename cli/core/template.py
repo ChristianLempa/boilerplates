@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from .variables import Variable, VariableCollection
+from .variable import Variable
+from .collection import VariableCollection
+from .exceptions import (
+    TemplateError,
+    TemplateLoadError,
+    TemplateSyntaxError,
+    TemplateValidationError,
+    TemplateRenderError,
+    YAMLParseError,
+    ModuleLoadError
+)
 from pathlib import Path
 from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field
@@ -9,6 +19,7 @@ import logging
 import os
 import yaml
 from jinja2 import Environment, FileSystemLoader, meta
+from jinja2.sandbox import SandboxedEnvironment
 from jinja2 import nodes
 from jinja2.visitor import NodeVisitor
 
@@ -32,7 +43,6 @@ class TemplateMetadata:
   version: str
   module: str = ""
   tags: List[str] = field(default_factory=list)
-  # files: List[str] = field(default_factory=list) # No longer needed, as TemplateFile handles this
   library: str = "unknown"
   next_steps: str = ""
   draft: bool = False
@@ -64,7 +74,6 @@ class TemplateMetadata:
     self.version = metadata_section.get("version", "")
     self.module = metadata_section.get("module", "")
     self.tags = metadata_section.get("tags", []) or []
-    # self.files = metadata_section.get("files", []) or [] # No longer needed
     self.library = library_name or "unknown"
     self.draft = metadata_section.get("draft", False)
     
@@ -152,10 +161,13 @@ class Template:
 
     except (ValueError, FileNotFoundError) as e:
       logger.error(f"Error loading template from {template_dir}: {e}")
-      raise
-    except Exception as e:
-      logger.error(f"An unexpected error occurred while loading template {template_dir}: {e}")
-      raise
+      raise TemplateLoadError(f"Error loading template from {template_dir}: {e}")
+    except yaml.YAMLError as e:
+      logger.error(f"YAML parsing error in template {template_dir}: {e}")
+      raise YAMLParseError(str(template_dir / "template.y*ml"), e)
+    except (IOError, OSError) as e:
+      logger.error(f"File I/O error loading template {template_dir}: {e}")
+      raise TemplateLoadError(f"File I/O error loading template from {template_dir}: {e}")
 
   def _find_main_template_file(self) -> Path:
     """Find the main template file (template.yaml or template.yml)."""
@@ -262,20 +274,18 @@ class Template:
             content = f.read()
             ast = self.jinja_env.parse(content) # Use lazy-loaded jinja_env
             used_variables.update(meta.find_undeclared_variables(ast))
+        except (IOError, OSError) as e:
+          relative_path = file_path.relative_to(self.template_dir)
+          syntax_errors.append(f"  - {relative_path}: File I/O error: {e}")
         except Exception as e:
-          # Collect syntax errors instead of just warning
+          # Collect syntax errors for Jinja2 issues
           relative_path = file_path.relative_to(self.template_dir)
           syntax_errors.append(f"  - {relative_path}: {e}")
     
     # Raise error if any syntax errors were found
     if syntax_errors:
-      error_msg = (
-        f"Jinja2 syntax errors found in template '{self.id}':\n" +
-        "\n".join(syntax_errors) +
-        "\n\nPlease fix the syntax errors in the template files."
-      )
-      logger.error(error_msg)
-      raise ValueError(error_msg)
+      logger.error(f"Jinja2 syntax errors found in template '{self.id}'")
+      raise TemplateSyntaxError(self.id, syntax_errors)
     
     return used_variables
 
@@ -321,8 +331,8 @@ class Template:
           content = f.read()
         ast = self.jinja_env.parse(content)
         visitor.visit(ast)
-      except Exception:
-        # skip failures - this extraction is best-effort only
+      except (IOError, OSError, yaml.YAMLError):
+        # Skip failures - this extraction is best-effort only
         continue
 
     return visitor.found
@@ -367,7 +377,7 @@ class Template:
         ValueError: If 'kind' field is missing
     """
     if not template_data.get("kind"):
-      raise ValueError("Template format error: missing 'kind' field")
+      raise TemplateValidationError("Template format error: missing 'kind' field")
 
   def _validate_variable_definitions(self, used_variables: set[str], merged_specs: dict[str, Any]) -> None:
     """Validate that all variables used in Jinja2 content are defined in the spec."""
@@ -397,16 +407,21 @@ class Template:
               f"        default: <your_default_value_here>\n"
           )
       logger.error(error_msg)
-      raise ValueError(error_msg)
+      raise TemplateValidationError(error_msg)
 
   @staticmethod
   def _create_jinja_env(searchpath: Path) -> Environment:
-    """Create standardized Jinja2 environment for consistent template processing.
+    """Create sandboxed Jinja2 environment for secure template processing.
     
-    Returns a simple Jinja2 environment without custom filters.
-    Variable autogeneration is handled by the render() method.
+    Uses SandboxedEnvironment to prevent code injection vulnerabilities
+    when processing untrusted templates. This restricts access to dangerous
+    operations while still allowing safe template rendering.
+    
+    Returns:
+        SandboxedEnvironment configured for template processing.
     """
-    return Environment(
+    # NOTE Use SandboxedEnvironment for security - prevents arbitrary code execution
+    return SandboxedEnvironment(
       loader=FileSystemLoader(searchpath),
       trim_blocks=True,
       lstrip_blocks=True,
@@ -446,7 +461,7 @@ class Template:
           rendered_files[str(template_file.output_path)] = rendered_content
         except Exception as e:
           logger.error(f"Error rendering template file {template_file.relative_path}: {e}")
-          raise
+          raise TemplateRenderError(f"Error rendering {template_file.relative_path}: {e}")
       elif template_file.file_type == 'static':
           # For static files, just read their content and add to rendered_files
           # This ensures static files are also part of the output dictionary
@@ -455,78 +470,31 @@ class Template:
               with open(file_path, "r", encoding="utf-8") as f:
                   content = f.read()
                   rendered_files[str(template_file.output_path)] = content
-          except Exception as e:
+          except (IOError, OSError) as e:
               logger.error(f"Error reading static file {file_path}: {e}")
-              raise
+              raise TemplateRenderError(f"Error reading static file {file_path}: {e}")
           
     return rendered_files, variable_values
   
   def _sanitize_content(self, content: str, file_path: Path) -> str:
-    """Sanitize rendered content by removing excessive blank lines.
-    
-    This function:
-    - Reduces multiple consecutive blank lines to a maximum of one blank line
-    - Preserves file structure and readability
-    - Removes trailing whitespace from lines
-    - Ensures file ends with a single newline
-    
-    Args:
-        content: The rendered content to sanitize
-        file_path: Path to the output file (used for file-type detection)
-        
-    Returns:
-        Sanitized content with cleaned up blank lines
-    """
+    """Sanitize rendered content by removing excessive blank lines and trailing whitespace."""
     if not content:
       return content
     
-    # Split content into lines
-    lines = content.split('\n')
-    sanitized_lines = []
-    blank_line_count = 0
+    lines = [line.rstrip() for line in content.split('\n')]
+    sanitized = []
+    prev_blank = False
     
     for line in lines:
-      # Remove trailing whitespace from the line
-      cleaned_line = line.rstrip()
-      
-      # Check if this is a blank line
-      if not cleaned_line:
-        blank_line_count += 1
-        # Only keep the first blank line in a sequence
-        if blank_line_count == 1:
-          sanitized_lines.append('')
-      else:
-        # Reset counter when we hit a non-blank line
-        blank_line_count = 0
-        sanitized_lines.append(cleaned_line)
+      is_blank = not line
+      if is_blank and prev_blank:
+        continue  # Skip consecutive blank lines
+      sanitized.append(line)
+      prev_blank = is_blank
     
-    # Join lines back together
-    result = '\n'.join(sanitized_lines)
-    
-    # Remove leading blank lines
-    result = result.lstrip('\n')
-    
-    # Ensure file ends with exactly one newline
-    result = result.rstrip('\n') + '\n'
-    
-    return result
+    # Remove leading blanks and ensure single trailing newline
+    return '\n'.join(sanitized).lstrip('\n').rstrip('\n') + '\n'
 
-  def mask_sensitive_values(self, rendered_files: Dict[str, str], variables: VariableCollection) -> Dict[str, str]:
-    """Mask sensitive values in rendered files using Variable's native masking."""
-    masked_files = {}
-    
-    # Get all variables (not just sensitive ones) to use their native get_display_value()
-    for file_path, content in rendered_files.items():
-      # Iterate through all sections and variables
-      for section in variables.get_sections().values():
-        for variable in section.variables.values():
-          if variable.sensitive and variable.value:
-            # Use variable's native masking - always returns "********" for sensitive vars
-            masked_value = variable.get_display_value(mask_sensitive=True)
-            content = content.replace(str(variable.value), masked_value)
-      masked_files[file_path] = content
-      
-    return masked_files
   
   @property
   def template_files(self) -> List[TemplateFile]:
@@ -584,8 +552,8 @@ class Template:
                 if 'default' not in var_data or var_data.get('default') in (None, ''):
                   if var_name in jinja_defaults:
                     var_data['default'] = jinja_defaults[var_name]
-          except Exception:
-            # keep behavior stable on any extraction errors
+          except (KeyError, TypeError, AttributeError):
+            # Keep behavior stable on any extraction errors
             pass
 
           self.__variables = VariableCollection(filtered_specs)

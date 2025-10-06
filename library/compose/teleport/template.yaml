@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       teleport_version:
-        type: string
+        type: str
         description: Teleport version
         default: latest

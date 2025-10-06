@@ -25,6 +25,6 @@ spec:
   general:
     vars:
       whoami_version:
-        type: string
+        type: str
         description: Whoami version
         default: latest

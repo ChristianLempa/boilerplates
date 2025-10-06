@@ -97,8 +97,8 @@ spec = OrderedDict(
             "default": "traefik",
           },
           "traefik_host": {
-            "description": "Domain name for your service",
-            "type": "hostname",
+            "description": "Domain name for your service (e.g., app.example.com)",
+            "type": "str",
           },
           "traefik_entrypoint": {
             "description": "HTTP entrypoint (non-TLS)",

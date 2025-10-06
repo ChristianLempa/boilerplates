@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       homeassistant_version:
-        type: string
+        type: str
         description: Homeassistant version
         default: latest

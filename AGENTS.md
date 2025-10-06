@@ -224,38 +224,6 @@ spec:
         type: "str"
 ```
 
-## Future Improvements
-
-### Managing TODOs as GitHub Issues
-
-We use a convention to manage TODO items as GitHub issues directly from the codebase. This allows us to track our work and link it back to the specific code that needs attention.
-
-The format for a TODO item is:
-
-`TODO[<issue-number>-<slug>] <description>`
-
--   `<issue-number>`: The GitHub issue number.
--   `<slug>`: A short, descriptive slug for the epic or feature.
--   `<description>`: The description of the TODO item.
-
-When you find a TODO item that has not been converted to an issue yet (i.e., it's missing the `[<issue-number>-<slug>]` part), you can create an issue for it using the `gh` CLI:
-
-```bash
-gh issue create --title "<title>" --body "<description>" --assignee "@me" --project "<project-name>" --label "<label>"
-```
-
-After creating the issue, update the TODO line in the `AGENTS.md` file with the issue number and a descriptive slug.
-
-### Work in Progress
-
-* FIXME Insufficient Error Messages for Template Loading: Error messages during template loading need improvement for better context and debugging.
-* FIXME Excessive Generic Exception Catching: Too much generic exception catching reduces debugging capability. Need to audit and make exception handlers more specific.
-* FIXME Inconsistent Logging Levels: Some important operations use `DEBUG` when they should use `INFO`, and vice versa. Need to audit all logging statements.
-* TODO Add compose deploy command to deploy a generated compose project to a local or remote docker environment
-* TODO Missing Type Hints in Some Functions: While most code has type hints, some functions are missing them, reducing IDE support and static analysis capability.
-* TODO Interactive Variable Prompt Improvements: The interactive prompt could be improved with better navigation, help text, and validation feedback.
-* TODO Better Error Recovery in Jinja2 Rendering: Improve error handling during Jinja2 template rendering with better context and suggestions.
-
 ## Best Practices for Template Development
 
 ### Template Structure

@@ -196,7 +196,48 @@ class DisplayManager:
 
     def display_validation_error(self, message: str) -> None:
         """Display a validation error message."""
-        console.print(f"[red]{message}[/red]")
+        self.display_message('error', message)
+    
+    def display_message(self, level: str, message: str, context: str | None = None) -> None:
+        """Display a message with consistent formatting.
+        
+        Args:
+            level: Message level (error, warning, success, info)
+            message: The message to display
+            context: Optional context information
+        """
+        icon = IconManager.get_status_icon(level)
+        colors = {'error': 'red', 'warning': 'yellow', 'success': 'green', 'info': 'blue'}
+        color = colors.get(level, 'white')
+        
+        # Format message based on context
+        if context:
+            text = f"{level.capitalize()} in {context}: {message}" if level == 'error' or level == 'warning' else f"{context}: {message}"
+        else:
+            text = f"{level.capitalize()}: {message}" if level == 'error' or level == 'warning' else message
+        
+        console.print(f"[{color}]{icon} {text}[/{color}]")
+        
+        # Log appropriately
+        log_message = f"{context}: {message}" if context else message
+        log_methods = {'error': logger.error, 'warning': logger.warning, 'success': logger.info, 'info': logger.info}
+        log_methods.get(level, logger.info)(log_message)
+    
+    def display_error(self, message: str, context: str | None = None) -> None:
+        """Display an error message."""
+        self.display_message('error', message, context)
+    
+    def display_warning(self, message: str, context: str | None = None) -> None:
+        """Display a warning message."""
+        self.display_message('warning', message, context)
+    
+    def display_success(self, message: str, context: str | None = None) -> None:
+        """Display a success message."""
+        self.display_message('success', message, context)
+    
+    def display_info(self, message: str, context: str | None = None) -> None:
+        """Display an informational message."""
+        self.display_message('info', message, context)
 
     def _display_template_header(self, template: Template, template_id: str) -> None:
         """Display the header for a template."""
@@ -209,38 +250,58 @@ class DisplayManager:
         )
         console.print(description)
 
-    def _display_file_tree(self, template: Template) -> None:
-        """Display the file structure of a template."""
-        # Preserve the heading, then use the template id as the root directory label
-        console.print()
-        console.print("[bold blue]Template File Structure:[/bold blue]")
-        # Use the template id as the root directory label (folder glyph + white name)
-        file_tree = Tree(f"{IconManager.folder()} [white]{template.id}[/white]")
+    def _build_file_tree(self, root_label: str, files: list, get_file_info: callable) -> Tree:
+        """Build a file tree structure.
+        
+        Args:
+            root_label: Label for root node
+            files: List of files to display
+            get_file_info: Function that takes a file and returns (path, display_name, color, extra_text)
+        
+        Returns:
+            Tree object ready for display
+        """
+        file_tree = Tree(root_label)
         tree_nodes = {Path("."): file_tree}
-
-        for template_file in sorted(
-            template.template_files, key=lambda f: f.relative_path
-        ):
-            parts = template_file.relative_path.parts
+        
+        for file_item in sorted(files, key=lambda f: get_file_info(f)[0]):
+            path, display_name, color, extra_text = get_file_info(file_item)
+            parts = path.parts
             current_path = Path(".")
             current_node = file_tree
-
+            
+            # Build directory structure
             for part in parts[:-1]:
                 current_path = current_path / part
                 if current_path not in tree_nodes:
                     new_node = current_node.add(f"{IconManager.folder()} [white]{part}[/white]")
                     tree_nodes[current_path] = new_node
-                    current_node = new_node
-                else:
-                    current_node = tree_nodes[current_path]
-
-            # Determine display name (use output_path to detect final filename)
-            display_name = template_file.output_path.name if hasattr(template_file, 'output_path') else template_file.relative_path.name
-
-            # Get appropriate icon based on file type/name
+                current_node = tree_nodes[current_path]
+            
+            # Add file
             icon = IconManager.get_file_icon(display_name)
-            current_node.add(f"[white]{icon} {display_name}[/white]")
-
+            file_label = f"{icon} [{color}]{display_name}[/{color}]"
+            if extra_text:
+                file_label += f" {extra_text}"
+            current_node.add(file_label)
+        
+        return file_tree
+    
+    def _display_file_tree(self, template: Template) -> None:
+        """Display the file structure of a template."""
+        console.print()
+        console.print("[bold blue]Template File Structure:[/bold blue]")
+        
+        def get_template_file_info(template_file):
+            display_name = template_file.output_path.name if hasattr(template_file, 'output_path') else template_file.relative_path.name
+            return (template_file.relative_path, display_name, 'white', None)
+        
+        file_tree = self._build_file_tree(
+            f"{IconManager.folder()} [white]{template.id}[/white]",
+            template.template_files,
+            get_template_file_info
+        )
+        
         if file_tree.children:
             console.print(file_tree)
 
@@ -342,46 +403,25 @@ class DisplayManager:
         files: dict[str, str], 
         existing_files: list[Path] | None = None
     ) -> None:
-        """Display files to be generated with confirmation prompt.
-        
-        Args:
-            output_dir: The output directory path
-            files: Dictionary of file paths to content
-            existing_files: List of existing files that will be overwritten (if any)
-        """
+        """Display files to be generated with confirmation prompt."""
         console.print()
         console.print("[bold]Files to be generated:[/bold]")
         
-        # Create a tree view of files
-        file_tree = Tree(f"{IconManager.folder()} [cyan]{output_dir.resolve()}[/cyan]")
-        tree_nodes = {Path("."): file_tree}
-        
-        # Sort files for better display
-        sorted_files = sorted(files.keys())
-        
-        for file_path_str in sorted_files:
+        def get_file_generation_info(file_path_str):
             file_path = Path(file_path_str)
-            parts = file_path.parts
-            current_path = Path(".")
-            current_node = file_tree
-            
-            # Build directory structure
-            for part in parts[:-1]:
-                current_path = current_path / part
-                if current_path not in tree_nodes:
-                    new_node = current_node.add(f"{IconManager.folder()} [white]{part}[/white]")
-                    tree_nodes[current_path] = new_node
-                current_node = tree_nodes[current_path]
-            
-            # Add file with indicator if it will be overwritten
-            file_name = parts[-1]
+            file_name = file_path.parts[-1] if file_path.parts else file_path.name
             full_path = output_dir / file_path
-            icon = IconManager.get_file_icon(file_name)
             
             if existing_files and full_path in existing_files:
-                current_node.add(f"{icon} [yellow]{file_name}[/yellow] [red](will overwrite)[/red]")
+                return (file_path, file_name, 'yellow', '[red](will overwrite)[/red]')
             else:
-                current_node.add(f"{icon} [green]{file_name}[/green]")
+                return (file_path, file_name, 'green', None)
+        
+        file_tree = self._build_file_tree(
+            f"{IconManager.folder()} [cyan]{output_dir.resolve()}[/cyan]",
+            files.keys(),
+            get_file_generation_info
+        )
         
         console.print(file_tree)
         console.print()

@@ -50,6 +50,6 @@ spec:
   general:
     vars:
       pihole_version:
-        type: string
+        type: str
         description: Pihole version
         default: latest

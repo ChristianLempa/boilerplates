@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       volumes_version:
-        type: string
+        type: str
         description: Volumes version
         default: latest

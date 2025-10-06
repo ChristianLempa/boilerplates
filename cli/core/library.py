@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import logging
 from typing import Optional
+import yaml
+
+from .exceptions import LibraryError, TemplateNotFoundError, YAMLParseError
 
 logger = logging.getLogger(__name__)
 
@@ -23,38 +26,20 @@ class Library:
     self.priority = priority  # Higher priority = checked first
   
   def _is_template_draft(self, template_path: Path) -> bool:
-    """Check if a template is marked as draft.
-    
-    Args:
-        template_path: Path to the template directory
-    
-    Returns:
-        True if the template is marked as draft, False otherwise
-    """
-    import yaml
-    
+    """Check if a template is marked as draft."""
     # Find the template file
-    template_file = None
-    if (template_path / "template.yaml").exists():
-      template_file = template_path / "template.yaml"
-    elif (template_path / "template.yml").exists():
-      template_file = template_path / "template.yml"
-    
-    if not template_file:
+    for filename in ("template.yaml", "template.yml"):
+      template_file = template_path / filename
+      if template_file.exists():
+        break
+    else:
       return False
     
     try:
       with open(template_file, "r", encoding="utf-8") as f:
-        documents = list(yaml.safe_load_all(f))
-        valid_docs = [doc for doc in documents if doc is not None]
-        
-        if not valid_docs:
-          return False
-        
-        template_data = valid_docs[0]
-        metadata = template_data.get("metadata", {})
-        return metadata.get("draft", False)
-    except Exception as e:
+        docs = [doc for doc in yaml.safe_load_all(f) if doc]
+        return docs[0].get("metadata", {}).get("draft", False) if docs else False
+    except (yaml.YAMLError, IOError, OSError) as e:
       logger.warning(f"Error checking draft status for {template_path}: {e}")
       return False
 
@@ -76,13 +61,13 @@ class Library:
     # Build the path to the specific template directory
     template_path = self.path / module_name / template_id
     
-    # Check if the template directory and either template.yaml or template.yml exist
-    if not (template_path.is_dir() and ((template_path / "template.yaml").exists() or (template_path / "template.yml").exists())):
-      raise FileNotFoundError(f"Template '{template_id}' not found in module '{module_name}' in library '{self.name}'")
+    # Check if template directory exists with a template file
+    has_template = template_path.is_dir() and any(
+      (template_path / f).exists() for f in ("template.yaml", "template.yml")
+    )
     
-    # Check if template is marked as draft
-    if self._is_template_draft(template_path):
-      raise FileNotFoundError(f"Template '{template_id}' is marked as draft and cannot be used")
+    if not has_template or self._is_template_draft(template_path):
+      raise TemplateNotFoundError(template_id, module_name)
     
     logger.debug(f"Found template '{template_id}' at: {template_path}")
     return template_path, self.name
@@ -110,21 +95,19 @@ class Library:
     
     # Check if the module directory exists
     if not module_path.is_dir():
-      raise FileNotFoundError(f"Module '{module_name}' not found in library '{self.name}'")
+      raise LibraryError(f"Module '{module_name}' not found in library '{self.name}'")
     
-    # Get all directories in the module path that contain a template.yaml or template.yml file
-    # and are not marked as draft
+    # Get non-draft templates
     template_dirs = []
     try:
       for item in module_path.iterdir():
-        if item.is_dir() and ((item / "template.yaml").exists() or (item / "template.yml").exists()):
-          # Skip draft templates
-          if not self._is_template_draft(item):
-            template_dirs.append((item, self.name))
-          else:
-            logger.debug(f"Skipping draft template: {item.name}")
+        has_template = item.is_dir() and any((item / f).exists() for f in ("template.yaml", "template.yml"))
+        if has_template and not self._is_template_draft(item):
+          template_dirs.append((item, self.name))
+        elif has_template:
+          logger.debug(f"Skipping draft template: {item.name}")
     except PermissionError as e:
-      raise FileNotFoundError(f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}")
+      raise LibraryError(f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}")
     
     # Sort if requested
     if sort_results:
@@ -163,7 +146,7 @@ class LibraryManager:
         template_path, lib_name = library.find_by_id(module_name, template_id)
         logger.debug(f"Found template '{template_id}' in library '{library.name}'")
         return template_path, lib_name
-      except FileNotFoundError:
+      except TemplateNotFoundError:
         # Continue searching in next library
         continue
     
@@ -189,7 +172,7 @@ class LibraryManager:
         templates = library.find(module_name, sort_results=False)  # Sort at the end
         all_templates.extend(templates)
         logger.debug(f"Found {len(templates)} templates in library '{library.name}'")
-      except FileNotFoundError:
+      except LibraryError:
         # Module not found in this library, continue with next
         logger.debug(f"Module '{module_name}' not found in library '{library.name}'")
         continue

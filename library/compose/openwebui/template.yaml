@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       openwebui_version:
-        type: string
+        type: str
         description: Openwebui version
         default: latest

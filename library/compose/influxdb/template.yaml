@@ -52,6 +52,6 @@ spec:
   general:
     vars:
       influxdb_version:
-        type: string
+        type: str
         description: Influxdb version
         default: latest

@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       homepage_version:
-        type: string
+        type: str
         description: Homepage version
         default: latest

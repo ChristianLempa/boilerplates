@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       clamav_version:
-        type: string
+        type: str
         description: Clamav version
         default: latest

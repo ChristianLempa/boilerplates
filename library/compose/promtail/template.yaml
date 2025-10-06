@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       promtail_version:
-        type: string
+        type: str
         description: Promtail version
         default: latest

@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       node_exporter_version:
-        type: string
+        type: str
         description: Node_Exporter version
         default: latest

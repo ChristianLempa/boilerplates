@@ -21,6 +21,6 @@ spec:
   general:
     vars:
       n8n_version:
-        type: string
+        type: str
         description: N8N version
         default: latest

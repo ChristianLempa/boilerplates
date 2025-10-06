@@ -62,11 +62,3 @@ spec:
         description: "SSH port number (should match ports_ssh)"
         type: int
         default: 2221
-      user_uid:
-        description: "User UID for Gitea process"
-        type: int
-        default: 1000
-      user_gid:
-        description: "User GID for Gitea process"
-        type: int
-        default: 1000

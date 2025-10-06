@@ -48,7 +48,7 @@ spec:
   general:
     vars:
       bind9_version:
-        type: string
+        type: str
         description: BIND9 Docker image tag
         default: "9.20-24.10_edge"
       domain_name:

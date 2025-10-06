@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       twingate_connector_version:
-        type: string
+        type: str
         description: Twingate_Connector version
         default: latest

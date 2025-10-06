@@ -28,7 +28,7 @@ spec:
       container_name:
         default: "gitlab"
       external_url:
-        type: string
+        type: str
         description: External URL for GitLab (e.g., https://gitlab.example.com)
         default: 'https://gitlab.example.com'
       ssh_port:
@@ -63,11 +63,11 @@ spec:
         description: Enable GitLab Container Registry
         default: false
       registry_external_url:
-        type: string
+        type: str
         description: External URL for Container Registry
         default: 'https://registry.example.com'
       registry_hostname:
-        type: string
+        type: str
         description: Hostname for Container Registry (when using Traefik)
         default: registry.example.com
       registry_port:

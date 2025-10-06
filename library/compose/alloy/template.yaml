@@ -24,7 +24,7 @@ spec:
   general:
     vars:
       container_hostname:
-        type: hostname
+        type: str
         description: Docker host hostname for container identification
         default: hostname
         extra: This is needed because when alloy runs in a container, it doesn't know the hostname of the docker host.

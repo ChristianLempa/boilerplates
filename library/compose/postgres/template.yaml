@@ -16,7 +16,7 @@ spec:
   general:
     vars:
       postgres_version:
-        type: string
+        type: str
         description: PostgreSQL version
         default: latest
       postgres_secrets_enabled:

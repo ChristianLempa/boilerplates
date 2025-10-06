@@ -15,6 +15,6 @@ spec:
   general:
     vars:
       dockge_version:
-        type: string
+        type: str
         description: Dockge version
         default: latest
