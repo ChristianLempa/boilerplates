@@ -8,12 +8,11 @@ version = "0.0.0"  # NOTE: Placeholder - will be overwritten by release script
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MIT"
 authors = [ {name = "Christian Lempa"} ]
 keywords = ["boilerplates", "cli", "infrastructure"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
@@ -27,3 +26,7 @@ dependencies = [
 
 [project.scripts]
 boilerplates = "cli.__main__:run"
+
+[tool.setuptools.packages.find]
+include = ["cli*"]
+exclude = ["tests*", "scripts*"]

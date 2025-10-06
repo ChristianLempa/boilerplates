@@ -1,0 +1,11 @@
+# Include library directory with all templates
+recursive-include library *
+
+# Include documentation
+include README.md
+include LICENSE
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .DS_Store
