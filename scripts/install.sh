@@ -95,7 +95,7 @@ get_release_asset_url() {
   echo "$result"
 }
 
-download_and_extract() {
+download_package() {
   local version="$1"
   
   # Resolve "latest" to actual version
@@ -111,11 +111,8 @@ download_and_extract() {
   log "Finding release asset..."
   local url=$(get_release_asset_url "$version")
   
-  local temp_dir=$(mktemp -d)
-  local archive="$temp_dir/release.tar.gz"
-  
-  # Ensure cleanup on exit
-  trap '[[ -d "${temp_dir:-}" ]] && rm -rf "$temp_dir"' RETURN
+  TEMP_DIR=$(mktemp -d)
+  local archive="$TEMP_DIR/boilerplates.tar.gz"
   
   log "Downloading $version from release assets..."
   
@@ -125,31 +122,19 @@ download_and_extract() {
     wget --timeout=30 -qO "$archive" "$url" || error "Download failed"
   fi
   
-  log "Extracting package..."
-  
-  # Extract directly to temp_dir (sdist tarballs have a top-level directory)
-  tar -xzf "$archive" -C "$temp_dir" || error "Extraction failed"
-  
-  # Find the extracted directory (should be boilerplates-X.Y.Z)
-  local source_dir=$(find "$temp_dir" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
-  [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
-  
-  # Verify essential files exist
-  [[ ! -f "$source_dir/setup.py" ]] && [[ ! -f "$source_dir/pyproject.toml" ]] && \
-    error "Invalid package: missing setup.py or pyproject.toml"
-  
-  echo "$source_dir"
+  # Return the path to the tarball (pipx can install directly from it)
+  echo "$archive"
 }
 
 install_cli() {
-  local source_dir="$1"
+  local package_path="$1"
   local version="$2"
   
   log "Installing CLI via pipx..."
   "$PIPX_CMD" ensurepath 2>&1 | grep -v "^$" || true
   
-  # Install from source directory
-  if ! "$PIPX_CMD" install --force "$source_dir" 2>&1; then
+  # Install from tarball
+  if ! "$PIPX_CMD" install --force "$package_path" >/dev/null 2>&1; then
     error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
   fi
   
@@ -166,11 +151,14 @@ install_cli() {
 main() {
   parse_args "$@"
   
+  # Ensure cleanup on exit
+  trap '[[ -d "${TEMP_DIR:-}" ]] && rm -rf "$TEMP_DIR"' EXIT
+  
   log "Checking dependencies..."
   check_dependencies
   
-  local source_dir=$(download_and_extract "$VERSION")
-  install_cli "$source_dir" "$VERSION"
+  local package_path=$(download_package "$VERSION")
+  install_cli "$package_path" "$VERSION"
   
   # Get installed version
   local installed_version=$(boilerplates --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
