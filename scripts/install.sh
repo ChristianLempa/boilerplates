@@ -76,7 +76,7 @@ get_latest_release() {
   echo "$result"
 }
 
-download_and_extract() {
+download_package() {
   local version="$1"
   
   # Resolve "latest" to actual version
@@ -86,50 +86,39 @@ download_and_extract() {
     log "Latest version: $version"
   fi
   
-  # Ensure 'v' prefix
-  [[ "$version" =~ ^v ]] || version="v$version"
+  # Ensure 'v' prefix for URL
+  local version_tag="$version"
+  [[ "$version_tag" =~ ^v ]] || version_tag="v$version_tag"
   
-  local url="https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/tags/$version.tar.gz"
-  local temp_dir=$(mktemp -d)
-  local archive="$temp_dir/release.tar.gz"
-  local extract_dir="$temp_dir/extracted"
+  # Strip 'v' prefix for package name
+  local version_number="${version_tag#v}"
   
-  # Ensure cleanup on exit
-  trap '[[ -d "${temp_dir:-}" ]] && rm -rf "$temp_dir"' RETURN
+  # Download from release assets (sdist)
+  local url="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$version_tag/$REPO_NAME-$version_number.tar.gz"
+  TEMP_DIR=$(mktemp -d)
+  local archive="$TEMP_DIR/boilerplates.tar.gz"
   
-  log "Downloading $version..."
+  log "Downloading $version_tag from release assets..."
   
   if command -v curl >/dev/null 2>&1; then
-    curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed"
+    curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed. URL: $url"
   elif command -v wget >/dev/null 2>&1; then
-    wget --timeout=30 -qO "$archive" "$url" || error "Download failed"
+    wget --timeout=30 -qO "$archive" "$url" || error "Download failed. URL: $url"
   fi
   
-  log "Extracting release..."
-  
-  mkdir -p "$extract_dir"
-  tar -xzf "$archive" -C "$extract_dir" || error "Extraction failed"
-  
-  # Find the extracted directory (should be boilerplates-X.Y.Z)
-  local source_dir=$(find "$extract_dir" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
-  [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
-  
-  # Verify essential files exist
-  [[ ! -f "$source_dir/setup.py" ]] && [[ ! -f "$source_dir/pyproject.toml" ]] && \
-    error "Invalid package: missing setup.py or pyproject.toml"
-  
-  echo "$source_dir"
+  # Return the path to the tarball (pipx can install directly from it)
+  echo "$archive"
 }
 
 install_cli() {
-  local source_dir="$1"
+  local package_path="$1"
   local version="$2"
   
   log "Installing CLI via pipx..."
   "$PIPX_CMD" ensurepath 2>&1 | grep -v "^$" || true
   
-  # Install from source directory
-  if ! "$PIPX_CMD" install --force "$source_dir" 2>&1; then
+  # Install from tarball
+  if ! "$PIPX_CMD" install --force "$package_path" >/dev/null 2>&1; then
     error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
   fi
   
@@ -146,11 +135,14 @@ install_cli() {
 main() {
   parse_args "$@"
   
+  # Ensure cleanup on exit
+  trap '[[ -d "${TEMP_DIR:-}" ]] && rm -rf "$TEMP_DIR"' EXIT
+  
   log "Checking dependencies..."
   check_dependencies
   
-  local source_dir=$(download_and_extract "$VERSION")
-  install_cli "$source_dir" "$VERSION"
+  local package_path=$(download_package "$VERSION")
+  install_cli "$package_path" "$VERSION"
   
   # Get installed version
   local installed_version=$(boilerplates --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
