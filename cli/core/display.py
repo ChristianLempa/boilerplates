@@ -137,6 +137,11 @@ class IconManager:
     def lock(cls) -> str:
         """Get the lock icon (for sensitive variables)."""
         return cls.UI_LOCK
+    
+    @classmethod
+    def arrow_right(cls) -> str:
+        """Get the right arrow icon (for showing transitions/changes)."""
+        return cls.UI_ARROW_RIGHT
 
 
 class DisplayManager:
@@ -252,7 +257,6 @@ class DisplayManager:
         variables_table.add_column("Type", style="magenta")
         variables_table.add_column("Default", style="green")
         variables_table.add_column("Description", style="white")
-        variables_table.add_column("Origin", style="yellow")
 
         first_section = True
         for section in template.variables.get_sections().values():
@@ -260,7 +264,7 @@ class DisplayManager:
                 continue
 
             if not first_section:
-                variables_table.add_row("", "", "", "", "", style="dim")
+                variables_table.add_row("", "", "", "", style="dim")
             first_section = False
 
             # Check if section is enabled AND dependencies are satisfied
@@ -277,12 +281,32 @@ class DisplayManager:
               needs_list = ", ".join(section.needs)
               needs_text = f" [dim](needs: {needs_list})[/dim]"
             header_text = f"[bold dim]{section.title}{required_text}{needs_text}{disabled_text}[/bold dim]" if is_dimmed else f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
-            variables_table.add_row(header_text, "", "", "", "")
+            variables_table.add_row(header_text, "", "", "")
 
             for var_name, variable in section.variables.items():
                 row_style = "dim" if is_dimmed else None
-                # Use variable's native get_display_value() method
-                default_val = variable.get_display_value(mask_sensitive=True, max_length=30)
+                
+                # Build default value display
+                # If origin is 'config' and original value differs from current, show: original → config_value
+                if (variable.origin == "config" and 
+                    hasattr(variable, '_original_stored') and
+                    variable.original_value != variable.value):
+                    # Format original value (mask if sensitive, show (none) if None)
+                    if variable.sensitive:
+                        orig_display = "********"
+                    elif variable.original_value is None:
+                        orig_display = "[dim](none)[/dim]"
+                    else:
+                        orig_val_str = str(variable.original_value)
+                        orig_display = orig_val_str[:15] + "..." if len(orig_val_str) > 15 else orig_val_str
+                    
+                    # Get current (config) value display
+                    config_display = variable.get_display_value(mask_sensitive=True, max_length=15)
+                    # Highlight the arrow and config value in yellow to show it's a custom override
+                    default_val = f"{orig_display} [yellow]{IconManager.arrow_right()} {config_display}[/yellow]"
+                else:
+                    # Use variable's native get_display_value() method
+                    default_val = variable.get_display_value(mask_sensitive=True, max_length=30)
                 
                 # Add lock icon for sensitive variables
                 sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
@@ -293,7 +317,6 @@ class DisplayManager:
                     variable.type or "str",
                     default_val,
                     variable.description or "",
-                    variable.origin or "unknown",
                     style=row_style,
                 )
 
