@@ -144,7 +144,6 @@ class Module(ABC):
   def show(
     self,
     id: str,
-    show_content: bool = False,
   ) -> None:
     """Show template details."""
     logger.debug(f"Showing template '{id}' from module '{self.name}'")
@@ -327,28 +326,28 @@ class Module(ABC):
     from rich.table import Table
     
     console.print()
-    console.print("[bold blue]Dry Run Mode - Simulating File Generation[/bold blue]")
+    console.print("[bold cyan]Dry Run Mode - Simulating File Generation[/bold cyan]")
     console.print()
     
     # Simulate directory creation
-    console.print("[cyan]📁 Directory Operations:[/cyan]")
+    console.print(f"[bold]{IconManager.folder()} Directory Operations:[/bold]")
     
     # Check if output directory exists
     if output_dir.exists():
-      console.print(f"  [dim]✓[/dim] Output directory exists: {output_dir}")
+      console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Output directory exists: [cyan]{output_dir}[/cyan]")
       # Check if we have write permissions
       if os.access(output_dir, os.W_OK):
-        console.print(f"  [dim]✓[/dim] Write permission verified")
+        console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Write permission verified")
       else:
-        console.print(f"  [yellow]⚠[/yellow]  Write permission may be denied")
+        console.print(f"  [yellow]{IconManager.get_status_icon('warning')}[/yellow] Write permission may be denied")
     else:
-      console.print(f"  [dim]→[/dim] Would create output directory: {output_dir}")
+      console.print(f"  [dim]{IconManager.arrow_right()}[/dim] Would create output directory: [cyan]{output_dir}[/cyan]")
       # Check if parent directory exists and is writable
       parent = output_dir.parent
       if parent.exists() and os.access(parent, os.W_OK):
-        console.print(f"  [dim]✓[/dim] Parent directory writable")
+        console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Parent directory writable")
       else:
-        console.print(f"  [yellow]⚠[/yellow]  Parent directory may not be writable")
+        console.print(f"  [yellow]{IconManager.get_status_icon('warning')}[/yellow] Parent directory may not be writable")
     
     # Collect unique subdirectories that would be created
     subdirs = set()
@@ -358,14 +357,14 @@ class Module(ABC):
         subdirs.add(Path(*parts[:i]))
     
     if subdirs:
-      console.print(f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)")
+      console.print(f"  [dim]{IconManager.arrow_right()}[/dim] Would create {len(subdirs)} subdirectory(ies)")
       for subdir in sorted(subdirs):
-        console.print(f"    [dim]•[/dim] {subdir}/")
+        console.print(f"    [dim]{IconManager.folder()}[/dim] {subdir}/")
     
     console.print()
     
     # Display file operations in a table
-    console.print("[cyan]📄 File Operations:[/cyan]")
+    console.print(f"[bold]{IconManager.get_file_icon('file.txt')} File Operations:[/bold]")
     
     table = Table(show_header=True, header_style="bold cyan", box=None, padding=(0, 1))
     table.add_column("File", style="white", no_wrap=False)
@@ -403,7 +402,7 @@ class Module(ABC):
     console.print()
     
     # Summary statistics
-    console.print("[cyan]📊 Summary:[/cyan]")
+    console.print(f"[bold]{IconManager.get_status_icon('info')} Summary:[/bold]")
     console.print(f"  Total files: {len(rendered_files)}")
     console.print(f"  New files: {new_files}")
     console.print(f"  Files to overwrite: {overwrite_files}")
@@ -419,7 +418,7 @@ class Module(ABC):
     
     # Show file contents if requested
     if show_files:
-      console.print("[bold blue]Generated File Contents:[/bold blue]")
+      console.print("[bold cyan]Generated File Contents:[/bold cyan]")
       console.print()
       for file_path, content in sorted(rendered_files.items()):
         console.print(f"[cyan]File:[/cyan] {file_path}")
