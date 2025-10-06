@@ -40,6 +40,7 @@ spec:
       gitea_root_url:
         description: "Public URL for your Gitea instance (e.g., https://git.example.com)"
         type: str
+        default: "https://git.example.com"
       gitea_ssh_port:
         description: "SSH port number (should match ports_ssh)"
         type: int

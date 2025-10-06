@@ -151,6 +151,9 @@ class Module(ABC):
         successful = template.variables.apply_defaults(config_defaults, "config")
         if successful:
           logger.debug(f"Applied config defaults for: {', '.join(successful)}")
+      
+      # Re-sort sections after applying config (toggle values may have changed)
+      template.variables.sort_sections()
     
     self._display_template_details(template, id)
 
@@ -160,6 +163,7 @@ class Module(ABC):
     directory: Optional[str] = Argument(None, help="Output directory (defaults to template ID)"),
     interactive: bool = Option(True, "--interactive/--no-interactive", "-i/-n", help="Enable interactive prompting for variables"),
     var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Use KEY=VALUE or --var KEY VALUE"),
+    dry_run: bool = Option(False, "--dry-run", help="Preview template generation without writing files"),
     ctx: Context = None,
   ) -> None:
     """Generate from template.
@@ -179,6 +183,9 @@ class Module(ABC):
         
         # Generate with variables
         cli compose generate traefik --var traefik_enabled=false
+        
+        # Preview without writing files (dry run)
+        cli compose generate traefik --dry-run
     """
 
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
@@ -207,6 +214,10 @@ class Module(ABC):
         successful_overrides = template.variables.apply_defaults(cli_overrides, "cli")
         if successful_overrides:
           logger.debug(f"Applied CLI overrides for: {', '.join(successful_overrides)}")
+    
+    # Re-sort sections after all overrides (toggle values may have changed)
+    if template.variables:
+      template.variables.sort_sections()
 
     self._display_template_details(template, id)
     console.print()
@@ -228,7 +239,7 @@ class Module(ABC):
       if template.variables:
         template.variables.validate_all()
       
-      rendered_files = template.render(template.variables)
+      rendered_files, variable_values = template.render(template.variables)
       
       # Safety check for render result
       if not rendered_files:
@@ -277,24 +288,30 @@ class Module(ABC):
         )
         
         # Final confirmation (only if we didn't already ask about overwriting)
-        if not dir_not_empty:
+        if not dir_not_empty and not dry_run:
           if not Confirm.ask("Generate these files?", default=True):
             console.print("[yellow]Generation cancelled.[/yellow]")
             return
       
-      # Create the output directory if it doesn't exist
-      output_dir.mkdir(parents=True, exist_ok=True)
+      # Skip file writing in dry-run mode
+      if dry_run:
+        console.print(f"\n[yellow]✓ Dry run complete - no files were written[/yellow]")
+        console.print(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
+        logger.info(f"Dry run completed for template '{id}'")
+      else:
+        # Create the output directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-      # Write rendered files to the output directory
-      for file_path, content in rendered_files.items():
-        full_path = output_dir / file_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(full_path, 'w', encoding='utf-8') as f:
-          f.write(content)
-        console.print(f"[green]Generated file: {file_path}[/green]")
-      
-      console.print(f"\n[green]✓ Template generated successfully in '{output_dir}'[/green]")
-      logger.info(f"Template written to directory: {output_dir}")
+        # Write rendered files to the output directory
+        for file_path, content in rendered_files.items():
+          full_path = output_dir / file_path
+          full_path.parent.mkdir(parents=True, exist_ok=True)
+          with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+          console.print(f"[green]Generated file: {file_path}[/green]")
+        
+        console.print(f"\n[green]✓ Template generated successfully in '{output_dir}'[/green]")
+        logger.info(f"Template written to directory: {output_dir}")
       
       # Display next steps if provided in template metadata
       if template.metadata.next_steps:
@@ -372,7 +389,7 @@ class Module(ABC):
     
     Examples:
         # Remove a default value
-        cli compose defaults remove service_name
+        cli compose defaults rm service_name
     """
     from .config import ConfigManager
     config = ConfigManager()
@@ -586,7 +603,7 @@ class Module(ABC):
     defaults_app = Typer(help="Manage default values for template variables")
     defaults_app.command("get", help="Get default value(s)")(module_instance.config_get)
     defaults_app.command("set", help="Set a default value")(module_instance.config_set)
-    defaults_app.command("remove", help="Remove a specific default value")(module_instance.config_remove)
+    defaults_app.command("rm", help="Remove a specific default value")(module_instance.config_remove)
     defaults_app.command("clear", help="Clear default value(s)")(module_instance.config_clear)
     defaults_app.command("list", help="Display the config for this module in YAML format")(module_instance.config_list)
     module_app.add_typer(defaults_app, name="defaults")

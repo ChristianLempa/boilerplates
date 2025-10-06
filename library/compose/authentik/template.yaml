@@ -19,9 +19,56 @@ metadata:
   date: '2025-09-28'
   tags:
     - authentication
+  next_steps: |
+    1. Start Authentik:
+       docker compose up -d
+
+    2. Access the web interface:
+       {% if traefik_enabled -%}
+       - Via Traefik: https://{{ traefik_host }}
+       {% if ports_enabled %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
+       {%- else -%}
+       - Open http://localhost:{{ ports_http }} in your browser
+       {%- endif %}
+
+    3. Initial setup:
+       - Follow the setup wizard to create your admin account
+       - Configure authentication flows and providers
+       - Set up user directory (LDAP, Active Directory, or local)
+
+    4. Configure your first application:
+       - Navigate to Applications → Create
+       - Choose authentication provider (OAuth2, SAML, LDAP, etc.)
+       - Configure redirect URIs and client credentials
+       - Assign users or groups to the application
+
+    5. Important configuration:
+       - Secret Key: {{ authentik_secret_key }}
+       - Database Password: {{ database_password }}
+       - Store these credentials securely!
+
+    6. Security recommendations:
+       - Enable two-factor authentication for admin accounts
+       - Configure backup flows and recovery tokens
+       - Set up email notifications for security events
+       - Review and customize authentication policies
+       - Regularly backup the database and media files
+
+    For more information, visit: https://goauthentik.io/docs/
 spec:
+  general:
+    vars:
+      service_name:
+        default: "authentik"
+      container_name:
+        default: "authentik-server"
   database:
     required: true
+    vars:
+      database_name:
+        default: "authentik"
+      database_user:
+        default: "authentik"
   ports:
     vars:
       ports_http:
@@ -32,6 +79,10 @@ spec:
         description: "Host port for HTTPS (443)"
         type: int
         default: 8443
+  traefik:
+    vars:
+      traefik_host:
+        default: authentik.home.arpa
   authentik:
     description: "Configure Authentik application settings"
     required: true

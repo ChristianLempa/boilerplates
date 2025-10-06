@@ -253,7 +253,7 @@ class DisplayManager:
         console.print("[bold blue]Template Variables:[/bold blue]")
 
         variables_table = Table(show_header=True, header_style="bold blue")
-        variables_table.add_column("Variable", style="cyan", no_wrap=True)
+        variables_table.add_column("Variable", style="white", no_wrap=True)
         variables_table.add_column("Type", style="magenta")
         variables_table.add_column("Default", style="green")
         variables_table.add_column("Description", style="white")
@@ -264,7 +264,7 @@ class DisplayManager:
                 continue
 
             if not first_section:
-                variables_table.add_row("", "", "", "", style="dim")
+                variables_table.add_row("", "", "", "", style="bright_black")
             first_section = False
 
             # Check if section is enabled AND dependencies are satisfied
@@ -274,17 +274,28 @@ class DisplayManager:
 
             # Only show (disabled) if section has no dependencies (dependencies make it obvious)
             disabled_text = " (disabled)" if (is_dimmed and not section.needs) else ""
-            required_text = " [yellow](required)[/yellow]" if section.required else ""
-            # Add dependency information
-            needs_text = ""
-            if section.needs:
-              needs_list = ", ".join(section.needs)
-              needs_text = f" [dim](needs: {needs_list})[/dim]"
-            header_text = f"[bold dim]{section.title}{required_text}{needs_text}{disabled_text}[/bold dim]" if is_dimmed else f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
+            
+            # For disabled sections, make entire heading bold and dim (don't include colored markup inside)
+            if is_dimmed:
+                # Build text without internal markup, then wrap entire thing in bold bright_black (dimmed appearance)
+                required_part = " (required)" if section.required else ""
+                needs_part = ""
+                if section.needs:
+                    needs_list = ", ".join(section.needs)
+                    needs_part = f" (needs: {needs_list})"
+                header_text = f"[bold bright_black]{section.title}{required_part}{needs_part}{disabled_text}[/bold bright_black]"
+            else:
+                # For enabled sections, include the colored markup
+                required_text = " [yellow](required)[/yellow]" if section.required else ""
+                needs_text = ""
+                if section.needs:
+                    needs_list = ", ".join(section.needs)
+                    needs_text = f" [dim](needs: {needs_list})[/dim]"
+                header_text = f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
             variables_table.add_row(header_text, "", "", "")
 
             for var_name, variable in section.variables.items():
-                row_style = "dim" if is_dimmed else None
+                row_style = "bright_black" if is_dimmed else None
                 
                 # Build default value display
                 # If origin is 'config' and original value differs from current, show: original → config_value

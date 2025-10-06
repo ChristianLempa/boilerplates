@@ -55,10 +55,15 @@ volumes:
   alloy_data:
     driver: local
 
-{% if network_enabled %}
+{% if network_enabled or traefik_enabled %}
 networks:
+  {% if network_enabled %}
   {{ network_name | default("bridge") }}:
     {% if network_external %}
     external: true
     {% endif %}
+  {% elif traefik_enabled %}
+  {{ traefik_network | default("traefik") }}:
+    external: true
+  {% endif %}
 {% endif %}

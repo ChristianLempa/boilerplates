@@ -34,7 +34,9 @@ spec:
   ports:
     vars:
       ports_enabled:
+        type: bool
         description: Expose HTTP/HTTPS ports (disabled if using Traefik)
+        default: true
       ports_http:
         type: int
         description: HTTP port (disabled if using Traefik)

@@ -24,6 +24,9 @@ spec:
   general:
     vars:
       container_hostname:
+        type: hostname
+        description: Docker host hostname for container identification
+        default: hostname
         extra: This is needed because when alloy runs in a container, it doesn't know the hostname of the docker host.
   ports:
     vars:
@@ -31,6 +34,10 @@ spec:
         type: int
         description: Main port for Alloy HTTP server
         default: 12345
+  traefik:
+    vars:
+      traefik_host:
+        default: alloy.home.arpa
   logs:
     name: Log Collection
     description: Configure log collection for Docker containers and system logs
@@ -43,7 +50,7 @@ spec:
       logs_loki_url:
         type: url
         description: Loki endpoint URL for sending logs
-        default: "http://loki:3100/loki/api/v1/push"
+        default: http://loki:3100/loki/api/v1/push
       logs_docker:
         type: bool
         description: Enable Docker container log collection
@@ -64,7 +71,7 @@ spec:
       metrics_prometheus_url:
         type: url
         description: Prometheus remote write endpoint
-        default: "http://prometheus:9090/api/v1/write"
+        default: http://prometheus:9090/api/v1/write
       metrics_docker:
         type: bool
         description: Enable Docker container metrics collection (cAdvisor)

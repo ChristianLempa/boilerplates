@@ -88,7 +88,9 @@ spec:
       swarm_placement_mode:
         default: "global"
       swarm_placement_host:
+        type: str
         description: "Placement constraint for node selection (optional)"
+        default: ""
   authentik:
     title: Authentik Middleware
     description: Enable Authentik SSO integration for Traefik
