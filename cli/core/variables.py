@@ -218,18 +218,19 @@ class Variable:
     
     return var_dict
   
-  def get_display_value(self, mask_sensitive: bool = True, max_length: int = 30) -> str:
+  def get_display_value(self, mask_sensitive: bool = True, max_length: int = 30, show_none: bool = True) -> str:
     """Get formatted display value with optional masking and truncation.
     
     Args:
         mask_sensitive: If True, mask sensitive values with asterisks
         max_length: Maximum length before truncation (0 = no limit)
+        show_none: If True, display "(none)" for None values instead of empty string
         
     Returns:
         Formatted string representation of the value
     """
-    if self.value is None:
-      return ""
+    if self.value is None or self.value == "":
+      return "[dim](none)[/dim]" if show_none else ""
     
     # Mask sensitive values
     if self.sensitive and mask_sensitive:

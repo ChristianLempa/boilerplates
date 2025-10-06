@@ -291,22 +291,25 @@ class DisplayManager:
                 if (variable.origin == "config" and 
                     hasattr(variable, '_original_stored') and
                     variable.original_value != variable.value):
-                    # Format original value (mask if sensitive, show (none) if None)
+                    # Format original value (use same display logic, but shorter)
                     if variable.sensitive:
                         orig_display = "********"
-                    elif variable.original_value is None:
+                    elif variable.original_value is None or variable.original_value == "":
                         orig_display = "[dim](none)[/dim]"
                     else:
                         orig_val_str = str(variable.original_value)
                         orig_display = orig_val_str[:15] + "..." if len(orig_val_str) > 15 else orig_val_str
                     
-                    # Get current (config) value display
-                    config_display = variable.get_display_value(mask_sensitive=True, max_length=15)
-                    # Highlight the arrow and config value in yellow to show it's a custom override
-                    default_val = f"{orig_display} [yellow]{IconManager.arrow_right()} {config_display}[/yellow]"
+                    # Get current (config) value display (without showing "(none)" since we have the arrow)
+                    config_display = variable.get_display_value(mask_sensitive=True, max_length=15, show_none=False)
+                    if not config_display:  # If still empty after show_none=False, show actual value
+                        config_display = str(variable.value) if variable.value else "(empty)"
+                    
+                    # Highlight the arrow and config value in bold yellow to show it's a custom override
+                    default_val = f"{orig_display} [bold yellow]{IconManager.arrow_right()} {config_display}[/bold yellow]"
                 else:
-                    # Use variable's native get_display_value() method
-                    default_val = variable.get_display_value(mask_sensitive=True, max_length=30)
+                    # Use variable's native get_display_value() method (shows "(none)" for empty)
+                    default_val = variable.get_display_value(mask_sensitive=True, max_length=30, show_none=True)
                 
                 # Add lock icon for sensitive variables
                 sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
