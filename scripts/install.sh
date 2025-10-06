@@ -4,22 +4,23 @@ set -euo pipefail
 REPO_OWNER="christianlempa"
 REPO_NAME="boilerplates"
 VERSION="${VERSION:-latest}"
-TARGET_DIR="${TARGET_DIR:-$HOME/boilerplates}"
 
 usage() {
   cat <<USAGE
 Usage: install.sh [OPTIONS]
 
-Install the boilerplates CLI from GitHub releases.
+Install the boilerplates CLI from GitHub releases via pipx.
 
 Options:
-  --path DIR        Installation directory (default: "$HOME/boilerplates")
   --version VER     Version to install (default: "latest")
   -h, --help        Show this message
 
 Examples:
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash -s -- --version v1.0.0
+
+Uninstall:
+  pipx uninstall boilerplates
 USAGE
 }
 
@@ -46,12 +47,6 @@ check_dependencies() {
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --path)
-        [[ $# -lt 2 ]] && error "--path requires an argument"
-        [[ "$2" =~ ^- ]] && error "--path requires a directory path, not an option"
-        TARGET_DIR="$2"
-        shift 2
-        ;;
       --version)
         [[ $# -lt 2 ]] && error "--version requires an argument"
         [[ "$2" =~ ^- ]] && error "--version requires a version string, not an option"
@@ -64,53 +59,30 @@ parse_args() {
   done
 }
 
-validate_target_dir() {
-  local dir="$1"
-  local normalized="$(python3 -c "import os, sys; print(os.path.abspath(os.path.expanduser('$dir')))" 2>/dev/null)"
-  
-  [[ -z "$normalized" ]] && error "Invalid path: $dir"
-  
-  # Prevent dangerous paths
-  case "$normalized" in
-    /|/bin|/boot|/dev|/etc|/lib|/lib64|/proc|/root|/sbin|/sys|/usr|/var)
-      error "Refusing to use system directory: $normalized"
-      ;;
-    /home|/Users)
-      error "Refusing to use top-level home directory: $normalized"
-      ;;
-  esac
-  
-  # If directory exists, validate it's safe to remove
-  if [[ -d "$normalized" ]]; then
-    # Check for our marker file
-    if [[ ! -f "$normalized/.version" ]] && [[ -n "$(ls -A "$normalized" 2>/dev/null)" ]]; then
-      error "Directory exists and contains unknown content: $normalized\nRefusing to overwrite for safety. Please remove it manually or choose a different path."
-    fi
-  fi
-  
-  echo "$normalized"
-}
 
 get_latest_release() {
   local api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+  local result
   
   if command -v curl >/dev/null 2>&1; then
-    curl -qfsSL "$api_url" | sed -En 's/.*"tag_name": "([^"]+)".*/\1/p'
+    result=$(curl -qfsSL --max-time 10 "$api_url" 2>/dev/null | sed -En 's/.*"tag_name": "([^"]+)".*/\1/p')
   elif command -v wget >/dev/null 2>&1; then
-    wget -qO- "$api_url" | sed -En 's/.*"tag_name": "([^"]+)".*/\1/p'
+    result=$(wget --timeout=10 -qO- "$api_url" 2>/dev/null | sed -En 's/.*"tag_name": "([^"]+)".*/\1/p')
   else
-    echo "error" >&2; return 1
+    error "Neither curl nor wget found"
   fi
+  
+  [[ -z "$result" ]] && error "Failed to fetch release information from GitHub"
+  echo "$result"
 }
 
-download_release() {
+download_and_extract() {
   local version="$1"
   
   # Resolve "latest" to actual version
   if [[ "$version" == "latest" ]]; then
     log "Fetching latest release..."
     version=$(get_latest_release)
-    [[ "$version" =~ ^error ]] && error "Failed to fetch latest release"
     log "Latest version: $version"
   fi
   
@@ -120,6 +92,7 @@ download_release() {
   local url="https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/tags/$version.tar.gz"
   local temp_dir=$(mktemp -d)
   local archive="$temp_dir/release.tar.gz"
+  local extract_dir="$temp_dir/extracted"
   
   # Ensure cleanup on exit
   trap '[[ -d "${temp_dir:-}" ]] && rm -rf "$temp_dir"' RETURN
@@ -127,28 +100,47 @@ download_release() {
   log "Downloading $version..."
   
   if command -v curl >/dev/null 2>&1; then
-    curl -qfsSL -o "$archive" "$url" || error "Download failed"
+    curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed"
   elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$archive" "$url" || error "Download failed"
+    wget --timeout=30 -qO "$archive" "$url" || error "Download failed"
   fi
   
-  log "Extracting to $TARGET_DIR..."
+  log "Extracting release..."
   
-  [[ -d "$TARGET_DIR" ]] && rm -rf "$TARGET_DIR"
-  mkdir -p "$(dirname "$TARGET_DIR")"
+  mkdir -p "$extract_dir"
+  tar -xzf "$archive" -C "$extract_dir" || error "Extraction failed"
   
-  tar -xzf "$archive" -C "$(dirname "$TARGET_DIR")" || error "Extraction failed"
+  # Find the extracted directory (should be boilerplates-X.Y.Z)
+  local source_dir=$(find "$extract_dir" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
+  [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
   
-  mv "$(dirname "$TARGET_DIR")/$REPO_NAME-${version#v}" "$TARGET_DIR" || error "Installation failed"
+  # Verify essential files exist
+  [[ ! -f "$source_dir/setup.py" ]] && [[ ! -f "$source_dir/pyproject.toml" ]] && \
+    error "Invalid package: missing setup.py or pyproject.toml"
   
-  echo "$version" > "$TARGET_DIR/.version"
-  log "✓ Release extracted"
+  echo "$source_dir"
 }
 
 install_cli() {
+  local source_dir="$1"
+  local version="$2"
+  
   log "Installing CLI via pipx..."
   "$PIPX_CMD" ensurepath 2>&1 | grep -v "^$" || true
-  "$PIPX_CMD" install --editable --force "$TARGET_DIR"
+  
+  # Install from source directory
+  if ! "$PIPX_CMD" install --force "$source_dir" 2>&1; then
+    error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
+  fi
+  
+  log "✓ CLI installed successfully"
+  
+  # Verify installation
+  if command -v boilerplates >/dev/null 2>&1; then
+    log "✓ Command 'boilerplates' is now available"
+  else
+    log "⚠ Warning: 'boilerplates' command not found in PATH. You may need to restart your shell or run: pipx ensurepath"
+  fi
 }
 
 main() {
@@ -157,19 +149,18 @@ main() {
   log "Checking dependencies..."
   check_dependencies
   
-  TARGET_DIR=$(validate_target_dir "$TARGET_DIR")
+  local source_dir=$(download_and_extract "$VERSION")
+  install_cli "$source_dir" "$VERSION"
   
-  download_release "$VERSION"
-  install_cli
-  
-  local version=$(cat "$TARGET_DIR/.version" 2>/dev/null || echo "unknown")
+  # Get installed version
+  local installed_version=$(boilerplates --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
   
   cat <<EOF
 
 ✓ Installation complete!
 
-Version: $version
-Location: $TARGET_DIR
+Version: $installed_version
+Installed via: pipx
 
 Usage:
   boilerplates --help
@@ -178,6 +169,9 @@ Usage:
 
 Update:
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
+
+Uninstall:
+  pipx uninstall boilerplates
 EOF
 }
 
