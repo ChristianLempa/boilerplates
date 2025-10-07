@@ -1,0 +1,54 @@
+---
+name: Renovate - Sync Template Versions
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'library/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-versions:
+    name: Sync Template Versions
+    # Only run on Renovate PRs
+    if: startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run template version sync
+        id: sync
+        run: |
+          echo "Running template version sync script..."
+          chmod +x ./scripts/sync-template-version.sh
+          ./scripts/sync-template-version.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [[ -n $(git status --porcelain library/**/template.yaml) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Template version changes detected"
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No template version changes needed"
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add library/**/template.yaml
+          git commit -m "chore: sync template versions with image updates"
+          git push

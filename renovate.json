@@ -160,18 +160,6 @@
       "datasourceTemplate": "terraform-provider"
     }
   ],
-  "allowedCommands": [
-    "^\\.renovate/.*\\.sh$"
-  ],
-  "postUpgradeTasks": {
-    "commands": [
-      ".renovate/sync-template-version.sh"
-    ],
-    "fileFilters": [
-      "library/**/template.yaml"
-    ],
-    "executionMode": "update"
-  },
   "prConcurrentLimit": 30,
   "prHourlyLimit": 5,
   "separateMinorPatch": true,
