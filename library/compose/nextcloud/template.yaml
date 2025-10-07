@@ -3,8 +3,8 @@ kind: compose
 metadata:
   name: Nextcloud
   description: >
-    Self-hosted file sync and share platform. Nextcloud is a suite of client-server 
-    software for creating and using file hosting services. It provides functionality 
+    Self-hosted file sync and share platform. Nextcloud is a suite of client-server
+    software for creating and using file hosting services. It provides functionality
     similar to Dropbox, with the added benefit of being self-hosted and open-source.
 
 

@@ -2,6 +2,7 @@
 extends: default
 
 rules:
+  comments-indentation: disable
   indentation:
     spaces: 2
     indent-sequences: true

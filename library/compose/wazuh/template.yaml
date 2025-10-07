@@ -3,8 +3,9 @@ kind: compose
 metadata:
   name: Wazuh
   description: >
-    Wazuh is a comprehensive open-source security platform that provides unified security monitoring, threat detection, and compliance management.
-    It integrates with various tools and services to offer real-time visibility into your IT environment, helping you identify and respond to security threats effectively.
+    Wazuh is a comprehensive open-source security platform that provides unified security monitoring, threat detection, and compliance
+    management. It integrates with various tools and services to offer real-time visibility into your IT environment, helping you identify
+    and respond to security threats effectively.
 
 
     Project: https://wazuh.com/

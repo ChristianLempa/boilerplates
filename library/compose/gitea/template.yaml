@@ -3,8 +3,8 @@ kind: compose
 metadata:
   name: Gitea
   description: >
-    Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service 
-    written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository 
+    Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service
+    written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository
     hosting, code review, team collaboration, and more.
 
 
