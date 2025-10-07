@@ -13,7 +13,7 @@ metadata:
     Documentation: https://docs.gitlab.com/
   version: 18.3.1-ce.0
   author: Christian Lempa
-  date: '2025-10-07'
+  date: 2025-10-07
   tags:
     - git
     - ci-cd
@@ -35,7 +35,7 @@ metadata:
     4. Initial login:
        - Username: root
        - Retrieve initial password:
-         docker exec {{ container_name }} grep 'Password:' /etc/gitlab/initial_root_password
+         docker exec {{ container_name }} grep Password: /etc/gitlab/initial_root_password
 
        IMPORTANT: Change this password immediately after first login!
 
@@ -50,7 +50,7 @@ spec:
       external_url:
         type: str
         description: External URL for GitLab (e.g., https://gitlab.example.com)
-        default: 'https://gitlab.example.com'
+        default: https://gitlab.example.com
       ssh_port:
         type: int
         description: SSH port for Git operations
@@ -93,7 +93,7 @@ spec:
       registry_external_url:
         type: str
         description: External URL for Container Registry
-        default: 'https://registry.example.com'
+        default: https://registry.example.com
   advanced:
     title: Advanced Settings
     description: Performance tuning and advanced configuration options
@@ -106,9 +106,9 @@ spec:
           - homelab
           - default
         default: homelab
-        extra: 'homelab: optimized for low-resource environments (recommended for single-user/small teams). default: GitLab default settings (better for larger deployments)'
+        extra: homelab is optimized for low-resource environments, default is for standard servers
       prometheus_enabled:
         type: bool
         description: Enable Prometheus monitoring
         default: false
-        extra: 'Disabling saves ~200-400MB RAM. GitLab UI metrics will be unavailable.'
+        extra: Disabling saves ~200-400MB RAM. GitLab UI metrics will be unavailable.
