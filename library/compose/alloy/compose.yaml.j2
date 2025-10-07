@@ -1,6 +1,6 @@
 services:
   {{ service_name | default("alloy") }}:
-    image: grafana/alloy:v1.10.2
+    image: grafana/alloy:v1.11.0
     container_name: {{ container_name | default("alloy") }}
     hostname: {{ container_hostname }}
     command:
