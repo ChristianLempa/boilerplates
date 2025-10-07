@@ -10,8 +10,6 @@ metadata:
 
     Project: https://about.gitlab.com/
 
-    Source: https://gitlab.com/gitlab-org/gitlab
-
     Documentation: https://docs.gitlab.com/
   version: 18.3.1-ce.0
   author: Christian Lempa
