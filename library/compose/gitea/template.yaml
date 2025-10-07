@@ -13,9 +13,9 @@ metadata:
     Documentation: https://docs.gitea.io/
 
     GitHub: https://github.com/go-gitea/gitea
-  version: 1.24.5
+  version: 1.24.6
   author: Christian Lempa
-  date: '2025-10-02'
+  date: '2025-10-07'
   tags:
     - git
     - ci-cd
