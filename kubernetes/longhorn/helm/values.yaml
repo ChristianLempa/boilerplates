@@ -6,7 +6,7 @@ image:
       tag: "v1.9.1"
     manager:
       repository: "longhornio/longhorn-manager"
-      tag: "v1.9.1"
+      tag: "v1.10.0"
     ui:
       repository: "longhornio/longhorn-ui"
       tag: "v1.9.1"
