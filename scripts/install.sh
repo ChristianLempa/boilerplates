@@ -41,7 +41,7 @@ check_dependencies() {
     error "pipx is required. Install: pip install --user pipx"
   fi
   
-  log "✓ All dependencies available"
+  log "All dependencies available"
 }
 
 parse_args() {
@@ -76,7 +76,7 @@ get_latest_release() {
   echo "$result"
 }
 
-download_package() {
+download_and_extract() {
   local version="$1"
   
   # Resolve "latest" to actual version
@@ -106,8 +106,21 @@ download_package() {
     wget --timeout=30 -qO "$archive" "$url" || error "Download failed. URL: $url"
   fi
   
-  # Return the path to the tarball (pipx can install directly from it)
-  echo "$archive"
+  log "Extracting package..."
+  
+  # Extract the tarball
+  tar -xzf "$archive" -C "$TEMP_DIR" || error "Extraction failed"
+  
+  # Find the extracted directory (should be boilerplates-X.Y.Z)
+  local source_dir=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
+  [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
+  
+  # Verify essential files exist
+  [[ ! -f "$source_dir/setup.py" ]] && [[ ! -f "$source_dir/pyproject.toml" ]] && \
+    error "Invalid package: missing setup.py or pyproject.toml"
+  
+  # Return the path to the extracted directory
+  echo "$source_dir"
 }
 
 install_cli() {
@@ -122,13 +135,13 @@ install_cli() {
     error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
   fi
   
-  log "✓ CLI installed successfully"
+  log "CLI installed successfully"
   
   # Verify installation
   if command -v boilerplates >/dev/null 2>&1; then
-    log "✓ Command 'boilerplates' is now available"
+    log "Command 'boilerplates' is now available"
   else
-    log "⚠ Warning: 'boilerplates' command not found in PATH. You may need to restart your shell or run: pipx ensurepath"
+    log "Warning: 'boilerplates' command not found in PATH. You may need to restart your shell or run: pipx ensurepath"
   fi
 }
 
@@ -141,7 +154,7 @@ main() {
   log "Checking dependencies..."
   check_dependencies
   
-  local package_path=$(download_package "$VERSION")
+  local package_path=$(download_and_extract "$VERSION")
   install_cli "$package_path" "$VERSION"
   
   # Get installed version
@@ -149,15 +162,13 @@ main() {
   
   cat <<EOF
 
-✓ Installation complete!
+\uf05d Installation complete!
 
 Version: $installed_version
 Installed via: pipx
 
 Usage:
   boilerplates --help
-  boilerplates compose list
-  boilerplates compose generate <template>
 
 Update:
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
