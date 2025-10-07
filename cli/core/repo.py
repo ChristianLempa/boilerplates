@@ -133,12 +133,12 @@ def _clone_or_pull_repo(name: str, url: str, target_path: Path, branch: Optional
                 if not success:
                     return False, f"Failed to set sparse-checkout directory: {stderr or stdout}"
                 
-                # Fetch specific branch
+                # Fetch specific branch (without attempting to update local ref)
                 fetch_args = ["fetch", "--depth", "1", "origin"]
                 if branch:
-                    fetch_args.append(f"{branch}:{branch}")
+                    fetch_args.append(branch)
                 else:
-                    fetch_args.append("main:main")
+                    fetch_args.append("main")
                 
                 success, stdout, stderr = _run_git_command(fetch_args, cwd=target_path)
                 if not success:
