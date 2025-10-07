@@ -2,7 +2,7 @@
 services:
   twingate_connector:
     container_name: twingate_connector
-    image: docker.io/twingate/connector:1.77.0
+    image: docker.io/twingate/connector:1.78.0
     environment:
       - TWINGATE_NETWORK=  # FIXME Add your Twingate network name here
       - TWINGATE_ACCESS_TOKEN=${TWINGATE_ACCESS_TOKEN:?error}
