@@ -94,3 +94,21 @@ spec:
         type: str
         description: External URL for Container Registry
         default: 'https://registry.example.com'
+  advanced:
+    title: Advanced Settings
+    description: Performance tuning and advanced configuration options
+    required: false
+    vars:
+      performance_preset:
+        type: enum
+        description: Performance optimization profile
+        options:
+          - homelab
+          - default
+        default: homelab
+        extra: 'homelab: optimized for low-resource environments (recommended for single-user/small teams). default: GitLab default settings (better for larger deployments)'
+      prometheus_enabled:
+        type: bool
+        description: Enable Prometheus monitoring
+        default: false
+        extra: 'Disabling saves ~200-400MB RAM. GitLab UI metrics will be unavailable.'
