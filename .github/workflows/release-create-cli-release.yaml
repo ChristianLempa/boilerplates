@@ -1,5 +1,5 @@
 ---
-name: Release
+name: Release - Create CLI GitHub Release
 
 'on':
   push:

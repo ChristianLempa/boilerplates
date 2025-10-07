@@ -1,7 +1,7 @@
 ---
 name: Renovate - Sync Template Versions
 
-on:  # yamllint disable-line rule:truthy
+'on':
   pull_request:
     branches:
       - main
@@ -25,15 +25,36 @@ jobs:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Detect changed template files
+        id: changes
+        run: |
+          # Get list of changed files in library/
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '^library/' | grep -E '\.(j2|yaml|yml)$' || true)
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Changed template files:"
+            echo "$CHANGED_FILES"
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "has_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "No template files changed"
+            echo "has_files=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run template version sync
         id: sync
+        if: steps.changes.outputs.has_files == 'true'
         run: |
           echo "Running template version sync script..."
-          chmod +x ./scripts/sync-template-version.sh
-          ./scripts/sync-template-version.sh
+          chmod +x .github/scripts/sync-template-version.sh
+          
+          # Pass changed files to the script
+          .github/scripts/sync-template-version.sh ${{ steps.changes.outputs.files }}
 
-      - name: Check for changes
-        id: changes
+      - name: Check for template.yaml changes
+        id: template_changes
         run: |
           if [[ -n $(git status --porcelain library/**/template.yaml) ]]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -44,11 +65,11 @@ jobs:
           fi
 
       - name: Commit and push changes
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.template_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           git add library/**/template.yaml
           git commit -m "chore: sync template versions with image updates"
           git push
