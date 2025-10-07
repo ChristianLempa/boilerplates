@@ -3,7 +3,7 @@ image:
   longhorn:
     engine:
       repository: "longhornio/longhorn-engine"
-      tag: "v1.9.1"
+      tag: "v1.9.2"
     manager:
       repository: "longhornio/longhorn-manager"
       tag: "v1.9.1"
