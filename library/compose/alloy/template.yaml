@@ -14,9 +14,9 @@ metadata:
     Source: https://github.com/grafana/alloy
 
     Documentation: https://grafana.com/docs/alloy/latest/
-  version: v1.10.2
+  version: v1.11.0
   author: Christian Lempa
-  date: '2025-10-02'
+  date: '2025-10-07'
   tags:
     - monitoring
     - grafana
