@@ -1,6 +1,6 @@
 services:
   clamav:
-    image: docker.io/clamav/clamav:1.4.3
+    image: docker.io/clamav/clamav:1.5.0
     container_name: clamav
     volumes:
       - ./config/clamd.conf:/etc/clamav/clamd.conf:ro
