@@ -23,13 +23,17 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref }}
+          fetch-depth: 0  # Fetch all history to compare with main
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Detect changed template files
         id: changes
         run: |
+          # Fetch main branch for comparison
+          git fetch origin main:main
+          
           # Get list of changed files in library/
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '^library/' | grep -E '\.(j2|yaml|yml)$' || true)
+          CHANGED_FILES=$(git diff --name-only main...HEAD | grep '^library/' | grep -E '\.(j2|yaml|yml)$' || true)
 
           if [ -n "$CHANGED_FILES" ]; then
             echo "Changed template files:"
