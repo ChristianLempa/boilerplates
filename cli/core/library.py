@@ -119,15 +119,55 @@ class Library:
 class LibraryManager:
   """Manages multiple libraries and provides methods to find templates."""
   
-  # FIXME: For now this is static and only has one library
   def __init__(self) -> None:
-
-    # get the root path of the repository
-    repo_root = Path(__file__).parent.parent.parent.resolve()
-
-    self.libraries = [
-      Library(name="default", path=repo_root / "library", priority=0)
-    ]
+    """Initialize LibraryManager with git-based libraries from config."""
+    from .config import ConfigManager
+    
+    self.config = ConfigManager()
+    self.libraries = self._load_libraries_from_config()
+  
+  def _load_libraries_from_config(self) -> list[Library]:
+    """Load libraries from configuration.
+    
+    Returns:
+        List of Library instances
+    """
+    libraries = []
+    libraries_path = self.config.get_libraries_path()
+    
+    # Get library configurations from config
+    library_configs = self.config.get_libraries()
+    
+    for i, lib_config in enumerate(library_configs):
+      # Skip disabled libraries
+      if not lib_config.get("enabled", True):
+        logger.debug(f"Skipping disabled library: {lib_config.get('name')}")
+        continue
+      
+      name = lib_config.get("name")
+      
+      # Build path to library: ~/.config/boilerplates/libraries/{name}/
+      # The 'directory' config is just metadata about the repo structure,
+      # the actual cloned repo is always at libraries/{name}/
+      library_path = libraries_path / name
+      
+      # Check if library path exists
+      if not library_path.exists():
+        logger.warning(
+          f"Library '{name}' not found at {library_path}. "
+          f"Run 'repo update' to sync libraries."
+        )
+        continue
+      
+      # Create Library instance with priority based on order (first = highest priority)
+      priority = len(library_configs) - i
+      libraries.append(Library(name=name, path=library_path, priority=priority))
+      logger.debug(f"Loaded library '{name}' from {library_path} with priority {priority}")
+    
+    if not libraries:
+      logger.warning("No libraries loaded. Run 'repo update' to sync libraries.")
+    
+    return libraries
 
   def find_by_id(self, module_name: str, template_id: str) -> Optional[tuple[Path, str]]:
     """Find a template by its ID across all libraries.

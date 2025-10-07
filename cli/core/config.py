@@ -50,6 +50,9 @@ class ConfigManager:
         # Create default config if it doesn't exist
         if not self.config_path.exists():
             self._create_default_config()
+        else:
+            # Migrate existing config if needed
+            self._migrate_config_if_needed()
     
     def _create_default_config(self) -> None:
         """Create a default configuration file."""
@@ -59,10 +62,46 @@ class ConfigManager:
                 "editor": "vim",
                 "output_dir": None,
                 "library_paths": []
-            }
+            },
+            "libraries": [
+                {
+                    "name": "default",
+                    "url": "https://github.com/christianlempa/boilerplates.git",
+                    "branch": "main",
+                    "directory": "library",
+                    "enabled": True
+                }
+            ]
         }
         self._write_config(default_config)
         logger.info(f"Created default configuration at {self.config_path}")
+    
+    def _migrate_config_if_needed(self) -> None:
+        """Migrate existing config to add missing sections like libraries."""
+        try:
+            config = self._read_config()
+            needs_migration = False
+            
+            # Add libraries section if missing
+            if "libraries" not in config:
+                logger.info("Migrating config: adding libraries section")
+                config["libraries"] = [
+                    {
+                        "name": "default",
+                        "url": "https://github.com/christianlempa/boilerplates.git",
+                        "branch": "refactor/boilerplates-v2",
+                        "directory": "library",
+                        "enabled": True
+                    }
+                ]
+                needs_migration = True
+            
+            # Write back if migration was needed
+            if needs_migration:
+                self._write_config(config)
+                logger.info("Config migration completed")
+        except Exception as e:
+            logger.warning(f"Config migration failed: {e}")
     
     @staticmethod
     def _validate_string_length(value: str, field_name: str, max_length: int = MAX_STRING_LENGTH) -> None:
@@ -301,6 +340,40 @@ class ConfigManager:
                     if not isinstance(path, str):
                         raise ConfigValidationError(f"Library path must be a string, got {type(path).__name__}")
                     self._validate_path_string(path, f"Library path at index {i}")
+        
+        # Validate libraries structure
+        if "libraries" in config:
+            libraries = config["libraries"]
+            
+            if not isinstance(libraries, list):
+                raise ConfigValidationError("'libraries' must be a list")
+            
+            self._validate_list_length(libraries, "Libraries list")
+            
+            for i, library in enumerate(libraries):
+                if not isinstance(library, dict):
+                    raise ConfigValidationError(f"Library at index {i} must be a dictionary")
+                
+                # Validate required fields
+                required_fields = ["name", "url", "directory"]
+                for field in required_fields:
+                    if field not in library:
+                        raise ConfigValidationError(f"Library at index {i} missing required field '{field}'")
+                    
+                    if not isinstance(library[field], str):
+                        raise ConfigValidationError(f"Library '{field}' at index {i} must be a string")
+                    
+                    self._validate_string_length(library[field], f"Library '{field}' at index {i}", max_length=500)
+                
+                # Validate optional branch field
+                if "branch" in library:
+                    if not isinstance(library["branch"], str):
+                        raise ConfigValidationError(f"Library 'branch' at index {i} must be a string")
+                    self._validate_string_length(library["branch"], f"Library 'branch' at index {i}", max_length=200)
+                
+                # Validate optional enabled field
+                if "enabled" in library and not isinstance(library["enabled"], bool):
+                    raise ConfigValidationError(f"Library 'enabled' at index {i} must be a boolean")
     
     def get_config_path(self) -> Path:
         """Get the path to the configuration file.
@@ -532,3 +605,168 @@ class ConfigManager:
         """
         config = self._read_config()
         return config.get("preferences", {})
+    
+    def get_libraries(self) -> list[Dict[str, Any]]:
+        """Get all configured libraries.
+        
+        Returns:
+            List of library configurations
+        """
+        config = self._read_config()
+        return config.get("libraries", [])
+    
+    def get_library_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get a specific library by name.
+        
+        Args:
+            name: Name of the library
+            
+        Returns:
+            Library configuration dictionary or None if not found
+        """
+        libraries = self.get_libraries()
+        for library in libraries:
+            if library.get("name") == name:
+                return library
+        return None
+    
+    def add_library(self, name: str, url: str, directory: str = "library", branch: str = "main", enabled: bool = True) -> None:
+        """Add a new library to the configuration.
+        
+        Args:
+            name: Unique name for the library
+            url: Git repository URL
+            directory: Directory within the repo containing templates
+            branch: Git branch to use
+            enabled: Whether the library is enabled
+            
+        Raises:
+            ConfigValidationError: If library with the same name already exists or validation fails
+        """
+        # Validate inputs
+        if not isinstance(name, str) or not name:
+            raise ConfigValidationError("Library name must be a non-empty string")
+        
+        self._validate_string_length(name, "Library name", max_length=100)
+        
+        if not isinstance(url, str) or not url:
+            raise ConfigValidationError("Library URL must be a non-empty string")
+        
+        self._validate_string_length(url, "Library URL", max_length=500)
+        
+        if not isinstance(directory, str) or not directory:
+            raise ConfigValidationError("Library directory must be a non-empty string")
+        
+        self._validate_string_length(directory, "Library directory", max_length=200)
+        
+        if not isinstance(branch, str) or not branch:
+            raise ConfigValidationError("Library branch must be a non-empty string")
+        
+        self._validate_string_length(branch, "Library branch", max_length=200)
+        
+        # Check if library already exists
+        if self.get_library_by_name(name):
+            raise ConfigValidationError(f"Library '{name}' already exists")
+        
+        config = self._read_config()
+        
+        if "libraries" not in config:
+            config["libraries"] = []
+        
+        config["libraries"].append({
+            "name": name,
+            "url": url,
+            "branch": branch,
+            "directory": directory,
+            "enabled": enabled
+        })
+        
+        self._write_config(config)
+        logger.info(f"Added library '{name}'")
+    
+    def remove_library(self, name: str) -> None:
+        """Remove a library from the configuration.
+        
+        Args:
+            name: Name of the library to remove
+            
+        Raises:
+            ConfigError: If library is not found
+        """
+        config = self._read_config()
+        libraries = config.get("libraries", [])
+        
+        # Find and remove the library
+        new_libraries = [lib for lib in libraries if lib.get("name") != name]
+        
+        if len(new_libraries) == len(libraries):
+            raise ConfigError(f"Library '{name}' not found")
+        
+        config["libraries"] = new_libraries
+        self._write_config(config)
+        logger.info(f"Removed library '{name}'")
+    
+    def update_library(self, name: str, **kwargs: Any) -> None:
+        """Update a library's configuration.
+        
+        Args:
+            name: Name of the library to update
+            **kwargs: Fields to update (url, branch, directory, enabled)
+            
+        Raises:
+            ConfigError: If library is not found
+            ConfigValidationError: If validation fails
+        """
+        config = self._read_config()
+        libraries = config.get("libraries", [])
+        
+        # Find the library
+        library_found = False
+        for library in libraries:
+            if library.get("name") == name:
+                library_found = True
+                
+                # Update allowed fields
+                if "url" in kwargs:
+                    url = kwargs["url"]
+                    if not isinstance(url, str) or not url:
+                        raise ConfigValidationError("Library URL must be a non-empty string")
+                    self._validate_string_length(url, "Library URL", max_length=500)
+                    library["url"] = url
+                
+                if "branch" in kwargs:
+                    branch = kwargs["branch"]
+                    if not isinstance(branch, str) or not branch:
+                        raise ConfigValidationError("Library branch must be a non-empty string")
+                    self._validate_string_length(branch, "Library branch", max_length=200)
+                    library["branch"] = branch
+                
+                if "directory" in kwargs:
+                    directory = kwargs["directory"]
+                    if not isinstance(directory, str) or not directory:
+                        raise ConfigValidationError("Library directory must be a non-empty string")
+                    self._validate_string_length(directory, "Library directory", max_length=200)
+                    library["directory"] = directory
+                
+                if "enabled" in kwargs:
+                    enabled = kwargs["enabled"]
+                    if not isinstance(enabled, bool):
+                        raise ConfigValidationError("Library enabled must be a boolean")
+                    library["enabled"] = enabled
+                
+                break
+        
+        if not library_found:
+            raise ConfigError(f"Library '{name}' not found")
+        
+        config["libraries"] = libraries
+        self._write_config(config)
+        logger.info(f"Updated library '{name}'")
+    
+    def get_libraries_path(self) -> Path:
+        """Get the path to the libraries directory.
+        
+        Returns:
+            Path to the libraries directory (same directory as config file)
+        """
+        return self.config_path.parent / "libraries"

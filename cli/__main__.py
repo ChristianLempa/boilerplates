@@ -15,6 +15,7 @@ from typer import Typer, Context, Option
 from rich.console import Console
 import cli.modules
 from cli.core.registry import registry
+from cli.core import repo
 # Using standard Python exceptions instead of custom ones
 
 # NOTE: Placeholder version - will be overwritten by release script (.github/workflows/release.yaml)
@@ -122,9 +123,18 @@ def init_app() -> None:
           failed_imports.append(error_info)
           logger.error(error_info)
     
-    # Register modules with app lazily
+    # Register core repo command
+    try:
+      logger.debug("Registering repo command")
+      repo.register_cli(app)
+    except Exception as e:
+      error_info = f"Repo command registration failed: {str(e)}"
+      failed_registrations.append(error_info)
+      logger.warning(error_info)
+    
+    # Register template-based modules with app
     module_classes = list(registry.iter_module_classes())
-    logger.debug(f"Registering {len(module_classes)} discovered modules")
+    logger.debug(f"Registering {len(module_classes)} template-based modules")
     
     for name, module_cls in module_classes:
       try:
