@@ -15,7 +15,7 @@ image:
       tag: "v1.9.1"
     shareManager:
       repository: "longhornio/longhorn-share-manager"
-      tag: "v1.9.1"
+      tag: "v1.9.2"
     backingImageManager:
       repository: "longhornio/backing-image-manager"
       tag: "v1.9.1"
