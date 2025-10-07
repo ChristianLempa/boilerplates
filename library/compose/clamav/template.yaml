@@ -12,9 +12,9 @@ metadata:
     Documentation: https://docs.clamav.net/
 
     GitHub: https://github.com/Cisco-Talos/clamav
-  version: 1.4.3
+  version: 1.5.0
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-07'
   tags:
     - antivirus
     - security
