@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boilerplates"
-version = "0.0.0"  # NOTE: Placeholder - will be overwritten by release script
+version = "0.0.4"
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
