@@ -30,7 +30,7 @@ jobs:
         run: |
           # Get list of changed files in library/
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '^library/' | grep -E '\.(j2|yaml|yml)$' || true)
-          
+
           if [ -n "$CHANGED_FILES" ]; then
             echo "Changed template files:"
             echo "$CHANGED_FILES"
@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "Running template version sync script..."
           chmod +x .github/scripts/sync-template-version.sh
-          
+
           # Pass changed files to the script
           .github/scripts/sync-template-version.sh ${{ steps.changes.outputs.files }}
 
