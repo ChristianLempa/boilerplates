@@ -94,10 +94,10 @@ for file_path in "${FILES_TO_PROCESS[@]}"; do
         continue
     fi
     
-    # Update template version
+    # Update template version (|| true prevents set -e from exiting on non-zero return)
     if update_template_version "$template_file" "$version"; then
         ((updated_count++))
-    fi
+    fi || true
 done
 
 echo ""
