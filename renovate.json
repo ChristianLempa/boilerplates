@@ -161,7 +161,7 @@
     }
   ],
   "allowedCommands": [
-    "^\\.renovate/sync-template-version\\.sh$"
+    "^\\.renovate/.*\\.sh$"
   ],
   "postUpgradeTasks": {
     "commands": [
