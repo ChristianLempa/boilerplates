@@ -35,7 +35,7 @@ metadata:
     4. Initial login:
        - Username: root
        - Retrieve initial password:
-         docker exec {{ container_name }} grep Password: /etc/gitlab/initial_root_password
+         `docker exec {{ container_name }} grep 'Password:' /etc/gitlab/initial_root_password
 
        IMPORTANT: Change this password immediately after first login!
 
