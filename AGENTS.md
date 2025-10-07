@@ -59,6 +59,12 @@ python3 -m cli compose show authentik
 python3 -m cli compose defaults set service_name my-app
 python3 -m cli compose defaults get
 python3 -m cli compose defaults list
+
+# Managing library repositories
+python3 -m cli repo list
+python3 -m cli repo update
+python3 -m cli repo add my-lib https://github.com/user/templates --directory library --branch main
+python3 -m cli repo remove my-lib
 ```
 
 ## Common Development Tasks
@@ -87,6 +93,122 @@ curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/sc
 
 The `install.sh` script downloads the release tarball and installs via pipx. PyPI publishing is currently disabled.
 
+## Library System
+
+### Git-Based Libraries
+
+Templates are stored in git repositories and synced locally:
+
+- **Location**: `~/.config/boilerplates/libraries/{name}/`
+- **Config**: Stored in `~/.config/boilerplates/config.yaml`
+- **Sync**: Uses sparse-checkout to clone only template directories
+
+### Library Configuration
+
+Libraries are defined in the config file:
+
+```yaml
+libraries:
+  - name: default
+    url: https://github.com/christianlempa/boilerplates.git
+    branch: refactor/boilerplates-v2
+    directory: library  # Directory within repo containing templates
+    enabled: true
+```
+
+**Properties:**
+- `name`: Unique identifier for the library
+- `url`: Git repository URL
+- `branch`: Git branch to use (default: `main`)
+- `directory`: Path within repo where templates are located (use `.` for root)
+- `enabled`: Whether library is active
+
+### Sparse-Checkout
+
+The system uses git sparse-checkout (non-cone mode) to clone only the specified `directory`, avoiding unnecessary files:
+
+```bash
+# Only clones library/ directory, not root files
+git sparse-checkout init --no-cone
+git sparse-checkout set library/*
+```
+
+### Library Manager
+
+`LibraryManager` loads libraries from config and provides template discovery:
+
+- **Priority**: Libraries are searched in config order (first = highest priority)
+- **Deduplication**: Duplicate template IDs are resolved by priority
+- **Path Resolution**: Automatically handles `directory` config to locate templates
+
+### Config Manager
+
+`ConfigManager` handles all configuration:
+
+- **Location**: `~/.config/boilerplates/config.yaml`
+- **Atomic Writes**: Uses temp file + rename for safety
+- **Validation**: Comprehensive validation of all config fields
+- **Migration**: Auto-migrates old configs to add new sections
+
+**Main Sections:**
+- `defaults`: Per-module default variable values
+- `preferences`: User preferences (editor, output_dir, etc.)
+- `libraries`: Git repository configurations
+
+### Display Manager
+
+`DisplayManager` (`cli/core/display.py`) provides consistent output rendering:
+
+**Key Methods:**
+- `display_message(level, message, context)` - Unified message display
+- `display_success(message, context)` - Success messages
+- `display_error(message, context)` - Error messages  
+- `display_warning(message, context)` - Warning messages
+- `display_info(message, context)` - Info messages
+- `display_templates_table(templates, module, title)` - Template listings
+- `display_template_details(template, id)` - Detailed template view
+
+**Usage:**
+```python
+from cli.core.display import DisplayManager
+
+display = DisplayManager()
+display.display_success("Operation completed")
+display.display_error("Failed to process", context="module_name")
+```
+
+### Icon Manager
+
+`IconManager` provides **Nerd Font icons** for consistent CLI display:
+
+**Categories:**
+- **File Types**: `FILE_YAML`, `FILE_JSON`, `FILE_MARKDOWN`, `FILE_JINJA2`, `FILE_DOCKER`, etc.
+- **Status**: `STATUS_SUCCESS` (✓), `STATUS_ERROR` (✗), `STATUS_WARNING` (⚠), `STATUS_INFO` (ℹ)
+- **UI Elements**: `UI_CONFIG`, `UI_LOCK`, `UI_SETTINGS`, `UI_ARROW_RIGHT`
+
+**Important:** Icons use Nerd Font glyphs (Unicode characters). The terminal must have a Nerd Font installed.
+
+**Usage:**
+```python
+from cli.core.display import IconManager
+
+# Get status icon
+icon = IconManager.get_status_icon("success")  # Returns \uf00c (✓)
+
+# Get file icon
+icon = IconManager.get_file_icon("config.yaml")  # Returns \uf15c
+
+# Direct access
+folder = IconManager.folder()  # \uf07b
+lock = IconManager.lock()  # \uf084
+```
+
+**Best Practices:**
+- ❌ **Don't use emojis** (✓, ✗, ⚠) directly in output
+- ✅ **Do use IconManager** for all icons and symbols
+- ✅ **Do use DisplayManager** for consistent formatting
+- Example: `display.display_success(f"Added {name}")` not `console.print(f"✓ Added {name}")`
+
 ## Architecture Notes
 
 ### Key Components
@@ -96,11 +218,13 @@ Modular architecture with dynamic module discovery:
 - **`cli/__main__.py`**: Entry point. Auto-discovers modules and registers commands.
 - **`cli/core/registry.py`**: Central module class store.
 - **`cli/core/module.py`**: Abstract `Module` base class for standardized commands (list, search, show, generate).
-- **`cli/core/library.py`**: `LibraryManager` finds templates in `library/` with priority system.
+- **`cli/core/library.py`**: `LibraryManager` finds templates from git-synced libraries with priority system.
+- **`cli/core/repo.py`**: Repository management for syncing git-based template libraries.
+- **`cli/core/config.py`**: `ConfigManager` handles configuration, defaults, and library definitions.
 - **`cli/core/template.py`**: Parses templates, merges YAML frontmatter with Jinja2 content.
 - **`cli/core/variables.py`**: Variable data structures (`Variable`, `VariableSection`, `VariableCollection`).
 - **`cli/core/prompt.py`**: Interactive CLI prompts via `rich` library.
-- **`cli/core/display.py`**: Consistent output rendering.
+- **`cli/core/display.py`**: Consistent output rendering with `DisplayManager` and `IconManager`.
 
 ### Template Format
 

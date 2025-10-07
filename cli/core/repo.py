@@ -13,11 +13,13 @@ from rich.table import Table
 from typer import Argument, Option, Typer
 
 from ..core.config import ConfigManager
+from ..core.display import DisplayManager, IconManager
 from ..core.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
 console = Console()
 console_err = Console(stderr=True)
+display = DisplayManager()
 
 app = Typer(help="Manage library repositories")
 
@@ -235,8 +237,10 @@ def update(
             progress.remove_task(task)
             
             if verbose:
-                status = "[green]✓[/green]" if success else "[red]✗[/red]"
-                console.print(f"{status} {name}: {message}")
+                if success:
+                    display.display_success(f"{name}: {message}")
+                else:
+                    display.display_error(f"{name}: {message}")
     
     # Display summary table
     if not verbose:
@@ -246,8 +250,8 @@ def update(
         
         for name, message, success in results:
             status_style = "green" if success else "red"
-            status_icon = "✓" if success else "✗"
-            table.add_row(name, f"[{status_style}]{status_icon}[/{status_style}] {message}")
+            status_icon = IconManager.get_status_icon("success" if success else "error")
+            table.add_row(name, f"[{status_style}]{status_icon} {message}[/{status_style}]")
         
         console.print(table)
     
@@ -326,14 +330,14 @@ def add(
     
     try:
         config.add_library(name, url, directory, branch, enabled)
-        console.print(f"[green]✓[/green] Added library '{name}'")
+        display.display_success(f"Added library '{name}'")
         
         if sync and enabled:
             console.print(f"\nSyncing library '{name}'...")
             # Call update for this specific library
             update(library_name=name, verbose=True)
     except ConfigError as e:
-        console_err.print(f"[red]Error:[/red] {e}")
+        display.display_error(str(e))
 
 
 @app.command()
@@ -347,7 +351,7 @@ def remove(
     try:
         # Remove from config
         config.remove_library(name)
-        console.print(f"[green]✓[/green] Removed library '{name}' from configuration")
+        display.display_success(f"Removed library '{name}' from configuration")
         
         # Delete local files unless --keep-files is specified
         if not keep_files:
@@ -357,11 +361,11 @@ def remove(
             if library_path.exists():
                 import shutil
                 shutil.rmtree(library_path)
-                console.print(f"[green]✓[/green] Deleted local files at {library_path}")
+                display.display_success(f"Deleted local files at {library_path}")
             else:
-                console.print(f"[dim]No local files found at {library_path}[/dim]")
+                display.display_info(f"No local files found at {library_path}")
     except ConfigError as e:
-        console_err.print(f"[red]Error:[/red] {e}")
+        display.display_error(str(e))
 
 
 
