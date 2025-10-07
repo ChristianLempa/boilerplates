@@ -25,12 +25,14 @@ extract_version() {
 update_template() {
     local template_file="$1"
     local new_version="$2"
+    local current_date=$(date +%Y-%m-%d)
     
     local current_version=$(grep -E '^\s*version:\s*' "$template_file" | sed -E 's/.*version:\s*['\''"]?([^'\''"]+)['\''"]?/\1/' | tr -d ' ' || true)
     
     if [ -n "$current_version" ] && [ "$new_version" != "$current_version" ]; then
-        echo "✓ Updating $template_file: $current_version → $new_version"
+        echo "✓ Updating $template_file: $current_version → $new_version (date: $current_date)"
         sed -i "s/version: .*/version: $new_version/" "$template_file"
+        sed -i "s/date: .*/date: '$current_date'/" "$template_file"
         return 0
     fi
     return 1
