@@ -4,16 +4,11 @@ external_url '{{ external_url }}'
 # GitLab Shell SSH settings
 gitlab_rails['gitlab_shell_ssh_port'] = {{ ssh_port }}
 
-# Internal web service settings
 {% if traefik_enabled %}
-# Traefik handles TLS/SSL certificates
+# Traefik settings
 letsencrypt['enable'] = false
 nginx['listen_port']  = 80
 nginx['listen_https'] = false
-{% else %}
-# Let's Encrypt certificate management (when not using Traefik)
-letsencrypt['enable'] = true
-letsencrypt['contact_emails'] = ['{{ email_from|default("admin@example.com") }}']
 nginx['redirect_http_to_https'] = true
 {% endif %}
 
@@ -21,8 +16,10 @@ nginx['redirect_http_to_https'] = true
 # Container Registry settings
 registry_external_url '{{ registry_external_url }}'
 gitlab_rails['registry_enabled']  = true
+{% if traefik_enabled %}
 registry_nginx['listen_https']    = false
-registry_nginx['listen_port']     = {{ registry_port }}
+{% endif %}
+registry_nginx['listen_port']     = {{ ports_registry }}
 {% endif %}
 
 {% if authentik_enabled %}

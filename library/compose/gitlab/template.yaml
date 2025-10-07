@@ -19,6 +19,7 @@ metadata:
   tags:
     - git
     - ci-cd
+  draft: true
 spec:
   general:
     vars:
@@ -38,16 +39,21 @@ spec:
     vars:
       ports_enabled:
         type: bool
-        description: Expose HTTP/HTTPS ports (disabled if using Traefik)
+        description: Expose HTTP/HTTPS ports
         default: true
       ports_http:
         type: int
-        description: HTTP port (disabled if using Traefik)
+        description: HTTP port
         default: 80
       ports_https:
         type: int
-        description: HTTPS port (disabled if using Traefik)
+        description: HTTPS port
         default: 443
+      ports_registry:
+        type: int
+        description: Port for Container Registry
+        default: 5678
+
   traefik:
     vars:
       traefik_host:
@@ -65,11 +71,3 @@ spec:
         type: str
         description: External URL for Container Registry
         default: 'https://registry.example.com'
-      registry_hostname:
-        type: str
-        description: Hostname for Container Registry (when using Traefik)
-        default: registry.example.com
-      registry_port:
-        type: int
-        description: Internal port for Container Registry
-        default: 5678

@@ -37,7 +37,7 @@ services:
       - traefik.http.routers.{{ container_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
 {% if registry_enabled %}
-      - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.port={{ registry_port }}
+      - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.port={{ ports_registry }}
       - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ container_name }}-registry-http.service={{ container_name }}-registry
       - traefik.http.routers.{{ container_name }}-registry-http.rule=Host(`{{ registry_hostname }}`)
