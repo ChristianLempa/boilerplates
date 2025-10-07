@@ -31,7 +31,7 @@ jobs:
         run: |
           # Fetch main branch for comparison
           git fetch origin main:main
-          
+
           # Get list of changed files in library/
           CHANGED_FILES=$(git diff --name-only main...HEAD | grep '^library/' | grep -E '\.(j2|yaml|yml)$' || true)
 
