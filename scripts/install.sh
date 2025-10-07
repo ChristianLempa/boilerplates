@@ -41,7 +41,7 @@ check_dependencies() {
     error "pipx is required. Install: pip install --user pipx"
   fi
   
-  log "✓ All dependencies available"
+  log "All dependencies available"
 }
 
 parse_args() {
@@ -76,26 +76,7 @@ get_latest_release() {
   echo "$result"
 }
 
-get_release_asset_url() {
-  local version="$1"
-  local api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/tags/$version"
-  local result
-  
-  if command -v curl >/dev/null 2>&1; then
-    result=$(curl -qfsSL --max-time 10 "$api_url" 2>/dev/null | \
-      sed -En 's/.*"browser_download_url": "([^"]*\.tar\.gz)".*/\1/p' | head -n1)
-  elif command -v wget >/dev/null 2>&1; then
-    result=$(wget --timeout=10 -qO- "$api_url" 2>/dev/null | \
-      sed -En 's/.*"browser_download_url": "([^"]*\.tar\.gz)".*/\1/p' | head -n1)
-  else
-    error "Neither curl nor wget found"
-  fi
-  
-  [[ -z "$result" ]] && error "No .tar.gz release asset found for $version"
-  echo "$result"
-}
-
-download_package() {
+download_and_extract() {
   local version="$1"
   
   # Resolve "latest" to actual version
@@ -105,25 +86,41 @@ download_package() {
     log "Latest version: $version"
   fi
   
-  # Ensure 'v' prefix
-  [[ "$version" =~ ^v ]] || version="v$version"
+  # Ensure 'v' prefix for URL
+  local version_tag="$version"
+  [[ "$version_tag" =~ ^v ]] || version_tag="v$version_tag"
   
-  log "Finding release asset..."
-  local url=$(get_release_asset_url "$version")
+  # Strip 'v' prefix for package name
+  local version_number="${version_tag#v}"
   
+  # Download from release assets (sdist)
+  local url="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$version_tag/$REPO_NAME-$version_number.tar.gz"
   TEMP_DIR=$(mktemp -d)
   local archive="$TEMP_DIR/boilerplates.tar.gz"
   
-  log "Downloading $version from release assets..."
+  log "Downloading $version_tag from release assets..."
   
   if command -v curl >/dev/null 2>&1; then
-    curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed"
+    curl -qfsSL --max-time 30 -o "$archive" "$url" || error "Download failed. URL: $url"
   elif command -v wget >/dev/null 2>&1; then
-    wget --timeout=30 -qO "$archive" "$url" || error "Download failed"
+    wget --timeout=30 -qO "$archive" "$url" || error "Download failed. URL: $url"
   fi
   
-  # Return the path to the tarball (pipx can install directly from it)
-  echo "$archive"
+  log "Extracting package..."
+  
+  # Extract the tarball
+  tar -xzf "$archive" -C "$TEMP_DIR" || error "Extraction failed"
+  
+  # Find the extracted directory (should be boilerplates-X.Y.Z)
+  local source_dir=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "$REPO_NAME-*" | head -n1)
+  [[ -z "$source_dir" ]] && error "Failed to locate extracted files"
+  
+  # Verify essential files exist
+  [[ ! -f "$source_dir/setup.py" ]] && [[ ! -f "$source_dir/pyproject.toml" ]] && \
+    error "Invalid package: missing setup.py or pyproject.toml"
+  
+  # Return the path to the extracted directory
+  echo "$source_dir"
 }
 
 install_cli() {
@@ -138,13 +135,13 @@ install_cli() {
     error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
   fi
   
-  log "✓ CLI installed successfully"
+  log "CLI installed successfully"
   
   # Verify installation
   if command -v boilerplates >/dev/null 2>&1; then
-    log "✓ Command 'boilerplates' is now available"
+    log "Command 'boilerplates' is now available"
   else
-    log "⚠ Warning: 'boilerplates' command not found in PATH. You may need to restart your shell or run: pipx ensurepath"
+    log "Warning: 'boilerplates' command not found in PATH. You may need to restart your shell or run: pipx ensurepath"
   fi
 }
 
@@ -157,7 +154,7 @@ main() {
   log "Checking dependencies..."
   check_dependencies
   
-  local package_path=$(download_package "$VERSION")
+  local package_path=$(download_and_extract "$VERSION")
   install_cli "$package_path" "$VERSION"
   
   # Get installed version
@@ -165,15 +162,13 @@ main() {
   
   cat <<EOF
 
-✓ Installation complete!
+\uf05d Installation complete!
 
 Version: $installed_version
 Installed via: pipx
 
 Usage:
   boilerplates --help
-  boilerplates compose list
-  boilerplates compose generate <template>
 
 Update:
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
