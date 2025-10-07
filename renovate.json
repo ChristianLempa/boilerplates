@@ -127,8 +127,8 @@
     {
       "customType": "regex",
       "description": "Update Docker images in Jinja2 compose templates",
-      "fileMatch": [
-        "library/compose/.+\\.j2$"
+      "managerFilePatterns": [
+        "/library/compose/.+\\.j2$/"
       ],
       "matchStrings": [
         "image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^\\s\\n{]+)"
@@ -138,9 +138,9 @@
     {
       "customType": "regex",
       "description": "Update Docker images in Helm values.yaml (repository + tag pattern)",
-      "fileMatch": [
-        "library/kubernetes/.+/helm/values\\.ya?ml$",
-        "library/kubernetes/.+\\.j2$"
+      "managerFilePatterns": [
+        "/library/kubernetes/.+/helm/values\\.ya?ml$/",
+        "/library/kubernetes/.+\\.j2$/"
       ],
       "matchStrings": [
         "repository:\\s*[\"']?(?<depName>[^:\\s\"']+)[\"']?\\s*\\n\\s*tag:\\s*[\"']?(?<currentValue>[^\\s\"']+)[\"']?"
@@ -150,9 +150,9 @@
     {
       "customType": "regex",
       "description": "Update Terraform/OpenTofu providers and modules in templates",
-      "fileMatch": [
-        "library/terraform/.+\\.tf$",
-        "library/terraform/.+\\.j2$"
+      "managerFilePatterns": [
+        "/library/terraform/.+\\.tf$/",
+        "/library/terraform/.+\\.j2$/"
       ],
       "matchStrings": [
         "(?:source|module)\\s*=\\s*[\"'](?<depName>[^\"']+)[\"'](?:[\\s\\S]*?)version\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
