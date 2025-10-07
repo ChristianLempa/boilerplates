@@ -145,7 +145,21 @@ class IconManager:
 
 
 class DisplayManager:
-    """Handles all rich rendering for the CLI."""
+    """Handles all rich rendering for the CLI.
+    
+    This class is responsible for ALL display output in the CLI, including:
+    - Status messages (success, error, warning, info)
+    - Tables (templates, summaries, results)
+    - Trees (file structures, configurations)
+    - Confirmation dialogs and prompts
+    - Headers and sections
+    
+    Design Principles:
+    - All display logic should go through DisplayManager methods
+    - IconManager is ONLY used internally by DisplayManager
+    - External code should never directly call IconManager or console.print
+    - Consistent formatting across all display types
+    """
 
     def display_templates_table(
         self, templates: list, module_name: str, title: str
@@ -517,3 +531,138 @@ class DisplayManager:
             logger.warning(f"Failed to render next_steps as template: {e}")
             # Fallback to plain text if rendering fails
             console.print(next_steps)
+    
+    def display_status_table(self, title: str, rows: list[tuple[str, str, bool]], 
+                            columns: tuple[str, str] = ("Item", "Status")) -> None:
+        """Display a status table with success/error indicators.
+        
+        Args:
+            title: Table title
+            rows: List of tuples (name, message, success_bool)
+            columns: Column headers (name_header, status_header)
+        """
+        table = Table(title=title, show_header=True)
+        table.add_column(columns[0], style="cyan", no_wrap=True)
+        table.add_column(columns[1])
+        
+        for name, message, success in rows:
+            status_style = "green" if success else "red"
+            status_icon = IconManager.get_status_icon("success" if success else "error")
+            table.add_row(name, f"[{status_style}]{status_icon} {message}[/{status_style}]")
+        
+        console.print(table)
+    
+    def display_summary_table(self, title: str, items: dict[str, str]) -> None:
+        """Display a simple two-column summary table.
+        
+        Args:
+            title: Table title
+            items: Dictionary of key-value pairs to display
+        """
+        table = Table(title=title, show_header=False, box=None, padding=(0, 2))
+        table.add_column(style="bold")
+        table.add_column()
+        
+        for key, value in items.items():
+            table.add_row(key, value)
+        
+        console.print(table)
+    
+    def display_file_operation_table(self, files: list[tuple[str, int, str]]) -> None:
+        """Display a table of file operations with sizes and statuses.
+        
+        Args:
+            files: List of tuples (file_path, size_bytes, status)
+        """
+        table = Table(show_header=True, header_style="bold cyan", box=None, padding=(0, 1))
+        table.add_column("File", style="white", no_wrap=False)
+        table.add_column("Size", justify="right", style="dim")
+        table.add_column("Status", style="yellow")
+        
+        for file_path, size_bytes, status in files:
+            # Format size
+            if size_bytes < 1024:
+                size_str = f"{size_bytes}B"
+            elif size_bytes < 1024 * 1024:
+                size_str = f"{size_bytes / 1024:.1f}KB"
+            else:
+                size_str = f"{size_bytes / (1024 * 1024):.1f}MB"
+            
+            table.add_row(str(file_path), size_str, status)
+        
+        console.print(table)
+    
+    def display_heading(self, text: str, icon_type: str | None = None, style: str = "bold") -> None:
+        """Display a heading with optional icon.
+        
+        Args:
+            text: Heading text
+            icon_type: Type of icon to display (e.g., 'folder', 'file', 'config')
+            style: Rich style to apply
+        """
+        if icon_type:
+            icon = self._get_icon_by_type(icon_type)
+            console.print(f"[{style}]{icon} {text}[/{style}]")
+        else:
+            console.print(f"[{style}]{text}[/{style}]")
+    
+    def display_warning_with_confirmation(self, message: str, details: list[str] | None = None, 
+                                         default: bool = False) -> bool:
+        """Display a warning message with optional details and get confirmation.
+        
+        Args:
+            message: Warning message to display
+            details: Optional list of detail lines to show
+            default: Default value for confirmation
+            
+        Returns:
+            True if user confirms, False otherwise
+        """
+        icon = IconManager.get_status_icon('warning')
+        console.print(f"\n[yellow]{icon} {message}[/yellow]")
+        
+        if details:
+            for detail in details:
+                console.print(f"[yellow]  {detail}[/yellow]")
+        
+        from rich.prompt import Confirm
+        return Confirm.ask("Continue?", default=default)
+    
+    def display_skipped(self, message: str, reason: str | None = None) -> None:
+        """Display a skipped/disabled message.
+        
+        Args:
+            message: The main message to display
+            reason: Optional reason why it was skipped
+        """
+        icon = IconManager.get_status_icon('skipped')
+        if reason:
+            console.print(f"\n[dim]{icon} {message} (skipped - {reason})[/dim]")
+        else:
+            console.print(f"\n[dim]{icon} {message} (skipped)[/dim]")
+    
+    def get_lock_icon(self) -> str:
+        """Get the lock icon for sensitive variables.
+        
+        Returns:
+            Lock icon unicode character
+        """
+        return IconManager.lock()
+    
+    def _get_icon_by_type(self, icon_type: str) -> str:
+        """Get icon by semantic type name.
+        
+        Args:
+            icon_type: Type of icon (e.g., 'folder', 'file', 'config', 'lock')
+            
+        Returns:
+            Icon unicode character
+        """
+        icon_map = {
+            'folder': IconManager.folder(),
+            'file': IconManager.FILE_DEFAULT,
+            'config': IconManager.config(),
+            'lock': IconManager.lock(),
+            'arrow': IconManager.arrow_right(),
+        }
+        return icon_map.get(icon_type, '')

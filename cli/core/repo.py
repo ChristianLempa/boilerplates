@@ -13,7 +13,7 @@ from rich.table import Table
 from typer import Argument, Option, Typer
 
 from ..core.config import ConfigManager
-from ..core.display import DisplayManager, IconManager
+from ..core.display import DisplayManager
 from ..core.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
@@ -191,7 +191,7 @@ def update(
     libraries = config.get_libraries()
     
     if not libraries:
-        console.print("[yellow]No libraries configured.[/yellow]")
+        display.display_warning("No libraries configured")
         console.print("Libraries are auto-configured on first run with a default library.")
         return
     
@@ -244,16 +244,11 @@ def update(
     
     # Display summary table
     if not verbose:
-        table = Table(title="Library Update Summary", show_header=True)
-        table.add_column("Library", style="cyan", no_wrap=True)
-        table.add_column("Status")
-        
-        for name, message, success in results:
-            status_style = "green" if success else "red"
-            status_icon = IconManager.get_status_icon("success" if success else "error")
-            table.add_row(name, f"[{status_style}]{status_icon} {message}[/{status_style}]")
-        
-        console.print(table)
+        display.display_status_table(
+            "Library Update Summary",
+            results,
+            columns=("Library", "Status")
+        )
     
     # Summary
     total = len(results)

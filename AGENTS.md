@@ -157,57 +157,106 @@ git sparse-checkout set library/*
 
 ### Display Manager
 
-`DisplayManager` (`cli/core/display.py`) provides consistent output rendering:
+`DisplayManager` (`cli/core/display.py`) is the **centralized interface** for ALL CLI output rendering.
 
-**Key Methods:**
-- `display_message(level, message, context)` - Unified message display
-- `display_success(message, context)` - Success messages
-- `display_error(message, context)` - Error messages  
-- `display_warning(message, context)` - Warning messages
-- `display_info(message, context)` - Info messages
-- `display_templates_table(templates, module, title)` - Template listings
-- `display_template_details(template, id)` - Detailed template view
+**Design Principles:**
+- **Single Responsibility**: All display logic goes through DisplayManager
+- **Encapsulation**: IconManager is ONLY used internally by DisplayManager
+- **Consistency**: External code should NEVER directly call `IconManager` or `console.print`
+- **Standardization**: Provides unified methods for all display types
+
+**Categories of Methods:**
+
+1. **Status Messages:**
+   - `display_success(message, context)` - Success messages with check icon
+   - `display_error(message, context)` - Error messages with error icon
+   - `display_warning(message, context)` - Warning messages with warning icon
+   - `display_info(message, context)` - Info messages with info icon
+   - `display_skipped(message, reason)` - Skipped/disabled messages
+
+2. **Tables:**
+   - `display_templates_table(templates, module, title)` - Template listings
+   - `display_status_table(title, rows, columns)` - Status tables with success/error indicators
+   - `display_summary_table(title, items)` - Simple key-value summary tables
+   - `display_file_operation_table(files)` - File operations with sizes and statuses
+
+3. **Structured Display:**
+   - `display_template_details(template, id)` - Detailed template view with file tree and variables
+   - `display_config_tree(spec, module_name, show_all)` - Configuration as tree view
+   - `display_file_generation_confirmation(output_dir, files, existing)` - File generation preview
+
+4. **Interactive:**
+   - `display_warning_with_confirmation(message, details, default)` - Warning with user confirmation
+   - `display_section_header(title, description)` - Section headers for prompts
+
+5. **Utility:**
+   - `display_heading(text, icon_type, style)` - Headings with optional icons
+   - `display_next_steps(next_steps, variable_values)` - Post-generation instructions
+   - `get_lock_icon()` - Get lock icon for sensitive variables (for prompts)
 
 **Usage:**
 ```python
 from cli.core.display import DisplayManager
 
 display = DisplayManager()
+
+# Status messages
 display.display_success("Operation completed")
 display.display_error("Failed to process", context="module_name")
+
+# Tables
+status_rows = [("lib1", "Updated", True), ("lib2", "Failed", False)]
+display.display_status_table("Update Summary", status_rows)
+
+# Warnings with confirmation
+if display.display_warning_with_confirmation(
+    "Directory is not empty",
+    ["5 files will be overwritten"],
+    default=False
+):
+    # User confirmed
+    pass
 ```
 
 ### Icon Manager
 
-`IconManager` provides **Nerd Font icons** for consistent CLI display:
+`IconManager` provides **Nerd Font icons** internally for DisplayManager.
 
-**Categories:**
+**IMPORTANT:** 
+- ❌ **DO NOT import or use IconManager directly in your code**
+- ✅ **All icon display should go through DisplayManager methods**
+- The only exception is DisplayManager itself, which uses IconManager internally
+
+**Icon Categories (Internal):**
 - **File Types**: `FILE_YAML`, `FILE_JSON`, `FILE_MARKDOWN`, `FILE_JINJA2`, `FILE_DOCKER`, etc.
-- **Status**: `STATUS_SUCCESS` (✓), `STATUS_ERROR` (✗), `STATUS_WARNING` (⚠), `STATUS_INFO` (ℹ)
-- **UI Elements**: `UI_CONFIG`, `UI_LOCK`, `UI_SETTINGS`, `UI_ARROW_RIGHT`
+- **Status**: `STATUS_SUCCESS`, `STATUS_ERROR`, `STATUS_WARNING`, `STATUS_INFO`, `STATUS_SKIPPED`
+- **UI Elements**: `UI_CONFIG`, `UI_LOCK`, `UI_SETTINGS`, `UI_ARROW_RIGHT`, `FILE_FOLDER`
 
-**Important:** Icons use Nerd Font glyphs (Unicode characters). The terminal must have a Nerd Font installed.
-
-**Usage:**
-```python
-from cli.core.display import IconManager
-
-# Get status icon
-icon = IconManager.get_status_icon("success")  # Returns \uf00c (✓)
-
-# Get file icon
-icon = IconManager.get_file_icon("config.yaml")  # Returns \uf15c
-
-# Direct access
-folder = IconManager.folder()  # \uf07b
-lock = IconManager.lock()  # \uf084
+**Architecture:**
+```
+┌─────────────────┐
+│  Module Code    │
+│  (module.py,    │
+│   repo.py, etc) │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ DisplayManager  │  ◄── Use this for ALL output
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  IconManager    │  ◄── Internal use only
+└─────────────────┘
 ```
 
 **Best Practices:**
-- ❌ **Don't use emojis** (✓, ✗, ⚠) directly in output
-- ✅ **Do use IconManager** for all icons and symbols
-- ✅ **Do use DisplayManager** for consistent formatting
-- Example: `display.display_success(f"Added {name}")` not `console.print(f"✓ Added {name}")`
+- ❌ `from cli.core.display import IconManager` - NEVER do this
+- ❌ `console.print(f"✓ {message}")` - Don't use emojis or direct console access
+- ❌ `IconManager.get_status_icon("success")` - Don't call IconManager directly
+- ✅ `display.display_success(message)` - Always use DisplayManager methods
+- ✅ `display.get_lock_icon()` - Exception: prompts can get lock icon for text formatting
 
 ## Architecture Notes
 
