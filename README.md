@@ -4,13 +4,104 @@
 
 **Hey, there!**
 
-**I’m Christian, and I’m passionate about creating educational tech content for IT Pros and Homelab nerds.**
+**I'm Christian, and I'm passionate about creating educational tech content for IT Pros and Homelab nerds.**
 
-This Repository **Boilerplates** is my personal template collection. Here you'll find templates, and configurations for various tools, and technologies.
+## What are Boilerplates?
 
-> :warning: Be aware, products can change over time. I do my best to keep up with the latest changes and releases, but please understand that this won’t always be the case.
+**Boilerplates** is a curated collection of production-ready templates for your homelab and infrastructure projects. Stop copying configurations from random GitHub repos or starting from scratch every time you spin up a new service!
 
-I created them as free resources to be used in your specific use cases. If you're searching for detailed, in-depth tutorials on some tools or technologies, check out my [YouTube Channel](https://www.youtube.com/@christianlempa).
+## Boilerplates CLI
+
+The Boilerplates CLI tool gives you instant access to battle-tested templates for Docker, Terraform, Ansible, Kubernetes, and more.
+
+Each template includes sensible defaults, best practices, and common configuration patterns—so you can focus on customizing for your environment.
+
+**Key Features:**
+- 🚀 **Quick Setup** - Generate complete project structures in seconds
+- 🔧 **Fully Customizable** - Interactive prompts or non-interactive mode with variable overrides
+- 💾 **Smart Defaults** - Save your preferred values and reuse across projects
+
+> **Note:** Technologies evolve rapidly. While I actively maintain these templates, always review generated configurations before deploying to production.
+
+### Installation
+
+Install the Boilerplates CLI using the automated installer:
+
+```bash
+# Install latest version
+curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash
+
+# Install specific version
+curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash -s -- --version v1.2.3
+```
+
+The installer uses `pipx` to create an isolated environment for the CLI tool. Once installed, the `boilerplates` command will be available in your terminal.
+
+### Quick Start
+
+```bash
+# Explore 
+boilerplates --help
+
+# Update Repository Library
+boilerplates repo update
+
+# List all available templates for a docker compose
+boilerplates compose list
+
+# Show details about a specific template
+boilerplates compose show nginx
+
+# Generate a template (interactive mode)
+boilerplates compose generate authentik
+
+# Generate with custom output directory
+boilerplates compose generate nginx my-nginx-server
+
+# Non-interactive mode with variable overrides
+boilerplates compose generate traefik my-proxy \
+  --var service_name=traefik \
+  --var traefik_enabled=true \
+  --var traefik_host=proxy.example.com \
+  --no-interactive
+```
+
+### Managing Defaults
+
+Save time by setting default values for variables you use frequently:
+
+```bash
+# Set a default value
+boilerplates compose defaults set container_timezone "America/New_York"
+boilerplates compose defaults set restart_policy "unless-stopped"
+
+```
+
+### Template Libraries
+
+Boilerplates uses git-based libraries to manage templates. You can add custom repositories:
+
+```bash
+# List configured libraries
+boilerplates repo list
+
+# Update all libraries
+boilerplates repo update
+
+# Add a custom library
+boilerplates repo add my-templates https://github.com/user/templates \
+  --directory library \
+  --branch main
+
+# Remove a library
+boilerplates repo remove my-templates
+```
+
+## Documentation
+
+For comprehensive documentation, advanced usage, and template development guides, check out the **[Wiki](../../wiki)** _(coming soon)_.
+
+If you're looking for detailed tutorials on specific tools and technologies, visit my [YouTube Channel](https://www.youtube.com/@christianlempa).
 
 ## Contribution
 
