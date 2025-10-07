@@ -15,11 +15,33 @@ metadata:
     Documentation: https://docs.gitlab.com/
   version: 18.3.1-ce.0
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-07'
   tags:
     - git
     - ci-cd
-  draft: true
+  next_steps: |
+    1. Start GitLab:
+       docker compose up -d
+
+    2. Wait for GitLab to initialize (this may take 2-5 minutes)
+
+    3. Access the web interface:
+       {% if traefik_enabled -%}
+       - Via Traefik: https://{{ traefik_host }}
+       {% if ports_enabled %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
+       {%- else -%}
+       - Open {{ external_url }} in your browser
+       {% if ports_enabled %}- Or: http://localhost:{{ ports_http }}{% endif %}
+       {%- endif %}
+
+    4. Initial login:
+       - Username: root
+       - Retrieve initial password:
+         docker exec {{ container_name }} grep 'Password:' /etc/gitlab/initial_root_password
+
+       IMPORTANT: Change this password immediately after first login!
+
+    For more information, visit: https://docs.gitlab.com/
 spec:
   general:
     vars:
@@ -53,11 +75,14 @@ spec:
         type: int
         description: Port for Container Registry
         default: 5678
-
   traefik:
     vars:
       traefik_host:
         default: gitlab.home.arpa
+      traefik_registry_host:
+        default: registry.home.arpa
+        type: str
+        description: Hostname for Container Registry in Traefik (if enabled)
   registry:
     description: GitLab Container Registry configuration
     required: false

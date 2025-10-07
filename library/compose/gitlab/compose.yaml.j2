@@ -36,20 +36,20 @@ services:
       - traefik.http.routers.{{ container_name }}-https.tls=true
       - traefik.http.routers.{{ container_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
-{% if registry_enabled %}
+  {% if registry_enabled %}
       - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.port={{ ports_registry }}
       - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ container_name }}-registry-http.service={{ container_name }}-registry
-      - traefik.http.routers.{{ container_name }}-registry-http.rule=Host(`{{ registry_hostname }}`)
+      - traefik.http.routers.{{ container_name }}-registry-http.rule=Host(`{{ traefik_registry_host }}`)
       - traefik.http.routers.{{ container_name }}-registry-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ container_name }}-registry-https.service={{ container_name }}-registry
-      - traefik.http.routers.{{ container_name }}-registry-https.rule=Host(`{{ registry_hostname }}`)
+      - traefik.http.routers.{{ container_name }}-registry-https.rule=Host(`{{ traefik_registry_host }}`)
       - traefik.http.routers.{{ container_name }}-registry-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ container_name }}-registry-https.tls=true
       - traefik.http.routers.{{ container_name }}-registry-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
-{% endif %}
+  {% endif %}
 {% endif %}
     restart: {{ restart_policy }}
 

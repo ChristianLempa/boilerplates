@@ -4,9 +4,11 @@ external_url '{{ external_url }}'
 # GitLab Shell SSH settings
 gitlab_rails['gitlab_shell_ssh_port'] = {{ ssh_port }}
 
+# Let's Encrypt settings are currently not supported by the template
+letsencrypt['enable'] = false
+
 {% if traefik_enabled %}
 # Traefik settings
-letsencrypt['enable'] = false
 nginx['listen_port']  = 80
 nginx['listen_https'] = false
 nginx['redirect_http_to_https'] = true
