@@ -1,0 +1,76 @@
+---
+kind: compose
+metadata:
+  name: GitLab
+  description: >
+    GitLab is a web-based DevOps lifecycle tool that provides a Git repository
+    manager providing wiki, issue-tracking, and CI/CD pipeline features, using
+    an open-source license, developed by GitLab Inc.
+
+
+    Project: https://about.gitlab.com/
+
+    Source: https://gitlab.com/gitlab-org/gitlab
+
+    Documentation: https://docs.gitlab.com/
+  version: 18.3.1-ce.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+    - git
+    - devops
+    - ci-cd
+spec:
+  general:
+    vars:
+      service_name:
+        default: "gitlab"
+      container_name:
+        default: "gitlab"
+      external_url:
+        type: str
+        description: External URL for GitLab (e.g., https://gitlab.example.com)
+        default: 'https://gitlab.example.com'
+      ssh_port:
+        type: int
+        description: SSH port for Git operations
+        default: 2424
+  ports:
+    vars:
+      ports_enabled:
+        type: bool
+        description: Expose HTTP/HTTPS ports (disabled if using Traefik)
+        default: true
+      ports_http:
+        type: int
+        description: HTTP port (disabled if using Traefik)
+        default: 80
+      ports_https:
+        type: int
+        description: HTTPS port (disabled if using Traefik)
+        default: 443
+  traefik:
+    vars:
+      traefik_host:
+        default: gitlab.home.arpa
+  registry:
+    description: GitLab Container Registry configuration
+    required: false
+    toggle: registry_enabled
+    vars:
+      registry_enabled:
+        type: bool
+        description: Enable GitLab Container Registry
+        default: false
+      registry_external_url:
+        type: str
+        description: External URL for Container Registry
+        default: 'https://registry.example.com'
+      registry_hostname:
+        type: str
+        description: Hostname for Container Registry (when using Traefik)
+        default: registry.example.com
+      registry_port:
+        type: int
+        description: Internal port for Container Registry
+        default: 5678

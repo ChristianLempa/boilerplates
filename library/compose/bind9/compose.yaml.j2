@@ -1,0 +1,36 @@
+services:
+  {{ service_name | default('bind9') }}:
+    image: docker.io/ubuntu/bind9:{{ bind9_version | default('9.20-24.10_edge') }}
+    container_name: {{ container_name | default('bind9') }}
+    hostname: {{ container_hostname | default('ns1') }}
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      - BIND9_USER=bind
+    {% if ports_enabled %}
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    {% endif %}
+    volumes:
+      - ./config:/etc/bind
+      - bind9_zones:/var/lib/bind
+      - bind9_cache:/var/cache/bind
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+volumes:
+  bind9_zones:
+    driver: local
+  bind9_cache:
+    driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

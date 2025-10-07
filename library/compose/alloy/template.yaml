@@ -1,0 +1,82 @@
+---
+kind: compose
+metadata:
+  name: Grafana Alloy
+  description: >
+    Grafana Alloy is an open telemetry collector distribution that gathers
+    and processes logs, metrics, traces and profiles. It combines features
+    from the OpenTelemetry Collector and Prometheus and provides programmable
+    pipelines and high-performance, vendor-neutral observability.
+
+
+    Project: https://grafana.com/docs/alloy/
+
+    Source: https://github.com/grafana/alloy
+
+    Documentation: https://grafana.com/docs/alloy/latest/
+  version: v1.10.2
+  author: Christian Lempa
+  date: '2025-10-02'
+  tags:
+    - monitoring
+    - grafana
+spec:
+  general:
+    vars:
+      container_hostname:
+        type: str
+        description: Docker host hostname for container identification
+        default: hostname
+        extra: This is needed because when alloy runs in a container, it doesn't know the hostname of the docker host.
+  ports:
+    vars:
+      ports_main:
+        type: int
+        description: Main port for Alloy HTTP server
+        default: 12345
+  traefik:
+    vars:
+      traefik_host:
+        default: alloy.home.arpa
+  logs:
+    name: Log Collection
+    description: Configure log collection for Docker containers and system logs
+    toggle: logs_enabled
+    vars:
+      logs_enabled:
+        type: bool
+        description: Enable log collection
+        default: false
+      logs_loki_url:
+        type: url
+        description: Loki endpoint URL for sending logs
+        default: http://loki:3100/loki/api/v1/push
+      logs_docker:
+        type: bool
+        description: Enable Docker container log collection
+        default: true
+      logs_system:
+        type: bool
+        description: Enable system and journalctl log collection
+        default: true
+  metrics:
+    name: Metrics Collection
+    description: Configure metrics collection for Docker containers and system metrics
+    toggle: metrics_enabled
+    vars:
+      metrics_enabled:
+        type: bool
+        description: Enable metrics collection
+        default: false
+      metrics_prometheus_url:
+        type: url
+        description: Prometheus remote write endpoint
+        default: http://prometheus:9090/api/v1/write
+      metrics_docker:
+        type: bool
+        description: Enable Docker container metrics collection (cAdvisor)
+        default: true
+      metrics_system:
+        type: bool
+        description: Enable system (node) metrics collection
+        default: true

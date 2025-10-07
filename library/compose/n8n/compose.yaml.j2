@@ -1,0 +1,75 @@
+services:
+  {{ service_name | default('n8n') }}:
+    image: n8nio/n8n:1.110.1
+    container_name: {{ container_name | default('n8n') }}
+    environment:
+      - N8N_LOG_LEVEL={{ container_loglevel | default('info') }}
+      - GENERIC_TIMEZONE={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone | default('UTC') }}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      {% if traefik_enabled %}
+      {% if traefik_tls_enabled %}
+      - N8N_EDITOR_BASE_URL=https://{{ traefik_host | default('n8n.home.arpa') }}
+      {% else %}
+      - N8N_EDITOR_BASE_URL=http://{{ traefik_host | default('n8n.home.arpa') }}
+      {% endif %}
+      {% endif %}
+      {% if database_enabled %}
+      {% if database_type == 'postgres' -%}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST={{ database_host | default('database') }}
+      - DB_POSTGRESDB_PORT={{ database_port | default(5432) }}
+      - DB_POSTGRESDB_DATABASE={{ database_name | default('n8n') }}
+      - DB_POSTGRESDB_USER={{ database_user | default('n8n') }}
+      - DB_POSTGRESDB_PASSWORD={{ database_password | default('n8n') }}
+      {% elif database_type == 'mysql' -%}
+      - DB_TYPE=mysqldb
+      - DB_MYSQLDB_HOST={{ database_host | default('database') }}
+      - DB_MYSQLDB_PORT={{ database_port | default(3306) }}
+      - DB_MYSQLDB_DATABASE={{ database_name | default('n8n') }}
+      - DB_MYSQLDB_USER={{ database_user | default('n8n') }}
+      - DB_MYSQLDB_PASSWORD={{ database_password | default('n8n') }}
+      {% endif %}
+      {% endif %}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/home/node/.n8n
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.{{ service_name | default('n8n') }}-http.rule=Host(`{{ traefik_host | default('n8n.home.arpa') }}`)
+      - traefik.http.routers.{{ service_name | default('n8n') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.rule=Host(`{{ traefik_host | default('n8n.home.arpa') }}`)
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.tls=true
+      - traefik.http.routers.{{ service_name | default('n8n') }}-https.tls.certresolver={{ traefik_tls_certresolver | default('default') }}
+      {% else %}
+      - traefik.http.routers.{{ service_name | default('n8n') }}.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% endif %}
+      - traefik.http.services.{{ service_name | default('n8n') }}.loadbalancer.server.port=5678
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http | default(5678) }}:5678"
+    {% endif %}
+
+volumes:
+  data:
+    driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+  {% if network_external %}
+    external: true
+  {% else %}
+    driver: bridge
+  {% endif %}
+{% endif %}

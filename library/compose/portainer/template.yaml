@@ -1,0 +1,37 @@
+---
+kind: compose
+metadata:
+  name: Portainer
+  description: Docker compose setup for portainer
+  version: 2.33.1-alpine
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - portainer
+  - docker
+  - compose
+spec:
+  general:
+    vars:
+      service_name:
+        default: "portainer"
+      container_name:
+        default: "portainer"
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (9000)"
+        type: int
+        default: 9000
+      ports_https:
+        description: "Host port for HTTPS (9443)"
+        type: int
+        default: 9443
+      ports_edge:
+        description: "Host port for Edge agent (8000)"
+        type: int
+        default: 8000
+  traefik:
+    vars:
+      traefik_host:
+        default: portainer.home.arpa

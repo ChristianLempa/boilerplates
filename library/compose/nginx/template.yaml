@@ -1,0 +1,30 @@
+---
+kind: "compose"
+metadata:
+  name: "Nginx"
+  description: "An open-source web server"
+  version: 1.28.0-alpine
+  date: "2023-10-01"
+  author: "Christian Lempa"
+  tags:
+    - nginx
+    - web
+    - reverse-proxy
+  draft: true
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "HTTP port for nginx service"
+        type: int
+        default: 8080
+      ports_https:
+        description: "HTTPS port for nginx service"
+        type: int
+        default: 8443
+  nginx:
+    vars:
+      nginx_version:
+        description: "Nginx version"
+        type: str
+        default: "latest"

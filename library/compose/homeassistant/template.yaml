@@ -1,0 +1,20 @@
+---
+kind: compose
+metadata:
+  name: Homeassistant
+  description: Docker compose setup for homeassistant
+  version: 2025.8.3
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - homeassistant
+  - docker
+  - compose
+  draft: true
+spec:
+  general:
+    vars:
+      homeassistant_version:
+        type: str
+        description: Homeassistant version
+        default: latest

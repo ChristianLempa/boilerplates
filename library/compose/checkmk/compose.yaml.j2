@@ -1,0 +1,37 @@
+services:
+  monitoring:
+    image: checkmk/check-mk-raw:2.4.0-latest
+    container_name: checkmk
+    ports:
+      - "8000:8000"
+      - "5000:5000"
+      - "162:162/udp"
+    environment:
+      - TZ=Europe/Berlin
+      - CMK_PASSWORD=${CMK_PASSWORD:?no password set}
+      - CMK_SITE_ID=${CMK_SITE_ID:-cmk}
+    tmpfs:
+      - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/omd/sites:rw
+    networks:
+      - frontend
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.checkmk.loadbalancer.server.port=5000
+      - traefik.http.services.checkmk.loadbalancer.server.scheme=http
+      - traefik.http.routers.checkmk.service=checkmk
+      - traefik.http.routers.checkmk.rule=Host(`checkmk.home.arpa`)
+      - traefik.http.routers.checkmk.entrypoints=websecure
+      - traefik.http.routers.checkmk.tls=true
+      - traefik.http.routers.checkmk.tls.certresolver=cloudflare
+    restart: unless-stopped
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  frontend:
+    external: true

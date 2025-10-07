@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boilerplates"
+version = "0.0.0"  # NOTE: Placeholder - will be overwritten by release script
+description = "CLI tool for managing infrastructure boilerplates"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [ {name = "Christian Lempa"} ]
+keywords = ["boilerplates", "cli", "infrastructure"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "PyYAML>=6.0",
+    "python-frontmatter>=1.0.0",
+    "Jinja2>=3.0",
+]
+
+[project.scripts]
+boilerplates = "cli.__main__:run"
+
+[tool.setuptools.packages.find]
+include = ["cli*"]
+exclude = ["tests*", "scripts*"]

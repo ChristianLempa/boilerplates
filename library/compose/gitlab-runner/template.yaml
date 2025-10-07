@@ -1,0 +1,20 @@
+---
+kind: compose
+metadata:
+  name: Gitlab-Runner
+  description: Docker compose setup for gitlab-runner
+  version: alpine-v17.9.1
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - gitlab-runner
+  - docker
+  - compose
+  draft: true
+spec:
+  general:
+    vars:
+      gitlab-runner_version:
+        type: str
+        description: Gitlab-Runner version
+        default: latest

@@ -1,0 +1,96 @@
+---
+# Traefik TLS Configuration
+# This file is watched by Traefik and changes are applied automatically
+
+# TLS Options Configuration
+# Define custom TLS settings for different security requirements
+tls:
+  options:
+    # Example: Modern TLS Configuration (Recommended)
+    # Uncomment and customize as needed
+    # modern:
+    #   minVersion: VersionTLS13
+    #   cipherSuites:
+    #     - TLS_AES_128_GCM_SHA256
+    #     - TLS_AES_256_GCM_SHA384
+    #     - TLS_CHACHA20_POLY1305_SHA256
+    #   curvePreferences:
+    #     - CurveP521
+    #     - CurveP384
+
+    # Example: Intermediate TLS Configuration (Balanced)
+    # Good balance between security and compatibility
+    # intermediate:
+    #   minVersion: VersionTLS12
+    #   cipherSuites:
+    #     - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    #     - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    #     - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+    #   curvePreferences:
+    #     - CurveP521
+    #     - CurveP384
+    #   sniStrict: true
+
+    # Example: Old TLS Configuration (Maximum Compatibility)
+    # Use only if you need to support very old clients
+    # old:
+    #   minVersion: VersionTLS10
+    #   maxVersion: VersionTLS13
+
+  # Certificate Stores
+  # Define custom certificate stores for dynamic certificates
+  # stores:
+  #   default:
+  #     defaultCertificate:
+  #       certFile: /path/to/cert.pem
+  #       keyFile: /path/to/key.pem
+
+  # Dynamic Certificates
+  # Load certificates from files (alternative to ACME)
+  # certificates:
+  #   - certFile: /path/to/domain1.cert
+  #     keyFile: /path/to/domain1.key
+  #     stores:
+  #       - default
+  #   - certFile: /path/to/domain2.cert
+  #     keyFile: /path/to/domain2.key
+
+# Server Transports
+# Configure how Traefik communicates with backend services
+# serversTransports:
+#   # Example: Skip TLS Verification for Self-Signed Certificates
+#   # Useful for internal services with self-signed certs
+#   insecure:
+#     insecureSkipVerify: true
+#
+#   # Example: Custom Root CA
+#   # Use a custom CA to verify backend certificates
+#   custom-ca:
+#     rootCAs:
+#       - /path/to/ca.crt
+#
+#   # Example: Client Certificate Authentication
+#   # Use client certificates to authenticate to backend
+#   mtls:
+#     certificates:
+#       - certFile: /path/to/client.crt
+#         keyFile: /path/to/client.key
+
+# Usage Examples:
+#
+# 1. Apply TLS options to a router:
+#    http:
+#      routers:
+#        my-router:
+#          rule: "Host(`example.com`)"
+#          tls:
+#            options: modern@file
+#
+# 2. Use custom server transport:
+#    http:
+#      services:
+#        my-service:
+#          loadBalancer:
+#            servers:
+#              - url: "https://backend:443"
+#            serversTransport: insecure@file

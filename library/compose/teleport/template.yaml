@@ -1,0 +1,20 @@
+---
+kind: compose
+metadata:
+  name: Teleport
+  description: Docker compose setup for teleport
+  version: 18.0.2
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - teleport
+  - docker
+  - compose
+  draft: true
+spec:
+  general:
+    vars:
+      teleport_version:
+        type: str
+        description: Teleport version
+        default: latest

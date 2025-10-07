@@ -1,0 +1,137 @@
+services:
+  {{ service_name }}:
+    image: ghcr.io/goauthentik/server:2025.6.3
+    container_name: {{ container_name }}
+    command: server
+    env_file:
+      - .env.authentik
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http }}:9000"
+      - "{{ ports_https }}:9443"
+    {% endif %}
+    {% if network_enabled or traefik_enabled %}
+    networks:
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=9000
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    volumes:
+      - ./media:/media
+      - ./custom-templates:/templates
+    depends_on:
+      - {{ service_name }}-postgres
+      - {{ service_name }}-redis
+    restart: {{ restart_policy }}
+
+  {{ service_name }}-worker:
+    image: ghcr.io/goauthentik/server:2025.6.3
+    container_name: {{ service_name }}-worker
+    command: worker
+    env_file:
+      - .env.authentik
+    user: root
+    volumes:
+      - /run/docker.sock:/run/docker.sock
+      - ./media:/media
+      - ./certs:/certs
+      - ./custom-templates:/templates
+    {% if network_enabled or traefik_enabled %}
+    networks:
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name }}-postgres
+      - {{ service_name }}-redis
+    restart: {{ restart_policy }}
+
+  {{ service_name }}-redis:
+    image: docker.io/library/redis:8.2.1
+    container_name: {{ service_name }}-redis
+    command: --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - redis_data:/data
+    {% if network_enabled or traefik_enabled %}
+    networks:
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy }}
+
+  {% if not database_external %}
+  {{ service_name }}-postgres:
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name }}-db
+    env_file:
+      - .env.postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    {% if network_enabled or traefik_enabled %}
+    networks:
+      {% if network_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy }}
+  {% endif %}
+
+volumes:
+  database_data:
+    driver: local
+  redis_data:
+    driver: local
+
+{% if network_enabled or traefik_enabled %}
+networks:
+  {% if network_enabled %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}

@@ -1,0 +1,26 @@
+---
+kind: compose
+metadata:
+  name: N8N
+  description: Docker compose setup for n8n
+  version: 1.110.1
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - n8n
+  - docker
+  - compose
+  draft: true
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (5678)"
+        type: int
+        default: 5678
+  general:
+    vars:
+      n8n_version:
+        type: str
+        description: N8N version
+        default: latest

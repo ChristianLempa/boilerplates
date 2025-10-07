@@ -1,0 +1,20 @@
+---
+kind: compose
+metadata:
+  name: Heimdall
+  description: Docker compose setup for heimdall
+  version: 2.7.4
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - heimdall
+  - docker
+  - compose
+  draft: true
+spec:
+  general:
+    vars:
+      heimdall_version:
+        type: str
+        description: Heimdall version
+        default: latest

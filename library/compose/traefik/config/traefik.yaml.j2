@@ -1,0 +1,62 @@
+---
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+{% if container_loglevel is defined %}
+log:
+  level: {{ container_loglevel | upper }}
+{% endif %}
+
+{% if accesslog_enabled %}
+accesslog: {}
+{% endif %}
+
+{% if traefik_dashboard_enabled %}
+api:
+  dashboard: true
+  insecure: true
+{% endif %}
+
+entryPoints:
+  {{ traefik_entrypoint }}:
+    address: :80
+    {% if traefik_tls_enabled and traefik_tls_redirect %}
+    http:
+      redirections:
+        entryPoint:
+          to: {{ traefik_tls_entrypoint }}
+          scheme: https
+    {% endif %}
+  {% if traefik_tls_enabled %}
+  {{ traefik_tls_entrypoint }}:
+    address: :443
+  {% endif %}
+
+{% if traefik_tls_enabled %}
+certificatesResolvers:
+  {{ traefik_tls_certresolver | default('cloudflare') }}:
+    acme:
+      email: {{ traefik_tls_acme_email }}
+      storage: /var/traefik/certs/acme.json
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      dnsChallenge:
+        provider: {{ traefik_tls_acme_provider | default('cloudflare') }}
+        resolvers:
+          - 1.1.1.1:53
+          - 8.8.8.8:53
+{% endif %}
+
+# NOTE: If using self-signed certificates in your backend services, uncomment the following section
+# to disable certificate verification (not recommended for production use).
+# ---
+# serversTransport:
+#   insecureSkipVerify: true
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: {{ network_name }}
+  file:
+    directory: /etc/traefik/files
+    watch: true

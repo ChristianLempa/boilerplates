@@ -1,0 +1,30 @@
+---
+kind: compose
+metadata:
+  name: Grafana
+  description: Open-source platform for monitoring and observability
+  version: 12.1.1
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+    - grafana
+    - monitoring
+    - observability
+    - dashboard
+spec:
+  general:
+    vars:
+      service_name:
+        default: "grafana"
+      container_name:
+        default: "grafana"
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP (3000)"
+        type: int
+        default: 3000
+  traefik:
+    vars:
+      traefik_host:
+        default: grafana.home.arpa

@@ -1,0 +1,55 @@
+---
+kind: compose
+metadata:
+  name: Pihole
+  description: Docker compose setup for pihole
+  version: 2025.08.0
+  author: Christian Lempa
+  date: '2025-09-28'
+  tags:
+  - pihole
+  - docker
+  - compose
+  draft: true
+spec:
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP web interface (80)"
+        type: int
+        default: 8080
+      ports_https:
+        description: "Host port for HTTPS web interface (443)"
+        type: int
+        default: 8443
+      ports_dns_udp:
+        description: "Host port for DNS over UDP (53)"
+        type: int
+        default: 53
+      ports_dns_tcp:
+        description: "Host port for DNS over TCP (53)"
+        type: int
+        default: 53
+      ports_dhcp:
+        description: "Host port for DHCP (67)"
+        type: int
+        default: 67
+  pihole:
+    description: "Pi-hole configuration settings"
+    required: true
+    vars:
+      pihole_webpassword:
+        description: "Web interface admin password"
+        type: str
+        sensitive: true
+        default: "changeme"
+      pihole_dns_upstreams:
+        description: "Upstream DNS servers (semicolon separated)"
+        type: str
+        default: "1.1.1.1;1.0.0.1"
+  general:
+    vars:
+      pihole_version:
+        type: str
+        description: Pihole version
+        default: latest

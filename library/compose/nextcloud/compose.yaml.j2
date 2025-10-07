@@ -1,0 +1,89 @@
+services:
+  {{ service_name | default('nextcloud-app') }}:
+    image: docker.io/library/nextcloud:31.0.8-apache
+    container_name: {{ container_name | default('nextcloud-app') }}
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      {% if database_type == 'mysql' -%}
+      - MYSQL_PASSWORD={{ database_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ database_name | default('nextcloud') }}
+      - MYSQL_USER={{ database_user | default('nextcloud') }}
+      - MYSQL_HOST={{ service_name | default('nextcloud') }}-db
+      {% elif database_type == 'postgres' -%}
+      - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
+      - POSTGRES_DB={{ database_name | default('nextcloud') }}
+      - POSTGRES_USER={{ database_user | default('nextcloud') }}
+      - POSTGRES_HOST={{ service_name | default('nextcloud') }}-db
+      {% endif %}
+    {% if ports_enabled %}
+    ports:
+      - "{{ ports_http | default(80) }}:80"
+    {% endif %}
+    volumes:
+      - nextcloud-data:/var/www/html
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name | default('nextcloud') }}.loadbalancer.server.port=80
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-https.tls=true
+      - traefik.http.routers.{{ service_name | default('nextcloud') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name | default('nextcloud') }}-db
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+  {{ service_name | default('nextcloud') }}-db:
+    {% if database_type == 'mysql' -%}
+    # See compatibility matrix for Nextcloud 31
+    # https://docs.nextcloud.com/server/31/admin_manual/installation/system_requirements.html
+    image: docker.io/library/mariadb:10.11.14
+    container_name: {{ service_name | default('nextcloud') }}-db
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_PASSWORD={{ database_password | default('nextcloud') }}
+      - MYSQL_DATABASE={{ database_name | default('nextcloud') }}
+      - MYSQL_USER={{ database_user | default('nextcloud') }}
+    volumes:
+      - nextcloud-db:/var/lib/mysql
+    {% elif database_type == 'postgres' -%}
+    image: docker.io/library/postgres:17.6
+    container_name: {{ service_name | default('nextcloud') }}-db
+    environment:
+      - TZ={{ container_timezone | default('UTC') }}
+      - POSTGRES_USER={{ database_user | default('nextcloud') }}
+      - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
+      - POSTGRES_DB={{ database_name | default('nextcloud') }}
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    {% endif %}
+    {% if network_enabled %}
+    networks:
+      - {{ network_name | default('bridge') }}
+    {% endif %}
+    restart: {{ restart_policy | default('unless-stopped') }}
+
+volumes:
+  nextcloud-data:
+    driver: local
+  nextcloud-db:
+    driver: local
+
+{% if network_enabled %}
+networks:
+  {{ network_name | default('bridge') }}:
+    {% if network_external %}
+    external: true
+    {% endif %}
+{% endif %}

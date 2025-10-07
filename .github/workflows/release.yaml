@@ -1,0 +1,139 @@
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v2.1.3, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION from tag $GITHUB_REF_NAME"
+
+      - name: Update version in pyproject.toml
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+          echo "✓ Updated pyproject.toml with version $VERSION"
+
+      - name: Update version in cli/__main__.py
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^__version__ = .*/__version__ = \"$VERSION\"/" cli/__main__.py
+          echo "✓ Updated cli/__main__.py with version $VERSION"
+
+      - name: Verify changes
+        run: |
+          echo "=== pyproject.toml ==="
+          grep "^version" pyproject.toml
+          echo ""
+          echo "=== cli/__main__.py ==="
+          grep "^__version__" cli/__main__.py
+
+      - name: Commit and update tag
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Add changes
+          git add pyproject.toml cli/__main__.py
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No version changes needed"
+          else
+            # Commit the version updates
+            git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+
+            # Delete the tag locally and remotely
+            git tag -d ${{ steps.version.outputs.tag }}
+            git push origin :refs/tags/${{ steps.version.outputs.tag }}
+
+            # Recreate the tag pointing to the new commit
+            git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
+
+            # Push the new tag
+            git push origin ${{ steps.version.outputs.tag }}
+
+            echo "✓ Tag ${{ steps.version.outputs.tag }} updated to point to version bump commit"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check distribution
+        run: |
+          echo "Built packages:"
+          ls -lh dist/
+          echo ""
+          echo "Checking package integrity:"
+          twine check dist/*
+
+      # PyPI publishing disabled for now - install via GitHub releases
+      # - name: Publish to PyPI
+      #   if: >
+      #     ${{ !contains(steps.version.outputs.version, 'alpha') &&
+      #     !contains(steps.version.outputs.version, 'beta') &&
+      #     !contains(steps.version.outputs.version, 'rc') }}
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      #   run: |
+      #     echo "Publishing to PyPI..."
+      #     twine upload dist/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## Boilerplates CLI ${{ steps.version.outputs.tag }}
+
+            Install using the installation script:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash
+            ```
+
+            Or install a specific version:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash -s -- --version ${{ steps.version.outputs.tag }}
+            ```
+          draft: false
+          prerelease: >
+            ${{ contains(steps.version.outputs.version, 'alpha') ||
+            contains(steps.version.outputs.version, 'beta') ||
+            contains(steps.version.outputs.version, 'rc') }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

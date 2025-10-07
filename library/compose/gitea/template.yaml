@@ -1,0 +1,64 @@
+---
+kind: compose
+metadata:
+  name: Gitea
+  description: >
+    Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service 
+    written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository 
+    hosting, code review, team collaboration, and more.
+
+
+    Project: https://gitea.io/
+
+    Documentation: https://docs.gitea.io/
+
+    GitHub: https://github.com/go-gitea/gitea
+  version: 1.24.5
+  author: Christian Lempa
+  date: '2025-10-02'
+  tags:
+    - git
+    - version-control
+    - development
+spec:
+  general:
+    vars:
+      service_name:
+        default: "gitea"
+      container_name:
+        default: "gitea"
+  database:
+    required: true
+    vars:
+      database_type:
+        default: "postgres"
+      database_name:
+        default: "gitea"
+      database_user:
+        default: "gitea"
+  ports:
+    vars:
+      ports_http:
+        description: "Host port for HTTP web interface"
+        type: int
+        default: 3000
+      ports_ssh:
+        description: "Host port for SSH Git access"
+        type: int
+        default: 2221
+  traefik:
+    vars:
+      traefik_host:
+        default: gitea.home.arpa
+  gitea:
+    description: "Configure Gitea application settings"
+    required: true
+    vars:
+      gitea_root_url:
+        description: "Public URL for your Gitea instance (e.g., https://git.example.com)"
+        type: str
+        default: "https://git.example.com"
+      gitea_ssh_port:
+        description: "SSH port number (should match ports_ssh)"
+        type: int
+        default: 2221
