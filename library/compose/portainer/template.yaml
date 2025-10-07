@@ -2,14 +2,24 @@
 kind: compose
 metadata:
   name: Portainer
-  description: Docker compose setup for portainer
+  description: >
+    Portainer is a powerful and user-friendly management tool for Docker and Kubernetes environments.
+    It provides a simple web-based interface to manage containers, images, networks, and volumes,
+    making it easier to deploy and monitor applications.
+
+
+    Project: https://www.portainer.io/
+
+    Documentation: https://docs.portainer.io/
+
+    GitHub: https://github.com/portainer/portainer
   version: 2.33.1-alpine
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - portainer
-  - docker
-  - compose
+    - management
+    - docker
+    - kubernetes
 spec:
   general:
     vars:

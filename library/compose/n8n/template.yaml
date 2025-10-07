@@ -2,14 +2,23 @@
 kind: compose
 metadata:
   name: N8N
-  description: Docker compose setup for n8n
+  description: >
+    N8n is a free and source-available workflow automation tool. It enables you to connect
+    various apps and services to automate repetitive tasks without coding.
+    With its user-friendly interface, you can create complex workflows by simply dragging
+    and dropping nodes that represent different actions and triggers.
+
+
+    Project: https://n8n.io/
+
+    Documentation: https://docs.n8n.io/
+
+    GitHub: https://github.com/n8n-io/n8n
   version: 1.110.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - n8n
-  - docker
-  - compose
+    - automation
   draft: true
 spec:
   ports:

@@ -2,14 +2,23 @@
 kind: compose
 metadata:
   name: Loki
-  description: Docker compose setup for loki
+  description: >
+    Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.
+    This template sets up Loki in a Docker container using Docker Compose.
+
+
+    Project: https://grafana.com/oss/loki/
+
+    Documentation: https://grafana.com/docs/loki/latest/
+
+    GitHub: https://github.com/grafana/loki
   version: 3.5.3
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - loki
-  - docker
-  - compose
+    - grafana
+    - monitoring
+    - logging
   draft: true
 spec:
   general:

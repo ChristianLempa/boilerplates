@@ -2,15 +2,23 @@
 kind: compose
 metadata:
   name: Grafana
-  description: Open-source platform for monitoring and observability
+  description: >
+    Grafana is an open-source platform for monitoring and observability that allows you to visualize and analyze metrics, logs, and traces from various data
+    sources. It provides a powerful and flexible dashboarding solution for IT infrastructure and application monitoring.
+
+
+    Project: https://grafana.com/
+
+    Documentation: https://grafana.com/docs/grafana/latest/
+
+    GitHub: https://github.com/grafana/grafana
   version: 12.1.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - grafana
     - monitoring
-    - observability
-    - dashboard
+    - alerting
 spec:
   general:
     vars:

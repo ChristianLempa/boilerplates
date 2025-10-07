@@ -2,14 +2,21 @@
 kind: compose
 metadata:
   name: Homepage
-  description: Docker compose setup for homepage
+  description: >
+    Docker compose setup for a homepage/dashboard application.
+    This template provides a simple way to deploy a personal or organizational homepage using Docker Compose.
+
+
+    Project: https://gethomepage.dev/
+
+    Documentation: https://docs.gethomepage.dev/
+
+    GitHub: https://github.com/gethomepage/homepage
   version: v1.4.6
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - homepage
-  - docker
-  - compose
+    - dashboard
   draft: true
 spec:
   general:

@@ -2,14 +2,23 @@
 kind: compose
 metadata:
   name: Gitlab-Runner
-  description: Docker compose setup for gitlab-runner
+  description: >
+    Docker compose setup for Gitlab-Runner, a build instance for Gitlab CI/CD pipelines.
+    This template configures Gitlab-Runner with Docker executor and integrates it with a Gitlab instance.
+
+
+    Project: https://docs.gitlab.com/runner/
+
+    Documentation: https://docs.gitlab.com/runner/
+
+    GitHub: https://github.com/gitlab/gitlab-runner
   version: alpine-v17.9.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - gitlab-runner
-  - docker
-  - compose
+    - gitlab
+    - git
+    - ci-cd
   draft: true
 spec:
   general:

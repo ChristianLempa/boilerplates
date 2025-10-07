@@ -2,14 +2,22 @@
 kind: compose
 metadata:
   name: Influxdb
-  description: Docker compose setup for influxdb
+  description: >
+    InfluxDB is a powerful, open-source time series database designed for high-performance handling of time-stamped data.
+    It is commonly used for monitoring, analytics, and IoT applications.
+
+
+    Project: https://www.influxdata.com/
+
+    Documentation: https://docs.influxdata.com/influxdb/
+
+    GitHub: https://github.com/influxdata/influxdb
   version: 2.7.12-alpine
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - influxdb
-  - docker
-  - compose
+    - database
+    - time-series
   draft: true
 spec:
   ports:

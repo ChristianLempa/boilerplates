@@ -2,14 +2,22 @@
 kind: compose
 metadata:
   name: Clamav
-  description: Docker compose setup for clamav
+  description: >
+    Docker compose setup for ClamAV, an open-source antivirus engine for detecting trojans, viruses, malware & other malicious threats.
+    This template configures ClamAV with a freshclam service for automatic virus database updates and a clamav service for scanning files.
+
+
+    Project: https://www.clamav.net/
+
+    Documentation: https://docs.clamav.net/
+
+    GitHub: https://github.com/Cisco-Talos/clamav
   version: 1.4.3
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - clamav
-  - docker
-  - compose
+    - antivirus
+    - security
   draft: true
 spec:
   general:

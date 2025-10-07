@@ -2,14 +2,21 @@
 kind: compose
 metadata:
   name: Dockge
-  description: Docker compose setup for dockge
+  description: >
+    Dockge is a powerful Docker management platform that simplifies container orchestration and monitoring.
+    It provides an intuitive web interface to manage Docker containers, images, networks, and volumes with ease.
+
+    Project: https://dockge.com/
+
+    Documentation: https://docs.dockge.com/
+
+    GitHub: https://github.com/dockge/dockge
   version: 1.5.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - dockge
-  - docker
-  - compose
+    - management
+    - docker
   draft: true
 spec:
   general:

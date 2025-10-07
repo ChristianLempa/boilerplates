@@ -2,14 +2,24 @@
 kind: compose
 metadata:
   name: Openwebui
-  description: Docker compose setup for openwebui
+  description: >
+    OpenWebUI is an open-source web-based user interface for managing and interacting with AI models.
+    It provides a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as
+    image generation, text generation, and more. OpenWebUI supports integration with popular AI frameworks
+    and offers features like model management, user authentication, and real-time interaction.
+
+
+    Project: https://openwebui.io/
+
+    Documentation: https://docs.openwebui.io/
+
+    GitHub: https://github.com/openwebui/openwebui
   version: v0.6.26
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - openwebui
-  - docker
-  - compose
+    - ai
+    - automation
   draft: true
 spec:
   general:

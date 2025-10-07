@@ -7,9 +7,9 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
+    - volumes
+    - docker
+    - compose
   draft: true
 spec:
   general:

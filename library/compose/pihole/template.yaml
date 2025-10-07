@@ -2,14 +2,23 @@
 kind: compose
 metadata:
   name: Pihole
-  description: Docker compose setup for pihole
+  description: >
+    Pi-hole is a network-wide ad blocker that acts as a DNS sinkhole, blocking ads and trackers for all devices on your network.
+    It improves browsing speed, enhances privacy, and reduces bandwidth usage by filtering out unwanted content at the DNS level.
+    Pi-hole can be easily integrated with existing routers and supports custom blocklists and whitelists.
+
+
+    Project: https://pi-hole.net/
+
+    Documentation: https://docs.pi-hole.net/
+
+    GitHub: https://github.com/pi-hole/pi-hole
   version: 2025.08.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - pihole
-  - docker
-  - compose
+    - dns
+    - ad-blocking
   draft: true
 spec:
   ports:

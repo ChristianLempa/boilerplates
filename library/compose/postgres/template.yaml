@@ -2,15 +2,22 @@
 kind: compose
 metadata:
   name: PostgreSQL
-  description: Advanced open-source relational database
+  description: >
+    PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
+    that has earned it a strong reputation for reliability, feature robustness, and performance.
+
+
+    Project: https://www.postgresql.org/
+
+    Documentation: https://www.postgresql.org/docs/
+
+    GitHub: https://github.com/postgres/postgres
   version: 17.6
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - postgresql
-  - database
-  - sql
-  - relational
+    - database
+    - sql
   draft: true
 spec:
   general:

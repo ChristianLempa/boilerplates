@@ -2,14 +2,22 @@
 kind: compose
 metadata:
   name: Whoami
-  description: Docker compose setup for whoami
+  description: >
+    Whoami is a simple web application that displays information about the HTTP request it receives.
+    It is often used for testing and debugging purposes to verify that a web server or reverse proxy is functioning correctly.
+
+
+    Project: https://github.com/traefik/whoami
+
+    Documentation: https://traefik.io/docs/
+
+    GitHub: https://github.com/traefik/whoami
   version: 0.1.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - whoami
-  - docker
-  - compose
+    - reverse-proxy
+    - testing
   draft: true
 spec:
   ports:

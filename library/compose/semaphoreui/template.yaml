@@ -18,10 +18,10 @@ metadata:
   author: Christian Lempa
   date: '2025-10-02'
   tags:
-    - ansible
     - automation
-    - devops
-    - infrastructure
+    - ansible
+    - terraform
+    - python
   next_steps: |
     1. Start Semaphore UI:
        docker compose up -d

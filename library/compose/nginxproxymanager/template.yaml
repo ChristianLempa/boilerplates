@@ -1,15 +1,23 @@
 ---
 kind: compose
 metadata:
-  name: Volumes
-  description: Docker compose setup for volumes
+  name: Nginx Proxy Manager
+  description: >
+    A lightweight Nginx-based reverse proxy container designed to manage and route traffic to various web services.
+    It provides an easy-to-use interface for configuring and managing multiple proxy hosts, SSL certificates, and access control.
+
+
+    Project: https://github.com/nginx-proxy-manager/nginx-proxy-manager
+
+    Documentation: https://nginxproxymanager.com/
+
+    GitHub: https://github.com/nginx-proxy-manager/nginx-proxy-manager
   version: 2.12.6
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
+    - nginx
+    - reverse-proxy
   draft: true
 spec:
   general:

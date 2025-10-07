@@ -1,15 +1,25 @@
 ---
 kind: compose
 metadata:
-  name: Wazuh.Manager
-  description: Docker compose setup for wazuh.manager
+  name: Wazuh
+  description: >
+    Wazuh is a comprehensive open-source security platform that provides unified security monitoring, threat detection, and compliance management.
+    It integrates with various tools and services to offer real-time visibility into your IT environment, helping you identify and respond to security threats effectively.
+
+
+    Project: https://wazuh.com/
+
+    Documentation: https://documentation.wazuh.com/
+
+    GitHub: https://github.com/wazuh/wazuh
   version: 4.12.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - wazuh.manager
-  - docker
-  - compose
+    - security
+    - monitoring
+    - xdr
+    - siem
   draft: true
 spec:
   general:

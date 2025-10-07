@@ -1,15 +1,24 @@
 ---
 kind: compose
 metadata:
-  name: Monitoring
-  description: Docker compose setup for monitoring
+  name: Checkmk
+  description: >
+    Checkmk is a comprehensive IT monitoring solution that provides real-time insights
+    into the health and performance of your infrastructure, applications, and services.
+    It offers a wide range of monitoring capabilities, including server, network, cloud,
+    and application monitoring, with an emphasis on ease of use and scalability.
+
+
+    Project: https://checkmk.com/
+
+    Documentation: https://docs.checkmk.com/latest/en/
+
+    GitHub: https://github.com/tribe29/checkmk
   version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - monitoring
-    - docker
-    - compose
   draft: true
 spec:
   general:

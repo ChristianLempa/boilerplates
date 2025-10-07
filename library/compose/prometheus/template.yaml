@@ -1,15 +1,24 @@
 ---
 kind: compose
 metadata:
-  name: Volumes
-  description: Docker compose setup for volumes
+  name: Prometheus
+  description: >
+    Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud.
+    It is designed for reliability and scalability, making it suitable for monitoring dynamic cloud environments.
+    Prometheus collects and stores metrics as time series data, providing powerful querying capabilities and integration with various visualization tools.
+
+
+    Project: https://prometheus.io/
+
+    Documentation: https://prometheus.io/docs/
+
+    GitHub: https://github.com/prometheus/prometheus
   version: v3.5.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
+    - monitoring
+    - alerting
   draft: true
 spec:
   general:

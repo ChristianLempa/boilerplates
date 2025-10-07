@@ -1,15 +1,22 @@
 ---
 kind: compose
 metadata:
-  name: Volumes
-  description: Docker compose setup for volumes
+  name: Passbolt
+  description: >
+    Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store, share, and manage passwords and sensitive
+    information collaboratively.
+
+
+    Project: https://www.passbolt.com/
+
+    Documentation: https://help.passbolt.com/
+
+    GitHub: https://github.com/passbolt/passbolt
   version: 11.3
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
+    - password-manager
   draft: true
 spec:
   general:

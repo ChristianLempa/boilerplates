@@ -1,15 +1,23 @@
 ---
 kind: compose
 metadata:
-  name: Volumes
-  description: Docker compose setup for volumes
+  name: Uptimekuma
+  description: >
+    Uptimekuma is a self-hosted monitoring tool that allows you to keep track of the uptime and performance of your websites and services.
+    It provides a user-friendly interface to monitor HTTP(s), TCP, ICMP (ping), and more, with customizable alerts and notifications.
+
+
+    Project: https://uptime.kuma.pet/
+
+    Documentation: https://docs.uptime.kuma.pet/
+
+    GitHub: https://github.com/louislam/uptime-kuma
   version: 1.23.16
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - volumes
-  - docker
-  - compose
+    - monitoring
+    - alerting
   draft: true
 spec:
   general:

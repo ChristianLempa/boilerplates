@@ -1,30 +1,39 @@
 ---
-kind: "compose"
+kind: compose
 metadata:
-  name: "Nginx"
-  description: "An open-source web server"
+  name: Nginx
+  description: >
+    Nginx is a high-performance web server, reverse proxy, and load balancer known for its stability, rich feature set, simple configuration, and low resource
+    consumption. It is widely used to serve static content, handle HTTP requests, and distribute traffic across multiple servers.
+
+
+    Project: https://nginx.org/
+
+    Documentation: https://nginx.org/en/docs/
+
+    GitHub: https://github.com/nginx/nginx
   version: 1.28.0-alpine
-  date: "2023-10-01"
-  author: "Christian Lempa"
+  date: 2023-10-01
+  author: Christian Lempa
   tags:
     - nginx
-    - web
+    - webserver
     - reverse-proxy
   draft: true
 spec:
   ports:
     vars:
       ports_http:
-        description: "HTTP port for nginx service"
+        description: HTTP port for nginx service
         type: int
         default: 8080
       ports_https:
-        description: "HTTPS port for nginx service"
+        description: HTTPS port for nginx service
         type: int
         default: 8443
   nginx:
     vars:
       nginx_version:
-        description: "Nginx version"
+        description: Nginx version
         type: str
-        default: "latest"
+        default: latest

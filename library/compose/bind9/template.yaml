@@ -15,11 +15,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-02'
   tags:
-    - bind9
     - dns
-    - nameserver
-    - authoritative
-    - recursive
   next_steps: |
     1. Start the DNS server:
        docker compose up -d

@@ -2,14 +2,23 @@
 kind: compose
 metadata:
   name: Twingate_Connector
-  description: Docker compose setup for twingate_connector
+  description: >
+    The Twingate Connector is a lightweight software component that establishes secure connections between your private network and the Twingate service.
+    It acts as a bridge, allowing authorized users to access internal resources without exposing them directly to the internet.
+    The Connector uses strong encryption and authentication mechanisms to ensure that all data transmitted between users and resources remains confidential and secure.
+
+
+    Project: https://www.twingate.com/
+
+    Documentation: https://docs.twingate.com/docs/architecture/connectors
+
+    GitHub: https://github.com/twingate/twingate-connector
   version: 1.77.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - twingate_connector
-  - docker
-  - compose
+    - zero-trust
+    - remote-access
   draft: true
 spec:
   general:

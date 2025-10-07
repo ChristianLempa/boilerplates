@@ -2,14 +2,19 @@
 kind: compose
 metadata:
   name: Heimdall
-  description: Docker compose setup for heimdall
+  description: >
+    Heimdall is a simple, fast, and secure web-based application dashboard for organizing and accessing your web applications.
+    It provides a visually appealing interface to manage and launch your favorite web apps from a single location.
+
+
+    Project: https://heimdall.site/
+
+    Documentation: https://docs.heimdall.site/
   version: 2.7.4
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-  - heimdall
-  - docker
-  - compose
+    - dashboard
   draft: true
 spec:
   general:

@@ -18,8 +18,7 @@ metadata:
   date: '2025-10-02'
   tags:
     - git
-    - version-control
-    - development
+    - ci-cd
 spec:
   general:
     vars:
