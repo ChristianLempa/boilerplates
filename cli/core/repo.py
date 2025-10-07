@@ -66,13 +66,14 @@ def _clone_or_pull_repo(name: str, url: str, target_path: Path, branch: Optional
         # Repository exists, pull updates
         logger.debug(f"Pulling updates for library '{name}' at {target_path}")
         
-        # If branch is specified, checkout the branch first
-        if branch:
-            success, stdout, stderr = _run_git_command(["checkout", branch], cwd=target_path)
-            if not success:
-                logger.warning(f"Failed to checkout branch '{branch}' for library '{name}': {stderr}")
+        # Determine which branch to pull
+        pull_branch = branch if branch else "main"
         
-        success, stdout, stderr = _run_git_command(["pull", "--ff-only"], cwd=target_path)
+        # Pull updates from specific branch
+        success, stdout, stderr = _run_git_command(
+            ["pull", "--ff-only", "origin", pull_branch],
+            cwd=target_path
+        )
         
         if success:
             # Check if anything was updated
@@ -114,45 +115,43 @@ def _clone_or_pull_repo(name: str, url: str, target_path: Path, branch: Optional
                 if not success:
                     return False, f"Failed to add remote: {stderr or stdout}"
                 
-                # Enable sparse-checkout
-                success, stdout, stderr = _run_git_command(["config", "core.sparseCheckout", "true"], cwd=target_path)
+                # Enable sparse-checkout (non-cone mode to exclude root files)
+                success, stdout, stderr = _run_git_command(
+                    ["sparse-checkout", "init", "--no-cone"], 
+                    cwd=target_path
+                )
                 if not success:
                     return False, f"Failed to enable sparse-checkout: {stderr or stdout}"
                 
-                # Create sparse-checkout file
-                sparse_checkout_file = target_path / ".git" / "info" / "sparse-checkout"
-                sparse_checkout_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(sparse_checkout_file, "w") as f:
-                    f.write(f"{sparse_dir}/*\n")
-                
-                # Pull specific branch with sparse-checkout
-                pull_args = ["pull", "--depth", "1", "origin"]
-                if branch:
-                    pull_args.append(branch)
-                else:
-                    pull_args.append("main")
-                
-                success, stdout, stderr = _run_git_command(pull_args, cwd=target_path)
+                # Set sparse-checkout to specific directory (non-cone uses patterns)
+                success, stdout, stderr = _run_git_command(
+                    ["sparse-checkout", "set", f"{sparse_dir}/*"],
+                    cwd=target_path
+                )
                 if not success:
-                    return False, f"Sparse-checkout failed: {stderr or stdout}"
+                    return False, f"Failed to set sparse-checkout directory: {stderr or stdout}"
                 
-                # Move contents of sparse directory to root
-                sparse_path = target_path / sparse_dir
-                if sparse_path.exists() and sparse_path.is_dir():
-                    # Move all contents from sparse_dir to target_path root
-                    import shutil
-                    for item in sparse_path.iterdir():
-                        dest = target_path / item.name
-                        if dest.exists():
-                            if dest.is_dir():
-                                shutil.rmtree(dest)
-                            else:
-                                dest.unlink()
-                        shutil.move(str(item), str(target_path))
-                    
-                    # Remove empty sparse directory
-                    sparse_path.rmdir()
+                # Fetch specific branch
+                fetch_args = ["fetch", "--depth", "1", "origin"]
+                if branch:
+                    fetch_args.append(f"{branch}:{branch}")
+                else:
+                    fetch_args.append("main:main")
                 
+                success, stdout, stderr = _run_git_command(fetch_args, cwd=target_path)
+                if not success:
+                    return False, f"Fetch failed: {stderr or stdout}"
+                
+                # Checkout the branch
+                checkout_branch = branch if branch else "main"
+                success, stdout, stderr = _run_git_command(
+                    ["checkout", checkout_branch],
+                    cwd=target_path
+                )
+                if not success:
+                    return False, f"Checkout failed: {stderr or stdout}"
+                
+                # Done! Files are in target_path/sparse_dir/
                 return True, "Cloned successfully (sparse)"
             else:
                 return False, f"Failed to initialize: {stderr or stdout}"
@@ -290,8 +289,12 @@ def list() -> None:
         directory = lib.get("directory", "library")
         enabled = lib.get("enabled", True)
         
-        # Check if library exists locally (check base path, not directory subdirectory)
-        library_path = libraries_path / name
+        # Check if library exists locally
+        library_base = libraries_path / name
+        if directory and directory != ".":
+            library_path = library_base / directory
+        else:
+            library_path = library_base
         exists = library_path.exists()
         
         status_parts = []

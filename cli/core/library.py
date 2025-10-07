@@ -145,11 +145,15 @@ class LibraryManager:
         continue
       
       name = lib_config.get("name")
+      directory = lib_config.get("directory", ".")
       
-      # Build path to library: ~/.config/boilerplates/libraries/{name}/
-      # The 'directory' config is just metadata about the repo structure,
-      # the actual cloned repo is always at libraries/{name}/
-      library_path = libraries_path / name
+      # Build path to library: ~/.config/boilerplates/libraries/{name}/{directory}/
+      # For sparse-checkout, files remain in the specified directory
+      library_base = libraries_path / name
+      if directory and directory != ".":
+        library_path = library_base / directory
+      else:
+        library_path = library_base
       
       # Check if library path exists
       if not library_path.exists():
