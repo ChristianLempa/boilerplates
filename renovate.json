@@ -160,7 +160,7 @@
       "datasourceTemplate": "terraform-provider"
     }
   ],
-  "allowedPostUpgradeCommands": [
+  "allowedCommands": [
     "^\\.renovate/sync-template-version\\.sh$"
   ],
   "postUpgradeTasks": {
