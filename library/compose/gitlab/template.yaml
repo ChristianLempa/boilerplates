@@ -11,9 +11,9 @@ metadata:
     Project: https://about.gitlab.com/
 
     Documentation: https://docs.gitlab.com/
-  version: 18.3.1-ce.0
+  version: 18.4.2-ce.0
   author: Christian Lempa
-  date: 2025-10-07
+  date: '2025-10-08'
   tags:
     - git
     - ci-cd
