@@ -14,9 +14,9 @@ metadata:
     Documentation: https://docs.openwebui.io/
 
     GitHub: https://github.com/openwebui/openwebui
-  version: v0.6.26
+  version: 0.6.33
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-08'
   tags:
     - ai
     - automation
