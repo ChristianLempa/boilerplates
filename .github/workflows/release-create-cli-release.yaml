@@ -110,6 +110,24 @@ jobs:
       #     echo "Publishing to PyPI..."
       #     twine upload dist/*
 
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the [Unreleased] section from CHANGELOG.md
+          CHANGELOG=$(awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md)
+          
+          if [ -z "$CHANGELOG" ]; then
+            echo "No changelog entries found for this release"
+            CHANGELOG="See commit history for details."
+          fi
+          
+          # Save to output using heredoc to handle multiline
+          {
+            echo 'content<<EOF'
+            echo "$CHANGELOG"
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -117,6 +135,12 @@ jobs:
           name: Release ${{ steps.version.outputs.tag }}
           body: |
             ## Boilerplates CLI ${{ steps.version.outputs.tag }}
+
+            ${{ steps.changelog.outputs.content }}
+
+            ---
+
+            ### Installation
 
             Install using the installation script:
             ```bash
