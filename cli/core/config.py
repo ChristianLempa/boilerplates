@@ -66,6 +66,7 @@ class ConfigManager:
             "libraries": [
                 {
                     "name": "default",
+                    "type": "git",
                     "url": "https://github.com/christianlempa/boilerplates.git",
                     "branch": "main",
                     "directory": "library",
@@ -77,7 +78,7 @@ class ConfigManager:
         logger.info(f"Created default configuration at {self.config_path}")
     
     def _migrate_config_if_needed(self) -> None:
-        """Migrate existing config to add missing sections like libraries."""
+        """Migrate existing config to add missing sections and library types."""
         try:
             config = self._read_config()
             needs_migration = False
@@ -88,6 +89,7 @@ class ConfigManager:
                 config["libraries"] = [
                     {
                         "name": "default",
+                        "type": "git",
                         "url": "https://github.com/christianlempa/boilerplates.git",
                         "branch": "refactor/boilerplates-v2",
                         "directory": "library",
@@ -95,11 +97,20 @@ class ConfigManager:
                     }
                 ]
                 needs_migration = True
+            else:
+                # Migrate existing libraries to add 'type' field if missing
+                # For backward compatibility, assume all old libraries without 'type' are git libraries
+                libraries = config.get("libraries", [])
+                for library in libraries:
+                    if "type" not in library:
+                        logger.info(f"Migrating library '{library.get('name', 'unknown')}': adding type: git")
+                        library["type"] = "git"
+                        needs_migration = True
             
             # Write back if migration was needed
             if needs_migration:
                 self._write_config(config)
-                logger.info("Config migration completed")
+                logger.info("Config migration completed successfully")
         except Exception as e:
             logger.warning(f"Config migration failed: {e}")
     
@@ -354,24 +365,48 @@ class ConfigManager:
                 if not isinstance(library, dict):
                     raise ConfigValidationError(f"Library at index {i} must be a dictionary")
                 
-                # Validate required fields
-                required_fields = ["name", "url", "directory"]
-                for field in required_fields:
-                    if field not in library:
-                        raise ConfigValidationError(f"Library at index {i} missing required field '{field}'")
-                    
-                    if not isinstance(library[field], str):
-                        raise ConfigValidationError(f"Library '{field}' at index {i} must be a string")
-                    
-                    self._validate_string_length(library[field], f"Library '{field}' at index {i}", max_length=500)
+                # Validate name field (required for all library types)
+                if "name" not in library:
+                    raise ConfigValidationError(f"Library at index {i} missing required field 'name'")
+                if not isinstance(library["name"], str):
+                    raise ConfigValidationError(f"Library 'name' at index {i} must be a string")
+                self._validate_string_length(library["name"], f"Library 'name' at index {i}", max_length=500)
                 
-                # Validate optional branch field
-                if "branch" in library:
-                    if not isinstance(library["branch"], str):
-                        raise ConfigValidationError(f"Library 'branch' at index {i} must be a string")
-                    self._validate_string_length(library["branch"], f"Library 'branch' at index {i}", max_length=200)
+                # Validate type field (default to "git" for backward compatibility)
+                lib_type = library.get("type", "git")
+                if lib_type not in ("git", "static"):
+                    raise ConfigValidationError(f"Library type at index {i} must be 'git' or 'static', got '{lib_type}'")
                 
-                # Validate optional enabled field
+                # Type-specific validation
+                if lib_type == "git":
+                    # Git libraries require: url, directory
+                    required_fields = ["url", "directory"]
+                    for field in required_fields:
+                        if field not in library:
+                            raise ConfigValidationError(f"Git library at index {i} missing required field '{field}'")
+                        
+                        if not isinstance(library[field], str):
+                            raise ConfigValidationError(f"Library '{field}' at index {i} must be a string")
+                        
+                        self._validate_string_length(library[field], f"Library '{field}' at index {i}", max_length=500)
+                    
+                    # Validate optional branch field
+                    if "branch" in library:
+                        if not isinstance(library["branch"], str):
+                            raise ConfigValidationError(f"Library 'branch' at index {i} must be a string")
+                        self._validate_string_length(library["branch"], f"Library 'branch' at index {i}", max_length=200)
+                
+                elif lib_type == "static":
+                    # Static libraries require: path
+                    if "path" not in library:
+                        raise ConfigValidationError(f"Static library at index {i} missing required field 'path'")
+                    
+                    if not isinstance(library["path"], str):
+                        raise ConfigValidationError(f"Library 'path' at index {i} must be a string")
+                    
+                    self._validate_path_string(library["path"], f"Library 'path' at index {i}")
+                
+                # Validate optional enabled field (applies to all types)
                 if "enabled" in library and not isinstance(library["enabled"], bool):
                     raise ConfigValidationError(f"Library 'enabled' at index {i} must be a boolean")
     
@@ -630,59 +665,103 @@ class ConfigManager:
                 return library
         return None
     
-    def add_library(self, name: str, url: str, directory: str = "library", branch: str = "main", enabled: bool = True) -> None:
+    def add_library(
+        self,
+        name: str,
+        library_type: str = "git",
+        url: Optional[str] = None,
+        directory: Optional[str] = None,
+        branch: str = "main",
+        path: Optional[str] = None,
+        enabled: bool = True
+    ) -> None:
         """Add a new library to the configuration.
         
         Args:
             name: Unique name for the library
-            url: Git repository URL
-            directory: Directory within the repo containing templates
-            branch: Git branch to use
+            library_type: Type of library ("git" or "static")
+            url: Git repository URL (required for git type)
+            directory: Directory within repo (required for git type)
+            branch: Git branch (for git type)
+            path: Local path to templates (required for static type)
             enabled: Whether the library is enabled
             
         Raises:
             ConfigValidationError: If library with the same name already exists or validation fails
         """
-        # Validate inputs
+        # Validate name
         if not isinstance(name, str) or not name:
             raise ConfigValidationError("Library name must be a non-empty string")
         
         self._validate_string_length(name, "Library name", max_length=100)
         
-        if not isinstance(url, str) or not url:
-            raise ConfigValidationError("Library URL must be a non-empty string")
-        
-        self._validate_string_length(url, "Library URL", max_length=500)
-        
-        if not isinstance(directory, str) or not directory:
-            raise ConfigValidationError("Library directory must be a non-empty string")
-        
-        self._validate_string_length(directory, "Library directory", max_length=200)
-        
-        if not isinstance(branch, str) or not branch:
-            raise ConfigValidationError("Library branch must be a non-empty string")
-        
-        self._validate_string_length(branch, "Library branch", max_length=200)
+        # Validate type
+        if library_type not in ("git", "static"):
+            raise ConfigValidationError(f"Library type must be 'git' or 'static', got '{library_type}'")
         
         # Check if library already exists
         if self.get_library_by_name(name):
             raise ConfigValidationError(f"Library '{name}' already exists")
+        
+        # Type-specific validation and config building
+        if library_type == "git":
+            if not url:
+                raise ConfigValidationError("Git libraries require 'url' parameter")
+            if not directory:
+                raise ConfigValidationError("Git libraries require 'directory' parameter")
+            
+            # Validate git-specific fields
+            if not isinstance(url, str) or not url:
+                raise ConfigValidationError("Library URL must be a non-empty string")
+            self._validate_string_length(url, "Library URL", max_length=500)
+            
+            if not isinstance(directory, str) or not directory:
+                raise ConfigValidationError("Library directory must be a non-empty string")
+            self._validate_string_length(directory, "Library directory", max_length=200)
+            
+            if not isinstance(branch, str) or not branch:
+                raise ConfigValidationError("Library branch must be a non-empty string")
+            self._validate_string_length(branch, "Library branch", max_length=200)
+            
+            library_config = {
+                "name": name,
+                "type": "git",
+                "url": url,
+                "branch": branch,
+                "directory": directory,
+                "enabled": enabled
+            }
+        
+        else:  # static
+            if not path:
+                raise ConfigValidationError("Static libraries require 'path' parameter")
+            
+            # Validate static-specific fields
+            if not isinstance(path, str) or not path:
+                raise ConfigValidationError("Library path must be a non-empty string")
+            self._validate_path_string(path, "Library path")
+            
+            # For backward compatibility with older CLI versions,
+            # add dummy values for git-specific fields
+            library_config = {
+                "name": name,
+                "type": "static",
+                "url": "",  # Empty string for backward compatibility
+                "branch": "main",  # Default value for backward compatibility
+                "directory": ".",  # Default value for backward compatibility
+                "path": path,
+                "enabled": enabled
+            }
         
         config = self._read_config()
         
         if "libraries" not in config:
             config["libraries"] = []
         
-        config["libraries"].append({
-            "name": name,
-            "url": url,
-            "branch": branch,
-            "directory": directory,
-            "enabled": enabled
-        })
+        config["libraries"].append(library_config)
         
         self._write_config(config)
-        logger.info(f"Added library '{name}'")
+        logger.info(f"Added {library_type} library '{name}'")
     
     def remove_library(self, name: str) -> None:
         """Remove a library from the configuration.

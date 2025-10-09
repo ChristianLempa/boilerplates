@@ -54,6 +54,8 @@ class IconManager:
     UI_SETTINGS = "\uf013"          # 
     UI_ARROW_RIGHT = "\uf061"       #  (arrow-right)
     UI_BULLET = "\uf111"            #  (circle)
+    UI_LIBRARY_GIT = "\uf418"       #  (git icon)
+    UI_LIBRARY_STATIC = "\uf07c"    #  (folder icon)
     
     @classmethod
     def get_file_icon(cls, file_path: str | Path) -> str:
@@ -173,7 +175,7 @@ class DisplayManager:
     def display_templates_table(
         self, templates: list, module_name: str, title: str
     ) -> None:
-        """Display a table of templates.
+        """Display a table of templates with library type indicators.
         
         Args:
             templates: List of Template objects
@@ -197,9 +199,22 @@ class DisplayManager:
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
             version = str(template.metadata.version) if template.metadata.version else ""
-            library = template.metadata.library or ""
+            
+            # Show library with type indicator and color
+            library_name = template.metadata.library or ""
+            library_type = template.metadata.library_type or "git"
+            
+            if library_type == "static":
+                # Static libraries: yellow/amber color with folder icon
+                library_display = f"[yellow]{IconManager.UI_LIBRARY_STATIC} {library_name}[/yellow]"
+            else:
+                # Git libraries: blue color with git icon
+                library_display = f"[blue]{IconManager.UI_LIBRARY_GIT} {library_name}[/blue]"
+            
+            # Display qualified ID if present (e.g., "alloy.default")
+            display_id = template.id
 
-            table.add_row(template.id, name, tags, version, library)
+            table.add_row(display_id, name, tags, version, library_display)
 
         console.print(table)
 
@@ -275,13 +290,23 @@ class DisplayManager:
         self.display_message('info', message, context)
 
     def _display_template_header(self, template: Template, template_id: str) -> None:
-        """Display the header for a template."""
+        """Display the header for a template with library information."""
         template_name = template.metadata.name or "Unnamed Template"
         version = str(template.metadata.version) if template.metadata.version else "Not specified"
         description = template.metadata.description or "No description available"
+        
+        # Get library information
+        library_name = template.metadata.library or ""
+        library_type = template.metadata.library_type or "git"
+        
+        # Format library display with icon and color
+        if library_type == "static":
+            library_display = f"[yellow]{IconManager.UI_LIBRARY_STATIC} {library_name}[/yellow]"
+        else:
+            library_display = f"[blue]{IconManager.UI_LIBRARY_GIT} {library_name}[/blue]"
 
         console.print(
-            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan])[/bold blue]"
+            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan]) {library_display}[/bold blue]"
         )
         console.print(description)
 
