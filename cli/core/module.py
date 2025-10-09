@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from typer import Argument, Context, Option, Typer, Exit
 
-from .display import DisplayManager, IconManager
+from .display import DisplayManager
 from .library import LibraryManager
 from .prompt import PromptHandler
 from .template import Template
@@ -136,7 +136,7 @@ class Module(ABC):
       )
     else:
       logger.info(f"No templates found matching '{query}' for module '{self.name}'")
-      console.print(f"[yellow]No templates found matching '{query}' for module '{self.name}'[/yellow]")
+      self.display.display_warning(f"No templates found matching '{query}'", context=f"module '{self.name}'")
 
     return filtered_templates
 
@@ -262,12 +262,16 @@ class Module(ABC):
     # Warn if directory is not empty
     if dir_not_empty:
       if interactive:
-        console.print(f"\n[yellow]{IconManager.get_status_icon('warning')} Warning: Directory '{output_dir}' is not empty.[/yellow]")
+        details = []
         if existing_files:
-          console.print(f"[yellow]  {len(existing_files)} file(s) will be overwritten.[/yellow]")
+          details.append(f"{len(existing_files)} file(s) will be overwritten.")
         
-        if not Confirm.ask(f"Continue and potentially overwrite files in '{output_dir}'?", default=False):
-          console.print("[yellow]Generation cancelled.[/yellow]")
+        if not self.display.display_warning_with_confirmation(
+          f"Directory '{output_dir}' is not empty.",
+          details if details else None,
+          default=False
+        ):
+          self.display.display_info("Generation cancelled")
           return None
       else:
         # Non-interactive mode: show warning but continue
@@ -305,7 +309,7 @@ class Module(ABC):
     # Final confirmation (only if we didn't already ask about overwriting)
     if not dir_not_empty and not dry_run:
       if not Confirm.ask("Generate these files?", default=True):
-        console.print("[yellow]Generation cancelled.[/yellow]")
+        self.display.display_info("Generation cancelled")
         return False
     
     return True
@@ -323,31 +327,30 @@ class Module(ABC):
         show_files: Whether to display file contents
     """
     import os
-    from rich.table import Table
     
     console.print()
     console.print("[bold cyan]Dry Run Mode - Simulating File Generation[/bold cyan]")
     console.print()
     
     # Simulate directory creation
-    console.print(f"[bold]{IconManager.folder()} Directory Operations:[/bold]")
+    self.display.display_heading("Directory Operations", icon_type="folder")
     
     # Check if output directory exists
     if output_dir.exists():
-      console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Output directory exists: [cyan]{output_dir}[/cyan]")
+      self.display.display_success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
       # Check if we have write permissions
       if os.access(output_dir, os.W_OK):
-        console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Write permission verified")
+        self.display.display_success("Write permission verified")
       else:
-        console.print(f"  [yellow]{IconManager.get_status_icon('warning')}[/yellow] Write permission may be denied")
+        self.display.display_warning("Write permission may be denied")
     else:
-      console.print(f"  [dim]{IconManager.arrow_right()}[/dim] Would create output directory: [cyan]{output_dir}[/cyan]")
+      console.print(f"  [dim]→[/dim] Would create output directory: [cyan]{output_dir}[/cyan]")
       # Check if parent directory exists and is writable
       parent = output_dir.parent
       if parent.exists() and os.access(parent, os.W_OK):
-        console.print(f"  [green]{IconManager.get_status_icon('success')}[/green] Parent directory writable")
+        self.display.display_success("Parent directory writable")
       else:
-        console.print(f"  [yellow]{IconManager.get_status_icon('warning')}[/yellow] Parent directory may not be writable")
+        self.display.display_warning("Parent directory may not be writable")
     
     # Collect unique subdirectories that would be created
     subdirs = set()
@@ -357,23 +360,19 @@ class Module(ABC):
         subdirs.add(Path(*parts[:i]))
     
     if subdirs:
-      console.print(f"  [dim]{IconManager.arrow_right()}[/dim] Would create {len(subdirs)} subdirectory(ies)")
+      console.print(f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)")
       for subdir in sorted(subdirs):
-        console.print(f"    [dim]{IconManager.folder()}[/dim] {subdir}/")
+        console.print(f"    [dim]📁[/dim] {subdir}/")
     
     console.print()
     
     # Display file operations in a table
-    console.print(f"[bold]{IconManager.get_file_icon('file.txt')} File Operations:[/bold]")
-    
-    table = Table(show_header=True, header_style="bold cyan", box=None, padding=(0, 1))
-    table.add_column("File", style="white", no_wrap=False)
-    table.add_column("Size", justify="right", style="dim")
-    table.add_column("Status", style="yellow")
+    self.display.display_heading("File Operations", icon_type="file")
     
     total_size = 0
     new_files = 0
     overwrite_files = 0
+    file_operations = []
     
     for file_path, content in sorted(rendered_files.items()):
       full_path = output_dir / file_path
@@ -388,32 +387,26 @@ class Module(ABC):
         status = "Create"
         new_files += 1
       
-      # Format size
-      if file_size < 1024:
-        size_str = f"{file_size}B"
-      elif file_size < 1024 * 1024:
-        size_str = f"{file_size / 1024:.1f}KB"
-      else:
-        size_str = f"{file_size / (1024 * 1024):.1f}MB"
-      
-      table.add_row(str(file_path), size_str, status)
+      file_operations.append((file_path, file_size, status))
     
-    console.print(table)
+    self.display.display_file_operation_table(file_operations)
     console.print()
     
     # Summary statistics
-    console.print(f"[bold]{IconManager.get_status_icon('info')} Summary:[/bold]")
-    console.print(f"  Total files: {len(rendered_files)}")
-    console.print(f"  New files: {new_files}")
-    console.print(f"  Files to overwrite: {overwrite_files}")
-    
     if total_size < 1024:
       size_str = f"{total_size}B"
     elif total_size < 1024 * 1024:
       size_str = f"{total_size / 1024:.1f}KB"
     else:
       size_str = f"{total_size / (1024 * 1024):.1f}MB"
-    console.print(f"  Total size: {size_str}")
+    
+    summary_items = {
+      "Total files:": str(len(rendered_files)),
+      "New files:": str(new_files),
+      "Files to overwrite:": str(overwrite_files),
+      "Total size:": size_str
+    }
+    self.display.display_summary_table("Summary", summary_items)
     console.print()
     
     # Show file contents if requested
@@ -427,7 +420,7 @@ class Module(ABC):
         print()  # Add blank line after content
       console.print()
     
-    console.print(f"[yellow]{IconManager.get_status_icon('success')} Dry run complete - no files were written[/yellow]")
+    self.display.display_success("Dry run complete - no files were written")
     console.print(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
 
@@ -445,9 +438,9 @@ class Module(ABC):
       full_path.parent.mkdir(parents=True, exist_ok=True)
       with open(full_path, 'w', encoding='utf-8') as f:
         f.write(content)
-      console.print(f"[green]Generated file: {file_path}[/green]")
+      console.print(f"[green]Generated file: {file_path}[/green]")  # Keep simple per-file output
     
-    console.print(f"\n[green]{IconManager.get_status_icon('success')} Template generated successfully in '{output_dir}'[/green]")
+    self.display.display_success(f"Template generated successfully in '{output_dir}'")
     logger.info(f"Template written to directory: {output_dir}")
 
   def generate(
@@ -619,7 +612,7 @@ class Module(ABC):
     
     # Set the default value
     config.set_default_value(self.name, actual_var_name, actual_value)
-    console.print(f"[green]{IconManager.get_status_icon('success')} Set default:[/green] [cyan]{actual_var_name}[/cyan] = [yellow]{actual_value}[/yellow]")
+    self.display.display_success(f"Set default: [cyan]{actual_var_name}[/cyan] = [yellow]{actual_value}[/yellow]")
     console.print(f"\n[dim]This will be used as the default value when generating templates with this module.[/dim]")
 
   def config_remove(
@@ -643,9 +636,9 @@ class Module(ABC):
     if var_name in defaults:
       del defaults[var_name]
       config.set_defaults(self.name, defaults)
-      console.print(f"[green]{IconManager.get_status_icon('success')} Removed default for '{var_name}'[/green]")
+      self.display.display_success(f"Removed default for '{var_name}'")
     else:
-      console.print(f"[red]No default found for variable '{var_name}'[/red]")
+      self.display.display_error(f"No default found for variable '{var_name}'")
 
   def config_clear(
     self,
@@ -674,24 +667,27 @@ class Module(ABC):
       if var_name in defaults:
         del defaults[var_name]
         config.set_defaults(self.name, defaults)
-        console.print(f"[green]{IconManager.get_status_icon('success')} Cleared default for '{var_name}'[/green]")
+        self.display.display_success(f"Cleared default for '{var_name}'")
       else:
-        console.print(f"[red]No default found for variable '{var_name}'[/red]")
+        self.display.display_error(f"No default found for variable '{var_name}'")
     else:
       # Clear all defaults
       if not force:
-        console.print(f"[bold yellow]{IconManager.get_status_icon('warning')} Warning:[/bold yellow] This will clear ALL defaults for module '[cyan]{self.name}[/cyan]'")
-        console.print()
-        # Show what will be cleared
+        detail_lines = [f"This will clear ALL defaults for module '{self.name}':", ""]
         for var_name, var_value in defaults.items():
-          console.print(f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]")
+          detail_lines.append(f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]")
+        
+        self.display.display_warning("Warning: This will clear ALL defaults")
+        console.print()
+        for line in detail_lines:
+          console.print(line)
         console.print()
         if not Confirm.ask(f"[bold red]Are you sure?[/bold red]", default=False):
           console.print("[green]Operation cancelled.[/green]")
           return
       
       config.clear_defaults(self.name)
-      console.print(f"[green]{IconManager.get_status_icon('success')} Cleared all defaults for module '{self.name}'[/green]")
+      self.display.display_success(f"Cleared all defaults for module '{self.name}'")
 
   def config_list(self) -> None:
     """Display the defaults for this specific module in YAML format.
@@ -770,7 +766,7 @@ class Module(ABC):
           _ = template.used_variables
           # Trigger variable definition validation by accessing variables
           _ = template.variables
-          console.print(f"[green]{IconManager.get_status_icon('success')} Jinja2 validation passed[/green]")
+          self.display.display_success("Jinja2 validation passed")
           
           # Semantic validation
           if semantic:
@@ -792,9 +788,9 @@ class Module(ABC):
                   has_semantic_errors = True
             
             if not has_semantic_errors:
-              console.print(f"\n[green]{IconManager.get_status_icon('success')} Semantic validation passed[/green]")
+              self.display.display_success("Semantic validation passed")
             else:
-              console.print(f"\n[red]{IconManager.get_status_icon('error')} Semantic validation found errors[/red]")
+              self.display.display_error("Semantic validation found errors")
               raise Exit(code=1)
           
           if verbose:
@@ -802,7 +798,7 @@ class Module(ABC):
             console.print(f"[dim]Found {len(template.used_variables)} variables[/dim]")
             console.print(f"[dim]Generated {len(rendered_files)} files[/dim]")
         except ValueError as e:
-          console.print(f"[red]{IconManager.get_status_icon('error')} Validation failed for '{template_id}':[/red]")
+          self.display.display_error(f"Validation failed for '{template_id}':")
           console.print(f"\n{e}")
           raise Exit(code=1)
           
@@ -828,27 +824,25 @@ class Module(ABC):
           _ = template.variables
           valid_count += 1
           if verbose:
-            console.print(f"[green]{IconManager.get_status_icon('success')}[/green] {template_id}")
+            self.display.display_success(template_id)
         except ValueError as e:
           invalid_count += 1
           errors.append((template_id, str(e)))
           if verbose:
-            console.print(f"[red]{IconManager.get_status_icon('error')}[/red] {template_id}")
+            self.display.display_error(template_id)
         except Exception as e:
           invalid_count += 1
           errors.append((template_id, f"Load error: {e}"))
           if verbose:
-            console.print(f"[yellow]{IconManager.get_status_icon('warning')}[/yellow] {template_id}")
+            self.display.display_warning(template_id)
       
       # Summary
-      console.print(f"\n[bold]Validation Summary:[/bold]")
-      summary_table = Table(show_header=False, box=None, padding=(0, 2))
-      summary_table.add_column(style="bold")
-      summary_table.add_column()
-      summary_table.add_row("Total templates:", str(total))
-      summary_table.add_row("[green]Valid:[/green]", str(valid_count))
-      summary_table.add_row("[red]Invalid:[/red]", str(invalid_count))
-      console.print(summary_table)
+      summary_items = {
+        "Total templates:": str(total),
+        "[green]Valid:[/green]": str(valid_count),
+        "[red]Invalid:[/red]": str(invalid_count)
+      }
+      self.display.display_summary_table("Validation Summary", summary_items)
       
       # Show errors if any
       if errors:
@@ -858,7 +852,7 @@ class Module(ABC):
           console.print(f"[dim]{error_msg}[/dim]")
         raise Exit(code=1)
       else:
-        console.print(f"\n[green]{IconManager.get_status_icon('success')} All templates are valid![/green]")
+        self.display.display_success("All templates are valid!")
 
   @classmethod
   def register_cli(cls, app: Typer) -> None:
