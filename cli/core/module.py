@@ -79,9 +79,23 @@ class Module(ABC):
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
-    for template_dir, library_name in entries:
+    for entry in entries:
+      # Unpack entry - now returns (path, library_name, needs_qualification)
+      template_dir = entry[0]
+      library_name = entry[1]
+      needs_qualification = entry[2] if len(entry) > 2 else False
+      
       try:
-        template = Template(template_dir, library_name=library_name)
+        # Get library object to determine type
+        library = next((lib for lib in self.libraries.libraries if lib.name == library_name), None)
+        library_type = library.library_type if library else "git"
+        
+        template = Template(template_dir, library_name=library_name, library_type=library_type)
+        
+        # If template ID needs qualification, set qualified ID
+        if needs_qualification:
+          template.set_qualified_id()
+        
         templates.append(template)
       except Exception as exc:
         logger.error(f"Failed to load template from {template_dir}: {exc}")
@@ -121,9 +135,23 @@ class Module(ABC):
     templates = []
 
     entries = self.libraries.find(self.name, sort_results=True)
-    for template_dir, library_name in entries:
+    for entry in entries:
+      # Unpack entry - now returns (path, library_name, needs_qualification)
+      template_dir = entry[0]
+      library_name = entry[1]
+      needs_qualification = entry[2] if len(entry) > 2 else False
+      
       try:
-        template = Template(template_dir, library_name=library_name)
+        # Get library object to determine type
+        library = next((lib for lib in self.libraries.libraries if lib.name == library_name), None)
+        library_type = library.library_type if library else "git"
+        
+        template = Template(template_dir, library_name=library_name, library_type=library_type)
+        
+        # If template ID needs qualification, set qualified ID
+        if needs_qualification:
+          template.set_qualified_id()
+        
         templates.append(template)
       except Exception as exc:
         logger.error(f"Failed to load template from {template_dir}: {exc}")
@@ -949,13 +977,43 @@ class Module(ABC):
     logger.info(f"Module '{cls.name}' CLI commands registered")
 
   def _load_template_by_id(self, id: str) -> Template:
+    """Load a template by its ID, supporting qualified IDs.
+    
+    Supports both formats:
+    - Simple: "alloy" (uses priority system)
+    - Qualified: "alloy.default" (loads from specific library)
+    
+    Args:
+        id: Template ID (simple or qualified)
+    
+    Returns:
+        Template instance
+    
+    Raises:
+        FileNotFoundError: If template is not found
+    """
+    logger.debug(f"Loading template with ID '{id}' from module '{self.name}'")
+    
+    # find_by_id now handles both simple and qualified IDs
     result = self.libraries.find_by_id(self.name, id)
+    
     if not result:
       raise FileNotFoundError(f"Template '{id}' not found in module '{self.name}'")
     
     template_dir, library_name = result
+    
+    # Get library type
+    library = next((lib for lib in self.libraries.libraries if lib.name == library_name), None)
+    library_type = library.library_type if library else "git"
+    
     try:
-      return Template(template_dir, library_name=library_name)
+      template = Template(template_dir, library_name=library_name, library_type=library_type)
+      
+      # If the original ID was qualified, preserve it
+      if '.' in id:
+        template.id = id
+      
+      return template
     except Exception as exc:
       logger.error(f"Failed to load template '{id}': {exc}")
       raise FileNotFoundError(f"Template '{id}' could not be loaded: {exc}") from exc

@@ -39,6 +39,18 @@ class TemplateNotFoundError(TemplateError):
         super().__init__(msg)
 
 
+class DuplicateTemplateError(TemplateError):
+    """Raised when duplicate template IDs are found within the same library."""
+    
+    def __init__(self, template_id: str, library_name: str):
+        self.template_id = template_id
+        self.library_name = library_name
+        super().__init__(
+            f"Duplicate template ID '{template_id}' found in library '{library_name}'. "
+            f"Each template within a library must have a unique ID."
+        )
+
+
 class TemplateLoadError(TemplateError):
     """Raised when a template fails to load."""
     pass
