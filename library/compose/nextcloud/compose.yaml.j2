@@ -4,12 +4,12 @@ services:
     container_name: {{ container_name | default('nextcloud-app') }}
     environment:
       - TZ={{ container_timezone | default('UTC') }}
-      {% if database_type == 'mysql' -%}
+      {% if database_type == 'mysql' %}
       - MYSQL_PASSWORD={{ database_password | default('nextcloud') }}
       - MYSQL_DATABASE={{ database_name | default('nextcloud') }}
       - MYSQL_USER={{ database_user | default('nextcloud') }}
       - MYSQL_HOST={{ service_name | default('nextcloud') }}-db
-      {% elif database_type == 'postgres' -%}
+      {% elif database_type == 'postgres' %}
       - POSTGRES_PASSWORD={{ database_password | default('nextcloud') }}
       - POSTGRES_DB={{ database_name | default('nextcloud') }}
       - POSTGRES_USER={{ database_user | default('nextcloud') }}
@@ -43,7 +43,7 @@ services:
     restart: {{ restart_policy | default('unless-stopped') }}
 
   {{ service_name | default('nextcloud') }}-db:
-    {% if database_type == 'mysql' -%}
+    {% if database_type == 'mysql' %}
     # See compatibility matrix for Nextcloud 31
     # https://docs.nextcloud.com/server/31/admin_manual/installation/system_requirements.html
     image: docker.io/library/mariadb:10.11.14
@@ -57,7 +57,7 @@ services:
       - MYSQL_USER={{ database_user | default('nextcloud') }}
     volumes:
       - nextcloud-db:/var/lib/mysql
-    {% elif database_type == 'postgres' -%}
+    {% elif database_type == 'postgres' %}
     image: docker.io/library/postgres:17.6
     container_name: {{ service_name | default('nextcloud') }}-db
     environment:

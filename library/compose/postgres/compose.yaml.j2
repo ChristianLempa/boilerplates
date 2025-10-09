@@ -4,13 +4,13 @@ services:
     container_name: {{ container_name | default('postgres') }}
     environment:
       - POSTGRES_INITDB_ARGS={{ postgres_initdb_args | default('--data-checksums') }}
-      {% if postgres_host_auth_method -%}
+      {% if postgres_host_auth_method %}
       - POSTGRES_HOST_AUTH_METHOD={{ postgres_host_auth_method }}
       {% endif %}
       - POSTGRES_USER={{ database_user | default('postgres') }}
-      {% if postgres_secrets_enabled -%}
+      {% if postgres_secrets_enabled %}
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      {% else -%}
+      {% else %}
       - POSTGRES_PASSWORD={{ database_password | default('postgres') }}
       {% endif %}
       - POSTGRES_DB={{ database_name | default('postgres') }}

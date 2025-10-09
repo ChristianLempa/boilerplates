@@ -9,10 +9,10 @@ services:
       - DOCKER_INFLUXDB_INIT_PASSWORD={{ influxdb_init_password | default('password') }}
       - DOCKER_INFLUXDB_INIT_ORG={{ influxdb_init_org | default('myorg') }}
       - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_init_bucket | default('mybucket') }}
-      {% if influxdb_init_retention -%}
+      {% if influxdb_init_retention %}
       - DOCKER_INFLUXDB_INIT_RETENTION={{ influxdb_init_retention }}
       {% endif %}
-      {% if influxdb_init_token -%}
+      {% if influxdb_init_token %}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_init_token }}
       {% endif %}
     {% if ports_enabled %}

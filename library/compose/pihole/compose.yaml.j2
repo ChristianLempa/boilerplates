@@ -12,7 +12,7 @@ services:
     {% endif %}
     environment:
       - TZ={{ container_timezone | default('UTC') }}
-      {% if pihole_webpassword -%}
+      {% if pihole_webpassword %}
       - FTLCONF_webserver_api_password={{ pihole_webpassword }}
       {% endif %}
       - FTLCONF_dns_upstreams={{ pihole_dns_upstreams | default('8.8.8.8;8.8.4.4') }}
