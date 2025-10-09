@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Test script for validating all compose templates with dry-run
-# This script iterates through all templates and runs a non-interactive dry-run
+# Test script for validating all compose templates
+# This script iterates through all templates and runs validation
 # Output is GitHub Actions friendly and easy to parse
 
 set -euo pipefail
@@ -57,41 +57,66 @@ print_status() {
     esac
 }
 
-# Function to test a single template
-test_template() {
+# Function to validate and test a single template
+validate_template() {
     local template_id=$1
     local template_name=$2
     
     TOTAL=$((TOTAL + 1))
     
-    print_status "INFO" "Testing: ${template_id}"
+    echo -e "${BLUE}────────────────────────────────────────${NC}"
+    print_status "INFO" "Testing: ${template_id} (${template_name})"
     
-    # Run the generate command with dry-run and no-interactive
-    # Capture stderr for error reporting
-    local temp_stderr=$(mktemp)
-    if python3 -m cli compose generate "${template_id}" \
-        --dry-run \
-        --no-interactive \
-        > /dev/null 2>"${temp_stderr}"; then
-        print_status "SUCCESS" "${template_id}"
-        PASSED=$((PASSED + 1))
-        rm -f "${temp_stderr}"
-        return 0
-    else
-        print_status "ERROR" "${template_id}"
+    # Step 1: Run validation
+    echo -e "  ${YELLOW}→${NC} Running validation..."
+    local temp_output=$(mktemp)
+    if ! python3 -m cli compose validate "${template_id}" \
+        > "${temp_output}" 2>&1; then
+        echo -e "  ${RED}✗${NC} Validation failed"
+        print_status "ERROR" "${template_id} - Validation failed"
         FAILED=$((FAILED + 1))
         FAILED_TEMPLATES+=("${template_id}")
         
-        # Show error message from stderr
-        if [[ -s "${temp_stderr}" ]]; then
-            local error_msg=$(cat "${temp_stderr}" | tr '\n' ' ')
-            if [[ -n "${error_msg}" ]]; then
-                echo "  └─ ${error_msg}"
-            fi
+        # Show error message (first few lines)
+        if [[ -s "${temp_output}" ]]; then
+            echo "  └─ Validation error:"
+            head -n 5 "${temp_output}" | sed 's/^/     /'
         fi
-        rm -f "${temp_stderr}"
+        rm -f "${temp_output}"
         return 1
     fi
+    echo -e "  ${GREEN}✓${NC} Validation passed"
+    rm -f "${temp_output}"
+    
+    # Step 2: Run dry-run generation with quiet mode
+    echo -e "  ${YELLOW}→${NC} Running dry-run generation..."
+    local temp_gen=$(mktemp)
+    if ! python3 -m cli compose generate "${template_id}" \
+        --dry-run \
+        --no-interactive \
+        --quiet \
+        > "${temp_gen}" 2>&1; then
+        echo -e "  ${RED}✗${NC} Generation failed"
+        print_status "ERROR" "${template_id} - Generation failed"
+        FAILED=$((FAILED + 1))
+        FAILED_TEMPLATES+=("${template_id}")
+        
+        # Show error message (first few lines)
+        if [[ -s "${temp_gen}" ]]; then
+            echo "  └─ Generation error:"
+            head -n 5 "${temp_gen}" | sed 's/^/     /'
+        fi
+        rm -f "${temp_gen}"
+        return 1
+    fi
+    echo -e "  ${GREEN}✓${NC} Generation passed"
+    rm -f "${temp_gen}"
+    
+    # Both validation and generation passed
+    print_status "SUCCESS" "${template_id}"
+    PASSED=$((PASSED + 1))
+    echo ""
+    return 0
 }
 
 # Main execution
@@ -99,7 +124,7 @@ main() {
     cd "${PROJECT_ROOT}"
     
     echo "=========================================="
-    echo "Compose Template Dry-Run Tests"
+    echo "Compose Template Validation Tests"
     echo "=========================================="
     print_status "INFO" "Working directory: ${PROJECT_ROOT}"
     echo ""
@@ -121,8 +146,8 @@ main() {
     
     # Iterate through each template
     while IFS=$'\t' read -r template_id template_name tags version library; do
-        # Continue even if test fails (don't let set -e stop us)
-        test_template "${template_id}" "${template_name}" || true
+        # Continue even if validation fails (don't let set -e stop us)
+        validate_template "${template_id}" "${template_name}" || true
     done <<< "${templates}"
     
     # Print summary

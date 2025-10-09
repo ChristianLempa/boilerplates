@@ -22,8 +22,166 @@ from jinja2 import Environment, FileSystemLoader, meta
 from jinja2.sandbox import SandboxedEnvironment
 from jinja2 import nodes
 from jinja2.visitor import NodeVisitor
+from jinja2.exceptions import (
+    TemplateSyntaxError as Jinja2TemplateSyntaxError,
+    UndefinedError,
+    TemplateError as Jinja2TemplateError,
+    TemplateNotFound as Jinja2TemplateNotFound
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_error_context(
+    file_path: Path,
+    line_number: Optional[int],
+    context_size: int = 3
+) -> List[str]:
+  """Extract lines of context around an error location.
+  
+  Args:
+      file_path: Path to the file with the error
+      line_number: Line number where error occurred (1-indexed)
+      context_size: Number of lines to show before and after
+      
+  Returns:
+      List of context lines with line numbers
+  """
+  if not line_number or not file_path.exists():
+    return []
+  
+  try:
+    with open(file_path, 'r', encoding='utf-8') as f:
+      lines = f.readlines()
+    
+    start_line = max(0, line_number - context_size - 1)
+    end_line = min(len(lines), line_number + context_size)
+    
+    context = []
+    for i in range(start_line, end_line):
+      line_num = i + 1
+      marker = '>>>' if line_num == line_number else '   '
+      context.append(f"{marker} {line_num:4d} | {lines[i].rstrip()}")
+    
+    return context
+  except (IOError, OSError):
+    return []
+
+
+def _get_common_jinja_suggestions(error_msg: str, available_vars: set) -> List[str]:
+  """Generate helpful suggestions based on common Jinja2 errors.
+  
+  Args:
+      error_msg: The error message from Jinja2
+      available_vars: Set of available variable names
+      
+  Returns:
+      List of actionable suggestions
+  """
+  suggestions = []
+  error_lower = error_msg.lower()
+  
+  # Undefined variable errors
+  if 'undefined' in error_lower or 'is not defined' in error_lower:
+    # Try to extract variable name from error message
+    import re
+    var_match = re.search(r"'([^']+)'.*is undefined", error_msg)
+    if not var_match:
+      var_match = re.search(r"'([^']+)'.*is not defined", error_msg)
+    
+    if var_match:
+      undefined_var = var_match.group(1)
+      suggestions.append(f"Variable '{undefined_var}' is not defined in the template spec")
+      
+      # Suggest similar variable names (basic fuzzy matching)
+      similar = [v for v in available_vars if undefined_var.lower() in v.lower() or v.lower() in undefined_var.lower()]
+      if similar:
+        suggestions.append(f"Did you mean one of these? {', '.join(sorted(similar)[:5])}")
+      
+      suggestions.append(f"Add '{undefined_var}' to your template.yaml spec with a default value")
+      suggestions.append("Or use the Jinja2 default filter: {{ " + undefined_var + " | default('value') }}")
+    else:
+      suggestions.append("Check that all variables used in templates are defined in template.yaml")
+      suggestions.append("Use the Jinja2 default filter for optional variables: {{ var | default('value') }}")
+  
+  # Syntax errors
+  elif 'unexpected' in error_lower or 'expected' in error_lower:
+    suggestions.append("Check for syntax errors in your Jinja2 template")
+    suggestions.append("Common issues: missing {% endfor %}, {% endif %}, or {% endblock %}")
+    suggestions.append("Make sure all {{ }} and {% %} tags are properly closed")
+  
+  # Filter errors
+  elif 'filter' in error_lower:
+    suggestions.append("Check that the filter name is spelled correctly")
+    suggestions.append("Verify the filter exists in Jinja2 built-in filters")
+    suggestions.append("Make sure filter arguments are properly formatted")
+  
+  # Template not found
+  elif 'not found' in error_lower or 'does not exist' in error_lower:
+    suggestions.append("Check that the included/imported template file exists")
+    suggestions.append("Verify the template path is relative to the template directory")
+    suggestions.append("Make sure the file has the .j2 extension if it's a Jinja2 template")
+  
+  # Type errors
+  elif 'type' in error_lower and ('int' in error_lower or 'str' in error_lower or 'bool' in error_lower):
+    suggestions.append("Check that variable values have the correct type")
+    suggestions.append("Use Jinja2 filters to convert types: {{ var | int }}, {{ var | string }}")
+  
+  # Add generic helpful tip
+  if not suggestions:
+    suggestions.append("Check the Jinja2 template syntax and variable usage")
+    suggestions.append("Enable --debug mode for more detailed rendering information")
+  
+  return suggestions
+
+
+def _parse_jinja_error(
+    error: Exception,
+    template_file: TemplateFile,
+    template_dir: Path,
+    available_vars: set
+) -> tuple[str, Optional[int], Optional[int], List[str], List[str]]:
+  """Parse a Jinja2 exception to extract detailed error information.
+  
+  Args:
+      error: The Jinja2 exception
+      template_file: The TemplateFile being rendered
+      template_dir: Template directory path
+      available_vars: Set of available variable names
+      
+  Returns:
+      Tuple of (error_message, line_number, column, context_lines, suggestions)
+  """
+  error_msg = str(error)
+  line_number = None
+  column = None
+  context_lines = []
+  suggestions = []
+  
+  # Extract line number from Jinja2 errors
+  if hasattr(error, 'lineno'):
+    line_number = error.lineno
+  
+  # Extract file path and get context
+  file_path = template_dir / template_file.relative_path
+  if line_number and file_path.exists():
+    context_lines = _extract_error_context(file_path, line_number)
+  
+  # Generate suggestions based on error type
+  if isinstance(error, UndefinedError):
+    error_msg = f"Undefined variable: {error}"
+    suggestions = _get_common_jinja_suggestions(str(error), available_vars)
+  elif isinstance(error, Jinja2TemplateSyntaxError):
+    error_msg = f"Template syntax error: {error}"
+    suggestions = _get_common_jinja_suggestions(str(error), available_vars)
+  elif isinstance(error, Jinja2TemplateNotFound):
+    error_msg = f"Template file not found: {error}"
+    suggestions = _get_common_jinja_suggestions(str(error), available_vars)
+  else:
+    # Generic Jinja2 error
+    suggestions = _get_common_jinja_suggestions(error_msg, available_vars)
+  
+  return error_msg, line_number, column, context_lines, suggestions
 
 
 @dataclass
@@ -428,9 +586,13 @@ class Template:
       keep_trailing_newline=False,
     )
 
-  def render(self, variables: VariableCollection) -> tuple[Dict[str, str], Dict[str, Any]]:
+  def render(self, variables: VariableCollection, debug: bool = False) -> tuple[Dict[str, str], Dict[str, Any]]:
     """Render all .j2 files in the template directory.
     
+    Args:
+        variables: VariableCollection with values to use for rendering
+        debug: Enable debug mode with verbose output
+        
     Returns:
         Tuple of (rendered_files, variable_values) where variable_values includes autogenerated values
     """
@@ -449,30 +611,81 @@ class Template:
           variable_values[var_name] = generated_value
           logger.debug(f"Auto-generated value for variable '{var_name}'")
     
-    logger.debug(f"Rendering template '{self.id}' with variables: {variable_values}")
+    if debug:
+      logger.info(f"Rendering template '{self.id}' in debug mode")
+      logger.info(f"Available variables: {sorted(variable_values.keys())}")
+      logger.info(f"Variable values: {variable_values}")
+    else:
+      logger.debug(f"Rendering template '{self.id}' with variables: {variable_values}")
+    
     rendered_files = {}
+    available_vars = set(variable_values.keys())
+    
     for template_file in self.template_files: # Iterate over TemplateFile objects
       if template_file.file_type == 'j2':
         try:
+          if debug:
+            logger.info(f"Rendering Jinja2 template: {template_file.relative_path}")
+          
           template = self.jinja_env.get_template(str(template_file.relative_path)) # Use lazy-loaded jinja_env
           rendered_content = template.render(**variable_values)
+          
           # Sanitize the rendered content to remove excessive blank lines
           rendered_content = self._sanitize_content(rendered_content, template_file.output_path)
           rendered_files[str(template_file.output_path)] = rendered_content
+          
+          if debug:
+            logger.info(f"Successfully rendered: {template_file.relative_path} -> {template_file.output_path}")
+        
+        except (UndefinedError, Jinja2TemplateSyntaxError, Jinja2TemplateNotFound, Jinja2TemplateError) as e:
+          # Parse Jinja2 error to extract detailed information
+          error_msg, line_num, col, context_lines, suggestions = _parse_jinja_error(
+              e, template_file, self.template_dir, available_vars
+          )
+          
+          logger.error(f"Error rendering template file {template_file.relative_path}: {error_msg}")
+          
+          # Create enhanced TemplateRenderError with all context
+          raise TemplateRenderError(
+              message=error_msg,
+              file_path=str(template_file.relative_path),
+              line_number=line_num,
+              column=col,
+              context_lines=context_lines,
+              variable_context={k: str(v) for k, v in variable_values.items()} if debug else {},
+              suggestions=suggestions,
+              original_error=e
+          )
+        
         except Exception as e:
-          logger.error(f"Error rendering template file {template_file.relative_path}: {e}")
-          raise TemplateRenderError(f"Error rendering {template_file.relative_path}: {e}")
+          # Catch any other unexpected errors
+          logger.error(f"Unexpected error rendering template file {template_file.relative_path}: {e}")
+          raise TemplateRenderError(
+              message=f"Unexpected rendering error: {e}",
+              file_path=str(template_file.relative_path),
+              suggestions=["This is an unexpected error. Please check the template for issues."],
+              original_error=e
+          )
+      
       elif template_file.file_type == 'static':
           # For static files, just read their content and add to rendered_files
           # This ensures static files are also part of the output dictionary
           file_path = self.template_dir / template_file.relative_path
           try:
+              if debug:
+                logger.info(f"Copying static file: {template_file.relative_path}")
+              
               with open(file_path, "r", encoding="utf-8") as f:
                   content = f.read()
                   rendered_files[str(template_file.output_path)] = content
           except (IOError, OSError) as e:
               logger.error(f"Error reading static file {file_path}: {e}")
-              raise TemplateRenderError(f"Error reading static file {file_path}: {e}")
+              raise TemplateRenderError(
+                  message=f"Error reading static file: {e}",
+                  file_path=str(template_file.relative_path),
+                  suggestions=["Check that the file exists and has read permissions"],
+                  original_error=e
+              )
           
     return rendered_files, variable_values
   

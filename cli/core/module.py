@@ -12,6 +12,11 @@ from rich.prompt import Confirm
 from typer import Argument, Context, Option, Typer, Exit
 
 from .display import DisplayManager
+from .exceptions import (
+    TemplateRenderError,
+    TemplateSyntaxError,
+    TemplateValidationError
+)
 from .library import LibraryManager
 from .prompt import PromptHandler
 from .template import Template
@@ -424,12 +429,13 @@ class Module(ABC):
     console.print(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
 
-  def _write_generated_files(self, output_dir: Path, rendered_files: Dict[str, str]) -> None:
+  def _write_generated_files(self, output_dir: Path, rendered_files: Dict[str, str], quiet: bool = False) -> None:
     """Write rendered files to the output directory.
     
     Args:
         output_dir: Directory to write files to
         rendered_files: Dictionary of file paths to rendered content
+        quiet: Suppress output messages
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -438,9 +444,11 @@ class Module(ABC):
       full_path.parent.mkdir(parents=True, exist_ok=True)
       with open(full_path, 'w', encoding='utf-8') as f:
         f.write(content)
-      console.print(f"[green]Generated file: {file_path}[/green]")  # Keep simple per-file output
+      if not quiet:
+        console.print(f"[green]Generated file: {file_path}[/green]")  # Keep simple per-file output
     
-    self.display.display_success(f"Template generated successfully in '{output_dir}'")
+    if not quiet:
+      self.display.display_success(f"Template generated successfully in '{output_dir}'")
     logger.info(f"Template written to directory: {output_dir}")
 
   def generate(
@@ -451,6 +459,7 @@ class Module(ABC):
     var: Optional[list[str]] = Option(None, "--var", "-v", help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE"),
     dry_run: bool = Option(False, "--dry-run", help="Preview template generation without writing files"),
     show_files: bool = Option(False, "--show-files", help="Display generated file contents in plain text (use with --dry-run)"),
+    quiet: bool = Option(False, "--quiet", "-q", help="Suppress all non-error output"),
     ctx: Context = None,
   ) -> None:
     """Generate from template.
@@ -478,6 +487,10 @@ class Module(ABC):
         cli compose generate traefik --dry-run --show-files
     """
     logger.info(f"Starting generation for template '{id}' from module '{self.name}'")
+    
+    # Create a display manager with quiet mode if needed
+    display = DisplayManager(quiet=quiet) if quiet else self.display
+    
     template = self._load_template_by_id(id)
 
     # Apply defaults and overrides
@@ -488,8 +501,9 @@ class Module(ABC):
     if template.variables:
       template.variables.sort_sections()
 
-    self._display_template_details(template, id)
-    console.print()
+    if not quiet:
+      self._display_template_details(template, id)
+      console.print()
 
     # Collect variable values
     variable_values = self._collect_variable_values(template, interactive)
@@ -499,10 +513,13 @@ class Module(ABC):
       if template.variables:
         template.variables.validate_all()
       
-      rendered_files, variable_values = template.render(template.variables)
+      # Check if we're in debug mode (logger level is DEBUG)
+      debug_mode = logger.isEnabledFor(logging.DEBUG)
+      
+      rendered_files, variable_values = template.render(template.variables, debug=debug_mode)
       
       if not rendered_files:
-        self.display.display_error("Template rendering returned no files", context="template generation")
+        display.display_error("Template rendering returned no files", context="template generation")
         raise Exit(code=1)
       
       logger.info(f"Successfully rendered template '{id}'")
@@ -510,29 +527,38 @@ class Module(ABC):
       # Determine output directory
       output_dir = Path(directory) if directory else Path(id)
       
-      # Check for conflicts and get confirmation
-      existing_files = self._check_output_directory(output_dir, rendered_files, interactive)
-      if existing_files is None:
-        return  # User cancelled
-      
-      # Get final confirmation for generation
-      dir_not_empty = output_dir.exists() and any(output_dir.iterdir())
-      if not self._get_generation_confirmation(output_dir, rendered_files, existing_files, 
-                                               dir_not_empty, dry_run, interactive):
-        return  # User cancelled
+      # Check for conflicts and get confirmation (skip in quiet mode)
+      if not quiet:
+        existing_files = self._check_output_directory(output_dir, rendered_files, interactive)
+        if existing_files is None:
+          return  # User cancelled
+        
+        # Get final confirmation for generation
+        dir_not_empty = output_dir.exists() and any(output_dir.iterdir())
+        if not self._get_generation_confirmation(output_dir, rendered_files, existing_files, 
+                                                 dir_not_empty, dry_run, interactive):
+          return  # User cancelled
+      else:
+        # In quiet mode, just check for existing files without prompts
+        existing_files = []
       
       # Execute generation (dry run or actual)
       if dry_run:
-        self._execute_dry_run(id, output_dir, rendered_files, show_files)
+        if not quiet:
+          self._execute_dry_run(id, output_dir, rendered_files, show_files)
       else:
-        self._write_generated_files(output_dir, rendered_files)
+        self._write_generated_files(output_dir, rendered_files, quiet=quiet)
       
-      # Display next steps
-      if template.metadata.next_steps:
-        self.display.display_next_steps(template.metadata.next_steps, variable_values)
+      # Display next steps (not in quiet mode)
+      if template.metadata.next_steps and not quiet:
+        display.display_next_steps(template.metadata.next_steps, variable_values)
 
+    except TemplateRenderError as e:
+      # Display enhanced error information for template rendering errors (always show errors)
+      display.display_template_render_error(e, context=f"template '{id}'")
+      raise Exit(code=1)
     except Exception as e:
-      self.display.display_error(str(e), context=f"generating template '{id}'")
+      display.display_error(str(e), context=f"generating template '{id}'")
       raise Exit(code=1)
 
   def config_get(
@@ -726,6 +752,7 @@ class Module(ABC):
   def validate(
     self,
     template_id: str = Argument(None, help="Template ID to validate (if omitted, validates all templates)"),
+    path: Optional[str] = Option(None, "--path", "-p", help="Validate a template from a specific directory path"),
     verbose: bool = Option(False, "--verbose", "-v", help="Show detailed validation information"),
     semantic: bool = Option(True, "--semantic/--no-semantic", help="Enable semantic validation (Docker Compose schema, etc.)")
   ) -> None:
@@ -746,6 +773,9 @@ class Module(ABC):
         # Validate a specific template
         cli compose validate gitlab
         
+        # Validate a template from a specific path
+        cli compose validate --path /path/to/template
+        
         # Validate with verbose output
         cli compose validate --verbose
         
@@ -755,56 +785,89 @@ class Module(ABC):
     from rich.table import Table
     from .validators import get_validator_registry
     
-    if template_id:
-      # Validate a specific template
+    # Validate from path takes precedence
+    if path:
+      try:
+        template_path = Path(path).resolve()
+        if not template_path.exists():
+          self.display.display_error(f"Path does not exist: {path}")
+          raise Exit(code=1)
+        if not template_path.is_dir():
+          self.display.display_error(f"Path is not a directory: {path}")
+          raise Exit(code=1)
+        
+        console.print(f"[bold]Validating template from path:[/bold] [cyan]{template_path}[/cyan]\n")
+        template = Template(template_path, library_name="local")
+        template_id = template.id
+      except Exception as e:
+        self.display.display_error(f"Failed to load template from path '{path}': {e}")
+        raise Exit(code=1)
+    elif template_id:
+      # Validate a specific template by ID
       try:
         template = self._load_template_by_id(template_id)
         console.print(f"[bold]Validating template:[/bold] [cyan]{template_id}[/cyan]\n")
-        
-        try:
-          # Trigger validation by accessing used_variables
-          _ = template.used_variables
-          # Trigger variable definition validation by accessing variables
-          _ = template.variables
-          self.display.display_success("Jinja2 validation passed")
-          
-          # Semantic validation
-          if semantic:
-            console.print(f"\n[bold cyan]Running semantic validation...[/bold cyan]")
-            registry = get_validator_registry()
-            has_semantic_errors = False
-            
-            # Render template with default values for validation
-            rendered_files, _ = template.render(template.variables)
-            
-            for file_path, content in rendered_files.items():
-              result = registry.validate_file(content, file_path)
-              
-              if result.errors or result.warnings or (verbose and result.info):
-                console.print(f"\n[cyan]File:[/cyan] {file_path}")
-                result.display(f"{file_path}")
-                
-                if result.errors:
-                  has_semantic_errors = True
-            
-            if not has_semantic_errors:
-              self.display.display_success("Semantic validation passed")
-            else:
-              self.display.display_error("Semantic validation found errors")
-              raise Exit(code=1)
-          
-          if verbose:
-            console.print(f"\n[dim]Template path: {template.template_dir}[/dim]")
-            console.print(f"[dim]Found {len(template.used_variables)} variables[/dim]")
-            console.print(f"[dim]Generated {len(rendered_files)} files[/dim]")
-        except ValueError as e:
-          self.display.display_error(f"Validation failed for '{template_id}':")
-          console.print(f"\n{e}")
-          raise Exit(code=1)
-          
       except Exception as e:
-        console.print(f"[red]Error loading template '{template_id}': {e}[/red]")
+        self.display.display_error(f"Failed to load template '{template_id}': {e}")
         raise Exit(code=1)
+    else:
+      # Validate all templates - handled separately below
+      template = None
+    
+    # Single template validation
+    if template:
+      try:
+        # Trigger validation by accessing used_variables
+        _ = template.used_variables
+        # Trigger variable definition validation by accessing variables
+        _ = template.variables
+        self.display.display_success("Jinja2 validation passed")
+        
+        # Semantic validation
+        if semantic:
+          console.print(f"\n[bold cyan]Running semantic validation...[/bold cyan]")
+          registry = get_validator_registry()
+          has_semantic_errors = False
+          
+          # Render template with default values for validation
+          debug_mode = logger.isEnabledFor(logging.DEBUG)
+          rendered_files, _ = template.render(template.variables, debug=debug_mode)
+          
+          for file_path, content in rendered_files.items():
+            result = registry.validate_file(content, file_path)
+            
+            if result.errors or result.warnings or (verbose and result.info):
+              console.print(f"\n[cyan]File:[/cyan] {file_path}")
+              result.display(f"{file_path}")
+              
+              if result.errors:
+                has_semantic_errors = True
+          
+          if not has_semantic_errors:
+            self.display.display_success("Semantic validation passed")
+          else:
+            self.display.display_error("Semantic validation found errors")
+            raise Exit(code=1)
+        
+        if verbose:
+          console.print(f"\n[dim]Template path: {template.template_dir}[/dim]")
+          console.print(f"[dim]Found {len(template.used_variables)} variables[/dim]")
+          if semantic:
+            console.print(f"[dim]Generated {len(rendered_files)} files[/dim]")
+      
+      except TemplateRenderError as e:
+        # Display enhanced error information for template rendering errors
+        self.display.display_template_render_error(e, context=f"template '{template_id}'")
+        raise Exit(code=1)
+      except (TemplateSyntaxError, TemplateValidationError, ValueError) as e:
+        self.display.display_error(f"Validation failed for '{template_id}':")
+        console.print(f"\n{e}")
+        raise Exit(code=1)
+      except Exception as e:
+        self.display.display_error(f"Unexpected error validating '{template_id}': {e}")
+        raise Exit(code=1)
+      
+      return
     else:
       # Validate all templates
       console.print(f"[bold]Validating all {self.name} templates...[/bold]\n")

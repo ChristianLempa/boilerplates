@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 console = Console()
+console_err = Console(stderr=True)
 
 
 class IconManager:
@@ -160,6 +161,14 @@ class DisplayManager:
     - External code should never directly call IconManager or console.print
     - Consistent formatting across all display types
     """
+    
+    def __init__(self, quiet: bool = False):
+        """Initialize DisplayManager.
+        
+        Args:
+            quiet: If True, suppress all non-error output
+        """
+        self.quiet = quiet
 
     def display_templates_table(
         self, templates: list, module_name: str, title: str
@@ -220,6 +229,18 @@ class DisplayManager:
             message: The message to display
             context: Optional context information
         """
+        # Errors and warnings always go to stderr, even in quiet mode
+        # Success and info respect quiet mode and go to stdout
+        if level in ('error', 'warning'):
+            output_console = console_err
+            should_print = True
+        else:
+            output_console = console
+            should_print = not self.quiet
+        
+        if not should_print:
+            return
+        
         icon = IconManager.get_status_icon(level)
         colors = {'error': 'red', 'warning': 'yellow', 'success': 'green', 'info': 'blue'}
         color = colors.get(level, 'white')
@@ -230,7 +251,7 @@ class DisplayManager:
         else:
             text = f"{level.capitalize()}: {message}" if level == 'error' or level == 'warning' else message
         
-        console.print(f"[{color}]{icon} {text}[/{color}]")
+        output_console.print(f"[{color}]{icon} {text}[/{color}]")
         
         # Log appropriately
         log_message = f"{context}: {message}" if context else message
@@ -666,3 +687,79 @@ class DisplayManager:
             'arrow': IconManager.arrow_right(),
         }
         return icon_map.get(icon_type, '')
+    
+    def display_template_render_error(self, error: 'TemplateRenderError', context: str | None = None) -> None:
+        """Display a detailed template rendering error with context and suggestions.
+        
+        Args:
+            error: TemplateRenderError exception with detailed error information
+            context: Optional context information (e.g., template ID)
+        """
+        from rich.panel import Panel
+        from rich.syntax import Syntax
+        
+        # Always display errors to stderr
+        # Display main error header
+        icon = IconManager.get_status_icon('error')
+        if context:
+            console_err.print(f"\n[red bold]{icon} Template Rendering Error[/red bold] [dim]({context})[/dim]")
+        else:
+            console_err.print(f"\n[red bold]{icon} Template Rendering Error[/red bold]")
+        
+        console_err.print()
+        
+        # Display error message
+        if error.file_path:
+            console_err.print(f"[red]Error in file:[/red] [cyan]{error.file_path}[/cyan]")
+            if error.line_number:
+                location = f"Line {error.line_number}"
+                if error.column:
+                    location += f", Column {error.column}"
+                console_err.print(f"[red]Location:[/red] {location}")
+        
+        console_err.print(f"[red]Message:[/red] {str(error.original_error) if error.original_error else str(error)}")
+        console_err.print()
+        
+        # Display code context if available
+        if error.context_lines:
+            console_err.print("[bold cyan]Code Context:[/bold cyan]")
+            
+            # Build the context text
+            context_text = "\n".join(error.context_lines)
+            
+            # Display in a panel with syntax highlighting if possible
+            file_ext = Path(error.file_path).suffix if error.file_path else ""
+            if file_ext == ".j2":
+                # Remove .j2 to get base extension for syntax highlighting
+                base_name = Path(error.file_path).stem
+                base_ext = Path(base_name).suffix
+                lexer = "jinja2" if not base_ext else None
+            else:
+                lexer = None
+            
+            try:
+                if lexer:
+                    syntax = Syntax(context_text, lexer, line_numbers=False, theme="monokai")
+                    console_err.print(Panel(syntax, border_style="red", padding=(1, 2)))
+                else:
+                    console_err.print(Panel(context_text, border_style="red", padding=(1, 2)))
+            except Exception:
+                # Fallback to plain panel if syntax highlighting fails
+                console_err.print(Panel(context_text, border_style="red", padding=(1, 2)))
+            
+            console_err.print()
+        
+        # Display suggestions if available
+        if error.suggestions:
+            console_err.print("[bold yellow]Suggestions:[/bold yellow]")
+            for i, suggestion in enumerate(error.suggestions, 1):
+                bullet = IconManager.UI_BULLET
+                console_err.print(f"  [yellow]{bullet}[/yellow] {suggestion}")
+            console_err.print()
+        
+        # Display variable context in debug mode
+        if error.variable_context:
+            console_err.print("[bold blue]Available Variables (Debug):[/bold blue]")
+            var_list = ", ".join(sorted(error.variable_context.keys()))
+            console_err.print(f"[dim]{var_list}[/dim]")
+            console_err.print()

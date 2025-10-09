@@ -4,7 +4,7 @@ This module defines specific exception types for better error handling
 and diagnostics throughout the application.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 class BoilerplatesError(Exception):
@@ -61,7 +61,38 @@ class TemplateValidationError(TemplateError):
 
 class TemplateRenderError(TemplateError):
     """Raised when template rendering fails."""
-    pass
+    
+    def __init__(
+        self,
+        message: str,
+        file_path: Optional[str] = None,
+        line_number: Optional[int] = None,
+        column: Optional[int] = None,
+        context_lines: Optional[List[str]] = None,
+        variable_context: Optional[Dict[str, str]] = None,
+        suggestions: Optional[List[str]] = None,
+        original_error: Optional[Exception] = None
+    ):
+        self.file_path = file_path
+        self.line_number = line_number
+        self.column = column
+        self.context_lines = context_lines or []
+        self.variable_context = variable_context or {}
+        self.suggestions = suggestions or []
+        self.original_error = original_error
+        
+        # Build enhanced error message
+        parts = [message]
+        
+        if file_path:
+            location = f"File: {file_path}"
+            if line_number:
+                location += f", Line: {line_number}"
+                if column:
+                    location += f", Column: {column}"
+            parts.append(location)
+        
+        super().__init__("\n".join(parts))
 
 
 class VariableError(BoilerplatesError):
