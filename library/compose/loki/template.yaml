@@ -12,9 +12,9 @@ metadata:
     Documentation: https://grafana.com/docs/loki/latest/
 
     GitHub: https://github.com/grafana/loki
-  version: 3.5.3
+  version: 3.5.6
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-10'
   tags:
     - grafana
     - monitoring
