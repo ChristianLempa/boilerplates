@@ -1,6 +1,6 @@
 services:
   {{ service_name | default('n8n') }}:
-    image: n8nio/n8n:1.115.1
+    image: n8nio/n8n:1.115.2
     container_name: {{ container_name | default('n8n') }}
     environment:
       - N8N_LOG_LEVEL={{ container_loglevel | default('info') }}
