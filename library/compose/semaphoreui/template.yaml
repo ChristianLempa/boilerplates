@@ -14,9 +14,9 @@ metadata:
     Documentation: https://docs.semaphoreui.com/
 
     GitHub: https://github.com/semaphoreui/semaphore
-  version: 2.16.18
+  version: v2.16.34
   author: Christian Lempa
-  date: '2025-10-02'
+  date: '2025-10-10'
   tags:
     - automation
     - ansible
