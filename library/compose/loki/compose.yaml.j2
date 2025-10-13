@@ -1,7 +1,7 @@
 services:
   loki:
     container_name: loki
-    image: docker.io/grafana/loki:3.5.5
+    image: docker.io/grafana/loki:3.5.6
     command: "-config.file=/etc/loki/config.yaml"
     ports:
       # --> (Optional) Remove when using traefik...
