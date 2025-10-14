@@ -58,7 +58,6 @@ def setup_logging(log_level: str = "WARNING") -> None:
 
 @app.callback(invoke_without_command=True)
 def main(
-  ctx: Context,
   version: Optional[bool] = Option(
     None,
     "--version",
@@ -83,6 +82,10 @@ def main(
   else:
     # Silence all logging (including third-party) unless user explicitly requests it
     logging.disable(logging.CRITICAL)
+  
+  # Get context without type annotation (compatible with all Typer versions)
+  import click
+  ctx = click.get_current_context()
   
   # Store log level in context for potential use by other commands
   ctx.ensure_object(dict)

@@ -196,16 +196,24 @@ class Module(ABC):
       if successful:
         logger.debug(f"Applied config defaults for: {', '.join(successful)}")
 
-  def _apply_cli_overrides(self, template: Template, var: Optional[List[str]], ctx: Context) -> None:
+  def _apply_cli_overrides(self, template: Template, var: Optional[List[str]], ctx=None) -> None:
     """Apply CLI variable overrides to template.
     
     Args:
         template: Template instance to apply overrides to
         var: List of variable override strings from --var flags
-        ctx: Typer context containing extra args
+        ctx: Context object containing extra args (optional, will get current context if None)
     """
     if not template.variables:
       return
+    
+    # Get context if not provided (compatible with all Typer versions)
+    if ctx is None:
+      import click
+      try:
+        ctx = click.get_current_context()
+      except RuntimeError:
+        ctx = None
     
     extra_args = list(ctx.args) if ctx and hasattr(ctx, "args") else []
     cli_overrides = parse_var_inputs(var or [], extra_args)
@@ -460,7 +468,6 @@ class Module(ABC):
     dry_run: bool = Option(False, "--dry-run", help="Preview template generation without writing files"),
     show_files: bool = Option(False, "--show-files", help="Display generated file contents in plain text (use with --dry-run)"),
     quiet: bool = Option(False, "--quiet", "-q", help="Suppress all non-error output"),
-    ctx: Context = None,
   ) -> None:
     """Generate from template.
     
@@ -495,7 +502,7 @@ class Module(ABC):
 
     # Apply defaults and overrides
     self._apply_variable_defaults(template)
-    self._apply_cli_overrides(template, var, ctx)
+    self._apply_cli_overrides(template, var)
     
     # Re-sort sections after all overrides (toggle values may have changed)
     if template.variables:
