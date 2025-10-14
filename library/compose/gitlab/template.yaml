@@ -62,6 +62,7 @@ spec:
         type: int
         description: SSH port
         default: 2424
+        required: true
       ports_registry:
         type: int
         description: Container Registry port

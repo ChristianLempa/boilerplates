@@ -2,7 +2,7 @@
 external_url '{{ external_url }}'
 
 # GitLab Shell SSH settings
-gitlab_rails['gitlab_shell_ssh_port'] = {{ ssh_port }}
+gitlab_rails['gitlab_shell_ssh_port'] = {{ ports_ssh }}
 
 # Let's Encrypt and built-in TLS settings are currently not supported by the template
 # as we are using Traefik as a reverse proxy

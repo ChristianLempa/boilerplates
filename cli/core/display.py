@@ -444,7 +444,9 @@ class DisplayManager:
                 
                 # Add lock icon for sensitive variables
                 sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
-                var_display = f"  {var_name}{sensitive_icon}"
+                # Add required indicator for required variables
+                required_indicator = " [yellow](required)[/yellow]" if variable.required else ""
+                var_display = f"  {var_name}{sensitive_icon}{required_indicator}"
 
                 variables_table.add_row(
                     var_display,

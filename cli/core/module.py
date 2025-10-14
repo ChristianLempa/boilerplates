@@ -560,7 +560,15 @@ class Module(ABC):
       logger.info(f"Successfully rendered template '{id}'")
       
       # Determine output directory
-      output_dir = Path(directory) if directory else Path(id)
+      if directory:
+        output_dir = Path(directory)
+        # Check if path looks like an absolute path but is missing the leading slash
+        # This handles cases like "Users/username/path" which should be "/Users/username/path"
+        if not output_dir.is_absolute() and str(output_dir).startswith(("Users/", "home/", "usr/", "opt/", "var/", "tmp/")):
+          output_dir = Path("/") / output_dir
+          logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
+      else:
+        output_dir = Path(id)
       
       # Check for conflicts and get confirmation (skip in quiet mode)
       if not quiet:

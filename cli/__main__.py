@@ -91,6 +91,11 @@ def main(
   ctx.ensure_object(dict)
   ctx.obj['log_level'] = log_level
   
+  # Check for local config.yaml and show indicator
+  local_config = Path.cwd() / "config.yaml"
+  if local_config.exists() and local_config.is_file():
+    console.print(f"[dim]→ Using local config: config.yaml[/dim]")
+  
   # If no subcommand is provided, show help and friendly intro
   if ctx.invoked_subcommand is None:
     console.print(ctx.get_help())

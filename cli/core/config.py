@@ -37,19 +37,33 @@ class ConfigManager:
         """Initialize the configuration manager.
         
         Args:
-            config_path: Path to the configuration file. If None, uses default location.
+            config_path: Path to the configuration file. If None, auto-detects:
+                        1. Checks for ./config.yaml (local project config)
+                        2. Falls back to ~/.config/boilerplates/config.yaml (global config)
         """
         if config_path is None:
-            # Default to ~/.config/boilerplates/config.yaml
-            config_dir = Path.home() / ".config" / "boilerplates"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            self.config_path = config_dir / "config.yaml"
+            # Check for local config.yaml in current directory first
+            local_config = Path.cwd() / "config.yaml"
+            if local_config.exists() and local_config.is_file():
+                self.config_path = local_config
+                self.is_local = True
+                logger.info(f"Using local config: {local_config}")
+            else:
+                # Fall back to global config
+                config_dir = Path.home() / ".config" / "boilerplates"
+                config_dir.mkdir(parents=True, exist_ok=True)
+                self.config_path = config_dir / "config.yaml"
+                self.is_local = False
         else:
             self.config_path = Path(config_path)
+            self.is_local = False
         
-        # Create default config if it doesn't exist
+        # Create default config if it doesn't exist (only for global config)
         if not self.config_path.exists():
-            self._create_default_config()
+            if not self.is_local:
+                self._create_default_config()
+            else:
+                raise ConfigError(f"Local config file not found: {self.config_path}")
         else:
             # Migrate existing config if needed
             self._migrate_config_if_needed()
@@ -411,12 +425,20 @@ class ConfigManager:
                     raise ConfigValidationError(f"Library 'enabled' at index {i} must be a boolean")
     
     def get_config_path(self) -> Path:
-        """Get the path to the configuration file.
+        """Get the path to the configuration file being used.
         
         Returns:
-            Path to the configuration file.
+            Path to the configuration file (global or local).
         """
         return self.config_path
+    
+    def is_using_local_config(self) -> bool:
+        """Check if a local configuration file is being used.
+        
+        Returns:
+            True if using local config, False if using global config.
+        """
+        return self.is_local
 
     def get_defaults(self, module_name: str) -> Dict[str, Any]:
         """Get default variable values for a module.
