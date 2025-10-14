@@ -10,9 +10,9 @@ metadata:
     Project: https://www.home-assistant.io/
 
     Documentation: https://www.home-assistant.io/docs/
-  version: 2025.8.3
+  version: 2025.10.2
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-11'
   tags:
     - home-automation
     - iot
