@@ -414,7 +414,6 @@ class DisplayManager:
                     needs_text = f" [dim](needs: {needs_list})[/dim]"
                 header_text = f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
             variables_table.add_row(header_text, "", "", "")
-
             for var_name, variable in section.variables.items():
                 row_style = "bright_black" if is_dimmed else None
                 
