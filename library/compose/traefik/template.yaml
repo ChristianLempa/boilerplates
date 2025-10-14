@@ -10,7 +10,7 @@ metadata:
     Project: https://traefik.io/
 
     Documentation: https://doc.traefik.io/traefik/
-  version: v3.2
+  version: v3.5.3
   author: "Christian Lempa"
   date: "2025-10-02"
   tags:
@@ -56,7 +56,7 @@ metadata:
        - Review and limit network exposure
 
     For more information, visit: https://doc.traefik.io/traefik/
-  draft: true
+  draft: false
 spec:
   general:
     title: "General"
@@ -80,16 +80,11 @@ spec:
         description: "HTTP entrypoint name (non-TLS)"
         default: "web"
         extra: "Standard HTTP traffic on port 80"
-      traefik_tls_entrypoint:
-        type: "str"
-        description: "HTTPS entrypoint name (TLS)"
-        default: "websecure"
-        extra: "Secure HTTPS traffic on port 443"
-      traefik_tls_certresolver:
-        type: "str"
-        description: "Certificate resolver name"
-        default: "cloudflare"
-        extra: "Must match the certificateResolvers name in traefik.yaml"
+      traefik_dashboard_enabled:
+        type: "bool"
+        description: "Enable Traefik dashboard (insecure mode)"
+        default: false
+        extra: "WARNING: Don't use in production! Exposes dashboard on port 8080"
   traefik_tls:
     title: "Traefik TLS Settings"
     description: "Configure TLS/SSL with Let's Encrypt ACME"
@@ -128,11 +123,16 @@ spec:
   ports:
     toggle: "ports_enabled"
     vars:
-      traefik_dashboard_enabled:
-        type: "bool"
-        description: "Enable Traefik dashboard (don't use in production)"
-        default: false
-        extra: "Exposes dashboard on port 8080 in insecure mode"
+      traefik_http_port:
+        type: "int"
+        description: "HTTP port (external)"
+        default: 80
+        extra: "Maps to entrypoint 'web' (port 80)"
+      traefik_https_port:
+        type: "int"
+        description: "HTTPS port (external)"
+        default: 443
+        extra: "Maps to entrypoint 'websecure' (port 443)"
   network:
     vars:
       network_enabled:
@@ -141,12 +141,8 @@ spec:
         default: "proxy"
   swarm:
     vars:
-      swarm_placement_mode:
+      swarm_placement:
         default: "global"
-      swarm_placement_host:
-        type: str
-        description: "Placement constraint for node selection (optional)"
-        default: ""
   authentik:
     title: Authentik Middleware
     description: Enable Authentik SSO integration for Traefik

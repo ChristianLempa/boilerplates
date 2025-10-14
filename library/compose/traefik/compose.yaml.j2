@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/library/traefik:v3.2
+    image: docker.io/library/traefik:v3.5.3
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
     {% endif %}
@@ -16,7 +16,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
-    {% if traefik_tls_enabled %}
+      {% if traefik_tls_enabled %}
+      {% if not swarm_enabled %}
+      - ./.env.secret:/.env.secret:ro
+      {% endif %}
     env_file:
       - ./.env
     {% endif %}
@@ -35,17 +38,22 @@ services:
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
     secrets:
-      - {{ traefik_tls_acme_secret_name }}
+      - source: {{ traefik_tls_acme_secret_name }}
+        target: /.env.secret
+        mode: 0400
     {% endif %}
     deploy:
-      mode: {{ swarm_placement_mode }}
-      {% if swarm_placement_mode == 'replicated' %}
+      {% if swarm_placement in ['global', 'replicated'] %}
+      mode: {{ swarm_placement }}
+      {% if swarm_placement == 'replicated' %}
       replicas: {{ swarm_replicas }}
       {% endif %}
-      {% if swarm_placement_host %}
+      {% else %}
+      mode: replicated
+      replicas: {{ swarm_replicas }}
       placement:
         constraints:
-          - {{ swarm_placement_host }}
+          - {{ swarm_placement }}
       {% endif %}
     {% else %}
     restart: {{ restart_policy }}
@@ -54,7 +62,7 @@ services:
 {% if swarm_enabled and traefik_tls_enabled %}
 secrets:
   {{ traefik_tls_acme_secret_name }}:
-    external: true
+    file: ./.env.secret
 {% endif %}
 
 {% if network_enabled %}
