@@ -18,10 +18,16 @@ services:
       - ./certs/:/var/traefik/certs/:rw
     {% if traefik_tls_enabled %}
     env_file:
-      - ./.env.
+      - ./.env
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     {% if network_enabled %}
     networks:
       - {{ network_name }}
