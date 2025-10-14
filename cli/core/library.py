@@ -139,12 +139,21 @@ class LibraryManager:
     library_configs = self.config.get_libraries()
     
     for i, lib_config in enumerate(library_configs):
+      # Validate library config has required fields
+      if not isinstance(lib_config, dict):
+        logger.warning(f"Invalid library config at index {i}: not a dictionary")
+        continue
+      
       # Skip disabled libraries
       if not lib_config.get("enabled", True):
         logger.debug(f"Skipping disabled library: {lib_config.get('name')}")
         continue
       
       name = lib_config.get("name")
+      if not name:
+        logger.warning(f"Library config at index {i} missing 'name' field")
+        continue
+      
       directory = lib_config.get("directory", ".")
       
       # Build path to library: ~/.config/boilerplates/libraries/{name}/{directory}/
