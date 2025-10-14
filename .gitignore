@@ -23,3 +23,6 @@
 
 # Installation tracking
 .installed-version
+
+# Test outputs
+tests/
