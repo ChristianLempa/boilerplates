@@ -24,6 +24,6 @@
 # Installation tracking
 .installed-version
 
-# Test deployments
-/tests/
+# Test outputs
+tests/
 config.yaml

@@ -15,11 +15,13 @@ services:
 {% if ports_enabled %}
     ports:
       - "{{ ports_http }}:80"
-      - "{{ ports_https }}:443"
-      - "{{ ssh_port }}:22"
+      - "{{ ports_ssh }}:22"
+      {% if registry_enabled %}
+      - "{{ ports_registry }}:5678"
+      {% endif %}
 {% else %}
     ports:
-      - "{{ ssh_port }}:22"
+      - "{{ ports_ssh }}:22"
 {% endif %}
 {% if traefik_enabled %}
     labels:

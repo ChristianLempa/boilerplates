@@ -4,13 +4,14 @@ external_url '{{ external_url }}'
 # GitLab Shell SSH settings
 gitlab_rails['gitlab_shell_ssh_port'] = {{ ssh_port }}
 
-# Let's Encrypt settings are currently not supported by the template
+# Let's Encrypt and built-in TLS settings are currently not supported by the template
+# as we are using Traefik as a reverse proxy
 letsencrypt['enable'] = false
-
-{% if traefik_enabled %}
-# Traefik settings
 nginx['listen_port']  = 80
 nginx['listen_https'] = false
+
+{% if traefik_tls_enabled %}
+# Traefik settings, to redirect http to https
 nginx['redirect_http_to_https'] = true
 {% endif %}
 
@@ -18,9 +19,7 @@ nginx['redirect_http_to_https'] = true
 # Container Registry settings
 registry_external_url '{{ registry_external_url }}'
 gitlab_rails['registry_enabled']  = true
-{% if traefik_enabled %}
 registry_nginx['listen_https']    = false
-{% endif %}
 registry_nginx['listen_port']     = {{ ports_registry }}
 {% endif %}
 
