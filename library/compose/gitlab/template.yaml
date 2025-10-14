@@ -50,29 +50,22 @@ spec:
         default: "gitlab"
       external_url:
         type: str
-        description: External URL for GitLab (e.g., https://gitlab.example.com)
-        default: https://gitlab.example.com
-      ssh_port:
-        type: int
-        description: SSH port for Git operations
-        default: 2424
+        description: External URL for GitLab
+        default: http://localhost
   ports:
     vars:
-      ports_enabled:
-        type: bool
-        description: Expose HTTP/HTTPS ports
-        default: true
       ports_http:
         type: int
         description: HTTP port
         default: 80
-      ports_https:
+      ports_ssh:
         type: int
-        description: HTTPS port
-        default: 443
+        description: SSH port
+        default: 2424
+        required: true
       ports_registry:
         type: int
-        description: Port for Container Registry
+        description: Container Registry port
         default: 5678
   traefik:
     vars:
