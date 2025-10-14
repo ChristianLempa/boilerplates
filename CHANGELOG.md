@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Improved error handling and display output consistency
+- Updated dependency PyYAML to v6.0.3 (Python 3.14 compatibility)
+- Updated dependency rich to v14.2.0 (Python 3.14 compatibility)
 
 ### Fixed
 - Repository fetch fails when library directory already exists

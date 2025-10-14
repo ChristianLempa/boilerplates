@@ -2,36 +2,46 @@ services:
   {{ service_name | default('pihole') }}:
     container_name: {{ container_name | default('pihole') }}
     image: docker.io/pihole/pihole:2025.08.0
-    {% if ports_enabled %}
+    {% if traefik_enabled or macvlan_enabled %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network | default('traefik') }}:
+      {% endif %}
+      {% if macvlan_enabled %}
+      pihole_macvlan:
+        ipv4_address: {{ macvlan_ipv4_address }}
+      {% endif %}
+    {% endif %}
+    {% if ports_enabled and not macvlan_enabled and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
     ports:
-      - "{{ ports_dns_tcp | default(53) }}:53/tcp"
-      - "{{ ports_dns_udp | default(53) }}:53/udp"
-      - "{{ ports_dhcp | default(67) }}:67/udp"
-      - "{{ ports_http | default(8081) }}:80/tcp"
-      - "{{ ports_https | default(8443) }}:443/tcp"
+      {% if not traefik_enabled %}
+      - "{{ ports_http }}:80/tcp"
+      - "{{ ports_https }}:443/tcp"
+      {% endif %}
+      {% if dns_enabled %}
+      - "53:53/tcp"
+      - "53:53/udp"
+      {% endif %}
+      {% if dhcp_enabled %}
+      - "67:67/udp"
+      {% endif %}
     {% endif %}
     environment:
       - TZ={{ container_timezone | default('UTC') }}
-      {% if pihole_webpassword %}
-      - FTLCONF_webserver_api_password={{ pihole_webpassword }}
-      {% endif %}
-      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams | default('8.8.8.8;8.8.4.4') }}
+      {% if pihole_webpassword %}      - FTLCONF_webserver_api_password={{ pihole_webpassword }}
+      {% endif %}      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams | default('1.1.1.1;1.0.0.1') }}
     volumes:
       - config_dnsmasq:/etc/dnsmasq.d
       - config_pihole:/etc/pihole
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default('bridge') }}
-    {% endif %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.http.services.{{ service_name | default('pihole') }}.loadBalancer.server.port=80
-      - traefik.http.routers.{{ service_name | default('pihole') }}-http.service={{ service_name | default('pihole') }}
+      - traefik.http.services.{{ service_name | default('pihole') }}-web.loadBalancer.server.port=80
+      - traefik.http.routers.{{ service_name | default('pihole') }}-http.service={{ service_name | default('pihole') }}-web
       - traefik.http.routers.{{ service_name | default('pihole') }}-http.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name | default('pihole') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.service={{ service_name | default('pihole') }}
+      - traefik.http.routers.{{ service_name | default('pihole') }}-https.service={{ service_name | default('pihole') }}-web
       - traefik.http.routers.{{ service_name | default('pihole') }}-https.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name | default('pihole') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
       - traefik.http.routers.{{ service_name | default('pihole') }}-https.tls=true
@@ -46,10 +56,20 @@ volumes:
   config_pihole:
     driver: local
 
-{% if network_enabled %}
+{% if traefik_enabled or macvlan_enabled %}
 networks:
-  {{ network_name | default('bridge') }}:
-    {% if network_external %}
+  {% if macvlan_enabled %}
+  pihole_macvlan:
+    driver: macvlan
+    driver_opts:
+      parent: {{ macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ macvlan_subnet }}
+          gateway: {{ macvlan_gateway }}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network | default('traefik') }}:
     external: true
-    {% endif %}
+  {% endif %}
 {% endif %}

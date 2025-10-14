@@ -202,10 +202,11 @@ class TemplateMetadata:
   module: str = ""
   tags: List[str] = field(default_factory=list)
   library: str = "unknown"
+  library_type: str = "git"  # Type of library ("git" or "static")
   next_steps: str = ""
   draft: bool = False
 
-  def __init__(self, template_data: dict, library_name: str | None = None) -> None:
+  def __init__(self, template_data: dict, library_name: str | None = None, library_type: str = "git") -> None:
     """Initialize TemplateMetadata from parsed YAML template data.
     
     Args:
@@ -233,6 +234,7 @@ class TemplateMetadata:
     self.module = metadata_section.get("module", "")
     self.tags = metadata_section.get("tags", []) or []
     self.library = library_name or "unknown"
+    self.library_type = library_type
     self.draft = metadata_section.get("draft", False)
     
     # Extract next_steps (optional)
@@ -268,12 +270,20 @@ class TemplateMetadata:
 class Template:
   """Represents a template directory."""
 
-  def __init__(self, template_dir: Path, library_name: str) -> None:
-    """Create a Template instance from a directory path."""
+  def __init__(self, template_dir: Path, library_name: str, library_type: str = "git") -> None:
+    """Create a Template instance from a directory path.
+    
+    Args:
+        template_dir: Path to the template directory
+        library_name: Name of the library this template belongs to
+        library_type: Type of library ("git" or "static"), defaults to "git"
+    """
     logger.debug(f"Loading template from directory: {template_dir}")
     self.template_dir = template_dir
     self.id = template_dir.name
+    self.original_id = template_dir.name  # Store the original ID
     self.library_name = library_name
+    self.library_type = library_type
 
     # Initialize caches for lazy loading
     self.__module_specs: Optional[dict] = None
@@ -306,7 +316,7 @@ class Template:
         raise ValueError("Template file must contain a valid YAML dictionary")
 
       # Load metadata (always needed)
-      self.metadata = TemplateMetadata(self._template_data, library_name)
+      self.metadata = TemplateMetadata(self._template_data, library_name, library_type)
       logger.debug(f"Loaded metadata: {self.metadata}")
 
       # Validate 'kind' field (always needed)
@@ -326,6 +336,16 @@ class Template:
     except (IOError, OSError) as e:
       logger.error(f"File I/O error loading template {template_dir}: {e}")
       raise TemplateLoadError(f"File I/O error loading template from {template_dir}: {e}")
+
+  def set_qualified_id(self, library_name: str | None = None) -> None:
+    """Set a qualified ID for this template (used when duplicates exist across libraries).
+    
+    Args:
+        library_name: Name of the library to qualify with. If None, uses self.library_name
+    """
+    lib_name = library_name or self.library_name
+    self.id = f"{self.original_id}.{lib_name}"
+    logger.debug(f"Template ID qualified: {self.original_id} -> {self.id}")
 
   def _find_main_template_file(self) -> Path:
     """Find the main template file (template.yaml or template.yml)."""
