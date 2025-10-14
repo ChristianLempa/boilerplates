@@ -74,6 +74,22 @@ spec:
     title: "Traefik Settings"
     description: "Configure Traefik as a reverse proxy"
     required: true
+    vars:
+      traefik_entrypoint:
+        type: "str"
+        description: "HTTP entrypoint name (non-TLS)"
+        default: "web"
+        extra: "Standard HTTP traffic on port 80"
+      traefik_tls_entrypoint:
+        type: "str"
+        description: "HTTPS entrypoint name (TLS)"
+        default: "websecure"
+        extra: "Secure HTTPS traffic on port 443"
+      traefik_tls_certresolver:
+        type: "str"
+        description: "Certificate resolver name"
+        default: "cloudflare"
+        extra: "Must match the certificateResolvers name in traefik.yaml"
   traefik_tls:
     title: "Traefik TLS Settings"
     description: "Configure TLS/SSL with Let's Encrypt ACME"
@@ -93,9 +109,8 @@ spec:
       traefik_tls_acme_token:
         type: "str"
         description: "DNS provider API token"
-        default: "your-api-token-here"
         sensitive: true
-        extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions"
+        extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions. Leave empty to use Docker Swarm secrets."
       traefik_tls_acme_secret_name:
         type: "str"
         description: "Docker Swarm secret name for API token (swarm mode only)"
