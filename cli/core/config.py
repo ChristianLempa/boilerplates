@@ -89,7 +89,7 @@ class ConfigManager:
                     {
                         "name": "default",
                         "url": "https://github.com/christianlempa/boilerplates.git",
-                        "branch": "refactor/boilerplates-v2",
+                        "branch": "main",
                         "directory": "library",
                         "enabled": True
                     }

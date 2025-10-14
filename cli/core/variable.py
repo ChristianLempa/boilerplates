@@ -38,7 +38,8 @@ class Variable:
     # Initialize fields
     self.name: str = data["name"]
     self.description: Optional[str] = data.get("description") or data.get("display", "")
-    self.type: str = data.get("type", "str")
+    # Ensure type is never None or empty string - default to "str"
+    self.type: str = data.get("type") or "str"
     self.options: Optional[List[Any]] = data.get("options", [])
     self.prompt: Optional[str] = data.get("prompt")
     self.value: Any = data.get("value") if data.get("value") is not None else data.get("default")
