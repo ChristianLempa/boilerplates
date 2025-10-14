@@ -26,3 +26,4 @@
 
 # Test deployments
 /tests/
+config.yaml
