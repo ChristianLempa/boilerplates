@@ -155,9 +155,46 @@ spec = OrderedDict(
           },
           "swarm_placement_host": {
             "description": "Target hostname for placement constraint",
-            "type": "hostname",
+            "type": "str",
+            "default": "",
+            "optional": True,
             "needs": "swarm_placement_mode=replicated",
-            "extra": "Constrains service to run on specific node by hostname",
+            "extra": "Constrains service to run on specific node by hostname (optional)",
+          },
+          "swarm_volume_mode": {
+            "description": "Swarm volume storage backend",
+            "type": "enum",
+            "options": ["local", "mount", "nfs"],
+            "default": "local",
+            "extra": "WARNING: 'local' only works on single-node deployments!",
+          },
+          "swarm_volume_mount_path": {
+            "description": "Host path for bind mount",
+            "type": "str",
+            "default": "/mnt/storage",
+            "needs": "swarm_volume_mode=mount",
+            "extra": "Useful for shared/replicated storage",
+          },
+          "swarm_volume_nfs_server": {
+            "description": "NFS server address",
+            "type": "str",
+            "default": "192.168.1.1",
+            "needs": "swarm_volume_mode=nfs",
+            "extra": "IP address or hostname of NFS server",
+          },
+          "swarm_volume_nfs_path": {
+            "description": "NFS export path",
+            "type": "str",
+            "default": "/export",
+            "needs": "swarm_volume_mode=nfs",
+            "extra": "Path to NFS export on the server",
+          },
+          "swarm_volume_nfs_options": {
+            "description": "NFS mount options",
+            "type": "str",
+            "default": "rw,nolock,soft",
+            "needs": "swarm_volume_mode=nfs",
+            "extra": "Comma-separated NFS mount options",
           },
         },
       },
@@ -281,92 +318,7 @@ spec = OrderedDict(
             "sensitive": True,
           },
         },
-      },
-      "storage": {
-        "title": "Storage Configuration",
-        "toggle": "storage_enabled",
-        "description": "Configure persistent storage volumes",
-        "vars": {
-          "storage_enabled": {
-            "description": "Enable storage configuration",
-            "type": "bool",
-            "default": False,
-          },
-          "storage_mode": {
-            "description": "Storage backend",
-            "type": "enum",
-            "options": ["local", "mount", "nfs", "glusterfs"],
-            "default": "local",
-            "extra": "local=named volume, mount=bind mount, nfs=network filesystem, glusterfs=distributed storage",
-          },
-          "storage_host": {
-            "description": "Storage host/volume identifier",
-            "type": "str",
-            "extra": "local: volume name, mount: host path, nfs: server IP, glusterfs: server hostname",
-          },
-          "storage_path": {
-            "description": "NFS export path",
-            "type": "str",
-            "default": "/mnt/nfs",
-            "extra": "Only used when storage_mode=nfs",
-          },
-          "storage_nfs_options": {
-            "description": "NFS mount options",
-            "type": "str",
-            "default": "rw,nolock,soft",
-            "extra": "Only used when storage_mode=nfs. Comma-separated options.",
-          },
-          "storage_glusterfs_volume": {
-            "description": "GlusterFS volume name",
-            "type": "str",
-            "default": "gv0",
-            "extra": "Only used when storage_mode=glusterfs",
-          },
-        },
-      },
-      "config": {
-        "title": "Config Storage",
-        "toggle": "config_enabled",
-        "description": "Configure persistent storage for configuration files",
-        "vars": {
-          "config_enabled": {
-            "description": "Enable config storage configuration",
-            "type": "bool",
-            "default": False,
-          },
-          "config_mode": {
-            "description": "Storage backend for configuration",
-            "type": "enum",
-            "options": ["local", "mount", "nfs", "glusterfs"],
-            "default": "mount",
-            "extra": "local=named volume, mount=bind mount, nfs=network filesystem, glusterfs=distributed storage",
-          },
-          "config_host": {
-            "description": "Config storage host/volume identifier",
-            "type": "str",
-            "default": "./config",
-            "extra": "local: volume name, mount: host path, nfs: server IP, glusterfs: server hostname",
-          },
-          "config_path": {
-            "description": "NFS export path for config",
-            "type": "str",
-            "default": "/mnt/nfs/config",
-            "extra": "Only used when config_mode=nfs",
-          },
-          "config_nfs_options": {
-            "description": "NFS mount options for config",
-            "type": "str",
-            "default": "rw,nolock,soft",
-            "extra": "Only used when config_mode=nfs. Comma-separated options.",
-          },
-          "config_glusterfs_volume": {
-            "description": "GlusterFS volume name for config",
-            "type": "str",
-            "default": "gv0",
-            "extra": "Only used when config_mode=glusterfs",
-          },
-        },
-      },
+      }
     }
   )
 

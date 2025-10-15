@@ -14,14 +14,35 @@ services:
     {% endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      {% if not swarm_enabled %}
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
+      {% else %}
+      {% if swarm_volume_mode == 'mount' %}
+      - {{ swarm_volume_mount_path }}:/var/traefik/certs/:rw
+      {% elif swarm_volume_mode == 'local' %}
+      - traefik_certs:/var/traefik/certs/:rw
+      {% elif swarm_volume_mode == 'nfs' %}
+      - traefik_certs:/var/traefik/certs/:rw
+      {% endif %}
+      {% endif %}
       {% if traefik_tls_enabled %}
       {% if not swarm_enabled %}
       - ./.env.secret:/.env.secret:ro
       {% endif %}
     env_file:
       - ./.env
+    {% endif %}
+    {% if swarm_enabled %}
+    configs:
+      - source: traefik_config
+        target: /etc/traefik/traefik.yaml
+      - source: traefik_middlewares
+        target: /etc/traefik/files/middlewares.yaml
+      - source: traefik_tls
+        target: /etc/traefik/files/tls.yaml
+      - source: traefik_external_services
+        target: /etc/traefik/files/external-services.yaml
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
@@ -43,26 +64,47 @@ services:
         mode: 0400
     {% endif %}
     deploy:
-      {% if swarm_placement_mode in ['global', 'replicated'] %}
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
       {% endif %}
-      {% else %}
-      mode: replicated
-      replicas: {{ swarm_replicas }}
+      {% if swarm_placement_host %}
       placement:
         constraints:
-          - {{ swarm_placement_mode }}
+          - node.hostname == {{ swarm_placement_host }}
       {% endif %}
     {% else %}
     restart: {{ restart_policy }}
     {% endif %}
 
-{% if swarm_enabled and traefik_tls_enabled %}
+{% if swarm_enabled %}
+{% if swarm_volume_mode in ['local', 'nfs'] %}
+volumes:
+  traefik_certs:
+    {% if swarm_volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      device: ":{{ swarm_volume_nfs_path }}"
+    {% endif %}
+{% endif %}
+
+configs:
+  traefik_config:
+    file: ./config/traefik.yaml
+  traefik_middlewares:
+    file: ./config/files/middlewares.yaml
+  traefik_tls:
+    file: ./config/files/tls.yaml
+  traefik_external_services:
+    file: ./config/files/external-services.yaml
+
+{% if traefik_tls_enabled %}
 secrets:
   {{ traefik_tls_acme_secret_name }}:
     file: ./.env.secret
+{% endif %}
 {% endif %}
 
 {% if network_enabled %}
@@ -71,6 +113,12 @@ networks:
     {% if network_external %}
     external: true
     {% else %}
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
     driver: bridge
+    {% endif %}
+    name: {{ network_name }}
     {% endif %}
 {% endif %}

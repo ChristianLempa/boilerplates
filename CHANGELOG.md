@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `--all` flag to `show` and `generate` commands
   - Shows all variables/sections regardless of needs satisfaction
   - Useful for debugging and viewing complete template structure
+- Optional Variables
+  - Variables can now be marked with `optional: true` to allow empty/None values
+- Docker Swarm Volume Configuration
+  - Support for local, mount, and NFS storage backends
+  - Configurable NFS server, paths, and mount options
 - Storage Configuration for Docker Compose
   - New `storage` section in compose module spec
   - New `config` section in compose module spec
