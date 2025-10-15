@@ -144,11 +144,12 @@ class VariableCollection:
   
   @staticmethod
   def _parse_need(need_str: str) -> tuple[str, Optional[Any]]:
-    """Parse a need string into variable name and expected value.
+    """Parse a need string into variable name and expected value(s).
     
-    Supports two formats:
-    1. New format: "variable_name=value" - checks if variable equals value
-    2. Old format (backwards compatibility): "section_name" - checks if section is enabled
+    Supports three formats:
+    1. New format with multiple values: "variable_name=value1,value2" - checks if variable equals any value
+    2. New format with single value: "variable_name=value" - checks if variable equals value
+    3. Old format (backwards compatibility): "section_name" - checks if section is enabled
     
     Args:
         need_str: Need specification string
@@ -156,17 +157,26 @@ class VariableCollection:
     Returns:
         Tuple of (variable_or_section_name, expected_value)
         For old format, expected_value is None (means check section enabled)
-        For new format, expected_value is the string value after '='
+        For new format, expected_value is the string value(s) after '=' (string or list)
     
     Examples:
         "traefik_enabled=true" -> ("traefik_enabled", "true")
         "storage_mode=nfs" -> ("storage_mode", "nfs")
+        "network_mode=bridge,macvlan" -> ("network_mode", ["bridge", "macvlan"])
         "traefik" -> ("traefik", None)  # Old format: section name
     """
     if '=' in need_str:
-      # New format: variable=value
+      # New format: variable=value or variable=value1,value2
       parts = need_str.split('=', 1)
-      return (parts[0].strip(), parts[1].strip())
+      var_name = parts[0].strip()
+      value_part = parts[1].strip()
+      
+      # Check if multiple values are provided (comma-separated)
+      if ',' in value_part:
+        values = [v.strip() for v in value_part.split(',')]
+        return (var_name, values)
+      else:
+        return (var_name, value_part)
     else:
       # Old format: section name (backwards compatibility)
       return (need_str.strip(), None)
@@ -175,7 +185,7 @@ class VariableCollection:
     """Check if a single need condition is satisfied.
     
     Args:
-        need_str: Need specification ("variable=value" or "section_name")
+        need_str: Need specification ("variable=value", "variable=value1,value2" or "section_name")
         
     Returns:
         True if need is satisfied, False otherwise
@@ -190,24 +200,41 @@ class VariableCollection:
         return False
       return section.is_enabled()
     else:
-      # New format: check if variable has expected value
+      # New format: check if variable has expected value(s)
       variable = self._variable_map.get(var_or_section)
       if not variable:
         logger.warning(f"Need references missing variable '{var_or_section}'")
         return False
       
-      # Convert both values for comparison
+      # Convert actual value for comparison
       try:
         actual_value = variable.convert(variable.value)
-        # Convert expected value using variable's type
-        expected_converted = variable.convert(expected_value)
         
-        # Handle boolean comparisons specially
-        if variable.type == "bool":
-          return bool(actual_value) == bool(expected_converted)
-        
-        # String comparison for other types
-        return str(actual_value) == str(expected_converted) if actual_value is not None else False
+        # Handle multiple expected values (comma-separated in needs)
+        if isinstance(expected_value, list):
+          # Check if actual value matches any of the expected values
+          for expected in expected_value:
+            expected_converted = variable.convert(expected)
+            
+            # Handle boolean comparisons specially
+            if variable.type == "bool":
+              if bool(actual_value) == bool(expected_converted):
+                return True
+            else:
+              # String comparison for other types
+              if actual_value is not None and str(actual_value) == str(expected_converted):
+                return True
+          return False  # None of the expected values matched
+        else:
+          # Single expected value (original behavior)
+          expected_converted = variable.convert(expected_value)
+          
+          # Handle boolean comparisons specially
+          if variable.type == "bool":
+            return bool(actual_value) == bool(expected_converted)
+          
+          # String comparison for other types
+          return str(actual_value) == str(expected_converted) if actual_value is not None else False
       except Exception as e:
         logger.debug(f"Failed to compare need '{need_str}': {e}")
         return False

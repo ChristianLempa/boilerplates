@@ -2,17 +2,21 @@ services:
   {{ service_name | default('pihole') }}:
     container_name: {{ container_name | default('pihole') }}
     image: docker.io/pihole/pihole:2025.08.0
-    {% if traefik_enabled or macvlan_enabled %}
+    {% if network_enabled and network_mode == 'host' %}
+    network_mode: host
+    {% elif traefik_enabled or (network_enabled and network_mode == 'macvlan') %}
     networks:
       {% if traefik_enabled %}
       {{ traefik_network | default('traefik') }}:
       {% endif %}
-      {% if macvlan_enabled %}
-      pihole_macvlan:
-        ipv4_address: {{ macvlan_ipv4_address }}
+      {% if network_enabled and network_mode == 'macvlan' %}
+      {{ network_name | default('pihole_net') }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_enabled and network_mode == 'bridge' %}
+      {{ network_name | default('bridge') }}:
       {% endif %}
     {% endif %}
-    {% if ports_enabled and not macvlan_enabled and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
+    {% if ports_enabled and not (network_enabled and network_mode in ['host', 'macvlan']) and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
     ports:
       {% if not traefik_enabled %}
       - "{{ ports_http }}:80/tcp"
@@ -56,17 +60,23 @@ volumes:
   config_pihole:
     driver: local
 
-{% if traefik_enabled or macvlan_enabled %}
+{% if network_enabled or traefik_enabled %}
 networks:
-  {% if macvlan_enabled %}
-  pihole_macvlan:
+  {% if network_enabled and network_mode == 'macvlan' %}
+  {{ network_name | default('pihole_net') }}:
     driver: macvlan
     driver_opts:
-      parent: {{ macvlan_parent_interface }}
+      parent: {{ network_macvlan_parent_interface }}
     ipam:
       config:
-        - subnet: {{ macvlan_subnet }}
-          gateway: {{ macvlan_gateway }}
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+  {% elif network_enabled and network_mode == 'bridge' and network_external %}
+  {{ network_name | default('bridge') }}:
+    external: true
+  {% elif network_enabled and network_mode == 'bridge' and not network_external %}
+  {{ network_name | default('bridge') }}:
+    driver: bridge
   {% endif %}
   {% if traefik_enabled %}
   {{ traefik_network | default('traefik') }}:

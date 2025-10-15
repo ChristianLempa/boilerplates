@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.1"
 metadata:
   name: Traefik
   description: >
@@ -137,8 +138,12 @@ spec:
     vars:
       network_enabled:
         default: true
+      network_mode:
+        default: "bridge"
       network_name:
         default: "proxy"
+      network_external:
+        default: false
   authentik:
     title: Authentik Middleware
     description: Enable Authentik SSO integration for Traefik
