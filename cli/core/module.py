@@ -58,6 +58,9 @@ def parse_var_inputs(var_options: List[str], extra_args: List[str]) -> Dict[str,
 
 class Module(ABC):
   """Streamlined base module that auto-detects variables from templates."""
+  
+  # Schema version supported by this module (override in subclasses)
+  schema_version: str = "1.0"
 
   def __init__(self) -> None:
     if not all([self.name, self.description]):
@@ -91,6 +94,9 @@ class Module(ABC):
         library_type = library.library_type if library else "git"
         
         template = Template(template_dir, library_name=library_name, library_type=library_type)
+        
+        # Validate schema version compatibility
+        template._validate_schema_version(self.schema_version, self.name)
         
         # If template ID needs qualification, set qualified ID
         if needs_qualification:
@@ -148,6 +154,9 @@ class Module(ABC):
         
         template = Template(template_dir, library_name=library_name, library_type=library_type)
         
+        # Validate schema version compatibility
+        template._validate_schema_version(self.schema_version, self.name)
+        
         # If template ID needs qualification, set qualified ID
         if needs_qualification:
           template.set_qualified_id()
@@ -177,6 +186,7 @@ class Module(ABC):
   def show(
     self,
     id: str,
+    all_vars: bool = Option(False, "--all", help="Show all variables/sections, even those with unsatisfied needs"),
   ) -> None:
     """Show template details."""
     logger.debug(f"Showing template '{id}' from module '{self.name}'")
@@ -203,7 +213,7 @@ class Module(ABC):
       # Re-sort sections after applying config (toggle values may have changed)
       template.variables.sort_sections()
     
-    self._display_template_details(template, id)
+    self._display_template_details(template, id, show_all=all_vars)
 
   def _apply_variable_defaults(self, template: Template) -> None:
     """Apply config defaults and CLI overrides to template variables.
@@ -496,6 +506,7 @@ class Module(ABC):
     dry_run: bool = Option(False, "--dry-run", help="Preview template generation without writing files"),
     show_files: bool = Option(False, "--show-files", help="Display generated file contents in plain text (use with --dry-run)"),
     quiet: bool = Option(False, "--quiet", "-q", help="Suppress all non-error output"),
+    all_vars: bool = Option(False, "--all", help="Show all variables/sections, even those with unsatisfied needs"),
   ) -> None:
     """Generate from template.
     
@@ -537,7 +548,7 @@ class Module(ABC):
       template.variables.sort_sections()
 
     if not quiet:
-      self._display_template_details(template, id)
+      self._display_template_details(template, id, show_all=all_vars)
       console.print()
 
     # Collect variable values
@@ -1024,6 +1035,9 @@ class Module(ABC):
     try:
       template = Template(template_dir, library_name=library_name, library_type=library_type)
       
+      # Validate schema version compatibility
+      template._validate_schema_version(self.schema_version, self.name)
+      
       # If the original ID was qualified, preserve it
       if '.' in id:
         template.id = id
@@ -1033,6 +1047,12 @@ class Module(ABC):
       logger.error(f"Failed to load template '{id}': {exc}")
       raise FileNotFoundError(f"Template '{id}' could not be loaded: {exc}") from exc
 
-  def _display_template_details(self, template: Template, id: str) -> None:
-    """Display template information panel and variables table."""
-    self.display.display_template_details(template, id)
+  def _display_template_details(self, template: Template, id: str, show_all: bool = False) -> None:
+    """Display template information panel and variables table.
+    
+    Args:
+        template: Template instance to display
+        id: Template ID
+        show_all: If True, show all variables/sections regardless of needs satisfaction
+    """
+    self.display.display_template_details(template, id, show_all=show_all)

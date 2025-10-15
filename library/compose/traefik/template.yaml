@@ -88,7 +88,7 @@ spec:
   traefik_tls:
     title: "Traefik TLS Settings"
     description: "Configure TLS/SSL with Let's Encrypt ACME"
-    needs: "traefik"
+    needs: null
     vars:
       traefik_tls_enabled:
         type: "bool"

@@ -9,8 +9,10 @@ from .exceptions import (
     TemplateValidationError,
     TemplateRenderError,
     YAMLParseError,
-    ModuleLoadError
+    ModuleLoadError,
+    IncompatibleSchemaVersionError
 )
+from .version import is_compatible
 from pathlib import Path
 from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field
@@ -321,6 +323,12 @@ class Template:
 
       # Validate 'kind' field (always needed)
       self._validate_kind(self._template_data)
+      
+      # Extract schema version (default to 1.0 for backward compatibility)
+      self.schema_version = str(self._template_data.get("schema", "1.0"))
+      logger.debug(f"Template schema version: {self.schema_version}")
+      
+      # Note: Schema version validation is done by the module when loading templates
 
       # NOTE: File collection is now lazy-loaded via the template_files property
       # This significantly improves performance when listing many templates
@@ -544,6 +552,36 @@ class Template:
     
     return filtered_specs
 
+  def _validate_schema_version(self, module_schema: str, module_name: str) -> None:
+    """Validate that template schema version is supported by the module.
+    
+    Args:
+        module_schema: Schema version supported by the module
+        module_name: Name of the module (for error messages)
+    
+    Raises:
+        IncompatibleSchemaVersionError: If template schema > module schema
+    """
+    template_schema = self.schema_version
+    
+    # Compare schema versions
+    if not is_compatible(module_schema, template_schema):
+      logger.error(
+        f"Template '{self.id}' uses schema version {template_schema}, "
+        f"but module '{module_name}' only supports up to {module_schema}"
+      )
+      raise IncompatibleSchemaVersionError(
+        template_id=self.id,
+        template_schema=template_schema,
+        module_schema=module_schema,
+        module_name=module_name
+      )
+    
+    logger.debug(
+      f"Template '{self.id}' schema version compatible: "
+      f"template uses {template_schema}, module supports {module_schema}"
+    )
+  
   @staticmethod
   def _validate_kind(template_data: dict) -> None:
     """Validate that template has required 'kind' field.

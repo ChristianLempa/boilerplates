@@ -29,6 +29,8 @@ class VariableSection:
     self.variables: OrderedDict[str, Variable] = OrderedDict()
     self.description: Optional[str] = data.get("description")
     self.toggle: Optional[str] = data.get("toggle")
+    # Track which fields were explicitly provided (to support explicit clears)
+    self._explicit_fields: set[str] = set(data.keys())
     # Default "general" section to required=True, all others to required=False
     self.required: bool = data.get("required", data["key"] == "general")
     # Section dependencies - can be string or list of strings

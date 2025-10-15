@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boilerplates"
-version = "0.0.0"  # NOTE: Placeholder - will be overwritten by release script
+version = "0.0.7"
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -30,3 +30,12 @@ boilerplates = "cli.__main__:run"
 [tool.setuptools.packages.find]
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
+
+[tool.pylint.format]
+indent-string = '  '
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = [
+    "bad-indentation",
+]

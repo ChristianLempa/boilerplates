@@ -218,11 +218,17 @@ class DisplayManager:
 
         console.print(table)
 
-    def display_template_details(self, template: Template, template_id: str) -> None:
-        """Display template information panel and variables table."""
+    def display_template_details(self, template: Template, template_id: str, show_all: bool = False) -> None:
+        """Display template information panel and variables table.
+        
+        Args:
+            template: Template instance to display
+            template_id: ID of the template
+            show_all: If True, show all variables/sections regardless of needs satisfaction
+        """
         self._display_template_header(template, template_id)
         self._display_file_tree(template)
-        self._display_variables_table(template)
+        self._display_variables_table(template, show_all=show_all)
 
     def display_section_header(self, title: str, description: str | None) -> None:
         """Display a section header."""
@@ -288,6 +294,30 @@ class DisplayManager:
     def display_info(self, message: str, context: str | None = None) -> None:
         """Display an informational message."""
         self.display_message('info', message, context)
+    
+    def display_version_incompatibility(self, template_id: str, required_version: str, current_version: str) -> None:
+        """Display a version incompatibility error with upgrade instructions.
+        
+        Args:
+            template_id: ID of the incompatible template
+            required_version: Minimum CLI version required by template
+            current_version: Current CLI version
+        """
+        console_err.print()
+        console_err.print(f"[bold red]{IconManager.STATUS_ERROR} Version Incompatibility[/bold red]")
+        console_err.print()
+        console_err.print(f"Template '[cyan]{template_id}[/cyan]' requires CLI version [green]{required_version}[/green] or higher.")
+        console_err.print(f"Current CLI version: [yellow]{current_version}[/yellow]")
+        console_err.print()
+        console_err.print("[bold]Upgrade Instructions:[/bold]")
+        console_err.print(f"  {IconManager.UI_ARROW_RIGHT} Run: [cyan]pip install --upgrade boilerplates[/cyan]")
+        console_err.print(f"  {IconManager.UI_ARROW_RIGHT} Or install specific version: [cyan]pip install boilerplates=={required_version}[/cyan]")
+        console_err.print()
+        
+        logger.error(
+            f"Template '{template_id}' requires CLI version {required_version}, "
+            f"current version is {current_version}"
+        )
 
     def _display_template_header(self, template: Template, template_id: str) -> None:
         """Display the header for a template with library information."""
@@ -365,8 +395,13 @@ class DisplayManager:
         if file_tree.children:
             console.print(file_tree)
 
-    def _display_variables_table(self, template: Template) -> None:
-        """Display a table of variables for a template."""
+    def _display_variables_table(self, template: Template, show_all: bool = False) -> None:
+        """Display a table of variables for a template.
+        
+        Args:
+            template: Template instance
+            show_all: If True, show all variables/sections regardless of needs satisfaction
+        """
         if not (template.variables and template.variables.has_sections()):
             return
 
@@ -383,6 +418,10 @@ class DisplayManager:
         for section in template.variables.get_sections().values():
             if not section.variables:
                 continue
+            
+            # Skip sections with unsatisfied needs unless show_all is True
+            if not show_all and not template.variables.is_section_satisfied(section.key):
+                continue
 
             if not first_section:
                 variables_table.add_row("", "", "", "", style="bright_black")
@@ -394,27 +433,25 @@ class DisplayManager:
             is_dimmed = not (is_enabled and dependencies_satisfied)
 
             # Only show (disabled) if section has no dependencies (dependencies make it obvious)
-            disabled_text = " (disabled)" if (is_dimmed and not section.needs) else ""
+            # Empty list means no dependencies (same as None)
+            has_dependencies = section.needs and len(section.needs) > 0
+            disabled_text = " (disabled)" if (is_dimmed and not has_dependencies) else ""
             
             # For disabled sections, make entire heading bold and dim (don't include colored markup inside)
             if is_dimmed:
                 # Build text without internal markup, then wrap entire thing in bold bright_black (dimmed appearance)
                 required_part = " (required)" if section.required else ""
-                needs_part = ""
-                if section.needs:
-                    needs_list = ", ".join(section.needs)
-                    needs_part = f" (needs: {needs_list})"
-                header_text = f"[bold bright_black]{section.title}{required_part}{needs_part}{disabled_text}[/bold bright_black]"
+                header_text = f"[bold bright_black]{section.title}{required_part}{disabled_text}[/bold bright_black]"
             else:
                 # For enabled sections, include the colored markup
                 required_text = " [yellow](required)[/yellow]" if section.required else ""
-                needs_text = ""
-                if section.needs:
-                    needs_list = ", ".join(section.needs)
-                    needs_text = f" [dim](needs: {needs_list})[/dim]"
-                header_text = f"[bold]{section.title}{required_text}{needs_text}{disabled_text}[/bold]"
+                header_text = f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
             variables_table.add_row(header_text, "", "", "")
             for var_name, variable in section.variables.items():
+                # Skip variables with unsatisfied needs unless show_all is True
+                if not show_all and not template.variables.is_variable_satisfied(var_name):
+                    continue
+                
                 row_style = "bright_black" if is_dimmed else None
                 
                 # Build default value display

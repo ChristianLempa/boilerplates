@@ -106,11 +106,11 @@ spec = OrderedDict(
             "default": "web",
           },
         },
-      },
+      },  
       "traefik_tls": {
         "title": "Traefik TLS/SSL",
         "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
+        "needs": "traefik_enabled=true",
         "description": "Enable HTTPS/TLS for Traefik with certificate management.",
         "vars": {
           "traefik_tls_enabled": {
@@ -274,6 +274,91 @@ spec = OrderedDict(
           },
         },
       },
+      "storage": {
+        "title": "Storage Configuration",
+        "toggle": "storage_enabled",
+        "description": "Configure persistent storage volumes",
+        "vars": {
+          "storage_enabled": {
+            "description": "Enable storage configuration",
+            "type": "bool",
+            "default": False,
+          },
+          "storage_mode": {
+            "description": "Storage backend",
+            "type": "enum",
+            "options": ["local", "mount", "nfs", "glusterfs"],
+            "default": "local",
+            "extra": "local=named volume, mount=bind mount, nfs=network filesystem, glusterfs=distributed storage",
+          },
+          "storage_host": {
+            "description": "Storage host/volume identifier",
+            "type": "str",
+            "extra": "local: volume name, mount: host path, nfs: server IP, glusterfs: server hostname",
+          },
+          "storage_path": {
+            "description": "NFS export path",
+            "type": "str",
+            "default": "/mnt/nfs",
+            "extra": "Only used when storage_mode=nfs",
+          },
+          "storage_nfs_options": {
+            "description": "NFS mount options",
+            "type": "str",
+            "default": "rw,nolock,soft",
+            "extra": "Only used when storage_mode=nfs. Comma-separated options.",
+          },
+          "storage_glusterfs_volume": {
+            "description": "GlusterFS volume name",
+            "type": "str",
+            "default": "gv0",
+            "extra": "Only used when storage_mode=glusterfs",
+          },
+        },
+      },
+      "config": {
+        "title": "Config Storage",
+        "toggle": "config_enabled",
+        "description": "Configure persistent storage for configuration files",
+        "vars": {
+          "config_enabled": {
+            "description": "Enable config storage configuration",
+            "type": "bool",
+            "default": False,
+          },
+          "config_mode": {
+            "description": "Storage backend for configuration",
+            "type": "enum",
+            "options": ["local", "mount", "nfs", "glusterfs"],
+            "default": "mount",
+            "extra": "local=named volume, mount=bind mount, nfs=network filesystem, glusterfs=distributed storage",
+          },
+          "config_host": {
+            "description": "Config storage host/volume identifier",
+            "type": "str",
+            "default": "./config",
+            "extra": "local: volume name, mount: host path, nfs: server IP, glusterfs: server hostname",
+          },
+          "config_path": {
+            "description": "NFS export path for config",
+            "type": "str",
+            "default": "/mnt/nfs/config",
+            "extra": "Only used when config_mode=nfs",
+          },
+          "config_nfs_options": {
+            "description": "NFS mount options for config",
+            "type": "str",
+            "default": "rw,nolock,soft",
+            "extra": "Only used when config_mode=nfs. Comma-separated options.",
+          },
+          "config_glusterfs_volume": {
+            "description": "GlusterFS volume name for config",
+            "type": "str",
+            "default": "gv0",
+            "extra": "Only used when config_mode=glusterfs",
+          },
+        },
+      },
     }
   )
 
@@ -283,6 +368,7 @@ class ComposeModule(Module):
 
   name = "compose"
   description = "Manage Docker Compose configurations"
+  schema_version = "1.1"  # Current schema version supported by this module
 
 
 registry.register(ComposeModule)

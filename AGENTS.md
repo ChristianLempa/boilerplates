@@ -64,6 +64,7 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 - `cli/core/template.py` - Template Class for parsing, managing and rendering templates
 - `cli/core/variable.py` - Dataclass for Variable (stores variable metadata and values)
 - `cli/core/validators.py` - Semantic validators for template content (Docker Compose, YAML, etc.)
+- `cli/core/version.py` - Version comparison utilities for semantic versioning
 
 ### Modules
 
@@ -144,6 +145,7 @@ Requires `template.yaml` or `template.yml` with metadata and variables:
 ```yaml
 ---
 kind: compose
+schema: "1.0"  # Optional: Defaults to 1.0 if not specified
 metadata:
   name: My Nginx Template
   description: >
@@ -166,6 +168,52 @@ spec:
         description: The Nginx version to use.
         default: latest
 ```
+
+### Template Schema Versioning
+
+Templates and modules use schema versioning to ensure compatibility. Each module defines a supported schema version, and templates declare which schema version they use.
+
+```yaml
+---
+kind: compose
+schema: "1.0"  # Defaults to 1.0 if not specified
+metadata:
+  name: My Template
+  version: 1.0.0
+  # ... other metadata fields
+spec:
+  # ... variable specifications
+```
+
+**How It Works:**
+- **Module Schema Version**: Each module (in `cli/modules/*.py`) defines `schema_version` (e.g., "1.0")
+- **Template Schema Version**: Each template declares `schema` at the top level (defaults to "1.0")
+- **Compatibility Check**: Template schema ≤ Module schema → Compatible
+- **Incompatibility**: Template schema > Module schema → `IncompatibleSchemaVersionError`
+
+**Behavior:**
+- Templates without `schema` field default to "1.0" (backward compatible)
+- Old templates (schema 1.0) work with newer modules (schema 1.1)
+- New templates (schema 1.2) fail on older modules (schema 1.1) with clear error
+- Version comparison uses 2-level versioning (major.minor format)
+
+**When to Use:**
+- Increment module schema version when adding new features (new variable types, sections, etc.)
+- Set template schema when using features from a specific schema
+- Example: Template using new variable type added in schema 1.1 should set `schema: "1.1"`
+
+**Module Example:**
+```python
+class ComposeModule(Module):
+  name = "compose"
+  description = "Manage Docker Compose configurations"
+  schema_version = "1.0"  # Current schema version supported
+```
+
+**Version Management:**
+- CLI version is defined in `cli/__init__.py` as `__version__`
+- pyproject.toml version must match `__version__` for releases
+- GitHub release workflow validates version consistency
 
 ### Template Files
 

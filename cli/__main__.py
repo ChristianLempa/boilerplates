@@ -16,10 +16,8 @@ from rich.console import Console
 import cli.modules
 from cli.core.registry import registry
 from cli.core import repo
+from cli import __version__
 # Using standard Python exceptions instead of custom ones
-
-# NOTE: Placeholder version - will be overwritten by release script (.github/workflows/release.yaml)
-__version__ = "0.0.0"
 
 app = Typer(
   help="CLI tool for managing infrastructure boilerplates.\n\n[dim]Easily generate, customize, and deploy templates for Docker Compose, Terraform, Kubernetes, and more.\n\n [white]Made with 💜 by [bold]Christian Lempa[/bold]",

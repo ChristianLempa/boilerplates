@@ -142,21 +142,113 @@ class VariableCollection:
         f"but is type '{toggle_var.type}'"
       )
   
+  @staticmethod
+  def _parse_need(need_str: str) -> tuple[str, Optional[Any]]:
+    """Parse a need string into variable name and expected value.
+    
+    Supports two formats:
+    1. New format: "variable_name=value" - checks if variable equals value
+    2. Old format (backwards compatibility): "section_name" - checks if section is enabled
+    
+    Args:
+        need_str: Need specification string
+        
+    Returns:
+        Tuple of (variable_or_section_name, expected_value)
+        For old format, expected_value is None (means check section enabled)
+        For new format, expected_value is the string value after '='
+    
+    Examples:
+        "traefik_enabled=true" -> ("traefik_enabled", "true")
+        "storage_mode=nfs" -> ("storage_mode", "nfs")
+        "traefik" -> ("traefik", None)  # Old format: section name
+    """
+    if '=' in need_str:
+      # New format: variable=value
+      parts = need_str.split('=', 1)
+      return (parts[0].strip(), parts[1].strip())
+    else:
+      # Old format: section name (backwards compatibility)
+      return (need_str.strip(), None)
+  
+  def _is_need_satisfied(self, need_str: str) -> bool:
+    """Check if a single need condition is satisfied.
+    
+    Args:
+        need_str: Need specification ("variable=value" or "section_name")
+        
+    Returns:
+        True if need is satisfied, False otherwise
+    """
+    var_or_section, expected_value = self._parse_need(need_str)
+    
+    if expected_value is None:
+      # Old format: check if section is enabled (backwards compatibility)
+      section = self._sections.get(var_or_section)
+      if not section:
+        logger.warning(f"Need references missing section '{var_or_section}'")
+        return False
+      return section.is_enabled()
+    else:
+      # New format: check if variable has expected value
+      variable = self._variable_map.get(var_or_section)
+      if not variable:
+        logger.warning(f"Need references missing variable '{var_or_section}'")
+        return False
+      
+      # Convert both values for comparison
+      try:
+        actual_value = variable.convert(variable.value)
+        # Convert expected value using variable's type
+        expected_converted = variable.convert(expected_value)
+        
+        # Handle boolean comparisons specially
+        if variable.type == "bool":
+          return bool(actual_value) == bool(expected_converted)
+        
+        # String comparison for other types
+        return str(actual_value) == str(expected_converted) if actual_value is not None else False
+      except Exception as e:
+        logger.debug(f"Failed to compare need '{need_str}': {e}")
+        return False
+  
   def _validate_dependencies(self) -> None:
     """Validate section dependencies for cycles and missing references.
     
     Raises:
         ValueError: If circular dependencies or missing section references are found
     """
-    # Check for missing dependencies
+    # Check for missing dependencies in sections
     for section_key, section in self._sections.items():
       for dep in section.needs:
-        if dep not in self._sections:
-          raise ValueError(
-            f"Section '{section_key}' depends on '{dep}', but '{dep}' does not exist"
-          )
+        var_or_section, expected_value = self._parse_need(dep)
+        
+        if expected_value is None:
+          # Old format: validate section exists
+          if var_or_section not in self._sections:
+            raise ValueError(
+              f"Section '{section_key}' depends on '{var_or_section}', but '{var_or_section}' does not exist"
+            )
+        else:
+          # New format: validate variable exists
+          if var_or_section not in self._variable_map:
+            raise ValueError(
+              f"Section '{section_key}' has need '{dep}', but variable '{var_or_section}' does not exist"
+            )
+    
+    # Check for missing dependencies in variables
+    for var_name, variable in self._variable_map.items():
+      for dep in variable.needs:
+        dep_var, expected_value = self._parse_need(dep)
+        if expected_value is not None:  # Only validate new format
+          if dep_var not in self._variable_map:
+            raise ValueError(
+              f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' does not exist"
+            )
     
     # Check for circular dependencies using depth-first search
+    # Note: Only checks section-level dependencies in old format (section names)
+    # Variable-level dependencies (variable=value) don't create cycles in the same way
     visited = set()
     rec_stack = set()
     
@@ -166,14 +258,18 @@ class VariableCollection:
       
       section = self._sections[section_key]
       for dep in section.needs:
-        if dep not in visited:
-          if has_cycle(dep):
-            return True
-        elif dep in rec_stack:
-          raise ValueError(
-            f"Circular dependency detected: '{section_key}' depends on '{dep}', "
-            f"which creates a cycle"
-          )
+        # Only check circular deps for old format (section references)
+        dep_name, expected_value = self._parse_need(dep)
+        if expected_value is None and dep_name in self._sections:
+          # Old format section dependency - check for cycles
+          if dep_name not in visited:
+            if has_cycle(dep_name):
+              return True
+          elif dep_name in rec_stack:
+            raise ValueError(
+              f"Circular dependency detected: '{section_key}' depends on '{dep_name}', "
+              f"which creates a cycle"
+            )
       
       rec_stack.remove(section_key)
       return False
@@ -185,9 +281,9 @@ class VariableCollection:
   def is_section_satisfied(self, section_key: str) -> bool:
     """Check if all dependencies for a section are satisfied.
     
-    A dependency is satisfied if:
-    1. The dependency section exists
-    2. The dependency section is enabled (if it has a toggle)
+    Supports both formats:
+    - Old format: "section_name" - checks if section is enabled (backwards compatible)
+    - New format: "variable=value" - checks if variable has specific value
     
     Args:
         section_key: The key of the section to check
@@ -203,16 +299,38 @@ class VariableCollection:
     if not section.needs:
       return True
     
-    # Check each dependency
-    for dep_key in section.needs:
-      dep_section = self._sections.get(dep_key)
-      if not dep_section:
-        logger.warning(f"Section '{section_key}' depends on missing section '{dep_key}'")
+    # Check each dependency using the unified need satisfaction logic
+    for need in section.needs:
+      if not self._is_need_satisfied(need):
+        logger.debug(f"Section '{section_key}' need '{need}' is not satisfied")
         return False
-      
-      # Check if dependency is enabled
-      if not dep_section.is_enabled():
-        logger.debug(f"Section '{section_key}' dependency '{dep_key}' is disabled")
+    
+    return True
+  
+  def is_variable_satisfied(self, var_name: str) -> bool:
+    """Check if all dependencies for a variable are satisfied.
+    
+    A variable is satisfied if all its needs are met.
+    Needs are specified as "variable_name=value".
+    
+    Args:
+        var_name: The name of the variable to check
+        
+    Returns:
+        True if all dependencies are satisfied, False otherwise
+    """
+    variable = self._variable_map.get(var_name)
+    if not variable:
+      return False
+    
+    # No dependencies = always satisfied
+    if not variable.needs:
+      return True
+    
+    # Check each dependency
+    for need in variable.needs:
+      if not self._is_need_satisfied(need):
+        logger.debug(f"Variable '{var_name}' need '{need}' is not satisfied")
         return False
     
     return True
@@ -502,13 +620,16 @@ class VariableCollection:
     merged_section = self_section.clone()
     
     # Update section metadata from other (other takes precedence)
+    # Only override if explicitly provided in other AND has a value
     for attr in ('title', 'description', 'toggle'):
-      if getattr(other_section, attr):
-        setattr(merged_section, attr, getattr(other_section, attr))
+      other_value = getattr(other_section, attr)
+      if hasattr(other_section, '_explicit_fields') and attr in other_section._explicit_fields and other_value:
+        setattr(merged_section, attr, other_value)
     
     merged_section.required = other_section.required
-    if other_section.needs:
-      merged_section.needs = other_section.needs.copy()
+    # Respect explicit clears for dependencies (explicit null/empty clears, missing field preserves)
+    if hasattr(other_section, '_explicit_fields') and 'needs' in other_section._explicit_fields:
+      merged_section.needs = other_section.needs.copy() if other_section.needs else []
     
     # Merge variables
     for var_name, other_var in other_section.variables.items():
@@ -527,13 +648,15 @@ class VariableCollection:
           'extra': other_var.extra
         }
         
-        # Add fields that were explicitly provided and have values
+        # Add fields that were explicitly provided, even if falsy/empty
         for field, value in field_map.items():
-          if field in other_var._explicit_fields and value:
+          if field in other_var._explicit_fields:
             update[field] = value
         
-        # Special handling for value/default
-        if ('value' in other_var._explicit_fields or 'default' in other_var._explicit_fields) and other_var.value is not None:
+        # Special handling for value/default (allow explicit null to clear)
+        if 'value' in other_var._explicit_fields:
+          update['value'] = other_var.value
+        elif 'default' in other_var._explicit_fields:
           update['value'] = other_var.value
         
         merged_section.variables[var_name] = self_var.clone(update=update)
