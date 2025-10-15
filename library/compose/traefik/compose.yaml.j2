@@ -43,9 +43,9 @@ services:
         mode: 0400
     {% endif %}
     deploy:
-      {% if swarm_placement in ['global', 'replicated'] %}
-      mode: {{ swarm_placement }}
-      {% if swarm_placement == 'replicated' %}
+      {% if swarm_placement_mode in ['global', 'replicated'] %}
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
       {% endif %}
       {% else %}
@@ -53,7 +53,7 @@ services:
       replicas: {{ swarm_replicas }}
       placement:
         constraints:
-          - {{ swarm_placement }}
+          - {{ swarm_placement_mode }}
       {% endif %}
     {% else %}
     restart: {{ restart_policy }}

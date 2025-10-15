@@ -133,24 +133,32 @@ spec = OrderedDict(
       "swarm": {
         "title": "Docker Swarm",
         "toggle": "swarm_enabled",
-        "description": "Deploy service in Docker Swarm mode with replicas.",
+        "description": "Deploy service in Docker Swarm mode.",
         "vars": {
           "swarm_enabled": {
             "description": "Enable Docker Swarm mode",
             "type": "bool",
             "default": False,
           },
+          "swarm_placement_mode": {
+            "description": "Swarm placement mode",
+            "type": "enum",
+            "options": ["replicated", "global"],
+            "default": "replicated",
+            "extra": "replicated=run specific number of tasks, global=run one task per node",
+          },
           "swarm_replicas": {
-            "description": "Number of replicas in Swarm",
+            "description": "Number of replicas",
             "type": "int",
             "default": 1,
+            "needs": "swarm_placement_mode=replicated",
           },
-          "swarm_placement": {
-            "description": "Swarm placement mode or node constraint",
-            "type": "str",
-            "default": "replicated",
-            "extra": "Options: 'replicated', 'global', or 'node.hostname==myhost' for custom placement",
-          }
+          "swarm_placement_host": {
+            "description": "Target hostname for placement constraint",
+            "type": "hostname",
+            "needs": "swarm_placement_mode=replicated",
+            "extra": "Constrains service to run on specific node by hostname",
+          },
         },
       },
       "database": {

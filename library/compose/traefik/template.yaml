@@ -141,7 +141,7 @@ spec:
         default: "proxy"
   swarm:
     vars:
-      swarm_placement:
+      swarm_placement_mode:
         default: "global"
   authentik:
     title: Authentik Middleware
