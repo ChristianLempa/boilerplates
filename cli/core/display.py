@@ -448,11 +448,15 @@ class DisplayManager:
                 header_text = f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
             variables_table.add_row(header_text, "", "", "")
             for var_name, variable in section.variables.items():
+                # Check if variable's needs are satisfied
+                var_satisfied = template.variables.is_variable_satisfied(var_name)
+                
                 # Skip variables with unsatisfied needs unless show_all is True
-                if not show_all and not template.variables.is_variable_satisfied(var_name):
+                if not show_all and not var_satisfied:
                     continue
                 
-                row_style = "bright_black" if is_dimmed else None
+                # Dim the variable if section is dimmed OR variable needs are not satisfied
+                row_style = "bright_black" if (is_dimmed or not var_satisfied) else None
                 
                 # Build default value display
                 # If origin is 'config' and original value differs from current, show: original → config_value

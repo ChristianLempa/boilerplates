@@ -1,7 +1,11 @@
-from collections import OrderedDict
+"""Compose module schema version 1.1 - Enhanced with network_mode and improved swarm.
 
-from ..core.module import Module
-from ..core.registry import registry
+Changes from 1.0:
+- network: Added network_mode (bridge/host/macvlan) with conditional macvlan fields
+- swarm: Added volume modes (local/mount/nfs) and conditional placement constraints
+- traefik_tls: Updated needs format from 'traefik' to 'traefik_enabled=true'
+"""
+from collections import OrderedDict
 
 spec = OrderedDict(
     {
@@ -58,15 +62,48 @@ spec = OrderedDict(
             "type": "bool",
             "default": False,
           },
+          "network_mode": {
+            "description": "Docker network mode",
+            "type": "enum",
+            "options": ["bridge", "host", "macvlan"],
+            "default": "bridge",
+            "extra": "bridge=default Docker networking, host=use host network stack, macvlan=dedicated MAC address on physical network",
+          },
           "network_name": {
             "description": "Docker network name",
             "type": "str",
             "default": "bridge",
+            "needs": "network_mode=bridge,macvlan",
           },
           "network_external": {
             "description": "Use existing Docker network",
             "type": "bool",
             "default": True,
+            "needs": "network_mode=bridge,macvlan",
+          },
+          "network_macvlan_ipv4_address": {
+            "description": "Static IP address for container",
+            "type": "str",
+            "default": "192.168.1.253",
+            "needs": "network_mode=macvlan",
+          },
+          "network_macvlan_parent_interface": {
+            "description": "Host network interface name",
+            "type": "str",
+            "default": "eth0",
+            "needs": "network_mode=macvlan",
+          },
+          "network_macvlan_subnet": {
+            "description": "Network subnet in CIDR notation",
+            "type": "str",
+            "default": "192.168.1.0/24",
+            "needs": "network_mode=macvlan",
+          },
+          "network_macvlan_gateway": {
+            "description": "Network gateway IP address",
+            "type": "str",
+            "default": "192.168.1.1",
+            "needs": "network_mode=macvlan",
           },
         },
       },
@@ -106,7 +143,7 @@ spec = OrderedDict(
             "default": "web",
           },
         },
-      },  
+      },
       "traefik_tls": {
         "title": "Traefik TLS/SSL",
         "toggle": "traefik_tls_enabled",
@@ -318,17 +355,8 @@ spec = OrderedDict(
             "sensitive": True,
           },
         },
-      }
+      },
     }
   )
 
 
-class ComposeModule(Module):
-  """Docker Compose module."""
-
-  name = "compose"
-  description = "Manage Docker Compose configurations"
-  schema_version = "1.1"  # Current schema version supported by this module
-
-
-registry.register(ComposeModule)

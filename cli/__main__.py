@@ -116,9 +116,10 @@ def init_app() -> None:
     logger.debug(f"Discovering modules in {modules_path}")
     
     for finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
-      if not ispkg and not name.startswith('_') and name != 'base':
+      # Import both module files and packages (for multi-schema modules)
+      if not name.startswith('_') and name != 'base':
         try:
-          logger.debug(f"Importing module: {name}")
+          logger.debug(f"Importing module: {name} ({'package' if ispkg else 'file'})")
           importlib.import_module(f"cli.modules.{name}")
         except ImportError as e:
           error_info = f"Import failed for '{name}': {str(e)}"

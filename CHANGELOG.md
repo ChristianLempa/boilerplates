@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-Schema Module Support
+  - Modules can now maintain multiple schema versions simultaneously
+  - Schema specs organized in separate files (e.g., `spec_v1_0.py`, `spec_v1_1.py`)
+  - CLI automatically uses appropriate schema based on template declaration
+  - Module discovery now supports both file and package modules
+- Compose Schema 1.1 Network Enhancements
+  - Added `network_mode` with options: bridge, host, macvlan
+  - Macvlan support with conditional fields (IP address, interface, subnet, gateway)
+  - Host mode support for direct host network access
+  - Network fields conditionally shown based on selected mode
+- Comma-Separated Values in Dependencies
+  - `needs` now supports multiple values: `network_mode=bridge,macvlan`
+  - Variable shown if actual value matches ANY of the specified values
 - Template Schema Versioning (#1360)
   - Templates can now declare schema version (defaults to "1.0" for backward compatibility)
   - Modules validate template compatibility against supported schema version
@@ -38,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compose module schema version bumped to "1.1"
 - Traefik TLS section now uses variable-level dependencies (`needs: "traefik_enabled=true"`)
 - Display manager hides sections/variables with unsatisfied needs by default (unless `--all` flag is used)
+- Variables with unsatisfied needs are dimmed when shown with `--all` flag
 - Dependency validation now supports both old (section) and new (variable=value) formats
 
 ## [0.0.6] - 2025-01-XX
