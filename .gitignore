@@ -27,3 +27,6 @@
 # Test outputs
 tests/
 config.yaml
+
+*~
+

@@ -27,7 +27,7 @@
       ]
     },
     {
-      "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibilty with an application",
+      "description": "Update MariaDB or MySQL on a patch level only, bumps to major and minor versions might break compatibility with an application",
       "enabled": false,
       "matchManagers": [
         "custom.regex"
@@ -41,7 +41,7 @@
       ]
     },
     {
-      "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibilty with an application",
+      "description": "Update PostgreSQL on a minor version or patch level only, bumps to major versions might break compatibility with an application",
       "enabled": false,
       "matchManagers": [
         "custom.regex"
