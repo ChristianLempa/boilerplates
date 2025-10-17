@@ -9,27 +9,31 @@ from typing import Optional, List, Dict
 
 class BoilerplatesError(Exception):
     """Base exception for all boilerplates CLI errors."""
+
     pass
 
 
 class ConfigError(BoilerplatesError):
     """Raised when configuration operations fail."""
+
     pass
 
 
 class ConfigValidationError(ConfigError):
     """Raised when configuration validation fails."""
+
     pass
 
 
 class TemplateError(BoilerplatesError):
     """Base exception for template-related errors."""
+
     pass
 
 
 class TemplateNotFoundError(TemplateError):
     """Raised when a template cannot be found."""
-    
+
     def __init__(self, template_id: str, module_name: Optional[str] = None):
         self.template_id = template_id
         self.module_name = module_name
@@ -41,7 +45,7 @@ class TemplateNotFoundError(TemplateError):
 
 class DuplicateTemplateError(TemplateError):
     """Raised when duplicate template IDs are found within the same library."""
-    
+
     def __init__(self, template_id: str, library_name: str):
         self.template_id = template_id
         self.library_name = library_name
@@ -53,12 +57,13 @@ class DuplicateTemplateError(TemplateError):
 
 class TemplateLoadError(TemplateError):
     """Raised when a template fails to load."""
+
     pass
 
 
 class TemplateSyntaxError(TemplateError):
     """Raised when a Jinja2 template has syntax errors."""
-    
+
     def __init__(self, template_id: str, errors: List[str]):
         self.template_id = template_id
         self.errors = errors
@@ -68,13 +73,20 @@ class TemplateSyntaxError(TemplateError):
 
 class TemplateValidationError(TemplateError):
     """Raised when template validation fails."""
+
     pass
 
 
 class IncompatibleSchemaVersionError(TemplateError):
     """Raised when a template uses a schema version not supported by the module."""
-    
-    def __init__(self, template_id: str, template_schema: str, module_schema: str, module_name: str):
+
+    def __init__(
+        self,
+        template_id: str,
+        template_schema: str,
+        module_schema: str,
+        module_name: str,
+    ):
         self.template_id = template_id
         self.template_schema = template_schema
         self.module_schema = module_schema
@@ -91,7 +103,7 @@ class IncompatibleSchemaVersionError(TemplateError):
 
 class TemplateRenderError(TemplateError):
     """Raised when template rendering fails."""
-    
+
     def __init__(
         self,
         message: str,
@@ -101,7 +113,7 @@ class TemplateRenderError(TemplateError):
         context_lines: Optional[List[str]] = None,
         variable_context: Optional[Dict[str, str]] = None,
         suggestions: Optional[List[str]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         self.file_path = file_path
         self.line_number = line_number
@@ -110,10 +122,10 @@ class TemplateRenderError(TemplateError):
         self.variable_context = variable_context or {}
         self.suggestions = suggestions or []
         self.original_error = original_error
-        
+
         # Build enhanced error message
         parts = [message]
-        
+
         if file_path:
             location = f"File: {file_path}"
             if line_number:
@@ -121,18 +133,19 @@ class TemplateRenderError(TemplateError):
                 if column:
                     location += f", Column: {column}"
             parts.append(location)
-        
+
         super().__init__("\n".join(parts))
 
 
 class VariableError(BoilerplatesError):
     """Base exception for variable-related errors."""
+
     pass
 
 
 class VariableValidationError(VariableError):
     """Raised when variable validation fails."""
-    
+
     def __init__(self, variable_name: str, message: str):
         self.variable_name = variable_name
         msg = f"Validation error for variable '{variable_name}': {message}"
@@ -141,7 +154,7 @@ class VariableValidationError(VariableError):
 
 class VariableTypeError(VariableError):
     """Raised when a variable has an incorrect type."""
-    
+
     def __init__(self, variable_name: str, expected_type: str, actual_type: str):
         self.variable_name = variable_name
         self.expected_type = expected_type
@@ -152,17 +165,19 @@ class VariableTypeError(VariableError):
 
 class LibraryError(BoilerplatesError):
     """Raised when library operations fail."""
+
     pass
 
 
 class ModuleError(BoilerplatesError):
     """Raised when module operations fail."""
+
     pass
 
 
 class ModuleNotFoundError(ModuleError):
     """Raised when a module cannot be found."""
-    
+
     def __init__(self, module_name: str):
         self.module_name = module_name
         msg = f"Module '{module_name}' not found"
@@ -171,22 +186,25 @@ class ModuleNotFoundError(ModuleError):
 
 class ModuleLoadError(ModuleError):
     """Raised when a module fails to load."""
+
     pass
 
 
 class FileOperationError(BoilerplatesError):
     """Raised when file operations fail."""
+
     pass
 
 
 class RenderError(BoilerplatesError):
     """Raised when rendering operations fail."""
+
     pass
 
 
 class YAMLParseError(BoilerplatesError):
     """Raised when YAML parsing fails."""
-    
+
     def __init__(self, file_path: str, original_error: Exception):
         self.file_path = file_path
         self.original_error = original_error

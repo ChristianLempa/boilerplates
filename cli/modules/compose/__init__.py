@@ -9,8 +9,8 @@ from .spec_v1_1 import spec as spec_1_1
 
 # Schema version mapping
 SCHEMAS = {
-  "1.0": spec_1_0,
-  "1.1": spec_1_1,
+    "1.0": spec_1_0,
+    "1.1": spec_1_1,
 }
 
 # Default spec points to latest version
@@ -18,12 +18,12 @@ spec = spec_1_1
 
 
 class ComposeModule(Module):
-  """Docker Compose module."""
+    """Docker Compose module."""
 
-  name = "compose"
-  description = "Manage Docker Compose configurations"
-  schema_version = "1.1"  # Current schema version supported by this module
-  schemas = SCHEMAS  # Available schema versions
+    name = "compose"
+    description = "Manage Docker Compose configurations"
+    schema_version = "1.1"  # Current schema version supported by this module
+    schemas = SCHEMAS  # Available schema versions
 
 
 registry.register(ComposeModule)
