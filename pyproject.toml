@@ -30,12 +30,3 @@ boilerplates = "cli.__main__:run"
 [tool.setuptools.packages.find]
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
-
-[tool.pylint.format]
-indent-string = '  '
-max-line-length = 120
-
-[tool.pylint.messages_control]
-disable = [
-    "bad-indentation",
-]

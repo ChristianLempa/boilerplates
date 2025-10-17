@@ -44,7 +44,7 @@ class ConfigManager:
             if local_config.exists() and local_config.is_file():
                 self.config_path = local_config
                 self.is_local = True
-                logger.info(f"Using local config: {local_config}")
+                logger.debug(f"Using local config: {local_config}")
             else:
                 # Fall back to global config
                 config_dir = Path.home() / ".config" / "boilerplates"

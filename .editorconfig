@@ -9,57 +9,18 @@ indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[/docker-compose/nginx/**/*.conf]
-indent_size = 2
-
-[/docker-compose/wazuh/**/*.conf]
-indent_size = 2
-
-[*.css]
-indent_size = 2
-
-[{*.go,go.mod}]
-indent_style = tab
-indent_size = unset
-
-[*.hcl]
-indent_size = unset
-
-[*{.min,.min.*,-min}.js]
-charset = unset
-indent_size = unset
-indent_style = unset
-insert_final_newline = unset
-max_line_length = off
-
 [*.json]
+indent_size = 2
+
+[*.{js,jsx,ts,tsx}]
 indent_size = 2
 
 [*.md]
 indent_size = unset
 trim_trailing_whitespace = false
 
-[*.nix]
-indent_size = 2
-
 [*.py]
-indent_size = 2
-
-[*.tf]
-indent_size = unset
-
-[/packer/**/http/user-data]
-indent_size = 2
+indent_size = 4
 
 [{*.{yaml,yml},.yamllint}]
-indent_size = 2
-
-[*.xml]
-indent_size = 2
-
-[Makefile]
-indent_style = tab
-indent_size = unset
-
-[Vagrantfile]
 indent_size = 2

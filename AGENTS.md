@@ -21,8 +21,7 @@ python3 -m cli --log-level DEBUG compose list
 
 Should **always** happen before pushing anything to the repository.
 
-- Use `yamllint` for YAML files and `pylint` for Python code.
-- Use `2` spaces for YAML and Python indentation.
+- Use `yamllint` for YAML files and `ruff` for Python code.
 
 ### Project Management and Git
 
