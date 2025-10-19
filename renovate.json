@@ -160,6 +160,7 @@
       "datasourceTemplate": "terraform-provider"
     }
   ],
+  "gitAuthor": "github-actions[bot] <github-actions[bot]@users.noreply.github.com>",
   "prConcurrentLimit": 30,
   "prHourlyLimit": 5,
   "separateMinorPatch": true,
