@@ -160,6 +160,16 @@
       "datasourceTemplate": "terraform-provider"
     }
   ],
+  "postUpgradeTasks": {
+    "commands": [
+      ".renovate/sync-template-version.sh"
+    ],
+    "fileFilters": [
+      "library/**/template.yaml"
+    ],
+    "executionMode": "branch"
+  },
+  "gitAuthor": "github-actions[bot] <github-actions[bot]@users.noreply.github.com>",
   "prConcurrentLimit": 30,
   "prHourlyLimit": 5,
   "separateMinorPatch": true,
