@@ -25,6 +25,8 @@ Each template includes sensible defaults, best practices, and common configurati
 
 ### Installation
 
+#### Automated installer script
+
 Install the Boilerplates CLI using the automated installer:
 
 ```bash
@@ -37,10 +39,34 @@ curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/sc
 
 The installer uses `pipx` to create an isolated environment for the CLI tool. Once installed, the `boilerplates` command will be available in your terminal.
 
+#### Nixos
+
+If you are using nix flakes
+
+```bash
+# Run without installing
+nix run github:christianlempa/boilerplates -- --help
+
+# Install to your profile
+nix profile install github:christianlempa/boilerplates
+
+# Or directly in your flake
+{
+  inputs.boilerplates.url = "github:christianlempa/boilerplates";
+
+  outputs = { self, nixpkgs, boilerplates }: {
+    # Use boilerplates.packages.${system}.default
+  };
+}
+
+# Use in a temporary shell
+nix shell github:christianlempa/boilerplates
+```
+
 ### Quick Start
 
 ```bash
-# Explore 
+# Explore
 boilerplates --help
 
 # Update Repository Library
