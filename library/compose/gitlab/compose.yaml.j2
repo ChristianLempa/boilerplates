@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/gitlab/gitlab-ce:18.4.2-ce.0
+    image: docker.io/gitlab/gitlab-ce:18.5.1-ce.0
     container_name: {{ container_name }}
     shm_size: '256m'
 {% if traefik_enabled %}
