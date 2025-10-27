@@ -71,8 +71,12 @@ class VariableSection:
         """Check if section is currently enabled based on toggle variable.
 
         Returns:
-            True if section is enabled (no toggle or toggle is True), False otherwise
+            True if section is enabled (required, no toggle, or toggle is True), False otherwise
         """
+        # Required sections are always enabled, regardless of toggle
+        if self.required:
+            return True
+
         if not self.toggle:
             return True
 

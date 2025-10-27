@@ -539,6 +539,25 @@ class VariableCollection:
                     logger.warning(f"Variable '{var_name}' not found in template")
                     continue
 
+                # Check if this is a toggle variable for a required section
+                # If trying to set it to false, warn and skip
+                for section in self._sections.values():
+                    if (
+                        section.required
+                        and section.toggle
+                        and section.toggle == var_name
+                    ):
+                        # Convert value to bool to check if it's false
+                        try:
+                            bool_value = variable.convert(value)
+                            if not bool_value:
+                                logger.warning(
+                                    f"Ignoring attempt to disable toggle '{var_name}' for required section '{section.key}' via {origin}"
+                                )
+                                continue
+                        except Exception:
+                            pass  # If conversion fails, let normal validation handle it
+
                 # Store original value before overriding (for display purposes)
                 # Only store if this is the first time config is being applied
                 if origin == "config" and not hasattr(variable, "_original_stored"):

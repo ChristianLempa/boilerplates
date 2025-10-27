@@ -519,6 +519,10 @@ class DisplayManager:
                 )
             variables_table.add_row(header_text, "", "", "")
             for var_name, variable in section.variables.items():
+                # Skip toggle variable in required sections (always enabled, no need to show)
+                if section.required and section.toggle and var_name == section.toggle:
+                    continue
+
                 # Check if variable's needs are satisfied
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 
