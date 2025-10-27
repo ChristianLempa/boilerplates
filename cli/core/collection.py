@@ -65,14 +65,25 @@ class VariableCollection:
 
     def _create_section(self, key: str, data: dict[str, Any]) -> VariableSection:
         """Create a VariableSection from data."""
+        # Build section init data with only explicitly provided fields
+        # This prevents None values from overriding module spec values during merge
         section_init_data = {
             "key": key,
             "title": data.get("title", key.replace("_", " ").title()),
-            "description": data.get("description"),
-            "toggle": data.get("toggle"),
-            "required": data.get("required", key == "general"),
-            "needs": data.get("needs"),
         }
+        
+        # Only add optional fields if explicitly provided in the source data
+        if "description" in data:
+            section_init_data["description"] = data["description"]
+        if "toggle" in data:
+            section_init_data["toggle"] = data["toggle"]
+        if "required" in data:
+            section_init_data["required"] = data["required"]
+        elif key == "general":
+            section_init_data["required"] = True
+        if "needs" in data:
+            section_init_data["needs"] = data["needs"]
+            
         return VariableSection(section_init_data)
 
     def _initialize_variables(
@@ -277,9 +288,13 @@ class VariableCollection:
                         )
                 else:
                     # New format: validate variable exists
+                    # NOTE: We only warn here, not raise an error, because the variable might be
+                    # added later during merge with module spec. The actual runtime check in
+                    # _is_need_satisfied() will handle missing variables gracefully.
                     if var_or_section not in self._variable_map:
-                        raise ValueError(
-                            f"Section '{section_key}' has need '{dep}', but variable '{var_or_section}' does not exist"
+                        logger.debug(
+                            f"Section '{section_key}' has need '{dep}', but variable '{var_or_section}' "
+                            f"not found (might be added during merge)"
                         )
 
         # Check for missing dependencies in variables
@@ -417,6 +432,18 @@ class VariableCollection:
 
         # Rebuild _sections dict in new order
         self._sections = {key: section for _, (key, section) in sorted_items}
+
+        # NOTE: Sort variables within each section by their dependencies.
+        # This is critical for correct behavior in both display and prompts:
+        # 1. DISPLAY: Variables are shown in logical order (dependencies before dependents)
+        # 2. PROMPTS: Users are asked for dependency values BEFORE dependent values
+        #    Example: network_mode (bridge/host/macvlan) is prompted before
+        #             network_macvlan_ipv4_address (which needs network_mode=macvlan)
+        # 3. VALIDATION: Ensures config/CLI overrides can be checked in correct order
+        # Without this sorting, users would be prompted for irrelevant variables or see
+        # confusing variable order in the UI.
+        for section in self._sections.values():
+            section.sort_variables(self._is_need_satisfied)
 
     def _topological_sort(self) -> List[str]:
         """Perform topological sort on sections based on dependencies using Kahn's algorithm."""
@@ -557,6 +584,20 @@ class VariableCollection:
                                 continue
                         except Exception:
                             pass  # If conversion fails, let normal validation handle it
+
+                # Check if variable's needs are satisfied
+                # If not, warn that the override will have no effect
+                if not self.is_variable_satisfied(var_name):
+                    # Build a friendly message about which needs aren't satisfied
+                    unmet_needs = []
+                    for need in variable.needs:
+                        if not self._is_need_satisfied(need):
+                            unmet_needs.append(need)
+                    needs_str = ", ".join(unmet_needs) if unmet_needs else "unknown"
+                    logger.warning(
+                        f"Setting '{var_name}' via {origin} will have no effect - needs not satisfied: {needs_str}"
+                    )
+                    # Continue anyway to store the value (it might become relevant later)
 
                 # Store original value before overriding (for display purposes)
                 # Only store if this is the first time config is being applied
