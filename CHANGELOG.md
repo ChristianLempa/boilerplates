@@ -41,11 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Swarm Volume Configuration
   - Support for local, mount, and NFS storage backends
   - Configurable NFS server, paths, and mount options
-- Storage Configuration for Docker Compose
-  - New `storage` section in compose module spec
-  - New `config` section in compose module spec
-  - Support for multiple storage backends: local, mount, nfs, glusterfs
-  - Dedicated configuration options for each backend type
 
 ### Changed
 - Compose module schema version bumped to "1.1"

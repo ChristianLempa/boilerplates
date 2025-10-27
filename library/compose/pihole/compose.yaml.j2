@@ -2,6 +2,8 @@ services:
   {{ service_name }}:
     container_name: {{ container_name }}
     image: docker.io/pihole/pihole:2025.08.0
+    env_file:
+      - .env.pihole
     {% if network_mode == 'host' %}
     network_mode: host
     {% elif traefik_enabled or network_mode == 'macvlan' %}
@@ -16,10 +18,9 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {% if ports_enabled and network_mode not in ['host', 'macvlan'] and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
+    {% if network_mode not in ['host', 'macvlan'] and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
     ports:
       {% if not traefik_enabled %}
-      - "{{ ports_http }}:80/tcp"
       - "{{ ports_https }}:443/tcp"
       {% endif %}
       {% if dns_enabled %}
@@ -30,13 +31,13 @@ services:
       - "67:67/udp"
       {% endif %}
     {% endif %}
-    environment:
-      - TZ={{ container_timezone }}
-      {% if pihole_webpassword %}      - FTLCONF_webserver_api_password={{ pihole_webpassword }}
-      {% endif %}      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams }}
     volumes:
       - config_dnsmasq:/etc/dnsmasq.d
       - config_pihole:/etc/pihole
+    {% if dhcp_enabled %}
+    cap_add:
+      - NET_ADMIN
+    {% endif %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true

@@ -174,7 +174,7 @@ spec = OrderedDict(
                 },
                 "database_external": {
                     "description": "Use an external database server?",
-                    "extra": "If 'no', a database container will be created in the compose project.",
+                    "extra": "skips creation of internal database container",
                     "type": "bool",
                     "default": False,
                 },

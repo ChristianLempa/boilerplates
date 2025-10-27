@@ -303,8 +303,12 @@ class VariableCollection:
                 dep_var, expected_value = self._parse_need(dep)
                 if expected_value is not None:  # Only validate new format
                     if dep_var not in self._variable_map:
-                        raise ValueError(
-                            f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' does not exist"
+                        # NOTE: We only warn here, not raise an error, because the variable might be
+                        # added later during merge with module spec. The actual runtime check in
+                        # _is_need_satisfied() will handle missing variables gracefully.
+                        logger.debug(
+                            f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' "
+                            f"not found (might be added during merge)"
                         )
 
         # Check for circular dependencies using depth-first search
@@ -395,6 +399,48 @@ class VariableCollection:
                 return False
 
         return True
+
+    def reset_disabled_bool_variables(self) -> list[str]:
+        """Reset bool variables with unsatisfied dependencies to False.
+        
+        This ensures that disabled bool variables don't accidentally remain True
+        and cause confusion in templates or configuration.
+        
+        Returns:
+            List of variable names that were reset
+        """
+        reset_vars = []
+        
+        for section_key, section in self._sections.items():
+            # Check if section dependencies are satisfied
+            section_satisfied = self.is_section_satisfied(section_key)
+            is_enabled = section.is_enabled()
+            
+            for var_name, variable in section.variables.items():
+                # Only process bool variables
+                if variable.type != "bool":
+                    continue
+                    
+                # Check if variable's own dependencies are satisfied
+                var_satisfied = self.is_variable_satisfied(var_name)
+                
+                # If section is disabled OR variable dependencies aren't met, reset to False
+                if not section_satisfied or not is_enabled or not var_satisfied:
+                    # Store original value if not already stored (for display purposes)
+                    if not hasattr(variable, "_original_disabled"):
+                        variable._original_disabled = variable.value
+                    
+                    # Only reset if current value is not already False
+                    if variable.value is not False:
+                        variable.value = False
+                        reset_vars.append(var_name)
+                        logger.debug(
+                            f"Reset disabled bool variable '{var_name}' to False "
+                            f"(section satisfied: {section_satisfied}, enabled: {is_enabled}, "
+                            f"var satisfied: {var_satisfied})"
+                        )
+        
+        return reset_vars
 
     def sort_sections(self) -> None:
         """Sort sections with the following priority:
@@ -748,6 +794,9 @@ class VariableCollection:
         for section in merged._sections.values():
             for var_name, variable in section.variables.items():
                 merged._variable_map[var_name] = variable
+
+        # Validate dependencies after merge is complete
+        merged._validate_dependencies()
 
         return merged
 

@@ -30,10 +30,11 @@ metadata:
        {% elif traefik_enabled -%}
        {% if traefik_tls_enabled %}https{% else %}http{% endif %}://{{ traefik_host }}
        {%- elif ports_enabled -%}
-       http://localhost:{{ ports_http }}
+       http://localhost:{{ ports_http }}/admin/login
        {%- endif %}
 
     3. Login password: {{ pihole_webpassword }}
+       (stored in .env.pihole file)
 
     {% if network_enabled and network_mode == 'macvlan' -%}
     4. Configure devices to use {{ network_macvlan_ipv4_address }} as DNS server
@@ -70,9 +71,9 @@ spec:
         extra: "Exposes port 53 for DNS queries in bridge network mode"
       dhcp_enabled:
         type: bool
-        description: "Enable DHCP server functionality"
-        default: false
-        extra: "Exposes port 67 for DHCP in bridge network mode"
+        needs: "network_mode=host,macvlan"
+        description: "Enable DHCP server functionality (requires host or macvlan network mode)"
+        default: true
   traefik:
     vars:
       traefik_host:
@@ -85,12 +86,10 @@ spec:
       network_external:
         default: false
   ports:
+    needs: "network_mode=bridge"
     vars:
-      ports_enabled:
-        extra: "Only required in bridge network mode without Traefik"
-      ports_http:
-        type: int
-        default: 8080
       ports_https:
+        description: "HTTPS port for web interface"
         type: int
         default: 8443
+        extra: "Only used if Traefik is not enabled"

@@ -64,11 +64,10 @@ spec = OrderedDict(
                     "default": False,
                 },
                 "network_mode": {
-                    "description": "Docker network mode",
+                    "description": "Docker network mode (bridge, host, or macvlan)",
                     "type": "enum",
                     "options": ["bridge", "host", "macvlan"],
                     "default": "bridge",
-                    "extra": "bridge=default Docker networking, host=use host network stack, macvlan=dedicated MAC address on physical network",
                 },
                 "network_name": {
                     "description": "Docker network name",
@@ -77,7 +76,7 @@ spec = OrderedDict(
                     "needs": "network_mode=bridge,macvlan",
                 },
                 "network_external": {
-                    "description": "Use existing Docker network",
+                    "description": "Use existing Docker network (external)",
                     "type": "bool",
                     "default": True,
                     "needs": "network_mode=bridge,macvlan",
@@ -111,6 +110,7 @@ spec = OrderedDict(
         "ports": {
             "title": "Ports",
             "toggle": "ports_enabled",
+            "needs": "network_mode=bridge",
             "vars": {
                 "ports_enabled": {
                     "description": "Expose ports via 'ports' mapping",
@@ -122,6 +122,7 @@ spec = OrderedDict(
         "traefik": {
             "title": "Traefik",
             "toggle": "traefik_enabled",
+            "needs": "network_mode=bridge",
             "description": "Traefik routes external traffic to your service.",
             "vars": {
                 "traefik_enabled": {
@@ -148,7 +149,7 @@ spec = OrderedDict(
         "traefik_tls": {
             "title": "Traefik TLS/SSL",
             "toggle": "traefik_tls_enabled",
-            "needs": "traefik_enabled=true",
+            "needs": "traefik_enabled=true;network_mode=bridge",
             "description": "Enable HTTPS/TLS for Traefik with certificate management.",
             "vars": {
                 "traefik_tls_enabled": {
@@ -239,10 +240,9 @@ spec = OrderedDict(
         "database": {
             "title": "Database",
             "toggle": "database_enabled",
-            "description": "Connect to external database (PostgreSQL or MySQL)",
             "vars": {
                 "database_enabled": {
-                    "description": "Enable external database integration",
+                    "description": "Enable database configuration",
                     "type": "bool",
                     "default": False,
                 },
@@ -254,7 +254,7 @@ spec = OrderedDict(
                 },
                 "database_external": {
                     "description": "Use an external database server?",
-                    "extra": "If 'no', a database container will be created in the compose project.",
+                    "extra": "skips creation of internal database container",
                     "type": "bool",
                     "default": False,
                 },

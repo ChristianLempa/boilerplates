@@ -217,11 +217,6 @@ class Module(ABC):
     def show(
         self,
         id: str,
-        all_vars: bool = Option(
-            False,
-            "--all",
-            help="Show all variables/sections, even those with unsatisfied needs",
-        ),
     ) -> None:
         """Show template details."""
         logger.debug(f"Showing template '{id}' from module '{self.name}'")
@@ -254,8 +249,13 @@ class Module(ABC):
 
             # Re-sort sections after applying config (toggle values may have changed)
             template.variables.sort_sections()
+            
+            # Reset disabled bool variables to False to prevent confusion
+            reset_vars = template.variables.reset_disabled_bool_variables()
+            if reset_vars:
+                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
-        self._display_template_details(template, id, show_all=all_vars)
+        self._display_template_details(template, id)
 
     def _apply_variable_defaults(self, template: Template) -> None:
         """Apply config defaults and CLI overrides to template variables.
@@ -610,11 +610,6 @@ class Module(ABC):
         quiet: bool = Option(
             False, "--quiet", "-q", help="Suppress all non-error output"
         ),
-        all_vars: bool = Option(
-            False,
-            "--all",
-            help="Show all variables/sections, even those with unsatisfied needs",
-        ),
     ) -> None:
         """Generate from template.
 
@@ -656,9 +651,14 @@ class Module(ABC):
         # Re-sort sections after all overrides (toggle values may have changed)
         if template.variables:
             template.variables.sort_sections()
+            
+            # Reset disabled bool variables to False to prevent confusion
+            reset_vars = template.variables.reset_disabled_bool_variables()
+            if reset_vars:
+                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
         if not quiet:
-            self._display_template_details(template, id, show_all=all_vars)
+            self._display_template_details(template, id)
             console.print()
 
         # Collect variable values
@@ -1285,13 +1285,12 @@ class Module(ABC):
             ) from exc
 
     def _display_template_details(
-        self, template: Template, id: str, show_all: bool = False
+        self, template: Template, id: str
     ) -> None:
         """Display template information panel and variables table.
 
         Args:
             template: Template instance to display
             id: Template ID
-            show_all: If True, show all variables/sections regardless of needs satisfaction
         """
-        self.display.display_template_details(template, id, show_all=show_all)
+        self.display.display_template_details(template, id)
