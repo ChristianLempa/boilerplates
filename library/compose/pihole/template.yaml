@@ -67,12 +67,12 @@ spec:
         type: bool
         description: "Enable DNS server functionality"
         default: true
-        extra: "Requires port 53 to be exposed or macvlan network mode"
+        extra: "Exposes port 53 for DNS queries in bridge network mode"
       dhcp_enabled:
         type: bool
         description: "Enable DHCP server functionality"
         default: false
-        extra: "Requires macvlan network mode"
+        extra: "Exposes port 67 for DHCP in bridge network mode"
   traefik:
     vars:
       traefik_host:
@@ -82,8 +82,12 @@ spec:
     vars:
       network_name:
         default: "pihole_network"
+      network_external:
+        default: false
   ports:
     vars:
+      ports_enabled:
+        extra: "Only required in bridge network mode without Traefik"
       ports_http:
         type: int
         default: 8080
