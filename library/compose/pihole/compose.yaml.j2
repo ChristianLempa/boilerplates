@@ -2,21 +2,21 @@ services:
   {{ service_name }}:
     container_name: {{ container_name }}
     image: docker.io/pihole/pihole:2025.08.0
-    {% if network_enabled and network_mode == 'host' %}
+    {% if network_mode == 'host' %}
     network_mode: host
-    {% elif traefik_enabled or (network_enabled and network_mode == 'macvlan') %}
+    {% elif traefik_enabled or network_mode == 'macvlan' %}
     networks:
       {% if traefik_enabled %}
       {{ traefik_network }}:
       {% endif %}
-      {% if network_enabled and network_mode == 'macvlan' %}
+      {% if network_mode == 'macvlan' %}
       {{ network_name }}:
         ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_enabled and network_mode == 'bridge' %}
+      {% elif network_mode == 'bridge' %}
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {% if ports_enabled and not (network_enabled and network_mode in ['host', 'macvlan']) and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
+    {% if ports_enabled and network_mode not in ['host', 'macvlan'] and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
     ports:
       {% if not traefik_enabled %}
       - "{{ ports_http }}:80/tcp"
@@ -60,9 +60,9 @@ volumes:
   config_pihole:
     driver: local
 
-{% if network_enabled or traefik_enabled %}
+{% if network_mode != 'host' and (network_mode in ['bridge', 'macvlan'] or traefik_enabled) %}
 networks:
-  {% if network_enabled and network_mode == 'macvlan' %}
+  {% if network_mode == 'macvlan' %}
   {{ network_name }}:
     driver: macvlan
     driver_opts:
@@ -71,10 +71,10 @@ networks:
       config:
         - subnet: {{ network_macvlan_subnet }}
           gateway: {{ network_macvlan_gateway }}
-  {% elif network_enabled and network_mode == 'bridge' and network_external %}
+  {% elif network_mode == 'bridge' and network_external %}
   {{ network_name }}:
     external: true
-  {% elif network_enabled and network_mode == 'bridge' and not network_external %}
+  {% elif network_mode == 'bridge' and not network_external %}
   {{ network_name }}:
     driver: bridge
   {% endif %}
