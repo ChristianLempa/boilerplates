@@ -195,6 +195,7 @@ class DisplayManager:
         table.add_column("Name")
         table.add_column("Tags")
         table.add_column("Version", no_wrap=True)
+        table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
         for template in templates:
@@ -204,6 +205,7 @@ class DisplayManager:
             version = (
                 str(template.metadata.version) if template.metadata.version else ""
             )
+            schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
 
             # Show library with type indicator and color
             library_name = template.metadata.library or ""
@@ -223,7 +225,7 @@ class DisplayManager:
             # Display qualified ID if present (e.g., "alloy.default")
             display_id = template.id
 
-            table.add_row(display_id, name, tags, version, library_display)
+            table.add_row(display_id, name, tags, version, schema, library_display)
 
         console.print(table)
 
@@ -369,6 +371,7 @@ class DisplayManager:
             if template.metadata.version
             else "Not specified"
         )
+        schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
         description = template.metadata.description or "No description available"
 
         # Get library information
@@ -386,7 +389,7 @@ class DisplayManager:
             )
 
         console.print(
-            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan]) {library_display}[/bold blue]"
+            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}[/bold blue]"
         )
         console.print(description)
 

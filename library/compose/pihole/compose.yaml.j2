@@ -18,26 +18,21 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {% if network_mode not in ['host', 'macvlan'] and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
+    {% if network_mode not in ['host', 'macvlan'] %}
     ports:
       {% if not traefik_enabled %}
       - "{{ ports_https }}:443/tcp"
       {% endif %}
-      {% if dns_enabled %}
-      - "53:53/tcp"
-      - "53:53/udp"
-      {% endif %}
-      {% if dhcp_enabled %}
-      - "67:67/udp"
-      {% endif %}
+      - "{{ ports_dns }}:53/tcp"
+      - "{{ ports_dns }}:53/udp"
+      - "{{ ports_ntp }}:123/udp"
     {% endif %}
     volumes:
       - config_dnsmasq:/etc/dnsmasq.d
       - config_pihole:/etc/pihole
-    {% if dhcp_enabled %}
     cap_add:
       - NET_ADMIN
-    {% endif %}
+      - SYS_TIME
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true

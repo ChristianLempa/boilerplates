@@ -64,7 +64,7 @@ spec = OrderedDict(
                     "default": False,
                 },
                 "network_mode": {
-                    "description": "Docker network mode (bridge, host, or macvlan)",
+                    "description": "Docker network mode",
                     "type": "enum",
                     "options": ["bridge", "host", "macvlan"],
                     "default": "bridge",
