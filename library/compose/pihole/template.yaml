@@ -22,6 +22,27 @@ metadata:
     - ad-blocking
   draft: false
   next_steps: |
+    {% if swarm_enabled -%}
+    1. Create Docker Swarm secret for admin password:
+       echo "{{ webpassword }}" | docker secret create {{ webpassword_secret_name }} -
+       (Or use the generated .env.secret file)
+
+    2. Deploy to Swarm:
+       docker stack deploy -c compose.yaml pihole
+
+    3. Verify deployment:
+       docker service ls
+       docker service logs pihole_{{ service_name }}
+
+    4. Access web interface:
+       {% if network_mode == 'macvlan' -%}https://{{ network_macvlan_ipv4_address }}/admin/login
+       {%- elif traefik_enabled == True -%}https://{{ traefik_host }}/admin/login
+       {%- else -%}https://localhost:{{ ports_https }}/admin/login{%- endif %}
+
+    5. Login password: Stored in Docker secret '{{ webpassword_secret_name }}'
+
+    6. Configure devices to use your swarm node's IP address as DNS server
+    {% else -%}
     1. Start: docker compose up -d
 
     2. Access web interface:
@@ -32,6 +53,7 @@ metadata:
     3. Login password: {{ webpassword }}
 
     4. Configure devices to use your host's IP address as DNS server
+    {% endif -%}
 spec:
   general:
     vars:
@@ -54,14 +76,11 @@ spec:
       traefik_host:
         default: "pihole.home.arpa"
   network:
-    required: true
     vars:
       network_mode:
         extra: "If you need DHCP functionality, use 'host' or 'macvlan' mode"
       network_name:
         default: "pihole_network"
-      network_external:
-        default: false
   ports:
     needs: "network_mode=bridge"
     vars:
@@ -78,3 +97,11 @@ spec:
         description: "External NTP port"
         type: int
         default: 123
+  swarm:
+    vars:
+      swarm_placement_host:
+        required: true
+      webpassword_secret_name:
+        description: "Docker Swarm secret name for admin password"
+        type: str
+        default: "pihole_webpassword"
