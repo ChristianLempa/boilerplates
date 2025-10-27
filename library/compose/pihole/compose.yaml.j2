@@ -1,19 +1,19 @@
 services:
-  {{ service_name | default('pihole') }}:
-    container_name: {{ container_name | default('pihole') }}
+  {{ service_name }}:
+    container_name: {{ container_name }}
     image: docker.io/pihole/pihole:2025.08.0
     {% if network_enabled and network_mode == 'host' %}
     network_mode: host
     {% elif traefik_enabled or (network_enabled and network_mode == 'macvlan') %}
     networks:
       {% if traefik_enabled %}
-      {{ traefik_network | default('traefik') }}:
+      {{ traefik_network }}:
       {% endif %}
       {% if network_enabled and network_mode == 'macvlan' %}
-      {{ network_name | default('pihole_net') }}:
+      {{ network_name }}:
         ipv4_address: {{ network_macvlan_ipv4_address }}
       {% elif network_enabled and network_mode == 'bridge' %}
-      {{ network_name | default('bridge') }}:
+      {{ network_name }}:
       {% endif %}
     {% endif %}
     {% if ports_enabled and not (network_enabled and network_mode in ['host', 'macvlan']) and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
@@ -31,28 +31,28 @@ services:
       {% endif %}
     {% endif %}
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
       {% if pihole_webpassword %}      - FTLCONF_webserver_api_password={{ pihole_webpassword }}
-      {% endif %}      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams | default('1.1.1.1;1.0.0.1') }}
+      {% endif %}      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams }}
     volumes:
       - config_dnsmasq:/etc/dnsmasq.d
       - config_pihole:/etc/pihole
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.http.services.{{ service_name | default('pihole') }}-web.loadBalancer.server.port=80
-      - traefik.http.routers.{{ service_name | default('pihole') }}-http.service={{ service_name | default('pihole') }}-web
-      - traefik.http.routers.{{ service_name | default('pihole') }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('pihole') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.service={{ service_name | default('pihole') }}-web
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.tls=true
-      - traefik.http.routers.{{ service_name | default('pihole') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy | default('unless-stopped') }}
+    restart: {{ restart_policy }}
 
 volumes:
   config_dnsmasq:
@@ -63,7 +63,7 @@ volumes:
 {% if network_enabled or traefik_enabled %}
 networks:
   {% if network_enabled and network_mode == 'macvlan' %}
-  {{ network_name | default('pihole_net') }}:
+  {{ network_name }}:
     driver: macvlan
     driver_opts:
       parent: {{ network_macvlan_parent_interface }}
@@ -72,14 +72,14 @@ networks:
         - subnet: {{ network_macvlan_subnet }}
           gateway: {{ network_macvlan_gateway }}
   {% elif network_enabled and network_mode == 'bridge' and network_external %}
-  {{ network_name | default('bridge') }}:
+  {{ network_name }}:
     external: true
   {% elif network_enabled and network_mode == 'bridge' and not network_external %}
-  {{ network_name | default('bridge') }}:
+  {{ network_name }}:
     driver: bridge
   {% endif %}
   {% if traefik_enabled %}
-  {{ traefik_network | default('traefik') }}:
+  {{ traefik_network }}:
     external: true
   {% endif %}
 {% endif %}
