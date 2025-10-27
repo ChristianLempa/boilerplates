@@ -84,14 +84,10 @@ class PromptHandler:
             elif section.toggle:
                 toggle_var = section.variables.get(section.toggle)
                 if toggle_var:
-                    # Use description for prompt if available, otherwise use title
-                    prompt_text = (
-                        section.description
-                        if section.description
-                        else f"Enable {section.title}?"
-                    )
+                    # Prompt for toggle variable using standard variable prompting logic
+                    # This ensures consistent handling of description, extra text, validation hints, etc.
                     current_value = toggle_var.convert(toggle_var.value)
-                    new_value = self._prompt_bool(prompt_text, current_value)
+                    new_value = self._prompt_variable(toggle_var, required=section.required)
 
                     if new_value != current_value:
                         collected[toggle_var.name] = new_value
@@ -105,6 +101,13 @@ class PromptHandler:
             for var_name, variable in section.variables.items():
                 # Skip toggle variable (already handled)
                 if section.toggle and var_name == section.toggle:
+                    continue
+
+                # Skip variables with unsatisfied needs (similar to display logic)
+                if not variables.is_variable_satisfied(var_name):
+                    logger.debug(
+                        f"Skipping variable '{var_name}' - needs not satisfied"
+                    )
                     continue
 
                 # Skip non-required variables if section is disabled

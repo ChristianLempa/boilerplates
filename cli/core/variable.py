@@ -62,10 +62,15 @@ class Variable:
         # Original value before config override (used for display)
         self.original_value: Optional[Any] = data.get("original_value")
         # Variable dependencies - can be string or list of strings in format "var_name=value"
+        # Supports semicolon-separated multiple conditions: "var1=value1;var2=value2,value3"
         needs_value = data.get("needs")
         if needs_value:
             if isinstance(needs_value, str):
-                self.needs: List[str] = [needs_value]
+                # Split by semicolon to support multiple AND conditions in a single string
+                # Example: "traefik_enabled=true;network_mode=bridge,macvlan"
+                self.needs: List[str] = [
+                    need.strip() for need in needs_value.split(";") if need.strip()
+                ]
             elif isinstance(needs_value, list):
                 self.needs: List[str] = needs_value
             else:
