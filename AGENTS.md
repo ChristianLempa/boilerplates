@@ -67,10 +67,15 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 
 ### Modules
 
+**Module Structure:**
+Modules can be either single files or packages:
+- **Single file**: `cli/modules/modulename.py` (for simple modules)
+- **Package**: `cli/modules/modulename/` with `__init__.py` (for multi-schema modules)
+
 **Creating Modules:**
 - Subclass `Module` from `cli/core/module.py`
-- Define `name` and `description` class attributes
-- Optional: Define module-wide `spec` for default variables (common across all templates)
+- Define `name`, `description`, and `schema_version` class attributes
+- For multi-schema modules: organize specs in separate files (e.g., `spec_v1_0.py`, `spec_v1_1.py`)
 - Call `registry.register(YourModule)` at module bottom
 - Auto-discovered and registered at CLI startup
 
@@ -83,8 +88,19 @@ spec = VariableCollection.from_dict({
 })
 ```
 
+**Multi-Schema Modules:**
+For modules supporting multiple schema versions, use package structure:
+```
+cli/modules/compose/
+  __init__.py          # Module class, loads appropriate spec
+  spec_v1_0.py         # Schema 1.0 specification
+  spec_v1_1.py         # Schema 1.1 specification
+```
+
 **Existing Modules:**
-- `cli/modules/compose.py` - Docker Compose (defines extensive module spec with traefik, database, email, authentik sections)
+- `cli/modules/compose/` - Docker Compose package with schema 1.0 and 1.1 support
+  - `spec_v1_0.py` - Basic compose spec
+  - `spec_v1_1.py` - Extended with network_mode, swarm support
 
 **(Work in Progress):** terraform, docker, ansible, kubernetes, packer modules
 
@@ -185,7 +201,8 @@ spec:
 ```
 
 **How It Works:**
-- **Module Schema Version**: Each module (in `cli/modules/*.py`) defines `schema_version` (e.g., "1.0")
+- **Module Schema Version**: Each module defines `schema_version` (e.g., "1.1")
+- **Module Spec Loading**: Modules load appropriate spec based on template's schema version
 - **Template Schema Version**: Each template declares `schema` at the top level (defaults to "1.0")
 - **Compatibility Check**: Template schema ≤ Module schema → Compatible
 - **Incompatibility**: Template schema > Module schema → `IncompatibleSchemaVersionError`
@@ -201,12 +218,30 @@ spec:
 - Set template schema when using features from a specific schema
 - Example: Template using new variable type added in schema 1.1 should set `schema: "1.1"`
 
-**Module Example:**
+**Single-File Module Example:**
 ```python
+class SimpleModule(Module):
+  name = "simple"
+  description = "Simple module"
+  schema_version = "1.0"
+  spec = VariableCollection.from_dict({...})  # Single spec
+```
+
+**Multi-Schema Module Example:**
+```python
+# cli/modules/compose/__init__.py
 class ComposeModule(Module):
   name = "compose"
   description = "Manage Docker Compose configurations"
-  schema_version = "1.0"  # Current schema version supported
+  schema_version = "1.1"  # Highest schema version supported
+  
+  def get_spec(self, template_schema: str) -> VariableCollection:
+    """Load spec based on template schema version."""
+    if template_schema == "1.0":
+      from .spec_v1_0 import get_spec
+    elif template_schema == "1.1":
+      from .spec_v1_1 import get_spec
+    return get_spec()
 ```
 
 **Version Management:**

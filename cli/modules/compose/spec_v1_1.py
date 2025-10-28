@@ -56,13 +56,7 @@ spec = OrderedDict(
         },
         "network": {
             "title": "Network",
-            "toggle": "network_enabled",
             "vars": {
-                "network_enabled": {
-                    "description": "Enable custom network block",
-                    "type": "bool",
-                    "default": False,
-                },
                 "network_mode": {
                     "description": "Docker network mode",
                     "type": "enum",
@@ -78,7 +72,7 @@ spec = OrderedDict(
                 "network_external": {
                     "description": "Use existing Docker network (external)",
                     "type": "bool",
-                    "default": True,
+                    "default": False,
                     "needs": "network_mode=bridge,macvlan",
                 },
                 "network_macvlan_ipv4_address": {
@@ -112,11 +106,6 @@ spec = OrderedDict(
             "toggle": "ports_enabled",
             "needs": "network_mode=bridge",
             "vars": {
-                "ports_enabled": {
-                    "description": "Expose ports via 'ports' mapping",
-                    "type": "bool",
-                    "default": True,
-                }
             },
         },
         "traefik": {
@@ -171,6 +160,7 @@ spec = OrderedDict(
         },
         "swarm": {
             "title": "Docker Swarm",
+            "needs": "network_mode=bridge",
             "toggle": "swarm_enabled",
             "description": "Deploy service in Docker Swarm mode.",
             "vars": {
@@ -184,7 +174,6 @@ spec = OrderedDict(
                     "type": "enum",
                     "options": ["replicated", "global"],
                     "default": "replicated",
-                    "extra": "replicated=run specific number of tasks, global=run one task per node",
                 },
                 "swarm_replicas": {
                     "description": "Number of replicas",
@@ -198,7 +187,7 @@ spec = OrderedDict(
                     "default": "",
                     "optional": True,
                     "needs": "swarm_placement_mode=replicated",
-                    "extra": "Constrains service to run on specific node by hostname (optional)",
+                    "extra": "Constrains service to run on specific node by hostname",
                 },
                 "swarm_volume_mode": {
                     "description": "Swarm volume storage backend",
@@ -241,16 +230,11 @@ spec = OrderedDict(
             "title": "Database",
             "toggle": "database_enabled",
             "vars": {
-                "database_enabled": {
-                    "description": "Enable database configuration",
-                    "type": "bool",
-                    "default": False,
-                },
                 "database_type": {
                     "description": "Database type",
                     "type": "enum",
-                    "options": ["postgres", "mysql"],
-                    "default": "postgres",
+                    "options": ["default", "sqlite", "postgres", "mysql"],
+                    "default": "default",
                 },
                 "database_external": {
                     "description": "Use an external database server?",

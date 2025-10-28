@@ -3,12 +3,12 @@ services:
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
     {% endif %}
-    image: docker.io/pihole/pihole:2025.08.0
+    image: docker.io/pihole/pihole:2025.10.2
     env_file:
       - .env.pihole
-    {% if network_enabled == 'true' and network_mode == 'host' %}
+    {% if network_mode == 'host' %}
     network_mode: host
-    {% elif traefik_enabled or network_enabled == 'true' %}
+    {% else %}
     networks:
       {% if traefik_enabled %}
       {{ traefik_network }}:
@@ -24,11 +24,16 @@ services:
     ports:
       {% if not traefik_enabled %}
       {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
       - target: 443
         published: {{ ports_https }}
         protocol: tcp
         mode: host
       {% else %}
+      - "{{ ports_http }}:80/tcp"
       - "{{ ports_https }}:443/tcp"
       {% endif %}
       {% endif %}
@@ -145,7 +150,7 @@ volumes:
     driver: local
 {% endif %}
 
-{% if network_mode != 'host' and (network_mode in ['bridge', 'macvlan'] or traefik_enabled) %}
+{% if network_mode != 'host' %}
 networks:
   {% if network_mode == 'macvlan' %}
   {{ network_name }}:

@@ -110,10 +110,10 @@ class PromptHandler:
                     )
                     continue
 
-                # Skip non-required variables if section is disabled
-                if not section_will_be_enabled and not variable.required:
+                # Skip all variables if section is disabled
+                if not section_will_be_enabled:
                     logger.debug(
-                        f"Skipping non-required variable '{var_name}' from disabled section '{section_key}'"
+                        f"Skipping variable '{var_name}' from disabled section '{section_key}'"
                     )
                     continue
 

@@ -8,46 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Multi-Schema Module Support
-  - Modules can now maintain multiple schema versions simultaneously
-  - Schema specs organized in separate files (e.g., `spec_v1_0.py`, `spec_v1_1.py`)
-  - CLI automatically uses appropriate schema based on template declaration
-  - Module discovery now supports both file and package modules
-- Compose Schema 1.1 Network Enhancements
-  - Added `network_mode` with options: bridge, host, macvlan
-  - Macvlan support with conditional fields (IP address, interface, subnet, gateway)
-  - Host mode support for direct host network access
-  - Network fields conditionally shown based on selected mode
-- Comma-Separated Values in Dependencies
-  - `needs` now supports multiple values: `network_mode=bridge,macvlan`
-  - Variable shown if actual value matches ANY of the specified values
-- Template Schema Versioning (#1360)
-  - Templates can now declare schema version (defaults to "1.0" for backward compatibility)
-  - Modules validate template compatibility against supported schema version
-  - Incompatible templates show clear error with upgrade instructions
-  - New `cli/core/version.py` module for semantic version comparison
-  - New `IncompatibleSchemaVersionError` exception for version mismatches
-- Variable-level Dependencies
-  - Variables can now have `needs` dependencies with format `variable=value`
-  - Sections support new dependency format: `needs: "variable=value"`
-  - Backward compatible with old section-only dependencies (`needs: "section_name"`)
-  - `is_variable_satisfied()` method added to VariableCollection
-- Show/Generate `--all` flag
-  - Added `--all` flag to `show` and `generate` commands
-  - Shows all variables/sections regardless of needs satisfaction
-  - Useful for debugging and viewing complete template structure
-- Optional Variables
-  - Variables can now be marked with `optional: true` to allow empty/None values
-- Docker Swarm Volume Configuration
-  - Support for local, mount, and NFS storage backends
-  - Configurable NFS server, paths, and mount options
+- Multiple Library Support (#1314) for git and local libraries
+- Multi-Schema Module Support and Backward Compatibility (Schema-1.0)
+- Schema-1.1 `network_mode` with options: bridge, host, macvlan
+- Schema-1.1 `swarm` module support
+- Variable-level and Section-level depenendencies `needs` with multiple values support
+- Optional Variables `optional: true` to allow empty/None values
+- PEP 8 formatting alignment
+- CLI variable dependency validation - raises error when CLI-provided variables have unsatisfied dependencies
 
 ### Changed
-- Compose module schema version bumped to "1.1"
-- Traefik TLS section now uses variable-level dependencies (`needs: "traefik_enabled=true"`)
-- Display manager hides sections/variables with unsatisfied needs by default (unless `--all` flag is used)
-- Variables with unsatisfied needs are dimmed when shown with `--all` flag
-- Dependency validation now supports both old (section) and new (variable=value) formats
+- Schema-1.1 Unified Docker Swarm Placement (#1359) - Simplified swarm placement constraints into a single variable
+- Refactored compose module from single file to package structure
+- Dependency validation moved to `validate_all()` for better error reporting
+- Schema-1.1 removed `network_enabled`, `ports_enabled` and `database_enabled` toggles (no longer optional)
+
+### Fixed
+- Required sections now ignore toggle and are always enabled
+- Module spec loading based on correct template schema version
+- Interactive prompts now skip all variables (including required) when parent section is disabled
 
 ## [0.0.6] - 2025-01-XX
 

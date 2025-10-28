@@ -57,7 +57,7 @@ metadata:
        - Review and limit network exposure
 
     For more information, visit: https://doc.traefik.io/traefik/
-  draft: false
+  draft: true
 spec:
   general:
     title: "General"
