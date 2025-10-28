@@ -87,7 +87,7 @@ spec:
       registry_external_url:
         type: str
         description: External URL for Container Registry
-        default: http://localhost:5678
+        default: http://localhost:2424
   advanced:
     title: Advanced Settings
     description: Performance tuning and advanced configuration options

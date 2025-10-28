@@ -28,53 +28,36 @@ jobs:
           echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION from tag $GITHUB_REF_NAME"
 
-      - name: Update version in pyproject.toml
+      - name: Validate version consistency
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
-          echo "✓ Updated pyproject.toml with version $VERSION"
+          TAG_VERSION="${{ steps.version.outputs.version }}"
 
-      - name: Update version in cli/__main__.py
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          sed -i "s/^__version__ = .*/__version__ = \"$VERSION\"/" cli/__main__.py
-          echo "✓ Updated cli/__main__.py with version $VERSION"
+          # Extract version from pyproject.toml
+          PYPROJECT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
 
-      - name: Verify changes
-        run: |
-          echo "=== pyproject.toml ==="
-          grep "^version" pyproject.toml
+          # Extract version from cli/__init__.py
+          CLI_VERSION=$(grep '^__version__ = ' cli/__init__.py | sed 's/__version__ = "\(.*\)"/\1/')
+
+          echo "Tag version:        $TAG_VERSION"
+          echo "pyproject.toml:     $PYPROJECT_VERSION"
+          echo "cli/__init__.py:    $CLI_VERSION"
           echo ""
-          echo "=== cli/__main__.py ==="
-          grep "^__version__" cli/__main__.py
 
-      - name: Commit and update tag
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          # Add changes
-          git add pyproject.toml cli/__main__.py
-
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "No version changes needed"
-          else
-            # Commit the version updates
-            git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-
-            # Delete the tag locally and remotely
-            git tag -d ${{ steps.version.outputs.tag }}
-            git push origin :refs/tags/${{ steps.version.outputs.tag }}
-
-            # Recreate the tag pointing to the new commit
-            git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
-
-            # Push the new tag
-            git push origin ${{ steps.version.outputs.tag }}
-
-            echo "✓ Tag ${{ steps.version.outputs.tag }} updated to point to version bump commit"
+          # Check if all versions match
+          if [ "$TAG_VERSION" != "$PYPROJECT_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($PYPROJECT_VERSION)"
+            echo "Please update pyproject.toml to version $TAG_VERSION before creating the release."
+            exit 1
           fi
+
+          if [ "$TAG_VERSION" != "$CLI_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match cli/__init__.py version ($CLI_VERSION)"
+            echo "Please update cli/__init__.py to version $TAG_VERSION before creating the release."
+            exit 1
+          fi
+
+          echo "Version consistency check passed"
+          echo "All version strings match: $TAG_VERSION"
 
       - name: Set up Python
         uses: actions/setup-python@v6
