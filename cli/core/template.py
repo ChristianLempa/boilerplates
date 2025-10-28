@@ -415,17 +415,19 @@ class Template:
 
     @staticmethod
     @lru_cache(maxsize=32)
-    def _load_module_specs(kind: str) -> dict:
-        """Load specifications from the corresponding module with caching.
+    def _load_module_specs_for_schema(kind: str, schema_version: str) -> dict:
+        """Load specifications from the corresponding module for a specific schema version.
 
         Uses LRU cache to avoid re-loading the same module spec multiple times.
         This significantly improves performance when listing many templates of the same kind.
 
         Args:
             kind: The module kind (e.g., 'compose', 'terraform')
+            schema_version: The schema version to load (e.g., '1.0', '1.1')
 
         Returns:
-            Dictionary containing the module's spec, or empty dict if kind is empty
+            Dictionary containing the module's spec for the requested schema version,
+            or empty dict if kind is empty
 
         Raises:
             ValueError: If module cannot be loaded or spec is invalid
@@ -436,8 +438,22 @@ class Template:
             import importlib
 
             module = importlib.import_module(f"cli.modules.{kind}")
-            spec = getattr(module, "spec", {})
-            logger.debug(f"Loaded and cached module spec for kind '{kind}'")
+            
+            # Check if module has schema-specific specs (multi-schema support)
+            # Try SCHEMAS constant first (uppercase), then schemas attribute
+            schemas = getattr(module, "SCHEMAS", None) or getattr(module, "schemas", None)
+            if schemas and schema_version in schemas:
+                spec = schemas[schema_version]
+                logger.debug(
+                    f"Loaded and cached module spec for kind '{kind}' schema {schema_version}"
+                )
+            else:
+                # Fallback to default spec if schema mapping not available
+                spec = getattr(module, "spec", {})
+                logger.debug(
+                    f"Loaded and cached module spec for kind '{kind}' (default/no schema mapping)"
+                )
+            
             return spec
         except Exception as e:
             raise ValueError(
@@ -887,10 +903,12 @@ class Template:
 
     @property
     def module_specs(self) -> dict:
-        """Get the spec from the module definition."""
+        """Get the spec from the module definition for this template's schema version."""
         if self.__module_specs is None:
             kind = self._template_data.get("kind")
-            self.__module_specs = self._load_module_specs(kind)
+            self.__module_specs = self._load_module_specs_for_schema(
+                kind, self.schema_version
+            )
         return self.__module_specs
 
     @property

@@ -95,7 +95,7 @@ class VariableCollection:
             vars_data = {}
 
         for var_name, var_data in vars_data.items():
-            var_init_data = {"name": var_name, **var_data}
+            var_init_data = {"name": var_name, "parent_section": section, **var_data}
             variable = Variable(var_init_data)
             section.variables[var_name] = variable
             # NOTE: Populate the direct lookup map for efficient access.
@@ -303,8 +303,12 @@ class VariableCollection:
                 dep_var, expected_value = self._parse_need(dep)
                 if expected_value is not None:  # Only validate new format
                     if dep_var not in self._variable_map:
-                        raise ValueError(
-                            f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' does not exist"
+                        # NOTE: We only warn here, not raise an error, because the variable might be
+                        # added later during merge with module spec. The actual runtime check in
+                        # _is_need_satisfied() will handle missing variables gracefully.
+                        logger.debug(
+                            f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' "
+                            f"not found (might be added during merge)"
                         )
 
         # Check for circular dependencies using depth-first search
@@ -395,6 +399,55 @@ class VariableCollection:
                 return False
 
         return True
+
+    def reset_disabled_bool_variables(self) -> list[str]:
+        """Reset bool variables with unsatisfied dependencies to False.
+        
+        This ensures that disabled bool variables don't accidentally remain True
+        and cause confusion in templates or configuration.
+        
+        Note: CLI-provided variables are NOT reset here - they are validated
+        later in validate_all() to provide better error messages.
+        
+        Returns:
+            List of variable names that were reset
+        """
+        reset_vars = []
+        
+        for section_key, section in self._sections.items():
+            # Check if section dependencies are satisfied
+            section_satisfied = self.is_section_satisfied(section_key)
+            is_enabled = section.is_enabled()
+            
+            for var_name, variable in section.variables.items():
+                # Only process bool variables
+                if variable.type != "bool":
+                    continue
+                    
+                # Check if variable's own dependencies are satisfied
+                var_satisfied = self.is_variable_satisfied(var_name)
+                
+                # If section is disabled OR variable dependencies aren't met, reset to False
+                if not section_satisfied or not is_enabled or not var_satisfied:
+                    # Only reset if current value is not already False
+                    if variable.value is not False:
+                        # Don't reset CLI-provided variables - they'll be validated later
+                        if variable.origin == "cli":
+                            continue
+                        
+                        # Store original value if not already stored (for display purposes)
+                        if not hasattr(variable, "_original_disabled"):
+                            variable._original_disabled = variable.value
+                        
+                        variable.value = False
+                        reset_vars.append(var_name)
+                        logger.debug(
+                            f"Reset disabled bool variable '{var_name}' to False "
+                            f"(section satisfied: {section_satisfied}, enabled: {is_enabled}, "
+                            f"var satisfied: {var_satisfied})"
+                        )
+        
+        return reset_vars
 
     def sort_sections(self) -> None:
         """Sort sections with the following priority:
@@ -630,9 +683,38 @@ class VariableCollection:
         Validates:
         - All variables in enabled sections with satisfied dependencies
         - Required variables even if their section is disabled (but dependencies must be satisfied)
+        - CLI-provided bool variables with unsatisfied dependencies
         """
         errors: list[str] = []
 
+        # First, check for CLI-provided bool variables with unsatisfied dependencies
+        for section_key, section in self._sections.items():
+            section_satisfied = self.is_section_satisfied(section_key)
+            is_enabled = section.is_enabled()
+            
+            for var_name, variable in section.variables.items():
+                # Check CLI-provided bool variables with unsatisfied dependencies
+                if variable.type == "bool" and variable.origin == "cli" and variable.value is not False:
+                    var_satisfied = self.is_variable_satisfied(var_name)
+                    
+                    if not section_satisfied or not is_enabled or not var_satisfied:
+                        # Build error message with unmet needs (use set to avoid duplicates)
+                        unmet_needs = set()
+                        if not section_satisfied:
+                            for need in section.needs:
+                                if not self._is_need_satisfied(need):
+                                    unmet_needs.add(need)
+                        if not var_satisfied:
+                            for need in variable.needs:
+                                if not self._is_need_satisfied(need):
+                                    unmet_needs.add(need)
+                        
+                        needs_str = ", ".join(sorted(unmet_needs)) if unmet_needs else "dependencies not satisfied"
+                        errors.append(
+                            f"{section.key}.{var_name} (set via CLI to {variable.value} but requires: {needs_str})"
+                        )
+
+        # Then validate all other variables
         for section_key, section in self._sections.items():
             # Skip sections with unsatisfied dependencies (even for required variables)
             if not self.is_section_satisfied(section_key):
@@ -651,8 +733,9 @@ class VariableCollection:
 
             # Validate variables in the section
             for var_name, variable in section.variables.items():
-                # Skip non-required variables in disabled sections
-                if not is_enabled and not variable.required:
+                # Skip all variables (including required ones) in disabled sections
+                # Required variables are only required when their section is actually enabled
+                if not is_enabled:
                     continue
 
                 try:
@@ -749,6 +832,9 @@ class VariableCollection:
             for var_name, variable in section.variables.items():
                 merged._variable_map[var_name] = variable
 
+        # Validate dependencies after merge is complete
+        merged._validate_dependencies()
+
         return merged
 
     def _merge_sections(
@@ -758,15 +844,14 @@ class VariableCollection:
         merged_section = self_section.clone()
 
         # Update section metadata from other (other takes precedence)
-        # Only override if explicitly provided in other AND has a value
+        # Explicit null/empty values clear the property (reset mechanism)
         for attr in ("title", "description", "toggle"):
-            other_value = getattr(other_section, attr)
             if (
                 hasattr(other_section, "_explicit_fields")
                 and attr in other_section._explicit_fields
-                and other_value
             ):
-                setattr(merged_section, attr, other_value)
+                # Set to the other value even if null/empty (enables explicit reset)
+                setattr(merged_section, attr, getattr(other_section, attr))
 
         merged_section.required = other_section.required
         # Respect explicit clears for dependencies (explicit null/empty clears, missing field preserves)
@@ -805,6 +890,12 @@ class VariableCollection:
                 for bool_field in ("optional", "autogenerated", "required"):
                     if bool_field in other_var._explicit_fields:
                         update[bool_field] = getattr(other_var, bool_field)
+
+                # Special handling for needs (allow explicit null/empty to clear)
+                if "needs" in other_var._explicit_fields:
+                    update["needs"] = (
+                        other_var.needs.copy() if other_var.needs else []
+                    )
 
                 # Special handling for value/default (allow explicit null to clear)
                 if "value" in other_var._explicit_fields:

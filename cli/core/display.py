@@ -195,6 +195,7 @@ class DisplayManager:
         table.add_column("Name")
         table.add_column("Tags")
         table.add_column("Version", no_wrap=True)
+        table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
         for template in templates:
@@ -204,6 +205,7 @@ class DisplayManager:
             version = (
                 str(template.metadata.version) if template.metadata.version else ""
             )
+            schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
 
             # Show library with type indicator and color
             library_name = template.metadata.library or ""
@@ -223,23 +225,22 @@ class DisplayManager:
             # Display qualified ID if present (e.g., "alloy.default")
             display_id = template.id
 
-            table.add_row(display_id, name, tags, version, library_display)
+            table.add_row(display_id, name, tags, version, schema, library_display)
 
         console.print(table)
 
     def display_template_details(
-        self, template: Template, template_id: str, show_all: bool = False
+        self, template: Template, template_id: str
     ) -> None:
         """Display template information panel and variables table.
 
         Args:
             template: Template instance to display
             template_id: ID of the template
-            show_all: If True, show all variables/sections regardless of needs satisfaction
         """
         self._display_template_header(template, template_id)
         self._display_file_tree(template)
-        self._display_variables_table(template, show_all=show_all)
+        self._display_variables_table(template)
 
     def display_section_header(self, title: str, description: str | None) -> None:
         """Display a section header."""
@@ -370,6 +371,7 @@ class DisplayManager:
             if template.metadata.version
             else "Not specified"
         )
+        schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
         description = template.metadata.description or "No description available"
 
         # Get library information
@@ -387,7 +389,7 @@ class DisplayManager:
             )
 
         console.print(
-            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan]) {library_display}[/bold blue]"
+            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}[/bold blue]"
         )
         console.print(description)
 
@@ -455,13 +457,15 @@ class DisplayManager:
             console.print(file_tree)
 
     def _display_variables_table(
-        self, template: Template, show_all: bool = False
+        self, template: Template
     ) -> None:
         """Display a table of variables for a template.
 
+        All variables and sections are always shown. Disabled sections/variables
+        are displayed with dimmed styling.
+
         Args:
             template: Template instance
-            show_all: If True, show all variables/sections regardless of needs satisfaction
         """
         if not (template.variables and template.variables.has_sections()):
             return
@@ -478,12 +482,6 @@ class DisplayManager:
         first_section = True
         for section in template.variables.get_sections().values():
             if not section.variables:
-                continue
-
-            # Skip sections with unsatisfied needs unless show_all is True
-            if not show_all and not template.variables.is_section_satisfied(
-                section.key
-            ):
                 continue
 
             if not first_section:
@@ -526,17 +524,23 @@ class DisplayManager:
                 # Check if variable's needs are satisfied
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 
-                # Skip variables with unsatisfied needs unless show_all is True
-                if not show_all and not var_satisfied:
-                    continue
-
                 # Dim the variable if section is dimmed OR variable needs are not satisfied
                 row_style = "bright_black" if (is_dimmed or not var_satisfied) else None
 
                 # Build default value display
+                # Special case: disabled bool variables show as "original → False"
+                if (is_dimmed or not var_satisfied) and variable.type == "bool":
+                    # Show that disabled bool variables are forced to False
+                    if hasattr(variable, "_original_disabled") and variable._original_disabled is not False:
+                        orig_val = str(variable._original_disabled)
+                        default_val = f"{orig_val} {IconManager.arrow_right()} False"
+                    else:
+                        default_val = "False"
                 # If origin is 'config' and original value differs from current, show: original → config_value
-                if (
-                    variable.origin == "config"
+                # BUT only for enabled variables (don't show arrow for disabled ones)
+                elif (
+                    not (is_dimmed or not var_satisfied)
+                    and variable.origin == "config"
                     and hasattr(variable, "_original_stored")
                     and variable.original_value != variable.value
                 ):

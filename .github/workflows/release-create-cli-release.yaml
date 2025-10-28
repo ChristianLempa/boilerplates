@@ -96,8 +96,16 @@ jobs:
       - name: Extract changelog for this version
         id: changelog
         run: |
-          # Extract the [Unreleased] section from CHANGELOG.md
-          CHANGELOG=$(awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md)
+          # Extract the changelog for this version from CHANGELOG.md
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # First try to extract the section for this specific version
+          CHANGELOG=$(awk -v ver="$VERSION" '/^## \[/{if($0 ~ "\\[" ver "\\]"){flag=1; next} else if(flag){exit}} flag' CHANGELOG.md)
+          
+          # If empty, fall back to [Unreleased] section
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG=$(awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md)
+          fi
 
           if [ -z "$CHANGELOG" ]; then
             echo "No changelog entries found for this release"

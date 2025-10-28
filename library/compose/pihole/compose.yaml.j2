@@ -1,10 +1,14 @@
 services:
   {{ service_name }}:
+    {% if not swarm_enabled %}
     container_name: {{ container_name }}
-    image: docker.io/pihole/pihole:2025.08.0
+    {% endif %}
+    image: docker.io/pihole/pihole:2025.10.2
+    env_file:
+      - .env.pihole
     {% if network_mode == 'host' %}
     network_mode: host
-    {% elif traefik_enabled or network_mode == 'macvlan' %}
+    {% else %}
     networks:
       {% if traefik_enabled %}
       {{ traefik_network }}:
@@ -16,27 +20,86 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {% if ports_enabled and network_mode not in ['host', 'macvlan'] and (not traefik_enabled or dns_enabled or dhcp_enabled) %}
+    {% if network_mode not in ['host', 'macvlan'] %}
     ports:
       {% if not traefik_enabled %}
+      {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: {{ ports_https }}
+        protocol: tcp
+        mode: host
+      {% else %}
       - "{{ ports_http }}:80/tcp"
       - "{{ ports_https }}:443/tcp"
       {% endif %}
-      {% if dns_enabled %}
-      - "53:53/tcp"
-      - "53:53/udp"
       {% endif %}
-      {% if dhcp_enabled %}
-      - "67:67/udp"
+      {% if swarm_enabled %}
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: udp
+        mode: host
+      - target: 123
+        published: {{ ports_ntp }}
+        protocol: udp
+        mode: host
+      {% else %}
+      - "{{ ports_dns }}:53/tcp"
+      - "{{ ports_dns }}:53/udp"
+      - "{{ ports_ntp }}:123/udp"
       {% endif %}
     {% endif %}
-    environment:
-      - TZ={{ container_timezone }}
-      {% if pihole_webpassword %}      - FTLCONF_webserver_api_password={{ pihole_webpassword }}
-      {% endif %}      - FTLCONF_dns_upstreams={{ pihole_dns_upstreams }}
     volumes:
+      {% if not swarm_enabled %}
       - config_dnsmasq:/etc/dnsmasq.d
       - config_pihole:/etc/pihole
+      {% else %}
+      {% if swarm_volume_mode == 'mount' %}
+      - {{ swarm_volume_mount_path }}/dnsmasq:/etc/dnsmasq.d:rw
+      - {{ swarm_volume_mount_path }}/pihole:/etc/pihole:rw
+      {% elif swarm_volume_mode == 'local' %}
+      - config_dnsmasq:/etc/dnsmasq.d
+      - config_pihole:/etc/pihole
+      {% elif swarm_volume_mode == 'nfs' %}
+      - config_dnsmasq:/etc/dnsmasq.d
+      - config_pihole:/etc/pihole
+      {% endif %}
+      {% endif %}
+    cap_add:
+      - NET_ADMIN
+      - SYS_TIME
+    {% if swarm_enabled %}
+    secrets:
+      - {{ webpassword_secret_name }}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% else %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -53,14 +116,41 @@ services:
       {% endif %}
     {% endif %}
     restart: {{ restart_policy }}
+    {% endif %}
 
+{% if swarm_enabled %}
+{% if swarm_volume_mode in ['local', 'nfs'] %}
+volumes:
+  config_dnsmasq:
+    {% if swarm_volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      device: ":{{ swarm_volume_nfs_path }}/dnsmasq"
+    {% endif %}
+  config_pihole:
+    {% if swarm_volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      device: ":{{ swarm_volume_nfs_path }}/pihole"
+    {% endif %}
+{% endif %}
+
+secrets:
+  {{ webpassword_secret_name }}:
+    file: ./.env.secret
+{% else %}
 volumes:
   config_dnsmasq:
     driver: local
   config_pihole:
     driver: local
+{% endif %}
 
-{% if network_mode != 'host' and (network_mode in ['bridge', 'macvlan'] or traefik_enabled) %}
+{% if network_mode != 'host' %}
 networks:
   {% if network_mode == 'macvlan' %}
   {{ network_name }}:
@@ -76,7 +166,12 @@ networks:
     external: true
   {% elif network_mode == 'bridge' and not network_external %}
   {{ network_name }}:
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
     driver: bridge
+    {% endif %}
   {% endif %}
   {% if traefik_enabled %}
   {{ traefik_network }}:

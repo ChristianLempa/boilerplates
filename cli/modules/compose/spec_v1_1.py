@@ -56,19 +56,12 @@ spec = OrderedDict(
         },
         "network": {
             "title": "Network",
-            "toggle": "network_enabled",
             "vars": {
-                "network_enabled": {
-                    "description": "Enable custom network block",
-                    "type": "bool",
-                    "default": False,
-                },
                 "network_mode": {
                     "description": "Docker network mode",
                     "type": "enum",
                     "options": ["bridge", "host", "macvlan"],
                     "default": "bridge",
-                    "extra": "bridge=default Docker networking, host=use host network stack, macvlan=dedicated MAC address on physical network",
                 },
                 "network_name": {
                     "description": "Docker network name",
@@ -77,9 +70,9 @@ spec = OrderedDict(
                     "needs": "network_mode=bridge,macvlan",
                 },
                 "network_external": {
-                    "description": "Use existing Docker network",
+                    "description": "Use existing Docker network (external)",
                     "type": "bool",
-                    "default": True,
+                    "default": False,
                     "needs": "network_mode=bridge,macvlan",
                 },
                 "network_macvlan_ipv4_address": {
@@ -111,17 +104,14 @@ spec = OrderedDict(
         "ports": {
             "title": "Ports",
             "toggle": "ports_enabled",
+            "needs": "network_mode=bridge",
             "vars": {
-                "ports_enabled": {
-                    "description": "Expose ports via 'ports' mapping",
-                    "type": "bool",
-                    "default": True,
-                }
             },
         },
         "traefik": {
             "title": "Traefik",
             "toggle": "traefik_enabled",
+            "needs": "network_mode=bridge",
             "description": "Traefik routes external traffic to your service.",
             "vars": {
                 "traefik_enabled": {
@@ -148,7 +138,7 @@ spec = OrderedDict(
         "traefik_tls": {
             "title": "Traefik TLS/SSL",
             "toggle": "traefik_tls_enabled",
-            "needs": "traefik_enabled=true",
+            "needs": "traefik_enabled=true;network_mode=bridge",
             "description": "Enable HTTPS/TLS for Traefik with certificate management.",
             "vars": {
                 "traefik_tls_enabled": {
@@ -170,6 +160,7 @@ spec = OrderedDict(
         },
         "swarm": {
             "title": "Docker Swarm",
+            "needs": "network_mode=bridge",
             "toggle": "swarm_enabled",
             "description": "Deploy service in Docker Swarm mode.",
             "vars": {
@@ -183,7 +174,6 @@ spec = OrderedDict(
                     "type": "enum",
                     "options": ["replicated", "global"],
                     "default": "replicated",
-                    "extra": "replicated=run specific number of tasks, global=run one task per node",
                 },
                 "swarm_replicas": {
                     "description": "Number of replicas",
@@ -197,7 +187,7 @@ spec = OrderedDict(
                     "default": "",
                     "optional": True,
                     "needs": "swarm_placement_mode=replicated",
-                    "extra": "Constrains service to run on specific node by hostname (optional)",
+                    "extra": "Constrains service to run on specific node by hostname",
                 },
                 "swarm_volume_mode": {
                     "description": "Swarm volume storage backend",
@@ -239,22 +229,16 @@ spec = OrderedDict(
         "database": {
             "title": "Database",
             "toggle": "database_enabled",
-            "description": "Connect to external database (PostgreSQL or MySQL)",
             "vars": {
-                "database_enabled": {
-                    "description": "Enable external database integration",
-                    "type": "bool",
-                    "default": False,
-                },
                 "database_type": {
                     "description": "Database type",
                     "type": "enum",
-                    "options": ["postgres", "mysql"],
-                    "default": "postgres",
+                    "options": ["default", "sqlite", "postgres", "mysql"],
+                    "default": "default",
                 },
                 "database_external": {
                     "description": "Use an external database server?",
-                    "extra": "If 'no', a database container will be created in the compose project.",
+                    "extra": "skips creation of internal database container",
                     "type": "bool",
                     "default": False,
                 },

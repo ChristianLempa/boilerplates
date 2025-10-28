@@ -7,56 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Multi-Schema Module Support
-  - Modules can now maintain multiple schema versions simultaneously
-  - Schema specs organized in separate files (e.g., `spec_v1_0.py`, `spec_v1_1.py`)
-  - CLI automatically uses appropriate schema based on template declaration
-  - Module discovery now supports both file and package modules
-- Compose Schema 1.1 Network Enhancements
-  - Added `network_mode` with options: bridge, host, macvlan
-  - Macvlan support with conditional fields (IP address, interface, subnet, gateway)
-  - Host mode support for direct host network access
-  - Network fields conditionally shown based on selected mode
-- Comma-Separated Values in Dependencies
-  - `needs` now supports multiple values: `network_mode=bridge,macvlan`
-  - Variable shown if actual value matches ANY of the specified values
-- Template Schema Versioning (#1360)
-  - Templates can now declare schema version (defaults to "1.0" for backward compatibility)
-  - Modules validate template compatibility against supported schema version
-  - Incompatible templates show clear error with upgrade instructions
-  - New `cli/core/version.py` module for semantic version comparison
-  - New `IncompatibleSchemaVersionError` exception for version mismatches
-- Variable-level Dependencies
-  - Variables can now have `needs` dependencies with format `variable=value`
-  - Sections support new dependency format: `needs: "variable=value"`
-  - Backward compatible with old section-only dependencies (`needs: "section_name"`)
-  - `is_variable_satisfied()` method added to VariableCollection
-- Show/Generate `--all` flag
-  - Added `--all` flag to `show` and `generate` commands
-  - Shows all variables/sections regardless of needs satisfaction
-  - Useful for debugging and viewing complete template structure
-- Optional Variables
-  - Variables can now be marked with `optional: true` to allow empty/None values
-- Docker Swarm Volume Configuration
-  - Support for local, mount, and NFS storage backends
-  - Configurable NFS server, paths, and mount options
-- Storage Configuration for Docker Compose
-  - New `storage` section in compose module spec
-  - New `config` section in compose module spec
-  - Support for multiple storage backends: local, mount, nfs, glusterfs
-  - Dedicated configuration options for each backend type
-
-### Changed
-- Compose module schema version bumped to "1.1"
-- Traefik TLS section now uses variable-level dependencies (`needs: "traefik_enabled=true"`)
-- Display manager hides sections/variables with unsatisfied needs by default (unless `--all` flag is used)
-- Variables with unsatisfied needs are dimmed when shown with `--all` flag
-- Dependency validation now supports both old (section) and new (variable=value) formats
-
-## [0.0.6] - 2025-01-XX
+## [0.0.7] - 2025-10-28
 
 ### Added
+- Multiple Library Support (#1314) for git and local libraries
+- Multi-Schema Module Support and Backward Compatibility (Schema-1.0)
+- Schema-1.1 `network_mode` with options: bridge, host, macvlan
+- Schema-1.1 `swarm` module support
+- Variable-level and Section-level depenendencies `needs` with multiple values support
+- Optional Variables `optional: true` to allow empty/None values
+- PEP 8 formatting alignment
+- CLI variable dependency validation - raises error when CLI-provided variables have unsatisfied dependencies
 - Support for required variables independent of section state (#1355)
   - Variables can now be marked with `required: true` in template specs
   - Required variables are always prompted, validated, and included in rendering
@@ -64,20 +25,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Required variables from disabled sections are still collected and available
 
 ### Changed
+- Schema-1.1 Unified Docker Swarm Placement (#1359) - Simplified swarm placement constraints into a single variable
+- Refactored compose module from single file to package structure
+- Dependency validation moved to `validate_all()` for better error reporting
+- Schema-1.1 removed `network_enabled`, `ports_enabled` and `database_enabled` toggles (no longer optional)
 - Improved error handling and display output consistency
 - Updated dependency PyYAML to v6.0.3 (Python 3.14 compatibility)
 - Updated dependency rich to v14.2.0 (Python 3.14 compatibility)
+- Pinned all dependencies to specific tested versions for consistent installations
 
 ### Fixed
+- Required sections now ignore toggle and are always enabled
+- Module spec loading based on correct template schema version
+- Interactive prompts now skip all variables (including required) when parent section is disabled
 - Absolute paths without leading slash treated as relative paths in generate command (#1357)
   - Paths like `Users/xcad/Projects/test` are now correctly normalized to `/Users/xcad/Projects/test`
   - Supports common Unix/Linux root directories: Users/, home/, usr/, opt/, var/, tmp/
 - Repository fetch fails when library directory already exists (#1279)
+- **Critical:** Python 3.9 compatibility - removed Context type annotations causing RuntimeError
+- Context access now uses click.get_current_context() for better compatibility
+
+## [0.0.6] - 2025-10-14
+
+### Changed
+- Pinned all dependencies to specific tested versions for consistent installations
+  - typer==0.19.2
+  - rich==14.1.0
+  - PyYAML==6.0.2
+  - python-frontmatter==1.1.0
+  - Jinja2==3.1.6
+
+### Fixed
+- **Critical:** Python 3.9 compatibility - removed Context type annotations causing RuntimeError
+- Context access now uses click.get_current_context() for better compatibility
+- Added tests directory to .gitignore
 
 ## [0.0.4] - 2025-01-XX
 
 Initial public release with core CLI functionality.
 
-[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.0.6...HEAD
-[0.0.6]: https://github.com/christianlempa/boilerplates/compare/v0.0.4...v0.0.6
+[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/christianlempa/boilerplates/compare/v0.0.6...v0.0.7
+[0.0.6]: https://github.com/christianlempa/boilerplates/releases/tag/v0.0.6
 [0.0.4]: https://github.com/christianlempa/boilerplates/releases/tag/v0.0.4
