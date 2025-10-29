@@ -30,3 +30,57 @@ boilerplates = "cli.__main__:run"
 [tool.setuptools.packages.find]
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
+
+[tool.ruff]
+# PEP 8 compliant line length (88 is Black's default, good balance)
+line-length = 88
+
+# Python 3.9+ as minimum version
+target-version = "py39"
+
+# Exclude common directories
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable rule categories
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "PL",     # pylint
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+]
+
+# Disable specific rules
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "PLR0913", # Too many arguments
+]
+
+# Allow auto-fixing for these rules
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+# Use PEP 8 standard: 4 spaces for indentation
+indent-style = "space"
+
+# Use double quotes (consistent with Python conventions)
+quote-style = "double"
+
+# Unix line endings
+line-ending = "lf"

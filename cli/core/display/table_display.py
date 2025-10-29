@@ -42,7 +42,6 @@ class TableDisplayManager:
             return
 
         logger.info(f"Listing {len(templates)} templates for module '{module_name}'")
-        
         table = Table()
         table.add_column("ID", style="bold", no_wrap=True)
         table.add_column("Name")
