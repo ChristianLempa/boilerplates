@@ -19,8 +19,6 @@ import os
 import yaml
 from jinja2 import Environment, FileSystemLoader, meta
 from jinja2.sandbox import SandboxedEnvironment
-from jinja2 import nodes
-from jinja2.visitor import NodeVisitor
 from jinja2.exceptions import (
     TemplateSyntaxError as Jinja2TemplateSyntaxError,
     UndefinedError,
@@ -554,52 +552,6 @@ class Template:
 
         return used_variables
 
-    def _extract_jinja_default_values(self) -> dict[str, object]:
-        """Scan all .j2 files and extract literal arguments to the `default` filter.
-
-        Returns a mapping var_name -> literal_value for simple cases like
-        {{ var | default("value") }} or {{ var | default(123) }}.
-        This does not attempt to evaluate complex expressions.
-        """
-
-        class _DefaultVisitor(NodeVisitor):
-            def __init__(self):
-                self.found: dict[str, object] = {}
-
-            def visit_Filter(self, node: nodes.Filter) -> None:  # type: ignore[override]
-                try:
-                    if getattr(node, "name", None) == "default" and node.args:
-                        # target variable name when filter is applied directly to a Name
-                        target = None
-                        if isinstance(node.node, nodes.Name):
-                            target = node.node.name
-
-                        # first arg literal
-                        first = node.args[0]
-                        if isinstance(first, nodes.Const) and target:
-                            self.found[target] = first.value
-                except Exception:
-                    # Be resilient to unexpected node shapes
-                    pass
-                # continue traversal
-                self.generic_visit(node)
-
-        visitor = _DefaultVisitor()
-
-        for template_file in self.template_files:
-            if template_file.file_type != "j2":
-                continue
-            file_path = self.template_dir / template_file.relative_path
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-                ast = self.jinja_env.parse(content)
-                visitor.visit(ast)
-            except (IOError, OSError, yaml.YAMLError):
-                # Skip failures - this extraction is best-effort only
-                continue
-
-        return visitor.found
 
     def _filter_specs_to_used(
         self,
@@ -943,24 +895,6 @@ class Template:
                 self.module_specs,
                 self.template_specs,
             )
-
-            # Best-effort: extract literal defaults from Jinja `default()` filter and
-            # merge them into the filtered_specs when no default exists there.
-            try:
-                jinja_defaults = self._extract_jinja_default_values()
-                for section_key, section_data in filtered_specs.items():
-                    # Guard against None from empty YAML sections
-                    vars_dict = section_data.get("vars") or {}
-                    for var_name, var_data in vars_dict.items():
-                        if "default" not in var_data or var_data.get("default") in (
-                            None,
-                            "",
-                        ):
-                            if var_name in jinja_defaults:
-                                var_data["default"] = jinja_defaults[var_name]
-            except (KeyError, TypeError, AttributeError):
-                # Keep behavior stable on any extraction errors
-                pass
 
             self.__variables = VariableCollection(filtered_specs)
             # Sort sections: required first, then enabled, then disabled

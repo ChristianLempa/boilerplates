@@ -12,7 +12,7 @@ log:
 accesslog: {}
 {% endif %}
 
-{% if traefik_dashboard_enabled %}
+{% if dashboard_enabled %}
 api:
   dashboard: true
   insecure: true
@@ -21,7 +21,7 @@ api:
 entryPoints:
   {{ traefik_entrypoint }}:
     address: :80
-    {% if traefik_tls_enabled and traefik_tls_redirect %}
+    {% if traefik_tls_enabled and tls_redirect %}
     http:
       redirections:
         entryPoint:

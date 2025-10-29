@@ -4,14 +4,12 @@ services:
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
     {% endif %}
-    {% if ports_enabled %}
     ports:
-      - "80:80"
-      - "443:443"
-      {% if traefik_dashboard_enabled %}
-      - "8080:8080"  # Dashboard (don't use in production)
+      - "{{ ports_http }}:80"
+      - "{{ ports_https }}:443"
+      {% if dashboard_enabled %}
+      - "{{ ports_dashboard }}:8080"
       {% endif %}
-    {% endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       {% if not swarm_enabled %}
@@ -52,9 +50,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    {% if network_enabled %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
     networks:
-      - {{ network_name }}
+      {{ traefik_network }}:
+        {% if network_mode == 'macvlan' %}
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+        {% endif %}
     {% endif %}
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
@@ -107,9 +110,9 @@ secrets:
 {% endif %}
 {% endif %}
 
-{% if network_enabled %}
+{% if network_mode != 'host' %}
 networks:
-  {{ network_name }}:
+  {{ traefik_network }}:
     {% if network_external %}
     external: true
     {% else %}
@@ -117,8 +120,18 @@ networks:
     driver: overlay
     attachable: true
     {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    {% else %}
     driver: bridge
     {% endif %}
-    name: {{ network_name }}
+    {% endif %}
+    name: {{ traefik_network }}
     {% endif %}
 {% endif %}
