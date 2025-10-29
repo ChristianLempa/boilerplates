@@ -17,6 +17,70 @@ console = Console()
 console_err = Console(stderr=True)
 
 
+class DisplaySettings:
+    """Centralized display configuration settings.
+    
+    This class holds all configurable display parameters including colors,
+    styles, layouts, and formatting options. Modify these values to customize
+    the CLI appearance.
+    """
+
+    # === Color Scheme ===
+    COLOR_ERROR = "red"
+    COLOR_WARNING = "yellow"
+    COLOR_SUCCESS = "green"
+    COLOR_INFO = "blue"
+    COLOR_MUTED = "dim"
+    
+    # Library type colors
+    COLOR_LIBRARY_GIT = "blue"
+    COLOR_LIBRARY_STATIC = "yellow"
+
+    # === Style Constants ===
+    STYLE_HEADER = "bold blue"
+    STYLE_HEADER_ALT = "bold cyan"
+    STYLE_DISABLED = "bright_black"
+    STYLE_SECTION_TITLE = "bold cyan"
+    STYLE_SECTION_DESC = "dim"
+    
+    # Table styles
+    STYLE_TABLE_HEADER = "bold blue"
+    STYLE_VAR_COL_NAME = "white"
+    STYLE_VAR_COL_TYPE = "magenta"
+    STYLE_VAR_COL_DEFAULT = "green"
+    STYLE_VAR_COL_DESC = "white"
+
+    # === Text Labels ===
+    LABEL_REQUIRED = " [yellow](required)[/yellow]"
+    LABEL_DISABLED = " (disabled)"
+    TEXT_EMPTY_VALUE = "(none)"
+    TEXT_EMPTY_OVERRIDE = "(empty)"
+    TEXT_UNNAMED_TEMPLATE = "Unnamed Template"
+    TEXT_NO_DESCRIPTION = "No description available"
+    TEXT_VERSION_NOT_SPECIFIED = "Not specified"
+    
+    # === Value Formatting ===
+    SENSITIVE_MASK = "********"
+    TRUNCATION_SUFFIX = "..."
+    VALUE_MAX_LENGTH_SHORT = 15
+    VALUE_MAX_LENGTH_DEFAULT = 30
+    
+    # === Layout Constants ===
+    SECTION_SEPARATOR_CHAR = "─"
+    SECTION_SEPARATOR_LENGTH = 40
+    VAR_NAME_INDENT = "  "  # 2 spaces
+    
+    # === Size Formatting ===
+    SIZE_KB_THRESHOLD = 1024
+    SIZE_MB_THRESHOLD = 1024 * 1024
+    SIZE_DECIMAL_PLACES = 1
+    
+    # === Table Padding ===
+    PADDING_PANEL = (1, 2)
+    PADDING_TABLE_COMPACT = (0, 1)
+    PADDING_TABLE_NORMAL = (0, 2)
+
+
 class IconManager:
     """Centralized icon management system for consistent CLI display.
 
@@ -198,25 +262,27 @@ class VariableDisplayManager:
             and hasattr(variable, "_original_stored")
             and variable.original_value != variable.value
         ):
-            orig = self._format_value(variable, variable.original_value, max_length=15)
+            settings = self.parent.settings
+            orig = self._format_value(variable, variable.original_value, max_length=settings.VALUE_MAX_LENGTH_SHORT)
             curr = variable.get_display_value(
-                mask_sensitive=True, max_length=15, show_none=False
+                mask_sensitive=True, max_length=settings.VALUE_MAX_LENGTH_SHORT, show_none=False
             )
             if not curr:
-                curr = str(variable.value) if variable.value else "(empty)"
+                curr = str(variable.value) if variable.value else settings.TEXT_EMPTY_OVERRIDE
             return (
-                f"{orig} [bold yellow]{IconManager.arrow_right()} {curr}[/bold yellow]"
+                f"{orig} [bold {settings.COLOR_WARNING}]{IconManager.arrow_right()} {curr}[/bold {settings.COLOR_WARNING}]"
             )
 
         # Default formatting
+        settings = self.parent.settings
         value = variable.get_display_value(
-            mask_sensitive=True, max_length=30, show_none=True
+            mask_sensitive=True, max_length=settings.VALUE_MAX_LENGTH_DEFAULT, show_none=True
         )
         if not variable.value:
-            return f"[dim]{value}[/dim]"
+            return f"[{settings.COLOR_MUTED}]{value}[/{settings.COLOR_MUTED}]"
         return value
 
-    def _format_value(self, variable, value, max_length: int = 30) -> str:
+    def _format_value(self, variable, value, max_length: int | None = None) -> str:
         """Helper to format a specific value.
         
         Args:
@@ -227,14 +293,15 @@ class VariableDisplayManager:
         Returns:
             Formatted value string
         """
+        settings = self.parent.settings
+        
         if variable.sensitive:
-            return "********"
+            return settings.SENSITIVE_MASK
         if value is None or value == "":
-            return "[dim](none)[/dim]"
+            return f"[{settings.COLOR_MUTED}]({settings.TEXT_EMPTY_VALUE})[/{settings.COLOR_MUTED}]"
+        
         val_str = str(value)
-        if max_length > 0 and len(val_str) > max_length:
-            return val_str[: max_length - 3] + "..."
-        return val_str
+        return self.parent._truncate_value(val_str, max_length)
 
     def render_section(self, title: str, description: str | None) -> None:
         """Display a section header.
@@ -243,13 +310,70 @@ class VariableDisplayManager:
             title: Section title
             description: Optional section description
         """
+        settings = self.parent.settings
         if description:
             console.print(
-                f"\n[bold cyan]{title}[/bold cyan] [dim]- {description}[/dim]"
+                f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}] [{settings.STYLE_SECTION_DESC}]- {description}[/{settings.STYLE_SECTION_DESC}]"
             )
         else:
-            console.print(f"\n[bold cyan]{title}[/bold cyan]")
-        console.print("─" * 40, style="dim")
+            console.print(f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}]")
+        console.print(settings.SECTION_SEPARATOR_CHAR * settings.SECTION_SEPARATOR_LENGTH, style=settings.COLOR_MUTED)
+
+    def _render_section_header(self, section, is_dimmed: bool, has_dependencies: bool) -> str:
+        """Build section header text with appropriate styling.
+        
+        Args:
+            section: VariableSection instance
+            is_dimmed: Whether section is dimmed (disabled)
+            has_dependencies: Whether section has dependency requirements
+            
+        Returns:
+            Formatted header text with Rich markup
+        """
+        settings = self.parent.settings
+        disabled_text = settings.LABEL_DISABLED if (is_dimmed and not has_dependencies) else ""
+        
+        if is_dimmed:
+            required_part = " (required)" if section.required else ""
+            return f"[bold {settings.STYLE_DISABLED}]{section.title}{required_part}{disabled_text}[/bold {settings.STYLE_DISABLED}]"
+        else:
+            required_text = settings.LABEL_REQUIRED if section.required else ""
+            return f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
+    
+    def _render_variable_row(self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool) -> tuple:
+        """Build variable row data for table display.
+        
+        Args:
+            var_name: Variable name
+            variable: Variable instance
+            is_dimmed: Whether containing section is dimmed
+            var_satisfied: Whether variable dependencies are satisfied
+            
+        Returns:
+            Tuple of (var_display, type, default_val, description, row_style)
+        """
+        settings = self.parent.settings
+        
+        # Build row style
+        row_style = settings.STYLE_DISABLED if (is_dimmed or not var_satisfied) else None
+        
+        # Build default value
+        default_val = self.render_variable_value(
+            variable, is_dimmed=is_dimmed, var_satisfied=var_satisfied
+        )
+        
+        # Build variable display name
+        sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
+        required_indicator = settings.LABEL_REQUIRED if variable.required else ""
+        var_display = f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
+        
+        return (
+            var_display,
+            variable.type or "str",
+            default_val,
+            variable.description or "",
+            row_style,
+        )
 
     def render_variables_table(self, template: "Template") -> None:
         """Display a table of variables for a template.
@@ -263,14 +387,15 @@ class VariableDisplayManager:
         if not (template.variables and template.variables.has_sections()):
             return
 
+        settings = self.parent.settings
         console.print()
-        console.print("[bold blue]Template Variables:[/bold blue]")
+        console.print(f"[{settings.STYLE_HEADER}]Template Variables:[/{settings.STYLE_HEADER}]")
 
-        variables_table = Table(show_header=True, header_style="bold blue")
-        variables_table.add_column("Variable", style="white", no_wrap=True)
-        variables_table.add_column("Type", style="magenta")
-        variables_table.add_column("Default", style="green")
-        variables_table.add_column("Description", style="white")
+        variables_table = Table(show_header=True, header_style=settings.STYLE_TABLE_HEADER)
+        variables_table.add_column("Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True)
+        variables_table.add_column("Type", style=settings.STYLE_VAR_COL_TYPE)
+        variables_table.add_column("Default", style=settings.STYLE_VAR_COL_DEFAULT)
+        variables_table.add_column("Description", style=settings.STYLE_VAR_COL_DESC)
 
         first_section = True
         for section in template.variables.get_sections().values():
@@ -278,36 +403,20 @@ class VariableDisplayManager:
                 continue
 
             if not first_section:
-                variables_table.add_row("", "", "", "", style="bright_black")
+                variables_table.add_row("", "", "", "", style=settings.STYLE_DISABLED)
             first_section = False
 
             # Check if section is enabled AND dependencies are satisfied
             is_enabled = section.is_enabled()
-            dependencies_satisfied = template.variables.is_section_satisfied(
-                section.key
-            )
+            dependencies_satisfied = template.variables.is_section_satisfied(section.key)
             is_dimmed = not (is_enabled and dependencies_satisfied)
-
-            # Only show (disabled) if section has no dependencies
             has_dependencies = section.needs and len(section.needs) > 0
-            disabled_text = (
-                " (disabled)" if (is_dimmed and not has_dependencies) else ""
-            )
 
-            # For disabled sections, make entire heading bold and dim
-            if is_dimmed:
-                required_part = " (required)" if section.required else ""
-                header_text = f"[bold bright_black]{section.title}{required_part}{disabled_text}[/bold bright_black]"
-            else:
-                # For enabled sections, include the colored markup
-                required_text = (
-                    " [yellow](required)[/yellow]" if section.required else ""
-                )
-                header_text = (
-                    f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
-                )
+            # Render section header
+            header_text = self._render_section_header(section, is_dimmed, has_dependencies)
             variables_table.add_row(header_text, "", "", "")
 
+            # Render variables
             for var_name, variable in section.variables.items():
                 # Skip toggle variable in required sections
                 if section.required and section.toggle and var_name == section.toggle:
@@ -316,31 +425,9 @@ class VariableDisplayManager:
                 # Check if variable's needs are satisfied
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 
-                # Dim the variable if section is dimmed OR variable needs are not satisfied
-                row_style = (
-                    "bright_black" if (is_dimmed or not var_satisfied) else None
-                )
-
-                # Build default value display
-                default_val = self.render_variable_value(
-                    variable, is_dimmed=is_dimmed, var_satisfied=var_satisfied
-                )
-
-                # Add lock icon for sensitive variables
-                sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
-                # Add required indicator for required variables
-                required_indicator = (
-                    " [yellow](required)[/yellow]" if variable.required else ""
-                )
-                var_display = f"  {var_name}{sensitive_icon}{required_indicator}"
-
-                variables_table.add_row(
-                    var_display,
-                    variable.type or "str",
-                    default_val,
-                    variable.description or "",
-                    style=row_style,
-                )
+                # Build and add row
+                row_data = self._render_variable_row(var_name, variable, is_dimmed, var_satisfied)
+                variables_table.add_row(*row_data)
 
         console.print(variables_table)
 
@@ -378,33 +465,24 @@ class TemplateDisplayManager:
             template: Template instance
             template_id: ID of the template
         """
-        template_name = template.metadata.name or "Unnamed Template"
+        settings = self.parent.settings
+        
+        template_name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
         version = (
             str(template.metadata.version)
             if template.metadata.version
-            else "Not specified"
+            else settings.TEXT_VERSION_NOT_SPECIFIED
         )
-        schema = (
-            template.schema_version if hasattr(template, "schema_version") else "1.0"
-        )
-        description = template.metadata.description or "No description available"
+        schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+        description = template.metadata.description or settings.TEXT_NO_DESCRIPTION
 
-        # Get library information
+        # Get library information and format with helper
         library_name = template.metadata.library or ""
         library_type = template.metadata.library_type or "git"
-
-        # Format library display with icon and color
-        if library_type == "static":
-            library_display = (
-                f"[yellow]{IconManager.UI_LIBRARY_STATIC} {library_name}[/yellow]"
-            )
-        else:
-            library_display = (
-                f"[blue]{IconManager.UI_LIBRARY_GIT} {library_name}[/blue]"
-            )
+        library_display = self.parent._format_library_display(library_name, library_type)
 
         console.print(
-            f"[bold blue]{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}[/bold blue]"
+            f"[{settings.STYLE_HEADER}]{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}[/{settings.STYLE_HEADER}]"
         )
         console.print(description)
 
@@ -414,8 +492,9 @@ class TemplateDisplayManager:
         Args:
             template: Template instance
         """
+        settings = self.parent.settings
         console.print()
-        console.print("[bold blue]Template File Structure:[/bold blue]")
+        console.print(f"[{settings.STYLE_HEADER}]Template File Structure:[/{settings.STYLE_HEADER}]")
 
         def get_template_file_info(template_file):
             display_name = (
@@ -507,12 +586,13 @@ class StatusDisplayManager:
         if not should_print:
             return
 
+        settings = self.parent.settings
         icon = IconManager.get_status_icon(level)
         colors = {
-            "error": "red",
-            "warning": "yellow",
-            "success": "green",
-            "info": "blue",
+            "error": settings.COLOR_ERROR,
+            "warning": settings.COLOR_WARNING,
+            "success": settings.COLOR_SUCCESS,
+            "info": settings.COLOR_INFO,
         }
         color = colors.get(level, "white")
 
@@ -789,36 +869,21 @@ class TableDisplayManager:
         table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
+        settings = self.parent.settings
+        
         for template in templates:
-            name = template.metadata.name or "Unnamed Template"
+            name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = (
-                str(template.metadata.version) if template.metadata.version else ""
-            )
-            schema = (
-                template.schema_version if hasattr(template, "schema_version") else "1.0"
-            )
+            version = str(template.metadata.version) if template.metadata.version else ""
+            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
 
-            # Show library with type indicator and color
+            # Use helper for library display
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
+            library_display = self.parent._format_library_display(library_name, library_type)
 
-            if library_type == "static":
-                # Static libraries: yellow/amber color with folder icon
-                library_display = (
-                    f"[yellow]{IconManager.UI_LIBRARY_STATIC} {library_name}[/yellow]"
-                )
-            else:
-                # Git libraries: blue color with git icon
-                library_display = (
-                    f"[blue]{IconManager.UI_LIBRARY_GIT} {library_name}[/blue]"
-                )
-
-            # Display qualified ID if present (e.g., "alloy.default")
-            display_id = template.id
-
-            table.add_row(display_id, name, tags, version, schema, library_display)
+            table.add_row(template.id, name, tags, version, schema, library_display)
 
         console.print(table)
 
@@ -857,7 +922,8 @@ class TableDisplayManager:
             title: Table title
             items: Dictionary of key-value pairs to display
         """
-        table = Table(title=title, show_header=False, box=None, padding=(0, 2))
+        settings = self.parent.settings
+        table = Table(title=title, show_header=False, box=None, padding=settings.PADDING_TABLE_NORMAL)
         table.add_column(style="bold")
         table.add_column()
 
@@ -874,22 +940,16 @@ class TableDisplayManager:
         Args:
             files: List of tuples (file_path, size_bytes, status)
         """
+        settings = self.parent.settings
         table = Table(
-            show_header=True, header_style="bold cyan", box=None, padding=(0, 1)
+            show_header=True, header_style=settings.STYLE_HEADER_ALT, box=None, padding=settings.PADDING_TABLE_COMPACT
         )
         table.add_column("File", style="white", no_wrap=False)
-        table.add_column("Size", justify="right", style="dim")
-        table.add_column("Status", style="yellow")
+        table.add_column("Size", justify="right", style=settings.COLOR_MUTED)
+        table.add_column("Status", style=settings.COLOR_WARNING)
 
         for file_path, size_bytes, status in files:
-            # Format size
-            if size_bytes < 1024:
-                size_str = f"{size_bytes}B"
-            elif size_bytes < 1024 * 1024:
-                size_str = f"{size_bytes / 1024:.1f}KB"
-            else:
-                size_str = f"{size_bytes / (1024 * 1024):.1f}MB"
-
+            size_str = self.parent._format_file_size(size_bytes)
             table.add_row(str(file_path), size_str, status)
 
         console.print(table)
@@ -960,12 +1020,11 @@ class TableDisplayManager:
                         )
 
                         if var_default is not None and var_default != "":
-                            display_val = (
-                                "********" if var_sensitive else str(var_default)
-                            )
-                            if not var_sensitive and len(display_val) > 30:
-                                display_val = display_val[:27] + "..."
-                            var_label += f" = [yellow]{display_val}[/yellow]"
+                            settings = self.parent.settings
+                            display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
+                            if not var_sensitive:
+                                display_val = self.parent._truncate_value(display_val, settings.VALUE_MAX_LENGTH_DEFAULT)
+                            var_label += f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
 
                         if show_all and var_desc:
                             var_label += f"\n    [dim]{var_desc}[/dim]"
@@ -994,19 +1053,77 @@ class DisplayManager:
     - Consistent formatting across all display types
     """
 
-    def __init__(self, quiet: bool = False):
+    def __init__(self, quiet: bool = False, settings: DisplaySettings | None = None):
         """Initialize DisplayManager with specialized sub-managers.
 
         Args:
             quiet: If True, suppress all non-error output
+            settings: Optional DisplaySettings instance for customization
         """
         self.quiet = quiet
+        self.settings = settings or DisplaySettings()
 
         # Initialize specialized managers
         self.variables = VariableDisplayManager(self)
         self.templates = TemplateDisplayManager(self)
         self.status = StatusDisplayManager(self)
         self.tables = TableDisplayManager(self)
+    
+    # ===== Shared Helper Methods =====
+    
+    def _format_library_display(self, library_name: str, library_type: str) -> str:
+        """Format library name with appropriate icon and color.
+        
+        Args:
+            library_name: Name of the library
+            library_type: Type of library ('static' or 'git')
+            
+        Returns:
+            Formatted library display string with Rich markup
+        """
+        if library_type == "static":
+            color = self.settings.COLOR_LIBRARY_STATIC
+            icon = IconManager.UI_LIBRARY_STATIC
+        else:
+            color = self.settings.COLOR_LIBRARY_GIT
+            icon = IconManager.UI_LIBRARY_GIT
+        
+        return f"[{color}]{icon} {library_name}[/{color}]"
+    
+    def _truncate_value(self, value: str, max_length: int | None = None) -> str:
+        """Truncate a string value if it exceeds maximum length.
+        
+        Args:
+            value: String value to truncate
+            max_length: Maximum length (uses default if None)
+            
+        Returns:
+            Truncated string with suffix if needed
+        """
+        if max_length is None:
+            max_length = self.settings.VALUE_MAX_LENGTH_DEFAULT
+        
+        if max_length > 0 and len(value) > max_length:
+            return value[: max_length - len(self.settings.TRUNCATION_SUFFIX)] + self.settings.TRUNCATION_SUFFIX
+        return value
+    
+    def _format_file_size(self, size_bytes: int) -> str:
+        """Format file size in human-readable format (B, KB, MB).
+        
+        Args:
+            size_bytes: Size in bytes
+            
+        Returns:
+            Formatted size string (e.g., "1.5KB", "2.3MB")
+        """
+        if size_bytes < self.settings.SIZE_KB_THRESHOLD:
+            return f"{size_bytes}B"
+        elif size_bytes < self.settings.SIZE_MB_THRESHOLD:
+            kb = size_bytes / self.settings.SIZE_KB_THRESHOLD
+            return f"{kb:.{self.settings.SIZE_DECIMAL_PLACES}f}KB"
+        else:
+            mb = size_bytes / self.settings.SIZE_MB_THRESHOLD
+            return f"{mb:.{self.settings.SIZE_DECIMAL_PLACES}f}MB"
 
     # ===== Backward Compatibility Delegation Methods =====
     # These methods delegate to specialized managers for backward compatibility
