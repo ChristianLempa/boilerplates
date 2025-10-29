@@ -5,6 +5,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, Optional, List, Dict
 
+import yaml
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
@@ -276,6 +277,92 @@ class Module(ABC):
             successful = template.variables.apply_defaults(config_defaults, "config")
             if successful:
                 logger.debug(f"Applied config defaults for: {', '.join(successful)}")
+
+    def _load_var_file(self, var_file_path: str) -> dict:
+        """Load variables from a YAML file.
+
+        Args:
+            var_file_path: Path to the YAML file containing variables
+
+        Returns:
+            Dictionary of variable names to values (flat structure)
+
+        Raises:
+            FileNotFoundError: If the var file doesn't exist
+            ValueError: If the file is not valid YAML or has invalid structure
+        """
+        var_path = Path(var_file_path).expanduser().resolve()
+
+        if not var_path.exists():
+            raise FileNotFoundError(f"Variable file not found: {var_file_path}")
+
+        if not var_path.is_file():
+            raise ValueError(f"Variable file path is not a file: {var_file_path}")
+
+        try:
+            with open(var_path, "r", encoding="utf-8") as f:
+                content = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML in variable file: {e}") from e
+        except (IOError, OSError) as e:
+            raise ValueError(f"Error reading variable file: {e}") from e
+
+        if not isinstance(content, dict):
+            raise ValueError(
+                f"Variable file must contain a YAML dictionary, got {type(content).__name__}"
+            )
+
+        logger.info(
+            f"Loaded {len(content)} variables from file: {var_path.name}"
+        )
+        logger.debug(f"Variables from file: {', '.join(content.keys())}")
+
+        return content
+
+    def _apply_var_file(
+        self, template: Template, var_file_path: Optional[str]
+    ) -> None:
+        """Apply variables from a YAML file to template.
+
+        Args:
+            template: Template instance to apply variables to
+            var_file_path: Path to the YAML file containing variables
+
+        Raises:
+            Exit: If the file cannot be loaded or contains invalid data
+        """
+        if not var_file_path or not template.variables:
+            return
+
+        try:
+            var_file_vars = self._load_var_file(var_file_path)
+            if var_file_vars:
+                # Get list of valid variable names from template
+                valid_vars = set()
+                for section in template.variables.get_sections().values():
+                    valid_vars.update(section.variables.keys())
+
+                # Warn about unknown variables
+                unknown_vars = set(var_file_vars.keys()) - valid_vars
+                if unknown_vars:
+                    for var_name in sorted(unknown_vars):
+                        logger.warning(
+                            f"Variable '{var_name}' from var-file does not exist in template '{template.id}'"
+                        )
+
+                successful = template.variables.apply_defaults(
+                    var_file_vars, "var-file"
+                )
+                if successful:
+                    logger.debug(
+                        f"Applied var-file overrides for: {', '.join(successful)}"
+                    )
+        except (FileNotFoundError, ValueError) as e:
+            self.display.display_error(
+                f"Failed to load variable file: {e}",
+                context="variable file loading",
+            )
+            raise Exit(code=1) from e
 
     def _apply_cli_overrides(
         self, template: Template, var: Optional[List[str]], ctx=None
@@ -599,6 +686,12 @@ class Module(ABC):
             "-v",
             help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE",
         ),
+        var_file: Optional[str] = Option(
+            None,
+            "--var-file",
+            "-f",
+            help="Load variables from YAML file (overrides config defaults, overridden by --var)",
+        ),
         dry_run: bool = Option(
             False, "--dry-run", help="Preview template generation without writing files"
         ),
@@ -617,7 +710,8 @@ class Module(ABC):
         1. Module spec (defined in cli/modules/*.py)
         2. Template spec (from template.yaml)
         3. Config defaults (from ~/.config/boilerplates/config.yaml)
-        4. CLI overrides (--var flags)
+        4. Variable file (from --var-file)
+        5. CLI overrides (--var flags)
 
         Examples:
             # Generate to directory named after template
@@ -626,8 +720,11 @@ class Module(ABC):
             # Generate to custom directory
             cli compose generate traefik my-proxy
 
-            # Generate with variables
-            cli compose generate traefik --var traefik_enabled=false
+            # Generate with variables from file
+            cli compose generate traefik --var-file values.yaml
+
+            # Generate with variables from file and CLI overrides
+            cli compose generate traefik --var-file values.yaml --var traefik_enabled=false
 
             # Preview without writing files (dry run)
             cli compose generate traefik --dry-run
@@ -644,8 +741,9 @@ class Module(ABC):
 
         template = self._load_template_by_id(id)
 
-        # Apply defaults and overrides
+        # Apply defaults and overrides (in precedence order)
         self._apply_variable_defaults(template)
+        self._apply_var_file(template, var_file)
         self._apply_cli_overrides(template, var)
 
         # Re-sort sections after all overrides (toggle values may have changed)
