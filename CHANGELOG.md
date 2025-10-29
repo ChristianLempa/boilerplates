@@ -9,12 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Variable file support with `--var-file` flag (#1331) - Load variables from YAML file for non-interactive deployments
-  - Flat YAML structure (key: value) matching config defaults format
-  - Proper precedence: module < template < config < var-file < CLI --var
-  - Comprehensive error handling for invalid files
 
-### Removed
-- Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
+### Changed
+- Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
 
 ## [0.0.7] - 2025-10-28
 
