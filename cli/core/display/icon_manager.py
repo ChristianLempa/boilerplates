@@ -18,17 +18,17 @@ class IconManager:
     """
 
     # File Type Icons
-    FILE_FOLDER = "\uf07b"  #
-    FILE_DEFAULT = "\uf15b"  #
-    FILE_YAML = "\uf15c"  #
-    FILE_JSON = "\ue60b"  #
-    FILE_MARKDOWN = "\uf48a"  #
-    FILE_JINJA2 = "\ue235"  #
-    FILE_DOCKER = "\uf308"  #
-    FILE_COMPOSE = "\uf308"  #
-    FILE_SHELL = "\uf489"  #
-    FILE_PYTHON = "\ue73c"  #
-    FILE_TEXT = "\uf15c"  #
+    FILE_FOLDER = "\uf07b"
+    FILE_DEFAULT = "\uf15b"
+    FILE_YAML = "\uf15c"
+    FILE_JSON = "\ue60b"
+    FILE_MARKDOWN = "\uf48a"
+    FILE_JINJA2 = "\ue235"
+    FILE_DOCKER = "\uf308"
+    FILE_COMPOSE = "\uf308"
+    FILE_SHELL = "\uf489"
+    FILE_PYTHON = "\ue73c"
+    FILE_TEXT = "\uf15c"
 
     # Status Indicators
     STATUS_SUCCESS = "\uf00c"  #  (check)
@@ -38,9 +38,9 @@ class IconManager:
     STATUS_SKIPPED = "\uf05e"  #  (ban/circle-slash)
 
     # UI Elements
-    UI_CONFIG = "\ue5fc"  #
-    UI_LOCK = "\uf084"  #
-    UI_SETTINGS = "\uf013"  #
+    UI_CONFIG = "\ue5fc"
+    UI_LOCK = "\uf084"
+    UI_SETTINGS = "\uf013"
     UI_ARROW_RIGHT = "\uf061"  #  (arrow-right)
     UI_BULLET = "\uf111"  #  (circle)
     UI_LIBRARY_GIT = "\uf418"  #  (git icon)

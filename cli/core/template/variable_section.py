@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .variable import Variable
 from ..exceptions import VariableError
+from .variable import Variable
 
 
 class VariableSection:
@@ -28,8 +28,8 @@ class VariableSection:
         self.key: str = data["key"]
         self.title: str = data["title"]
         self.variables: OrderedDict[str, Variable] = OrderedDict()
-        self.description: Optional[str] = data.get("description")
-        self.toggle: Optional[str] = data.get("toggle")
+        self.description: str | None = data.get("description")
+        self.toggle: str | None = data.get("toggle")
         # Track which fields were explicitly provided (to support explicit clears)
         self._explicit_fields: set[str] = set(data.keys())
         # Default "general" section to required=True, all others to required=False
@@ -41,19 +41,19 @@ class VariableSection:
             if isinstance(needs_value, str):
                 # Split by semicolon to support multiple AND conditions in a single string
                 # Example: "traefik_enabled=true;network_mode=bridge,macvlan"
-                self.needs: List[str] = [
+                self.needs: list[str] = [
                     need.strip() for need in needs_value.split(";") if need.strip()
                 ]
             elif isinstance(needs_value, list):
-                self.needs: List[str] = needs_value
+                self.needs: list[str] = needs_value
             else:
                 raise VariableError(
                     f"Section '{self.key}' has invalid 'needs' value: must be string or list"
                 )
         else:
-            self.needs: List[str] = []
+            self.needs: list[str] = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize VariableSection to a dictionary for storage."""
         section_dict = {
             "required": self.required,
@@ -95,7 +95,7 @@ class VariableSection:
         except Exception:
             return False
 
-    def clone(self, origin_update: Optional[str] = None) -> "VariableSection":
+    def clone(self, origin_update: str | None = None) -> VariableSection:
         """Create a deep copy of the section with all variables.
 
         This is more efficient than converting to dict and back when copying sections.

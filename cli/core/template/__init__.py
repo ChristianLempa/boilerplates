@@ -4,17 +4,17 @@ This package provides Template, VariableCollection, VariableSection, and Variabl
 classes for managing templates and their variables.
 """
 
-from .template import Template, TemplateMetadata, TemplateFile, TemplateErrorHandler
+from .template import Template, TemplateErrorHandler, TemplateFile, TemplateMetadata
+from .variable import Variable
 from .variable_collection import VariableCollection
 from .variable_section import VariableSection
-from .variable import Variable
 
 __all__ = [
     "Template",
-    "TemplateMetadata",
-    "TemplateFile",
     "TemplateErrorHandler",
+    "TemplateFile",
+    "TemplateMetadata",
+    "Variable",
     "VariableCollection",
     "VariableSection",
-    "Variable",
 ]

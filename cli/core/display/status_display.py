@@ -9,9 +9,11 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from rich.syntax import Syntax
 
+from .icon_manager import IconManager
+
 if TYPE_CHECKING:
-    from . import DisplayManager
     from ..exceptions import TemplateRenderError
+    from . import DisplayManager
 
 logger = logging.getLogger(__name__)
 console_err = Console(stderr=True)  # Keep for error output
@@ -24,7 +26,7 @@ class StatusDisplayManager:
     and informational messages with consistent formatting.
     """
 
-    def __init__(self, parent: "DisplayManager"):
+    def __init__(self, parent: DisplayManager):
         """Initialize StatusDisplayManager.
 
         Args:
@@ -42,8 +44,6 @@ class StatusDisplayManager:
             message: The message to display
             context: Optional context information
         """
-        from . import IconManager
-
         # Errors and warnings always go to stderr, even in quiet mode
         # Success and info respect quiet mode and go to stdout
         use_stderr = level in ("error", "warning")
@@ -66,13 +66,13 @@ class StatusDisplayManager:
         if context:
             text = (
                 f"{level.capitalize()} in {context}: {message}"
-                if level == "error" or level == "warning"
+                if level in {"error", "warning"}
                 else f"{context}: {message}"
             )
         else:
             text = (
                 f"{level.capitalize()}: {message}"
-                if level == "error" or level == "warning"
+                if level in {"error", "warning"}
                 else message
             )
 
@@ -146,8 +146,6 @@ class StatusDisplayManager:
             required_version: Minimum CLI version required by template
             current_version: Current CLI version
         """
-        from . import IconManager
-
         console_err.print()
         console_err.print(
             f"[bold red]{IconManager.STATUS_ERROR} Version Incompatibility[/bold red]"
@@ -179,8 +177,6 @@ class StatusDisplayManager:
             message: The main message to display
             reason: Optional reason why it was skipped
         """
-        from . import IconManager
-
         icon = IconManager.get_status_icon("skipped")
         if reason:
             self.parent.text(f"\n{icon} {message} (skipped - {reason})", style="dim")
@@ -200,8 +196,6 @@ class StatusDisplayManager:
         Returns:
             True if user confirms, False otherwise
         """
-        from . import IconManager
-
         icon = IconManager.get_status_icon("warning")
         self.parent.text(f"\n{icon} {message}", style="yellow")
 
@@ -212,7 +206,7 @@ class StatusDisplayManager:
         return Confirm.ask("Continue?", default=default)
 
     def display_template_render_error(
-        self, error: "TemplateRenderError", context: str | None = None
+        self, error: TemplateRenderError, context: str | None = None
     ) -> None:
         """Display a detailed template rendering error with context and suggestions.
 
@@ -220,8 +214,6 @@ class StatusDisplayManager:
             error: TemplateRenderError exception with detailed error information
             context: Optional context information (e.g., template ID)
         """
-        from . import IconManager
-
         # Always display errors to stderr
         icon = IconManager.get_status_icon("error")
         if context:
@@ -287,7 +279,7 @@ class StatusDisplayManager:
         # Display suggestions if available
         if error.suggestions:
             console_err.print("[bold yellow]Suggestions:[/bold yellow]")
-            for i, suggestion in enumerate(error.suggestions, 1):
+            for _i, suggestion in enumerate(error.suggestions, 1):
                 bullet = IconManager.UI_BULLET
                 console_err.print(f"  [yellow]{bullet}[/yellow] {suggestion}")
             console_err.print()

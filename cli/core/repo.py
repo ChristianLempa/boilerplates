@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from rich.progress import SpinnerColumn, TextColumn
 from rich.table import Table
@@ -21,9 +21,7 @@ display = DisplayManager()
 app = Typer(help="Manage library repositories")
 
 
-def _run_git_command(
-    args: list[str], cwd: Optional[Path] = None
-) -> tuple[bool, str, str]:
+def _run_git_command(args: list[str], cwd: Path | None = None) -> tuple[bool, str, str]:
     """Run a git command and return the result.
 
     Args:
@@ -35,7 +33,8 @@ def _run_git_command(
     """
     try:
         result = subprocess.run(
-            ["git"] + args,
+            ["git", *args],
+            check=False,
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -54,8 +53,8 @@ def _clone_or_pull_repo(
     name: str,
     url: str,
     target_path: Path,
-    branch: Optional[str] = None,
-    sparse_dir: Optional[str] = None,
+    branch: str | None = None,
+    sparse_dir: str | None = None,
 ) -> tuple[bool, str]:
     """Clone or pull a git repository with optional sparse-checkout.
 
@@ -70,122 +69,117 @@ def _clone_or_pull_repo(
         Tuple of (success, message)
     """
     if target_path.exists() and (target_path / ".git").exists():
-        # Repository exists, pull updates
-        logger.debug(f"Pulling updates for library '{name}' at {target_path}")
-
-        # Determine which branch to pull
-        pull_branch = branch if branch else "main"
-
-        # Pull updates from specific branch
-        success, stdout, stderr = _run_git_command(
-            ["pull", "--ff-only", "origin", pull_branch], cwd=target_path
-        )
-
-        if success:
-            # Check if anything was updated
-            if "Already up to date" in stdout or "Already up-to-date" in stdout:
-                return True, "Already up to date"
-            else:
-                return True, "Updated successfully"
-        else:
-            error_msg = stderr or stdout
-            logger.error(f"Failed to pull library '{name}': {error_msg}")
-            return False, f"Pull failed: {error_msg}"
+        return _pull_repo_updates(name, target_path, branch)
     else:
-        # Repository doesn't exist, clone it
-        logger.debug(f"Cloning library '{name}' from {url} to {target_path}")
+        return _clone_new_repo(name, url, target_path, branch, sparse_dir)
 
-        # Ensure parent directory exists
-        target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Determine if we should use sparse-checkout
-        use_sparse = sparse_dir and sparse_dir != "."
+def _pull_repo_updates(name: str, target_path: Path, branch: str | None) -> tuple[bool, str]:
+    """Pull updates for an existing repository."""
+    logger.debug(f"Pulling updates for library '{name}' at {target_path}")
 
-        if use_sparse:
-            # Use sparse-checkout to clone only specific directory
-            logger.debug(f"Using sparse-checkout for directory: {sparse_dir}")
+    pull_branch = branch if branch else "main"
+    success, stdout, stderr = _run_git_command(
+        ["pull", "--ff-only", "origin", pull_branch], cwd=target_path
+    )
 
-            # Initialize empty repo
-            success, stdout, stderr = _run_git_command(["init"], cwd=None)
-            if success:
-                # Create target directory
-                target_path.mkdir(parents=True, exist_ok=True)
+    if not success:
+        error_msg = stderr or stdout
+        logger.error(f"Failed to pull library '{name}': {error_msg}")
+        return False, f"Pull failed: {error_msg}"
 
-                # Initialize git repo
-                success, stdout, stderr = _run_git_command(["init"], cwd=target_path)
-                if not success:
-                    return False, f"Failed to initialize repo: {stderr or stdout}"
+    if "Already up to date" in stdout or "Already up-to-date" in stdout:
+        return True, "Already up to date"
+    else:
+        return True, "Updated successfully"
 
-                # Add remote
-                success, stdout, stderr = _run_git_command(
-                    ["remote", "add", "origin", url], cwd=target_path
-                )
-                if not success:
-                    return False, f"Failed to add remote: {stderr or stdout}"
 
-                # Enable sparse-checkout (non-cone mode to exclude root files)
-                success, stdout, stderr = _run_git_command(
-                    ["sparse-checkout", "init", "--no-cone"], cwd=target_path
-                )
-                if not success:
-                    return (
-                        False,
-                        f"Failed to enable sparse-checkout: {stderr or stdout}",
-                    )
+def _clone_new_repo(
+    name: str, url: str, target_path: Path, branch: str | None, sparse_dir: str | None
+) -> tuple[bool, str]:
+    """Clone a new repository, optionally with sparse-checkout."""
+    logger.debug(f"Cloning library '{name}' from {url} to {target_path}")
+    target_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Set sparse-checkout to specific directory (non-cone uses patterns)
-                success, stdout, stderr = _run_git_command(
-                    ["sparse-checkout", "set", f"{sparse_dir}/*"], cwd=target_path
-                )
-                if not success:
-                    return (
-                        False,
-                        f"Failed to set sparse-checkout directory: {stderr or stdout}",
-                    )
+    use_sparse = sparse_dir and sparse_dir != "."
 
-                # Fetch specific branch (without attempting to update local ref)
-                fetch_args = ["fetch", "--depth", "1", "origin"]
-                if branch:
-                    fetch_args.append(branch)
-                else:
-                    fetch_args.append("main")
+    if use_sparse:
+        return _clone_sparse_repo(url, target_path, branch, sparse_dir)
+    else:
+        return _clone_full_repo(name, url, target_path, branch)
 
-                success, stdout, stderr = _run_git_command(fetch_args, cwd=target_path)
-                if not success:
-                    return False, f"Fetch failed: {stderr or stdout}"
 
-                # Checkout the branch
-                checkout_branch = branch if branch else "main"
-                success, stdout, stderr = _run_git_command(
-                    ["checkout", checkout_branch], cwd=target_path
-                )
-                if not success:
-                    return False, f"Checkout failed: {stderr or stdout}"
+def _clone_sparse_repo(
+    url: str, target_path: Path, branch: str | None, sparse_dir: str
+) -> tuple[bool, str]:
+    """Clone repository with sparse-checkout."""
+    logger.debug(f"Using sparse-checkout for directory: {sparse_dir}")
 
-                # Done! Files are in target_path/sparse_dir/
-                return True, "Cloned successfully (sparse)"
-            else:
-                return False, f"Failed to initialize: {stderr or stdout}"
-        else:
-            # Regular full clone
-            clone_args = ["clone", "--depth", "1"]
-            if branch:
-                clone_args.extend(["--branch", branch])
-            clone_args.extend([url, str(target_path)])
+    target_path.mkdir(parents=True, exist_ok=True)
 
-            success, stdout, stderr = _run_git_command(clone_args)
+    # Initialize git repo
+    success, stdout, stderr = _run_git_command(["init"], cwd=target_path)
+    if not success:
+        return False, f"Failed to initialize repo: {stderr or stdout}"
 
-            if success:
-                return True, "Cloned successfully"
-            else:
-                error_msg = stderr or stdout
-                logger.error(f"Failed to clone library '{name}': {error_msg}")
-                return False, f"Clone failed: {error_msg}"
+    # Add remote
+    success, stdout, stderr = _run_git_command(
+        ["remote", "add", "origin", url], cwd=target_path
+    )
+    if not success:
+        return False, f"Failed to add remote: {stderr or stdout}"
+
+    # Enable sparse-checkout
+    success, stdout, stderr = _run_git_command(
+        ["sparse-checkout", "init", "--no-cone"], cwd=target_path
+    )
+    if not success:
+        return False, f"Failed to enable sparse-checkout: {stderr or stdout}"
+
+    # Set sparse-checkout directory
+    success, stdout, stderr = _run_git_command(
+        ["sparse-checkout", "set", f"{sparse_dir}/*"], cwd=target_path
+    )
+    if not success:
+        return False, f"Failed to set sparse-checkout directory: {stderr or stdout}"
+
+    # Fetch and checkout
+    fetch_branch = branch if branch else "main"
+    success, stdout, stderr = _run_git_command(
+        ["fetch", "--depth", "1", "origin", fetch_branch], cwd=target_path
+    )
+    if not success:
+        return False, f"Fetch failed: {stderr or stdout}"
+
+    success, stdout, stderr = _run_git_command(["checkout", fetch_branch], cwd=target_path)
+    if not success:
+        return False, f"Checkout failed: {stderr or stdout}"
+
+    return True, "Cloned successfully (sparse)"
+
+
+def _clone_full_repo(
+    name: str, url: str, target_path: Path, branch: str | None
+) -> tuple[bool, str]:
+    """Clone full repository."""
+    clone_args = ["clone", "--depth", "1"]
+    if branch:
+        clone_args.extend(["--branch", branch])
+    clone_args.extend([url, str(target_path)])
+
+    success, stdout, stderr = _run_git_command(clone_args)
+
+    if success:
+        return True, "Cloned successfully"
+    else:
+        error_msg = stderr or stdout
+        logger.error(f"Failed to clone library '{name}': {error_msg}")
+        return False, f"Clone failed: {error_msg}"
 
 
 @app.command()
 def update(
-    library_name: Optional[str] = Argument(
+    library_name: str | None = Argument(
         None, help="Name of specific library to update (updates all if not specified)"
     ),
     verbose: bool = Option(False, "--verbose", "-v", help="Show detailed output"),
@@ -337,8 +331,6 @@ def list() -> None:
             directory = "-"
 
             # Check if static path exists
-            from pathlib import Path
-
             library_path = Path(url_or_path).expanduser()
             if not library_path.is_absolute():
                 library_path = (config.config_path.parent / library_path).resolve()
@@ -371,19 +363,11 @@ def list() -> None:
 @app.command()
 def add(
     name: str = Argument(..., help="Unique name for the library"),
-    library_type: str = Option(
-        "git", "--type", "-t", help="Library type (git or static)"
-    ),
-    url: Optional[str] = Option(
-        None, "--url", "-u", help="Git repository URL (for git type)"
-    ),
-    branch: str = Option("main", "--branch", "-b", help="Git branch (for git type)"),
-    directory: str = Option(
-        "library", "--directory", "-d", help="Directory in repo (for git type)"
-    ),
-    path: Optional[str] = Option(
-        None, "--path", "-p", help="Local path (for static type)"
-    ),
+    library_type: str | None = None,
+    url: str | None = None,
+    branch: str = "main",
+    directory: str = "library",
+    path: str | None = None,
     enabled: bool = Option(
         True, "--enabled/--disabled", help="Enable or disable the library"
     ),
@@ -456,7 +440,6 @@ def remove(
             library_path = libraries_path / name
 
             if library_path.exists():
-                import shutil
 
                 shutil.rmtree(library_path)
                 display.display_success(f"Deleted local files at {library_path}")

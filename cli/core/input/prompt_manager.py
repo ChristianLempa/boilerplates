@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Callable
 import logging
+from typing import Any, Callable
+
 from rich.console import Console
-from rich.prompt import Prompt, Confirm, IntPrompt
+from rich.prompt import Confirm, IntPrompt, Prompt
 
 from .display import DisplayManager
 from .template import Variable, VariableCollection
@@ -31,7 +32,7 @@ class PromptHandler:
             logger.info("User opted to keep all default values")
             return {}
 
-        collected: Dict[str, Any] = {}
+        collected: dict[str, Any] = {}
         prompted_variables: set[str] = (
             set()
         )  # Track which variables we've already prompted for
@@ -167,9 +168,7 @@ class PromptHandler:
                 self._show_validation_error(str(exc))
             except Exception as e:
                 # Unexpected error — log and retry using the stored (unconverted) value
-                logger.error(
-                    f"Error prompting for variable '{variable.name}': {str(e)}"
-                )
+                logger.error(f"Error prompting for variable '{variable.name}': {e!s}")
                 default_value = variable.value
                 handler = self._get_prompt_handler(variable)
 

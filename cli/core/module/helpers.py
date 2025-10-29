@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+import click
 import yaml
 from typer import Exit
 
 from ..display import DisplayManager
-from ..prompt import PromptHandler
+from ..input import PromptHandler
 
 logger = logging.getLogger(__name__)
 
 
-def parse_var_inputs(var_options: List[str], extra_args: List[str]) -> Dict[str, Any]:
+def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str, Any]:
     """Parse variable inputs from --var options and extra args.
 
     Supports formats:
@@ -36,12 +37,11 @@ def parse_var_inputs(var_options: List[str], extra_args: List[str]) -> Dict[str,
         if "=" in var_option:
             key, value = var_option.split("=", 1)
             variables[key] = value
+        # --var KEY VALUE format - value should be in extra_args
+        elif extra_args:
+            variables[var_option] = extra_args.pop(0)
         else:
-            # --var KEY VALUE format - value should be in extra_args
-            if extra_args:
-                variables[var_option] = extra_args.pop(0)
-            else:
-                logger.warning(f"No value provided for variable '{var_option}'")
+            logger.warning(f"No value provided for variable '{var_option}'")
 
     return variables
 
@@ -68,11 +68,11 @@ def load_var_file(var_file_path: str) -> dict:
         raise ValueError(f"Variable file path is not a file: {var_file_path}")
 
     try:
-        with open(var_path, "r", encoding="utf-8") as f:
+        with open(var_path, encoding="utf-8") as f:
             content = yaml.safe_load(f)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in variable file: {e}") from e
-    except (IOError, OSError) as e:
+    except OSError as e:
         raise ValueError(f"Error reading variable file: {e}") from e
 
     if not isinstance(content, dict):
@@ -107,7 +107,7 @@ def apply_variable_defaults(template, config_manager, module_name: str) -> None:
 
 
 def apply_var_file(
-    template, var_file_path: Optional[str], display: DisplayManager
+    template, var_file_path: str | None, display: DisplayManager
 ) -> None:
     """Apply variables from a YAML file to template.
 
@@ -149,7 +149,7 @@ def apply_var_file(
         raise Exit(code=1) from e
 
 
-def apply_cli_overrides(template, var: Optional[List[str]], ctx=None) -> None:
+def apply_cli_overrides(template, var: list[str] | None, ctx=None) -> None:
     """Apply CLI variable overrides to template.
 
     Args:
@@ -162,8 +162,6 @@ def apply_cli_overrides(template, var: Optional[List[str]], ctx=None) -> None:
 
     # Get context if not provided (compatible with all Typer versions)
     if ctx is None:
-        import click
-
         try:
             ctx = click.get_current_context()
         except RuntimeError:
@@ -181,7 +179,7 @@ def apply_cli_overrides(template, var: Optional[List[str]], ctx=None) -> None:
             )
 
 
-def collect_variable_values(template, interactive: bool) -> Dict[str, Any]:
+def collect_variable_values(template, interactive: bool) -> dict[str, Any]:
     """Collect variable values from user prompts and template defaults.
 
     Args:

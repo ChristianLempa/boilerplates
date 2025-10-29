@@ -1,30 +1,42 @@
 from __future__ import annotations
 
-from .variable_collection import VariableCollection
-from ..exceptions import (
-    TemplateLoadError,
-    TemplateSyntaxError,
-    TemplateValidationError,
-    TemplateRenderError,
-    YAMLParseError,
-    IncompatibleSchemaVersionError,
-)
-from ..version import is_compatible
-from pathlib import Path
-from typing import Any, Dict, List, Set, Optional, Literal
-from dataclasses import dataclass, field
-from functools import lru_cache
+import importlib
 import logging
 import os
+import re
+import secrets
+import string
+from dataclasses import dataclass, field
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Literal
+
 import yaml
 from jinja2 import Environment, FileSystemLoader, meta
-from jinja2.sandbox import SandboxedEnvironment
 from jinja2.exceptions import (
-    TemplateSyntaxError as Jinja2TemplateSyntaxError,
-    UndefinedError,
     TemplateError as Jinja2TemplateError,
+)
+from jinja2.exceptions import (
     TemplateNotFound as Jinja2TemplateNotFound,
 )
+from jinja2.exceptions import (
+    TemplateSyntaxError as Jinja2TemplateSyntaxError,
+)
+from jinja2.exceptions import (
+    UndefinedError,
+)
+from jinja2.sandbox import SandboxedEnvironment
+
+from ..exceptions import (
+    IncompatibleSchemaVersionError,
+    TemplateLoadError,
+    TemplateRenderError,
+    TemplateSyntaxError,
+    TemplateValidationError,
+    YAMLParseError,
+)
+from ..version import is_compatible
+from .variable_collection import VariableCollection
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +52,8 @@ class TemplateErrorHandler:
 
     @staticmethod
     def extract_error_context(
-        file_path: Path, line_number: Optional[int], context_size: int = 3
-    ) -> List[str]:
+        file_path: Path, line_number: int | None, context_size: int = 3
+    ) -> list[str]:
         """Extract lines of context around an error location.
 
         Args:
@@ -56,7 +68,7 @@ class TemplateErrorHandler:
             return []
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 lines = f.readlines()
 
             start_line = max(0, line_number - context_size - 1)
@@ -69,11 +81,11 @@ class TemplateErrorHandler:
                 context.append(f"{marker} {line_num:4d} | {lines[i].rstrip()}")
 
             return context
-        except (IOError, OSError):
+        except OSError:
             return []
 
     @staticmethod
-    def get_common_jinja_suggestions(error_msg: str, available_vars: set) -> List[str]:
+    def get_common_jinja_suggestions(error_msg: str, available_vars: set) -> list[str]:
         """Generate helpful suggestions based on common Jinja2 errors.
 
         Args:
@@ -89,8 +101,6 @@ class TemplateErrorHandler:
         # Undefined variable errors
         if "undefined" in error_lower or "is not defined" in error_lower:
             # Try to extract variable name from error message
-            import re
-
             var_match = re.search(r"'([^']+)'.*is undefined", error_msg)
             if not var_match:
                 var_match = re.search(r"'([^']+)'.*is not defined", error_msg)
@@ -175,10 +185,10 @@ class TemplateErrorHandler:
     def parse_jinja_error(
         cls,
         error: Exception,
-        template_file: "TemplateFile",
+        template_file: TemplateFile,
         template_dir: Path,
         available_vars: set,
-    ) -> tuple[str, Optional[int], Optional[int], List[str], List[str]]:
+    ) -> tuple[str, int | None, int | None, list[str], list[str]]:
         """Parse a Jinja2 exception to extract detailed error information.
 
         Args:
@@ -241,7 +251,7 @@ class TemplateMetadata:
     date: str
     version: str
     module: str = ""
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     library: str = "unknown"
     library_type: str = "git"  # Type of library ("git" or "static")
     next_steps: str = ""
@@ -339,17 +349,17 @@ class Template:
         self.library_type = library_type
 
         # Initialize caches for lazy loading
-        self.__module_specs: Optional[dict] = None
-        self.__merged_specs: Optional[dict] = None
-        self.__jinja_env: Optional[Environment] = None
-        self.__used_variables: Optional[Set[str]] = None
-        self.__variables: Optional[VariableCollection] = None
-        self.__template_files: Optional[List[TemplateFile]] = None  # New attribute
+        self.__module_specs: dict | None = None
+        self.__merged_specs: dict | None = None
+        self.__jinja_env: Environment | None = None
+        self.__used_variables: set[str] | None = None
+        self.__variables: VariableCollection | None = None
+        self.__template_files: list[TemplateFile] | None = None  # New attribute
 
         try:
             # Find and parse the main template file (template.yaml or template.yml)
             main_template_path = self._find_main_template_file()
-            with open(main_template_path, "r", encoding="utf-8") as f:
+            with open(main_template_path, encoding="utf-8") as f:
                 # Load all YAML documents (handles templates with empty lines before ---)
                 documents = list(yaml.safe_load_all(f))
 
@@ -392,15 +402,17 @@ class Template:
 
         except (ValueError, FileNotFoundError) as e:
             logger.error(f"Error loading template from {template_dir}: {e}")
-            raise TemplateLoadError(f"Error loading template from {template_dir}: {e}")
+            raise TemplateLoadError(
+                f"Error loading template from {template_dir}: {e}"
+            ) from e
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error in template {template_dir}: {e}")
-            raise YAMLParseError(str(template_dir / "template.y*ml"), e)
-        except (IOError, OSError) as e:
+            raise YAMLParseError(str(template_dir / "template.y*ml"), e) from e
+        except OSError as e:
             logger.error(f"File I/O error loading template {template_dir}: {e}")
             raise TemplateLoadError(
                 f"File I/O error loading template from {template_dir}: {e}"
-            )
+            ) from e
 
     def set_qualified_id(self, library_name: str | None = None) -> None:
         """Set a qualified ID for this template (used when duplicates exist across libraries).
@@ -444,8 +456,6 @@ class Template:
         if not kind:
             return {}
         try:
-            import importlib
-
             module = importlib.import_module(f"cli.modules.{kind}")
 
             # Check if module has schema-specific specs (multi-schema support)
@@ -469,7 +479,7 @@ class Template:
         except Exception as e:
             raise ValueError(
                 f"Error loading module specifications for kind '{kind}': {e}"
-            )
+            ) from e
 
     def _merge_specs(self, module_specs: dict, template_specs: dict) -> dict:
         """Deep merge template specs with module specs using VariableCollection.
@@ -505,7 +515,7 @@ class Template:
 
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
-        template_files: List[TemplateFile] = []
+        template_files: list[TemplateFile] = []
 
         for root, _, files in os.walk(self.template_dir):
             for filename in files:
@@ -533,24 +543,24 @@ class Template:
 
         self.__template_files = template_files
 
-    def _extract_all_used_variables(self) -> Set[str]:
+    def _extract_all_used_variables(self) -> set[str]:
         """Extract all undeclared variables from all .j2 files in the template directory.
 
         Raises:
             ValueError: If any Jinja2 template has syntax errors
         """
-        used_variables: Set[str] = set()
+        used_variables: set[str] = set()
         syntax_errors = []
 
         for template_file in self.template_files:  # Iterate over TemplateFile objects
             if template_file.file_type == "j2":
                 file_path = self.template_dir / template_file.relative_path
                 try:
-                    with open(file_path, "r", encoding="utf-8") as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
                         ast = self.jinja_env.parse(content)  # Use lazy-loaded jinja_env
                         used_variables.update(meta.find_undeclared_variables(ast))
-                except (IOError, OSError) as e:
+                except OSError as e:
                     relative_path = file_path.relative_to(self.template_dir)
                     syntax_errors.append(f"  - {relative_path}: File I/O error: {e}")
                 except Exception as e:
@@ -698,7 +708,7 @@ class Template:
 
     def render(
         self, variables: VariableCollection, debug: bool = False
-    ) -> tuple[Dict[str, str], Dict[str, Any]]:
+    ) -> tuple[dict[str, str], dict[str, Any]]:
         """Render all .j2 files in the template directory.
 
         Args:
@@ -712,9 +722,6 @@ class Template:
         variable_values = variables.get_satisfied_values()
 
         # Auto-generate values for autogenerated variables that are empty
-        import secrets
-        import string
-
         for section in variables.get_sections().values():
             for var_name, variable in section.variables.items():
                 if variable.autogenerated and (
@@ -793,7 +800,7 @@ class Template:
                         else {},
                         suggestions=suggestions,
                         original_error=e,
-                    )
+                    ) from e
 
                 except Exception as e:
                     # Catch any other unexpected errors
@@ -807,7 +814,7 @@ class Template:
                             "This is an unexpected error. Please check the template for issues."
                         ],
                         original_error=e,
-                    )
+                    ) from e
 
             elif template_file.file_type == "static":
                 # For static files, just read their content and add to rendered_files
@@ -819,10 +826,10 @@ class Template:
                             f"Copying static file: {template_file.relative_path}"
                         )
 
-                    with open(file_path, "r", encoding="utf-8") as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
                         rendered_files[str(template_file.output_path)] = content
-                except (IOError, OSError) as e:
+                except OSError as e:
                     logger.error(f"Error reading static file {file_path}: {e}")
                     raise TemplateRenderError(
                         message=f"Error reading static file: {e}",
@@ -831,7 +838,7 @@ class Template:
                             "Check that the file exists and has read permissions"
                         ],
                         original_error=e,
-                    )
+                    ) from e
 
         return rendered_files, variable_values
 
@@ -855,7 +862,7 @@ class Template:
         return "\n".join(sanitized).lstrip("\n").rstrip("\n") + "\n"
 
     @property
-    def template_files(self) -> List[TemplateFile]:
+    def template_files(self) -> list[TemplateFile]:
         if self.__template_files is None:
             self._collect_template_files()  # Populate self.__template_files
         return self.__template_files
@@ -890,7 +897,7 @@ class Template:
         return self.__jinja_env
 
     @property
-    def used_variables(self) -> Set[str]:
+    def used_variables(self) -> set[str]:
         if self.__used_variables is None:
             self.__used_variables = self._extract_all_used_variables()
         return self.__used_variables

@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from rich.table import Table
 from rich.tree import Tree
 
+from .icon_manager import IconManager
+
 if TYPE_CHECKING:
     from . import DisplayManager
 
@@ -19,7 +21,7 @@ class TableDisplayManager:
     including templates lists, status tables, and summaries.
     """
 
-    def __init__(self, parent: "DisplayManager"):
+    def __init__(self, parent: DisplayManager):
         """Initialize TableDisplayManager.
 
         Args:
@@ -89,8 +91,6 @@ class TableDisplayManager:
             rows: List of tuples (name, message, success_bool)
             columns: Column headers (name_header, status_header)
         """
-        from . import IconManager
-
         table = Table(show_header=True)
         table.add_column(columns[0], style="cyan", no_wrap=True)
         table.add_column(columns[1])
@@ -159,8 +159,6 @@ class TableDisplayManager:
             module_name: Name of the module
             show_all: If True, show all details including descriptions
         """
-        from . import IconManager
-
         if not spec:
             self.parent.text(
                 f"No configuration found for module '{module_name}'", style="yellow"

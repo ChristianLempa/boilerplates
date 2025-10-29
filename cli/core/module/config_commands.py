@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from rich.prompt import Confirm
 from typer import Exit
 
+from ..config import ConfigManager
+
 logger = logging.getLogger(__name__)
 
-
-def config_get(module_instance, var_name: Optional[str] = None) -> None:
+def config_get(module_instance, var_name: str | None = None) -> None:
     """Get default value(s) for this module."""
-    from ..config import ConfigManager
-
     config = ConfigManager()
 
     if var_name:
@@ -36,9 +34,9 @@ def config_get(module_instance, var_name: Optional[str] = None) -> None:
             module_instance.display.display_info(
                 f"[bold]Config defaults for module '{module_instance.name}':[/bold]"
             )
-            for var_name, var_value in defaults.items():
+            for config_var_name, var_value in defaults.items():
                 module_instance.display.display_info(
-                    f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]"
+                    f"  [green]{config_var_name}[/green] = [yellow]{var_value}[/yellow]"
                 )
         else:
             module_instance.display.display_warning(
@@ -46,10 +44,8 @@ def config_get(module_instance, var_name: Optional[str] = None) -> None:
             )
 
 
-def config_set(module_instance, var_name: str, value: Optional[str] = None) -> None:
+def config_set(module_instance, var_name: str, value: str | None = None) -> None:
     """Set a default value for a variable."""
-    from ..config import ConfigManager
-
     config = ConfigManager()
 
     # Parse var_name and value - support both "var value" and "var=value" formats
@@ -83,8 +79,6 @@ def config_set(module_instance, var_name: str, value: Optional[str] = None) -> N
 
 def config_remove(module_instance, var_name: str) -> None:
     """Remove a specific default variable value."""
-    from ..config import ConfigManager
-
     config = ConfigManager()
     defaults = config.get_defaults(module_instance.name)
 
@@ -105,11 +99,9 @@ def config_remove(module_instance, var_name: str) -> None:
 
 
 def config_clear(
-    module_instance, var_name: Optional[str] = None, force: bool = False
+    module_instance, var_name: str | None = None, force: bool = False
 ) -> None:
     """Clear default value(s) for this module."""
-    from ..config import ConfigManager
-
     config = ConfigManager()
     defaults = config.get_defaults(module_instance.name)
 
@@ -136,9 +128,9 @@ def config_clear(
                 f"This will clear ALL defaults for module '{module_instance.name}':",
                 "",
             ]
-            for var_name, var_value in defaults.items():
+            for clear_var_name, var_value in defaults.items():
                 detail_lines.append(
-                    f"  [green]{var_name}[/green] = [yellow]{var_value}[/yellow]"
+                    f"  [green]{clear_var_name}[/green] = [yellow]{var_value}[/yellow]"
                 )
 
             module_instance.display.display_warning(
@@ -162,8 +154,6 @@ def config_clear(
 
 def config_list(module_instance) -> None:
     """Display the defaults for this specific module as a table."""
-    from ..config import ConfigManager
-
     config = ConfigManager()
 
     # Get only the defaults for this module
@@ -175,16 +165,11 @@ def config_list(module_instance) -> None:
         )
         return
 
-    # Display defaults using table primitive
-    from rich.table import Table
+    # Display defaults using DisplayManager
+    module_instance.display.display_info(
+        f"[bold]Defaults for module '{module_instance.name}':[/bold]\n"
+    )
 
-    settings = module_instance.display.settings
-
-    table = Table(show_header=True, header_style=settings.STYLE_TABLE_HEADER)
-    table.add_column("Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True)
-    table.add_column("Value", style=settings.STYLE_VAR_COL_DEFAULT)
-
-    for var_name, var_value in defaults.items():
-        table.add_row(var_name, str(var_value))
-
-    module_instance.display._print_table(table)
+    # Convert defaults to display format (key: value pairs)
+    items = {f"{var_name}:": str(var_value) for var_name, var_value in defaults.items()}
+    module_instance.display.display_summary_table("", items)

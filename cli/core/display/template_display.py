@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .icon_manager import IconManager
+
 if TYPE_CHECKING:
-    from . import DisplayManager
     from ..template import Template
+    from . import DisplayManager
 
 
 class TemplateDisplayManager:
@@ -15,7 +17,7 @@ class TemplateDisplayManager:
     file trees, and metadata.
     """
 
-    def __init__(self, parent: "DisplayManager"):
+    def __init__(self, parent: DisplayManager):
         """Initialize TemplateDisplayManager.
 
         Args:
@@ -23,7 +25,7 @@ class TemplateDisplayManager:
         """
         self.parent = parent
 
-    def render_template(self, template: "Template", template_id: str) -> None:
+    def render_template(self, template: Template, template_id: str) -> None:
         """Display template information panel and variables table.
 
         Args:
@@ -34,7 +36,7 @@ class TemplateDisplayManager:
         self.render_file_tree(template)
         self.parent.variables.render_variables_table(template)
 
-    def render_template_header(self, template: "Template", template_id: str) -> None:
+    def render_template_header(self, template: Template, template_id: str) -> None:
         """Display the header for a template with library information.
 
         Args:
@@ -67,14 +69,12 @@ class TemplateDisplayManager:
         )
         self.parent.text(description)
 
-    def render_file_tree(self, template: "Template") -> None:
+    def render_file_tree(self, template: Template) -> None:
         """Display the file structure of a template.
 
         Args:
             template: Template instance
         """
-        from . import IconManager
-
         self.parent.text("")
         self.parent.heading("Template File Structure")
 
@@ -108,8 +108,6 @@ class TemplateDisplayManager:
             files: Dictionary of file paths to content
             existing_files: List of existing files that will be overwritten
         """
-        from . import IconManager
-
         self.parent.text("")
         self.parent.text("Files to be generated:", style="bold")
 

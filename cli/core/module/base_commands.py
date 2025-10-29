@@ -5,25 +5,31 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from rich.prompt import Confirm
 from typer import Exit
 
+from ..config import ConfigManager
 from ..display import DisplayManager
 from ..exceptions import (
     TemplateRenderError,
     TemplateSyntaxError,
     TemplateValidationError,
 )
+from ..template import Template
+from ..validators import get_validator_registry
 from .helpers import (
-    apply_variable_defaults,
-    apply_var_file,
     apply_cli_overrides,
+    apply_var_file,
+    apply_variable_defaults,
     collect_variable_values,
 )
 
 logger = logging.getLogger(__name__)
+
+# File size thresholds for display formatting
+BYTES_PER_KB = 1024
+BYTES_PER_MB = 1024 * 1024
 
 
 def list_templates(module_instance, raw: bool = False) -> list:
@@ -105,8 +111,6 @@ def show_template(module_instance, id: str) -> None:
     # Apply config defaults (same as in generate)
     # This ensures the display shows the actual defaults that will be used
     if template.variables:
-        from ..config import ConfigManager
-
         config = ConfigManager()
         config_defaults = config.get_defaults(module_instance.name)
 
@@ -130,10 +134,10 @@ def show_template(module_instance, id: str) -> None:
 
 def check_output_directory(
     output_dir: Path,
-    rendered_files: Dict[str, str],
+    rendered_files: dict[str, str],
     interactive: bool,
     display: DisplayManager,
-) -> Optional[List[Path]]:
+) -> list[Path] | None:
     """Check output directory for conflicts and get user confirmation if needed."""
     dir_exists = output_dir.exists()
     dir_not_empty = dir_exists and any(output_dir.iterdir())
@@ -141,7 +145,7 @@ def check_output_directory(
     # Check which files already exist
     existing_files = []
     if dir_exists:
-        for file_path in rendered_files.keys():
+        for file_path in rendered_files:
             full_path = output_dir / file_path
             if full_path.exists():
                 existing_files.append(full_path)
@@ -171,8 +175,8 @@ def check_output_directory(
 
 def get_generation_confirmation(
     output_dir: Path,
-    rendered_files: Dict[str, str],
-    existing_files: Optional[List[Path]],
+    rendered_files: dict[str, str],
+    existing_files: list[Path] | None,
     dir_not_empty: bool,
     dry_run: bool,
     interactive: bool,
@@ -187,10 +191,13 @@ def get_generation_confirmation(
     )
 
     # Final confirmation (only if we didn't already ask about overwriting)
-    if not dir_not_empty and not dry_run:
-        if not Confirm.ask("Generate these files?", default=True):
-            display.display_info("Generation cancelled")
-            return False
+    if (
+        not dir_not_empty
+        and not dry_run
+        and not Confirm.ask("Generate these files?", default=True)
+    ):
+        display.display_info("Generation cancelled")
+        return False
 
     return True
 
@@ -198,7 +205,7 @@ def get_generation_confirmation(
 def execute_dry_run(
     id: str,
     output_dir: Path,
-    rendered_files: Dict[str, str],
+    rendered_files: dict[str, str],
     show_files: bool,
     display: DisplayManager,
 ) -> None:
@@ -233,7 +240,7 @@ def execute_dry_run(
 
     # Collect unique subdirectories that would be created
     subdirs = set()
-    for file_path in rendered_files.keys():
+    for file_path in rendered_files:
         parts = Path(file_path).parts
         for i in range(1, len(parts)):
             subdirs.add(Path(*parts[:i]))
@@ -274,12 +281,12 @@ def execute_dry_run(
     display.display_info("")
 
     # Summary statistics
-    if total_size < 1024:
+    if total_size < BYTES_PER_KB:
         size_str = f"{total_size}B"
-    elif total_size < 1024 * 1024:
-        size_str = f"{total_size / 1024:.1f}KB"
+    elif total_size < BYTES_PER_MB:
+        size_str = f"{total_size / BYTES_PER_KB:.1f}KB"
     else:
-        size_str = f"{total_size / (1024 * 1024):.1f}MB"
+        size_str = f"{total_size / BYTES_PER_MB:.1f}MB"
 
     summary_items = {
         "Total files:": str(len(rendered_files)),
@@ -312,7 +319,7 @@ def execute_dry_run(
 
 def write_generated_files(
     output_dir: Path,
-    rendered_files: Dict[str, str],
+    rendered_files: dict[str, str],
     quiet: bool,
     display: DisplayManager,
 ) -> None:
@@ -335,10 +342,10 @@ def write_generated_files(
 def generate_template(
     module_instance,
     id: str,
-    directory: Optional[str],
+    directory: str | None,
     interactive: bool,
-    var: Optional[list[str]],
-    var_file: Optional[str],
+    var: list[str] | None,
+    var_file: str | None,
     dry_run: bool,
     show_files: bool,
     quiet: bool,
@@ -354,8 +361,6 @@ def generate_template(
     template = module_instance._load_template_by_id(id)
 
     # Apply defaults and overrides (in precedence order)
-    from ..config import ConfigManager
-
     config = ConfigManager()
     apply_variable_defaults(template, config, module_instance.name)
     apply_var_file(template, var_file, display)
@@ -450,192 +455,179 @@ def generate_template(
     except TemplateRenderError as e:
         # Display enhanced error information for template rendering errors (always show errors)
         display.display_template_render_error(e, context=f"template '{id}'")
-        raise Exit(code=1)
+        raise Exit(code=1) from None
     except Exception as e:
         display.display_error(str(e), context=f"generating template '{id}'")
-        raise Exit(code=1)
+        raise Exit(code=1) from None
 
 
 def validate_templates(
     module_instance,
     template_id: str,
-    path: Optional[str],
+    path: str | None,
     verbose: bool,
     semantic: bool,
 ) -> None:
     """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness."""
-    from ..validators import get_validator_registry
+    # Load template based on input
+    template = _load_template_for_validation(module_instance, template_id, path)
 
-    # Validate from path takes precedence
+    if template:
+        _validate_single_template(module_instance, template, template_id, verbose, semantic)
+    else:
+        _validate_all_templates(module_instance, verbose)
+
+
+def _load_template_for_validation(module_instance, template_id: str, path: str | None):
+    """Load a template from path or ID for validation."""
     if path:
+        template_path = Path(path).resolve()
+        if not template_path.exists():
+            module_instance.display.display_error(f"Path does not exist: {path}")
+            raise Exit(code=1) from None
+        if not template_path.is_dir():
+            module_instance.display.display_error(f"Path is not a directory: {path}")
+            raise Exit(code=1) from None
+
+        module_instance.display.display_info(
+            f"[bold]Validating template from path:[/bold] [cyan]{template_path}[/cyan]"
+        )
         try:
-            template_path = Path(path).resolve()
-            if not template_path.exists():
-                module_instance.display.display_error(f"Path does not exist: {path}")
-                raise Exit(code=1)
-            if not template_path.is_dir():
-                module_instance.display.display_error(
-                    f"Path is not a directory: {path}"
-                )
-                raise Exit(code=1)
-
-            module_instance.display.display_info(
-                f"[bold]Validating template from path:[/bold] [cyan]{template_path}[/cyan]"
-            )
-            from ..template import Template
-
-            template = Template(template_path, library_name="local")
-            template_id = template.id
+            return Template(template_path, library_name="local")
         except Exception as e:
             module_instance.display.display_error(
                 f"Failed to load template from path '{path}': {e}"
             )
-            raise Exit(code=1)
-    elif template_id:
-        # Validate a specific template by ID
+            raise Exit(code=1) from None
+
+    if template_id:
         try:
             template = module_instance._load_template_by_id(template_id)
             module_instance.display.display_info(
                 f"[bold]Validating template:[/bold] [cyan]{template_id}[/cyan]"
             )
+            return template
         except Exception as e:
-            module_instance.display.display_error(
-                f"Failed to load template '{template_id}': {e}"
-            )
-            raise Exit(code=1)
-    else:
-        # Validate all templates - handled separately below
-        template = None
+            module_instance.display.display_error(f"Failed to load template '{template_id}': {e}")
+            raise Exit(code=1) from None
 
-    # Single template validation
-    if template:
+    return None
+
+
+def _validate_single_template(module_instance, template, template_id: str, verbose: bool, semantic: bool) -> None:
+    """Validate a single template."""
+    try:
+        # Jinja2 validation
+        _ = template.used_variables
+        _ = template.variables
+        module_instance.display.display_success("Jinja2 validation passed")
+
+        # Semantic validation
+        if semantic:
+            _run_semantic_validation(module_instance, template, verbose)
+
+        # Verbose output
+        if verbose:
+            _display_validation_details(module_instance, template, semantic)
+
+    except TemplateRenderError as e:
+        module_instance.display.display_template_render_error(
+            e, context=f"template '{template_id}'"
+        )
+        raise Exit(code=1) from None
+    except (TemplateSyntaxError, TemplateValidationError, ValueError) as e:
+        module_instance.display.display_error(f"Validation failed for '{template_id}':")
+        module_instance.display.display_info(f"\n{e}")
+        raise Exit(code=1) from None
+    except Exception as e:
+        module_instance.display.display_error(f"Unexpected error validating '{template_id}': {e}")
+        raise Exit(code=1) from None
+
+
+def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
+    """Run semantic validation on rendered template files."""
+    module_instance.display.display_info("")
+    module_instance.display.display_info("[bold cyan]Running semantic validation...[/bold cyan]")
+
+    registry = get_validator_registry()
+    debug_mode = logger.isEnabledFor(logging.DEBUG)
+    rendered_files, _ = template.render(template.variables, debug=debug_mode)
+
+    has_semantic_errors = False
+    for file_path, content in rendered_files.items():
+        result = registry.validate_file(content, file_path)
+
+        if result.errors or result.warnings or (verbose and result.info):
+            module_instance.display.display_info(f"\n[cyan]File:[/cyan] {file_path}")
+            result.display(f"{file_path}")
+
+            if result.errors:
+                has_semantic_errors = True
+
+    if has_semantic_errors:
+        module_instance.display.display_error("Semantic validation found errors")
+        raise Exit(code=1) from None
+
+    module_instance.display.display_success("Semantic validation passed")
+
+
+def _display_validation_details(module_instance, template, semantic: bool) -> None:
+    """Display verbose validation details."""
+    module_instance.display.display_info(f"\n[dim]Template path: {template.template_dir}[/dim]")
+    module_instance.display.display_info(f"[dim]Found {len(template.used_variables)} variables[/dim]")
+    if semantic:
+        debug_mode = logger.isEnabledFor(logging.DEBUG)
+        rendered_files, _ = template.render(template.variables, debug=debug_mode)
+        module_instance.display.display_info(f"[dim]Generated {len(rendered_files)} files[/dim]")
+
+
+def _validate_all_templates(module_instance, verbose: bool) -> None:
+    """Validate all templates in the module."""
+    module_instance.display.display_info(
+        f"[bold]Validating all {module_instance.name} templates...[/bold]"
+    )
+
+    valid_count = 0
+    invalid_count = 0
+    errors = []
+
+    all_templates = module_instance._load_all_templates()
+    total = len(all_templates)
+
+    for template in all_templates:
         try:
-            # Trigger validation by accessing used_variables
             _ = template.used_variables
-            # Trigger variable definition validation by accessing variables
             _ = template.variables
-            module_instance.display.display_success("Jinja2 validation passed")
-
-            # Semantic validation
-            if semantic:
-                module_instance.display.display_info("")
-                module_instance.display.display_info(
-                    "[bold cyan]Running semantic validation...[/bold cyan]"
-                )
-                registry = get_validator_registry()
-                has_semantic_errors = False
-
-                # Render template with default values for validation
-                debug_mode = logger.isEnabledFor(logging.DEBUG)
-                rendered_files, _ = template.render(
-                    template.variables, debug=debug_mode
-                )
-
-                for file_path, content in rendered_files.items():
-                    result = registry.validate_file(content, file_path)
-
-                    if result.errors or result.warnings or (verbose and result.info):
-                        module_instance.display.display_info(
-                            f"\n[cyan]File:[/cyan] {file_path}"
-                        )
-                        result.display(f"{file_path}")
-
-                        if result.errors:
-                            has_semantic_errors = True
-
-                if not has_semantic_errors:
-                    module_instance.display.display_success(
-                        "Semantic validation passed"
-                    )
-                else:
-                    module_instance.display.display_error(
-                        "Semantic validation found errors"
-                    )
-                    raise Exit(code=1)
-
+            valid_count += 1
             if verbose:
-                module_instance.display.display_info(
-                    f"\n[dim]Template path: {template.template_dir}[/dim]"
-                )
-                module_instance.display.display_info(
-                    f"[dim]Found {len(template.used_variables)} variables[/dim]"
-                )
-                if semantic:
-                    module_instance.display.display_info(
-                        f"[dim]Generated {len(rendered_files)} files[/dim]"
-                    )
-
-        except TemplateRenderError as e:
-            # Display enhanced error information for template rendering errors
-            module_instance.display.display_template_render_error(
-                e, context=f"template '{template_id}'"
-            )
-            raise Exit(code=1)
-        except (TemplateSyntaxError, TemplateValidationError, ValueError) as e:
-            module_instance.display.display_error(
-                f"Validation failed for '{template_id}':"
-            )
-            module_instance.display.display_info(f"\n{e}")
-            raise Exit(code=1)
+                module_instance.display.display_success(template.id)
+        except ValueError as e:
+            invalid_count += 1
+            errors.append((template.id, str(e)))
+            if verbose:
+                module_instance.display.display_error(template.id)
         except Exception as e:
-            module_instance.display.display_error(
-                f"Unexpected error validating '{template_id}': {e}"
+            invalid_count += 1
+            errors.append((template.id, f"Load error: {e}"))
+            if verbose:
+                module_instance.display.display_warning(template.id)
+
+    # Display summary
+    summary_items = {
+        "Total templates:": str(total),
+        "[green]Valid:[/green]": str(valid_count),
+        "[red]Invalid:[/red]": str(invalid_count),
+    }
+    module_instance.display.display_summary_table("Validation Summary", summary_items)
+
+    if errors:
+        module_instance.display.display_info("")
+        module_instance.display.display_error("Validation Errors:")
+        for template_id, error_msg in errors:
+            module_instance.display.display_info(
+                f"\n[yellow]Template:[/yellow] [cyan]{template_id}[/cyan]"
             )
-            raise Exit(code=1)
+            module_instance.display.display_info(f"[dim]{error_msg}[/dim]")
+        raise Exit(code=1)
 
-        return
-    else:
-        # Validate all templates
-        module_instance.display.display_info(
-            f"[bold]Validating all {module_instance.name} templates...[/bold]"
-        )
-
-        valid_count = 0
-        invalid_count = 0
-        errors = []
-
-        # Use centralized helper to load all templates
-        all_templates = module_instance._load_all_templates()
-        total = len(all_templates)
-
-        for template in all_templates:
-            try:
-                # Trigger validation
-                _ = template.used_variables
-                _ = template.variables
-                valid_count += 1
-                if verbose:
-                    module_instance.display.display_success(template.id)
-            except ValueError as e:
-                invalid_count += 1
-                errors.append((template.id, str(e)))
-                if verbose:
-                    module_instance.display.display_error(template.id)
-            except Exception as e:
-                invalid_count += 1
-                errors.append((template.id, f"Load error: {e}"))
-                if verbose:
-                    module_instance.display.display_warning(template.id)
-
-        # Summary
-        summary_items = {
-            "Total templates:": str(total),
-            "[green]Valid:[/green]": str(valid_count),
-            "[red]Invalid:[/red]": str(invalid_count),
-        }
-        module_instance.display.display_summary_table(
-            "Validation Summary", summary_items
-        )
-
-        # Show errors if any
-        if errors:
-            module_instance.display.display_info("")
-            module_instance.display.display_error("Validation Errors:")
-            for template_id, error_msg in errors:
-                module_instance.display.display_info(
-                    f"\n[yellow]Template:[/yellow] [cyan]{template_id}[/cyan]"
-                )
-                module_instance.display.display_info(f"[dim]{error_msg}[/dim]")
-            raise Exit(code=1)
-        else:
-            module_instance.display.display_success("All templates are valid!")
+    module_instance.display.display_success("All templates are valid!")

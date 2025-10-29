@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 from rich.table import Table
 
+from .icon_manager import IconManager
+
 if TYPE_CHECKING:
-    from . import DisplayManager
     from ..template import Template
+    from . import DisplayManager
 
 
 class VariableDisplayManager:
@@ -16,7 +18,7 @@ class VariableDisplayManager:
     and their values with appropriate formatting based on context.
     """
 
-    def __init__(self, parent: "DisplayManager"):
+    def __init__(self, parent: DisplayManager):
         """Initialize VariableDisplayManager.
 
         Args:
@@ -42,8 +44,6 @@ class VariableDisplayManager:
         Returns:
             Formatted string representation of the variable value
         """
-        from . import IconManager
-
         # Handle disabled bool variables
         if (is_dimmed or not var_satisfied) and variable.type == "bool":
             if (
@@ -171,8 +171,6 @@ class VariableDisplayManager:
         Returns:
             Tuple of (var_display, type, default_val, description, row_style)
         """
-        from . import IconManager
-
         settings = self.parent.settings
 
         # Build row style
@@ -200,7 +198,7 @@ class VariableDisplayManager:
             row_style,
         )
 
-    def render_variables_table(self, template: "Template") -> None:
+    def render_variables_table(self, template: Template) -> None:
         """Display a table of variables for a template.
 
         All variables and sections are always shown. Disabled sections/variables

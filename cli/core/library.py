@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from pathlib import Path
 import logging
-from typing import Optional
+from pathlib import Path
+
 import yaml
 
-from .exceptions import LibraryError, TemplateNotFoundError, DuplicateTemplateError
+from .config import ConfigManager
+from .exceptions import DuplicateTemplateError, LibraryError, TemplateNotFoundError
 
 logger = logging.getLogger(__name__)
+
+# Qualified ID format: "template_id.library_name"
+QUALIFIED_ID_PARTS = 2
 
 
 class Library:
@@ -45,12 +49,12 @@ class Library:
             return False
 
         try:
-            with open(template_file, "r", encoding="utf-8") as f:
+            with open(template_file, encoding="utf-8") as f:
                 docs = [doc for doc in yaml.safe_load_all(f) if doc]
                 return (
                     docs[0].get("metadata", {}).get("draft", False) if docs else False
                 )
-        except (yaml.YAMLError, IOError, OSError) as e:
+        except (yaml.YAMLError, OSError) as e:
             logger.warning(f"Error checking draft status for {template_path}: {e}")
             return False
 
@@ -137,7 +141,7 @@ class Library:
         except PermissionError as e:
             raise LibraryError(
                 f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}"
-            )
+            ) from e
 
         # Sort if requested
         if sort_results:
@@ -152,8 +156,6 @@ class LibraryManager:
 
     def __init__(self) -> None:
         """Initialize LibraryManager with git-based libraries from config."""
-        from .config import ConfigManager
-
         self.config = ConfigManager()
         self.libraries = self._load_libraries_from_config()
 
@@ -246,9 +248,7 @@ class LibraryManager:
 
         return libraries
 
-    def find_by_id(
-        self, module_name: str, template_id: str
-    ) -> Optional[tuple[Path, str]]:
+    def find_by_id(self, module_name: str, template_id: str) -> tuple[Path, str] | None:
         """Find a template by its ID across all libraries.
 
         Supports both simple IDs and qualified IDs (template.library format).
@@ -267,7 +267,7 @@ class LibraryManager:
         # Check if this is a qualified ID (contains '.')
         if "." in template_id:
             parts = template_id.rsplit(".", 1)
-            if len(parts) == 2:
+            if len(parts) == QUALIFIED_ID_PARTS:
                 base_id, requested_lib = parts
                 logger.debug(
                     f"Parsing qualified ID: base='{base_id}', library='{requested_lib}'"

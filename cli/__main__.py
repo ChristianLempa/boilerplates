@@ -11,13 +11,16 @@ import logging
 import pkgutil
 import sys
 from pathlib import Path
-from typing import Optional
-from typer import Typer, Option
+
+import click
 from rich.console import Console
+from typer import Option, Typer
+
 import cli.modules
-from cli.core.registry import registry
-from cli.core import repo
 from cli import __version__
+from cli.core import repo
+from cli.core.registry import registry
+
 # Using standard Python exceptions instead of custom ones
 
 app = Typer(
@@ -54,12 +57,12 @@ def setup_logging(log_level: str = "WARNING") -> None:
         logger = logging.getLogger(__name__)
         logger.setLevel(numeric_level)
     except Exception as e:
-        raise RuntimeError(f"Failed to configure logging: {e}")
+        raise RuntimeError(f"Failed to configure logging: {e}") from e
 
 
 @app.callback(invoke_without_command=True)
 def main(
-    version: Optional[bool] = Option(
+    version: bool | None = Option(
         None,
         "--version",
         "-v",
@@ -71,7 +74,7 @@ def main(
         else None,
         is_eager=True,
     ),
-    log_level: Optional[str] = Option(
+    log_level: str | None = Option(
         None,
         "--log-level",
         help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If omitted, logging is disabled.",
@@ -88,8 +91,6 @@ def main(
         logging.disable(logging.CRITICAL)
 
     # Get context without type annotation (compatible with all Typer versions)
-    import click
-
     ctx = click.get_current_context()
 
     # Store log level in context for potential use by other commands
@@ -118,7 +119,7 @@ def init_app() -> None:
         modules_path = Path(cli.modules.__file__).parent
         logger.debug(f"Discovering modules in {modules_path}")
 
-        for finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
+        for _finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
             # Import both module files and packages (for multi-schema modules)
             if not name.startswith("_") and name != "base":
                 try:
@@ -127,11 +128,11 @@ def init_app() -> None:
                     )
                     importlib.import_module(f"cli.modules.{name}")
                 except ImportError as e:
-                    error_info = f"Import failed for '{name}': {str(e)}"
+                    error_info = f"Import failed for '{name}': {e!s}"
                     failed_imports.append(error_info)
                     logger.warning(error_info)
                 except Exception as e:
-                    error_info = f"Unexpected error importing '{name}': {str(e)}"
+                    error_info = f"Unexpected error importing '{name}': {e!s}"
                     failed_imports.append(error_info)
                     logger.error(error_info)
 
@@ -140,7 +141,7 @@ def init_app() -> None:
             logger.debug("Registering repo command")
             repo.register_cli(app)
         except Exception as e:
-            error_info = f"Repo command registration failed: {str(e)}"
+            error_info = f"Repo command registration failed: {e!s}"
             failed_registrations.append(error_info)
             logger.warning(error_info)
 
@@ -148,14 +149,12 @@ def init_app() -> None:
         module_classes = list(registry.iter_module_classes())
         logger.debug(f"Registering {len(module_classes)} template-based modules")
 
-        for name, module_cls in module_classes:
+        for _name, module_cls in module_classes:
             try:
                 logger.debug(f"Registering module class: {module_cls.__name__}")
                 module_cls.register_cli(app)
             except Exception as e:
-                error_info = (
-                    f"Registration failed for '{module_cls.__name__}': {str(e)}"
-                )
+                error_info = f"Registration failed for '{module_cls.__name__}': {e!s}"
                 failed_registrations.append(error_info)
                 # Log warning but don't raise exception for individual module failures
                 logger.warning(error_info)
@@ -189,7 +188,7 @@ def init_app() -> None:
             )
 
         details = "\n".join(error_details) if error_details else str(e)
-        raise RuntimeError(f"Application initialization failed: {details}")
+        raise RuntimeError(f"Application initialization failed: {details}") from e
 
 
 def run() -> None:

@@ -9,9 +9,14 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    pass
 
 import yaml
+
+from .display import DisplayManager
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +25,9 @@ class ValidationResult:
     """Represents the result of a validation operation."""
 
     def __init__(self):
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-        self.info: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+        self.info: list[str] = []
 
     def add_error(self, message: str) -> None:
         """Add an error message."""
@@ -51,8 +56,6 @@ class ValidationResult:
 
     def display(self, context: str = "Validation") -> None:
         """Display validation results using DisplayManager."""
-        from ..display import DisplayManager
-
         display = DisplayManager()
 
         if self.errors:
@@ -66,7 +69,7 @@ class ValidationResult:
                 display.warning(f"  • {warning}")
 
         if self.info:
-            display.text(f"\n[blue]ℹ {context} Info:[/blue]")
+            display.text(f"\n[blue]i {context} Info:[/blue]")
             for info_msg in self.info:
                 display.text(f"  [blue]• {info_msg}[/blue]")
 
@@ -106,7 +109,7 @@ class ContentValidator(ABC):
 class DockerComposeValidator(ContentValidator):
     """Validator for Docker Compose files."""
 
-    COMPOSE_FILENAMES = {
+    COMPOSE_FILENAMES: ClassVar[set[str]] = {
         "docker-compose.yml",
         "docker-compose.yaml",
         "compose.yml",
@@ -240,7 +243,7 @@ class ValidatorRegistry:
     """Registry for content validators."""
 
     def __init__(self):
-        self.validators: List[ContentValidator] = []
+        self.validators: list[ContentValidator] = []
         self._register_default_validators()
 
     def _register_default_validators(self) -> None:
@@ -257,7 +260,7 @@ class ValidatorRegistry:
         self.validators.append(validator)
         logger.debug(f"Registered validator: {validator.__class__.__name__}")
 
-    def get_validator(self, file_path: str) -> Optional[ContentValidator]:
+    def get_validator(self, file_path: str) -> ContentValidator | None:
         """Get the most appropriate validator for a file.
 
         Args:

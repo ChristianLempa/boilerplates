@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-import re
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -13,22 +12,12 @@ from ..exceptions import ConfigError, ConfigValidationError, YAMLParseError
 
 logger = logging.getLogger(__name__)
 
-# Valid Python identifier pattern for variable names
-VALID_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
-
-# Valid path pattern - prevents path traversal attempts
-VALID_PATH_PATTERN = re.compile(r'^[^\x00-\x1f<>:"|?*]+$')
-
-# Maximum allowed string lengths to prevent DOS attacks
-MAX_STRING_LENGTH = 1000
-MAX_PATH_LENGTH = 4096
-MAX_LIST_LENGTH = 100
 
 
 class ConfigManager:
     """Manages configuration for the CLI application."""
 
-    def __init__(self, config_path: Optional[Union[str, Path]] = None) -> None:
+    def __init__(self, config_path: str | Path | None = None) -> None:
         """Initialize the configuration manager.
 
         Args:
@@ -121,75 +110,8 @@ class ConfigManager:
         except Exception as e:
             logger.warning(f"Config migration failed: {e}")
 
-    @staticmethod
-    def _validate_string_length(
-        value: str, field_name: str, max_length: int = MAX_STRING_LENGTH
-    ) -> None:
-        """Validate string length to prevent DOS attacks.
 
-        Args:
-            value: String value to validate
-            field_name: Name of the field for error messages
-            max_length: Maximum allowed length
-
-        Raises:
-            ConfigValidationError: If string exceeds maximum length
-        """
-        if len(value) > max_length:
-            raise ConfigValidationError(
-                f"{field_name} exceeds maximum length of {max_length} characters "
-                f"(got {len(value)} characters)"
-            )
-
-    @staticmethod
-    def _validate_path_string(path: str, field_name: str) -> None:
-        """Validate path string for security concerns.
-
-        Args:
-            path: Path string to validate
-            field_name: Name of the field for error messages
-
-        Raises:
-            ConfigValidationError: If path contains invalid characters or patterns
-        """
-        # Check length
-        if len(path) > MAX_PATH_LENGTH:
-            raise ConfigValidationError(
-                f"{field_name} exceeds maximum path length of {MAX_PATH_LENGTH} characters"
-            )
-
-        # Check for null bytes and control characters
-        if "\x00" in path or any(ord(c) < 32 for c in path if c not in "\t\n\r"):
-            raise ConfigValidationError(
-                f"{field_name} contains invalid control characters"
-            )
-
-        # Check for path traversal attempts
-        if ".." in path.split("/"):
-            logger.warning(
-                f"Path '{path}' contains '..' - potential path traversal attempt"
-            )
-
-    @staticmethod
-    def _validate_list_length(
-        lst: list, field_name: str, max_length: int = MAX_LIST_LENGTH
-    ) -> None:
-        """Validate list length to prevent DOS attacks.
-
-        Args:
-            lst: List to validate
-            field_name: Name of the field for error messages
-            max_length: Maximum allowed length
-
-        Raises:
-            ConfigValidationError: If list exceeds maximum length
-        """
-        if len(lst) > max_length:
-            raise ConfigValidationError(
-                f"{field_name} exceeds maximum length of {max_length} items (got {len(lst)} items)"
-            )
-
-    def _read_config(self) -> Dict[str, Any]:
+    def _read_config(self) -> dict[str, Any]:
         """Read configuration from file.
 
         Returns:
@@ -201,7 +123,7 @@ class ConfigManager:
             ConfigError: If reading fails for other reasons.
         """
         try:
-            with open(self.config_path, "r") as f:
+            with open(self.config_path) as f:
                 config = yaml.safe_load(f) or {}
 
             # Validate config structure
@@ -210,17 +132,17 @@ class ConfigManager:
             return config
         except yaml.YAMLError as e:
             logger.error(f"Failed to parse YAML configuration: {e}")
-            raise YAMLParseError(str(self.config_path), e)
+            raise YAMLParseError(str(self.config_path), e) from e
         except ConfigValidationError:
             # Re-raise validation errors as-is
             raise
-        except (IOError, OSError) as e:
+        except OSError as e:
             logger.error(f"Failed to read configuration file: {e}")
             raise ConfigError(
                 f"Failed to read configuration file '{self.config_path}': {e}"
-            )
+            ) from e
 
-    def _write_config(self, config: Dict[str, Any]) -> None:
+    def _write_config(self, config: dict[str, Any]) -> None:
         """Write configuration to file atomically using temp file + rename pattern.
 
         This prevents config file corruption if write operation fails partway through.
@@ -260,20 +182,20 @@ class ConfigManager:
             if tmp_path:
                 Path(tmp_path).unlink(missing_ok=True)
             raise
-        except (IOError, OSError, yaml.YAMLError) as e:
+        except (OSError, yaml.YAMLError) as e:
             # Clean up temp file if it exists
             if tmp_path:
                 try:
                     Path(tmp_path).unlink(missing_ok=True)
-                except (IOError, OSError):
+                except OSError:
                     logger.warning(f"Failed to clean up temporary file: {tmp_path}")
             logger.error(f"Failed to write configuration file: {e}")
             raise ConfigError(
                 f"Failed to write configuration to '{self.config_path}': {e}"
-            )
+            ) from e
 
-    def _validate_config_structure(self, config: Dict[str, Any]) -> None:
-        """Validate the configuration structure with comprehensive checks.
+    def _validate_config_structure(self, config: dict[str, Any]) -> None:
+        """Validate the configuration structure - basic type checking.
 
         Args:
             config: Configuration dictionary to validate.
@@ -284,197 +206,58 @@ class ConfigManager:
         if not isinstance(config, dict):
             raise ConfigValidationError("Configuration must be a dictionary")
 
-        # Check top-level structure
+        # Validate top-level types
+        self._validate_top_level_types(config)
+
+        # Validate defaults structure
+        self._validate_defaults_types(config)
+
+        # Validate libraries structure
+        self._validate_libraries_fields(config)
+
+    def _validate_top_level_types(self, config: dict[str, Any]) -> None:
+        """Validate top-level config section types."""
         if "defaults" in config and not isinstance(config["defaults"], dict):
             raise ConfigValidationError("'defaults' must be a dictionary")
 
         if "preferences" in config and not isinstance(config["preferences"], dict):
             raise ConfigValidationError("'preferences' must be a dictionary")
 
-        # Validate defaults structure
-        if "defaults" in config:
-            for module_name, module_defaults in config["defaults"].items():
-                if not isinstance(module_name, str):
-                    raise ConfigValidationError(
-                        f"Module name must be a string, got {type(module_name).__name__}"
-                    )
+        if "libraries" in config and not isinstance(config["libraries"], list):
+            raise ConfigValidationError("'libraries' must be a list")
 
-                # Validate module name length
-                self._validate_string_length(module_name, "Module name", max_length=100)
+    def _validate_defaults_types(self, config: dict[str, Any]) -> None:
+        """Validate defaults section has correct types."""
+        if "defaults" not in config:
+            return
 
-                if not isinstance(module_defaults, dict):
-                    raise ConfigValidationError(
-                        f"Defaults for module '{module_name}' must be a dictionary"
-                    )
-
-                # Validate number of defaults per module
-                self._validate_list_length(
-                    list(module_defaults.keys()), f"Defaults for module '{module_name}'"
+        for module_name, module_defaults in config["defaults"].items():
+            if not isinstance(module_defaults, dict):
+                raise ConfigValidationError(
+                    f"Defaults for module '{module_name}' must be a dictionary"
                 )
 
-                # Validate variable names are valid Python identifiers
-                for var_name, var_value in module_defaults.items():
-                    if not isinstance(var_name, str):
-                        raise ConfigValidationError(
-                            f"Variable name must be a string, got {type(var_name).__name__}"
-                        )
+    def _validate_libraries_fields(self, config: dict[str, Any]) -> None:
+        """Validate libraries have required fields."""
+        if "libraries" not in config:
+            return
 
-                    # Validate variable name length
-                    self._validate_string_length(
-                        var_name, "Variable name", max_length=100
-                    )
+        for i, library in enumerate(config["libraries"]):
+            if not isinstance(library, dict):
+                raise ConfigValidationError(f"Library at index {i} must be a dictionary")
 
-                    if not VALID_IDENTIFIER_PATTERN.match(var_name):
-                        raise ConfigValidationError(
-                            f"Invalid variable name '{var_name}' in module '{module_name}'. "
-                            f"Variable names must be valid Python identifiers (letters, numbers, underscores, "
-                            f"cannot start with a number)"
-                        )
+            if "name" not in library:
+                raise ConfigValidationError(f"Library at index {i} missing required field 'name'")
 
-                    # Validate variable value types and lengths
-                    if isinstance(var_value, str):
-                        self._validate_string_length(
-                            var_value, f"Value for '{module_name}.{var_name}'"
-                        )
-                    elif isinstance(var_value, list):
-                        self._validate_list_length(
-                            var_value, f"Value for '{module_name}.{var_name}'"
-                        )
-                    elif var_value is not None and not isinstance(
-                        var_value, (bool, int, float)
-                    ):
-                        raise ConfigValidationError(
-                            f"Invalid value type for '{module_name}.{var_name}': "
-                            f"must be string, number, boolean, list, or null (got {type(var_value).__name__})"
-                        )
-
-        # Validate preferences structure and types
-        if "preferences" in config:
-            preferences = config["preferences"]
-
-            # Validate known preference types
-            if "editor" in preferences:
-                if not isinstance(preferences["editor"], str):
-                    raise ConfigValidationError("Preference 'editor' must be a string")
-                self._validate_string_length(
-                    preferences["editor"], "Preference 'editor'", max_length=100
+            lib_type = library.get("type", "git")
+            if lib_type == "git" and ("url" not in library or "directory" not in library):
+                raise ConfigValidationError(
+                    f"Git library at index {i} missing required fields 'url' and/or 'directory'"
                 )
-
-            if "output_dir" in preferences:
-                output_dir = preferences["output_dir"]
-                if output_dir is not None:
-                    if not isinstance(output_dir, str):
-                        raise ConfigValidationError(
-                            "Preference 'output_dir' must be a string or null"
-                        )
-                    self._validate_path_string(output_dir, "Preference 'output_dir'")
-
-            if "library_paths" in preferences:
-                if not isinstance(preferences["library_paths"], list):
-                    raise ConfigValidationError(
-                        "Preference 'library_paths' must be a list"
-                    )
-
-                self._validate_list_length(
-                    preferences["library_paths"], "Preference 'library_paths'"
+            elif lib_type == "static" and "path" not in library:
+                raise ConfigValidationError(
+                    f"Static library at index {i} missing required field 'path'"
                 )
-
-                for i, path in enumerate(preferences["library_paths"]):
-                    if not isinstance(path, str):
-                        raise ConfigValidationError(
-                            f"Library path must be a string, got {type(path).__name__}"
-                        )
-                    self._validate_path_string(path, f"Library path at index {i}")
-
-        # Validate libraries structure
-        if "libraries" in config:
-            libraries = config["libraries"]
-
-            if not isinstance(libraries, list):
-                raise ConfigValidationError("'libraries' must be a list")
-
-            self._validate_list_length(libraries, "Libraries list")
-
-            for i, library in enumerate(libraries):
-                if not isinstance(library, dict):
-                    raise ConfigValidationError(
-                        f"Library at index {i} must be a dictionary"
-                    )
-
-                # Validate name field (required for all library types)
-                if "name" not in library:
-                    raise ConfigValidationError(
-                        f"Library at index {i} missing required field 'name'"
-                    )
-                if not isinstance(library["name"], str):
-                    raise ConfigValidationError(
-                        f"Library 'name' at index {i} must be a string"
-                    )
-                self._validate_string_length(
-                    library["name"], f"Library 'name' at index {i}", max_length=500
-                )
-
-                # Validate type field (default to "git" for backward compatibility)
-                lib_type = library.get("type", "git")
-                if lib_type not in ("git", "static"):
-                    raise ConfigValidationError(
-                        f"Library type at index {i} must be 'git' or 'static', got '{lib_type}'"
-                    )
-
-                # Type-specific validation
-                if lib_type == "git":
-                    # Git libraries require: url, directory
-                    required_fields = ["url", "directory"]
-                    for field in required_fields:
-                        if field not in library:
-                            raise ConfigValidationError(
-                                f"Git library at index {i} missing required field '{field}'"
-                            )
-
-                        if not isinstance(library[field], str):
-                            raise ConfigValidationError(
-                                f"Library '{field}' at index {i} must be a string"
-                            )
-
-                        self._validate_string_length(
-                            library[field],
-                            f"Library '{field}' at index {i}",
-                            max_length=500,
-                        )
-
-                    # Validate optional branch field
-                    if "branch" in library:
-                        if not isinstance(library["branch"], str):
-                            raise ConfigValidationError(
-                                f"Library 'branch' at index {i} must be a string"
-                            )
-                        self._validate_string_length(
-                            library["branch"],
-                            f"Library 'branch' at index {i}",
-                            max_length=200,
-                        )
-
-                elif lib_type == "static":
-                    # Static libraries require: path
-                    if "path" not in library:
-                        raise ConfigValidationError(
-                            f"Static library at index {i} missing required field 'path'"
-                        )
-
-                    if not isinstance(library["path"], str):
-                        raise ConfigValidationError(
-                            f"Library 'path' at index {i} must be a string"
-                        )
-
-                    self._validate_path_string(
-                        library["path"], f"Library 'path' at index {i}"
-                    )
-
-                # Validate optional enabled field (applies to all types)
-                if "enabled" in library and not isinstance(library["enabled"], bool):
-                    raise ConfigValidationError(
-                        f"Library 'enabled' at index {i} must be a boolean"
-                    )
 
     def get_config_path(self) -> Path:
         """Get the path to the configuration file being used.
@@ -492,7 +275,7 @@ class ConfigManager:
         """
         return self.is_local
 
-    def get_defaults(self, module_name: str) -> Dict[str, Any]:
+    def get_defaults(self, module_name: str) -> dict[str, Any]:
         """Get default variable values for a module.
 
         Returns defaults in a flat format:
@@ -511,7 +294,7 @@ class ConfigManager:
         defaults = config.get("defaults", {})
         return defaults.get(module_name, {})
 
-    def set_defaults(self, module_name: str, defaults: Dict[str, Any]) -> None:
+    def set_defaults(self, module_name: str, defaults: dict[str, Any]) -> None:
         """Set default variable values for a module with comprehensive validation.
 
         Args:
@@ -522,46 +305,12 @@ class ConfigManager:
         Raises:
             ConfigValidationError: If module name or variable names are invalid.
         """
-        # Validate module name
+        # Basic validation
         if not isinstance(module_name, str) or not module_name:
             raise ConfigValidationError("Module name must be a non-empty string")
 
-        self._validate_string_length(module_name, "Module name", max_length=100)
-
-        # Validate defaults dictionary
         if not isinstance(defaults, dict):
             raise ConfigValidationError("Defaults must be a dictionary")
-
-        # Validate number of defaults
-        self._validate_list_length(list(defaults.keys()), "Defaults dictionary")
-
-        # Validate variable names and values
-        for var_name, var_value in defaults.items():
-            if not isinstance(var_name, str):
-                raise ConfigValidationError(
-                    f"Variable name must be a string, got {type(var_name).__name__}"
-                )
-
-            self._validate_string_length(var_name, "Variable name", max_length=100)
-
-            if not VALID_IDENTIFIER_PATTERN.match(var_name):
-                raise ConfigValidationError(
-                    f"Invalid variable name '{var_name}'. Variable names must be valid Python identifiers "
-                    f"(letters, numbers, underscores, cannot start with a number)"
-                )
-
-            # Validate value types and lengths
-            if isinstance(var_value, str):
-                self._validate_string_length(var_value, f"Value for '{var_name}'")
-            elif isinstance(var_value, list):
-                self._validate_list_length(var_value, f"Value for '{var_name}'")
-            elif var_value is not None and not isinstance(
-                var_value, (bool, int, float)
-            ):
-                raise ConfigValidationError(
-                    f"Invalid value type for '{var_name}': "
-                    f"must be string, number, boolean, list, or null (got {type(var_value).__name__})"
-                )
 
         config = self._read_config()
 
@@ -583,42 +332,19 @@ class ConfigManager:
         Raises:
             ConfigValidationError: If module name or variable name is invalid.
         """
-        # Validate inputs
+        # Basic validation
         if not isinstance(module_name, str) or not module_name:
             raise ConfigValidationError("Module name must be a non-empty string")
 
-        self._validate_string_length(module_name, "Module name", max_length=100)
-
-        if not isinstance(var_name, str):
-            raise ConfigValidationError(
-                f"Variable name must be a string, got {type(var_name).__name__}"
-            )
-
-        self._validate_string_length(var_name, "Variable name", max_length=100)
-
-        if not VALID_IDENTIFIER_PATTERN.match(var_name):
-            raise ConfigValidationError(
-                f"Invalid variable name '{var_name}'. Variable names must be valid Python identifiers "
-                f"(letters, numbers, underscores, cannot start with a number)"
-            )
-
-        # Validate value type and length
-        if isinstance(value, str):
-            self._validate_string_length(value, f"Value for '{var_name}'")
-        elif isinstance(value, list):
-            self._validate_list_length(value, f"Value for '{var_name}'")
-        elif value is not None and not isinstance(value, (bool, int, float)):
-            raise ConfigValidationError(
-                f"Invalid value type for '{var_name}': "
-                f"must be string, number, boolean, list, or null (got {type(value).__name__})"
-            )
+        if not isinstance(var_name, str) or not var_name:
+            raise ConfigValidationError("Variable name must be a non-empty string")
 
         defaults = self.get_defaults(module_name)
         defaults[var_name] = value
         self.set_defaults(module_name, defaults)
         logger.info(f"Set default for '{module_name}.{var_name}' = '{value}'")
 
-    def get_default_value(self, module_name: str, var_name: str) -> Optional[Any]:
+    def get_default_value(self, module_name: str, var_name: str) -> Any | None:
         """Get a single default variable value.
 
         Args:
@@ -644,7 +370,7 @@ class ConfigManager:
             self._write_config(config)
             logger.info(f"Cleared defaults for module '{module_name}'")
 
-    def get_preference(self, key: str) -> Optional[Any]:
+    def get_preference(self, key: str) -> Any | None:
         """Get a user preference value.
 
         Args:
@@ -667,45 +393,9 @@ class ConfigManager:
         Raises:
             ConfigValidationError: If key or value is invalid for known preference types.
         """
-        # Validate key
+        # Basic validation
         if not isinstance(key, str) or not key:
             raise ConfigValidationError("Preference key must be a non-empty string")
-
-        self._validate_string_length(key, "Preference key", max_length=100)
-
-        # Validate known preference types
-        if key == "editor":
-            if not isinstance(value, str):
-                raise ConfigValidationError("Preference 'editor' must be a string")
-            self._validate_string_length(value, "Preference 'editor'", max_length=100)
-
-        elif key == "output_dir":
-            if value is not None:
-                if not isinstance(value, str):
-                    raise ConfigValidationError(
-                        "Preference 'output_dir' must be a string or null"
-                    )
-                self._validate_path_string(value, "Preference 'output_dir'")
-
-        elif key == "library_paths":
-            if not isinstance(value, list):
-                raise ConfigValidationError("Preference 'library_paths' must be a list")
-
-            self._validate_list_length(value, "Preference 'library_paths'")
-
-            for i, path in enumerate(value):
-                if not isinstance(path, str):
-                    raise ConfigValidationError(
-                        f"Library path must be a string, got {type(path).__name__}"
-                    )
-                self._validate_path_string(path, f"Library path at index {i}")
-
-        # For unknown preference keys, apply basic validation
-        else:
-            if isinstance(value, str):
-                self._validate_string_length(value, f"Preference '{key}'")
-            elif isinstance(value, list):
-                self._validate_list_length(value, f"Preference '{key}'")
 
         config = self._read_config()
 
@@ -716,7 +406,7 @@ class ConfigManager:
         self._write_config(config)
         logger.info(f"Set preference '{key}' = '{value}'")
 
-    def get_all_preferences(self) -> Dict[str, Any]:
+    def get_all_preferences(self) -> dict[str, Any]:
         """Get all user preferences.
 
         Returns:
@@ -725,7 +415,7 @@ class ConfigManager:
         config = self._read_config()
         return config.get("preferences", {})
 
-    def get_libraries(self) -> list[Dict[str, Any]]:
+    def get_libraries(self) -> list[dict[str, Any]]:
         """Get all configured libraries.
 
         Returns:
@@ -734,7 +424,7 @@ class ConfigManager:
         config = self._read_config()
         return config.get("libraries", [])
 
-    def get_library_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_library_by_name(self, name: str) -> dict[str, Any] | None:
         """Get a specific library by name.
 
         Args:
@@ -753,10 +443,10 @@ class ConfigManager:
         self,
         name: str,
         library_type: str = "git",
-        url: Optional[str] = None,
-        directory: Optional[str] = None,
+        url: str | None = None,
+        directory: str | None = None,
         branch: str = "main",
-        path: Optional[str] = None,
+        path: str | None = None,
         enabled: bool = True,
     ) -> None:
         """Add a new library to the configuration.
@@ -773,45 +463,22 @@ class ConfigManager:
         Raises:
             ConfigValidationError: If library with the same name already exists or validation fails
         """
-        # Validate name
+        # Basic validation
         if not isinstance(name, str) or not name:
             raise ConfigValidationError("Library name must be a non-empty string")
 
-        self._validate_string_length(name, "Library name", max_length=100)
-
-        # Validate type
         if library_type not in ("git", "static"):
             raise ConfigValidationError(
                 f"Library type must be 'git' or 'static', got '{library_type}'"
             )
 
-        # Check if library already exists
         if self.get_library_by_name(name):
             raise ConfigValidationError(f"Library '{name}' already exists")
 
-        # Type-specific validation and config building
+        # Type-specific validation
         if library_type == "git":
-            if not url:
-                raise ConfigValidationError("Git libraries require 'url' parameter")
-            if not directory:
-                raise ConfigValidationError(
-                    "Git libraries require 'directory' parameter"
-                )
-
-            # Validate git-specific fields
-            if not isinstance(url, str) or not url:
-                raise ConfigValidationError("Library URL must be a non-empty string")
-            self._validate_string_length(url, "Library URL", max_length=500)
-
-            if not isinstance(directory, str) or not directory:
-                raise ConfigValidationError(
-                    "Library directory must be a non-empty string"
-                )
-            self._validate_string_length(directory, "Library directory", max_length=200)
-
-            if not isinstance(branch, str) or not branch:
-                raise ConfigValidationError("Library branch must be a non-empty string")
-            self._validate_string_length(branch, "Library branch", max_length=200)
+            if not url or not directory:
+                raise ConfigValidationError("Git libraries require 'url' and 'directory' parameters")
 
             library_config = {
                 "name": name,
@@ -825,11 +492,6 @@ class ConfigManager:
         else:  # static
             if not path:
                 raise ConfigValidationError("Static libraries require 'path' parameter")
-
-            # Validate static-specific fields
-            if not isinstance(path, str) or not path:
-                raise ConfigValidationError("Library path must be a non-empty string")
-            self._validate_path_string(path, "Library path")
 
             # For backward compatibility with older CLI versions,
             # add dummy values for git-specific fields
@@ -897,41 +559,16 @@ class ConfigManager:
 
                 # Update allowed fields
                 if "url" in kwargs:
-                    url = kwargs["url"]
-                    if not isinstance(url, str) or not url:
-                        raise ConfigValidationError(
-                            "Library URL must be a non-empty string"
-                        )
-                    self._validate_string_length(url, "Library URL", max_length=500)
-                    library["url"] = url
+                    library["url"] = kwargs["url"]
 
                 if "branch" in kwargs:
-                    branch = kwargs["branch"]
-                    if not isinstance(branch, str) or not branch:
-                        raise ConfigValidationError(
-                            "Library branch must be a non-empty string"
-                        )
-                    self._validate_string_length(
-                        branch, "Library branch", max_length=200
-                    )
-                    library["branch"] = branch
+                    library["branch"] = kwargs["branch"]
 
                 if "directory" in kwargs:
-                    directory = kwargs["directory"]
-                    if not isinstance(directory, str) or not directory:
-                        raise ConfigValidationError(
-                            "Library directory must be a non-empty string"
-                        )
-                    self._validate_string_length(
-                        directory, "Library directory", max_length=200
-                    )
-                    library["directory"] = directory
+                    library["directory"] = kwargs["directory"]
 
                 if "enabled" in kwargs:
-                    enabled = kwargs["enabled"]
-                    if not isinstance(enabled, bool):
-                        raise ConfigValidationError("Library enabled must be a boolean")
-                    library["enabled"] = enabled
+                    library["enabled"] = kwargs["enabled"]
 
                 break
 

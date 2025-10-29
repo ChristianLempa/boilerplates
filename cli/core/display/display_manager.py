@@ -6,15 +6,19 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from jinja2 import Template as Jinja2Template
 from rich.console import Console
+from rich.progress import Progress
+from rich.syntax import Syntax
+from rich.table import Table
 from rich.tree import Tree
 
 from .display_settings import DisplaySettings
 from .icon_manager import IconManager
-from .variable_display import VariableDisplayManager
-from .template_display import TemplateDisplayManager
 from .status_display import StatusDisplayManager
 from .table_display import TableDisplayManager
+from .template_display import TemplateDisplayManager
+from .variable_display import VariableDisplayManager
 
 if TYPE_CHECKING:
     from ..exceptions import TemplateRenderError
@@ -122,7 +126,7 @@ class DisplayManager:
         """Delegate to TableDisplayManager."""
         return self.tables.render_templates_table(templates, module_name, title)
 
-    def display_template(self, template: "Template", template_id: str) -> None:
+    def display_template(self, template: Template, template_id: str) -> None:
         """Delegate to TemplateDisplayManager."""
         return self.templates.render_template(template, template_id)
 
@@ -209,7 +213,7 @@ class DisplayManager:
         return self.status.display_skipped(message, reason)
 
     def display_template_render_error(
-        self, error: "TemplateRenderError", context: str | None = None
+        self, error: TemplateRenderError, context: str | None = None
     ) -> None:
         """Delegate to StatusDisplayManager."""
         return self.status.display_template_render_error(error, context)
@@ -289,8 +293,6 @@ class DisplayManager:
             text: Error text to display
             style: Optional Rich style markup (defaults to red)
         """
-        from rich.console import Console
-
         console_err = Console(stderr=True)
         if style is None:
             style = "red"
@@ -303,8 +305,6 @@ class DisplayManager:
             text: Warning text to display
             style: Optional Rich style markup (defaults to yellow)
         """
-        from rich.console import Console
-
         console_err = Console(stderr=True)
         if style is None:
             style = "yellow"
@@ -327,13 +327,11 @@ class DisplayManager:
             show_header: Whether to show header row
             borderless: If True, use borderless style (box=None)
         """
-        from rich.table import Table
-
         table = Table(
             title=title,
             show_header=show_header and headers is not None,
             header_style=self.settings.STYLE_TABLE_HEADER,
-            box=None if borderless else None,  # Use default box unless borderless
+            box=None,
             padding=self.settings.PADDING_TABLE_NORMAL if borderless else (0, 1),
         )
 
@@ -360,8 +358,6 @@ class DisplayManager:
             root_label: Label for the root node
             nodes: Hierarchical structure (dict or list)
         """
-        from rich.tree import Tree
-
         tree = Tree(root_label)
         self._build_tree_nodes(tree, nodes)
         console.print(tree)
@@ -414,8 +410,6 @@ class DisplayManager:
             code_text: Code to display
             language: Programming language for syntax highlighting
         """
-        from rich.syntax import Syntax
-
         if language:
             syntax = Syntax(code_text, language, theme="monokai", line_numbers=False)
             console.print(syntax)
@@ -438,8 +432,6 @@ class DisplayManager:
                 # do work
                 progress.remove_task(task)
         """
-        from rich.progress import Progress
-
         return Progress(*columns, console=console)
 
     def get_lock_icon(self) -> str:
@@ -481,8 +473,6 @@ class DisplayManager:
         console.print("\n[bold cyan]Next Steps:[/bold cyan]")
 
         try:
-            from jinja2 import Template as Jinja2Template
-
             next_steps_template = Jinja2Template(next_steps)
             rendered_next_steps = next_steps_template.render(variable_values)
             console.print(rendered_next_steps)

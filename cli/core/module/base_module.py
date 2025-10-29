@@ -4,40 +4,54 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from typing import Optional
+from typing import Annotated
 
 from typer import Argument, Option, Typer
 
 from ..display import DisplayManager
 from ..library import LibraryManager
+from ..template import Template
 from .base_commands import (
+    generate_template,
     list_templates,
     search_templates,
     show_template,
-    generate_template,
     validate_templates,
 )
 from .config_commands import (
-    config_get,
-    config_set,
-    config_remove,
     config_clear,
+    config_get,
     config_list,
+    config_remove,
+    config_set,
 )
 
 logger = logging.getLogger(__name__)
 
+# Expected length of library entry tuple: (path, library_name, needs_qualification)
+LIBRARY_ENTRY_MIN_LENGTH = 2
+
 
 class Module(ABC):
-    """Streamlined base module that auto-detects variables from templates."""
+    """Streamlined base module that auto-detects variables from templates.
+
+    Subclasses must define:
+    - name: str (class attribute)
+    - description: str (class attribute)
+    """
+
+    # Class attributes that must be defined by subclasses
+    name: str
+    description: str
 
     # Schema version supported by this module (override in subclasses)
     schema_version: str = "1.0"
 
     def __init__(self) -> None:
-        if not all([self.name, self.description]):
-            raise ValueError(
-                f"Module {self.__class__.__name__} must define name and description"
+        # Validate required class attributes
+        if not hasattr(self.__class__, 'name') or not hasattr(self.__class__, 'description'):
+            raise TypeError(
+                f"Module {self.__class__.__name__} must define 'name' and 'description' class attributes"
             )
 
         logger.info(f"Initializing module '{self.name}'")
@@ -49,8 +63,6 @@ class Module(ABC):
 
     def _load_all_templates(self, filter_fn=None) -> list:
         """Load all templates for this module with optional filtering."""
-        from ..template import Template
-
         templates = []
         entries = self.libraries.find(self.name, sort_results=True)
 
@@ -58,7 +70,9 @@ class Module(ABC):
             # Unpack entry - returns (path, library_name, needs_qualification)
             template_dir = entry[0]
             library_name = entry[1]
-            needs_qualification = entry[2] if len(entry) > 2 else False
+            needs_qualification = (
+                entry[2] if len(entry) > LIBRARY_ENTRY_MIN_LENGTH else False
+            )
 
             try:
                 # Get library object to determine type
@@ -95,8 +109,6 @@ class Module(ABC):
 
     def _load_template_by_id(self, id: str):
         """Load a template by its ID, supporting qualified IDs."""
-        from ..template import Template
-
         logger.debug(f"Loading template with ID '{id}' from module '{self.name}'")
 
         # find_by_id now handles both simple and qualified IDs
@@ -136,15 +148,16 @@ class Module(ABC):
 
     def list(
         self,
-        raw: bool = Option(
-            False, "--raw", help="Output raw list format instead of rich table"
-        ),
+        raw: Annotated[
+            bool, Option("--raw", help="Output raw list format instead of rich table")
+        ] = False,
     ) -> list:
         """List all templates."""
         return list_templates(self, raw)
 
     def search(
-        self, query: str = Argument(..., help="Search string to filter templates by ID")
+        self,
+        query: Annotated[str, Argument(help="Search string to filter templates by ID")],
     ) -> list:
         """Search for templates by ID containing the search string."""
         return search_templates(self, query)
@@ -155,39 +168,47 @@ class Module(ABC):
 
     def generate(
         self,
-        id: str = Argument(..., help="Template ID"),
-        directory: Optional[str] = Argument(
-            None, help="Output directory (defaults to template ID)"
-        ),
-        interactive: bool = Option(
-            True,
-            "--interactive/--no-interactive",
-            "-i/-n",
-            help="Enable interactive prompting for variables",
-        ),
-        var: Optional[list[str]] = Option(
-            None,
-            "--var",
-            "-v",
-            help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE",
-        ),
-        var_file: Optional[str] = Option(
-            None,
-            "--var-file",
-            "-f",
-            help="Load variables from YAML file (overrides config defaults, overridden by --var)",
-        ),
-        dry_run: bool = Option(
-            False, "--dry-run", help="Preview template generation without writing files"
-        ),
-        show_files: bool = Option(
-            False,
-            "--show-files",
-            help="Display generated file contents in plain text (use with --dry-run)",
-        ),
-        quiet: bool = Option(
-            False, "--quiet", "-q", help="Suppress all non-error output"
-        ),
+        id: Annotated[str, Argument(help="Template ID")],
+        directory: Annotated[
+            str | None, Argument(help="Output directory (defaults to template ID)")
+        ] = None,
+        interactive: Annotated[
+            bool,
+            Option(
+                "--interactive/--no-interactive",
+                "-i/-n",
+                help="Enable interactive prompting for variables",
+            ),
+        ] = True,
+        var: Annotated[
+            list[str] | None,
+            Option(
+                "--var",
+                "-v",
+                help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE",
+            ),
+        ] = None,
+        var_file: Annotated[
+            str | None,
+            Option(
+                "--var-file",
+                "-f",
+                help="Load variables from YAML file (overrides config defaults, overridden by --var)",
+            ),
+        ] = None,
+        dry_run: Annotated[
+            bool, Option("--dry-run", help="Preview template generation without writing files")
+        ] = False,
+        show_files: Annotated[
+            bool,
+            Option(
+                "--show-files",
+                help="Display generated file contents in plain text (use with --dry-run)",
+            ),
+        ] = False,
+        quiet: Annotated[
+            bool, Option("--quiet", "-q", help="Suppress all non-error output")
+        ] = False,
     ) -> None:
         """Generate from template.
 
@@ -204,59 +225,48 @@ class Module(ABC):
 
     def validate(
         self,
-        template_id: str = Argument(
-            None, help="Template ID to validate (if omitted, validates all templates)"
-        ),
-        path: Optional[str] = Option(
-            None,
-            "--path",
-            "-p",
-            help="Validate a template from a specific directory path",
-        ),
-        verbose: bool = Option(
-            False, "--verbose", "-v", help="Show detailed validation information"
-        ),
-        semantic: bool = Option(
-            True,
-            "--semantic/--no-semantic",
-            help="Enable semantic validation (Docker Compose schema, etc.)",
-        ),
+        template_id: str | None = None,
+        path: str | None = None,
+        verbose: Annotated[
+            bool, Option("--verbose", "-v", help="Show detailed validation information")
+        ] = False,
+        semantic: Annotated[
+            bool,
+            Option(
+                "--semantic/--no-semantic",
+                help="Enable semantic validation (Docker Compose schema, etc.)",
+            ),
+        ] = True,
     ) -> None:
         """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness."""
         return validate_templates(self, template_id, path, verbose, semantic)
 
     def config_get(
         self,
-        var_name: Optional[str] = Argument(
-            None, help="Variable name to get (omit to show all defaults)"
-        ),
+        var_name: str | None = None,
     ) -> None:
         """Get default value(s) for this module."""
         return config_get(self, var_name)
 
     def config_set(
         self,
-        var_name: str = Argument(..., help="Variable name or var=value format"),
-        value: Optional[str] = Argument(
-            None, help="Default value (not needed if using var=value format)"
-        ),
+        var_name: str,
+        value: str | None = None,
     ) -> None:
         """Set a default value for a variable."""
         return config_set(self, var_name, value)
 
     def config_remove(
         self,
-        var_name: str = Argument(..., help="Variable name to remove"),
+        var_name: Annotated[str, Argument(help="Variable name to remove")],
     ) -> None:
         """Remove a specific default variable value."""
         return config_remove(self, var_name)
 
     def config_clear(
         self,
-        var_name: Optional[str] = Argument(
-            None, help="Variable name to clear (omit to clear all defaults)"
-        ),
-        force: bool = Option(False, "--force", "-f", help="Skip confirmation prompt"),
+        var_name: str | None = None,
+        force: bool = False,
     ) -> None:
         """Clear default value(s) for this module."""
         return config_clear(self, var_name, force)

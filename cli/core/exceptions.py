@@ -4,8 +4,6 @@ This module defines specific exception types for better error handling
 and diagnostics throughout the application.
 """
 
-from typing import Optional, List, Dict
-
 
 class BoilerplatesError(Exception):
     """Base exception for all boilerplates CLI errors."""
@@ -34,7 +32,7 @@ class TemplateError(BoilerplatesError):
 class TemplateNotFoundError(TemplateError):
     """Raised when a template cannot be found."""
 
-    def __init__(self, template_id: str, module_name: Optional[str] = None):
+    def __init__(self, template_id: str, module_name: str | None = None):
         self.template_id = template_id
         self.module_name = module_name
         msg = f"Template '{template_id}' not found"
@@ -64,7 +62,7 @@ class TemplateLoadError(TemplateError):
 class TemplateSyntaxError(TemplateError):
     """Raised when a Jinja2 template has syntax errors."""
 
-    def __init__(self, template_id: str, errors: List[str]):
+    def __init__(self, template_id: str, errors: list[str]):
         self.template_id = template_id
         self.errors = errors
         msg = f"Jinja2 syntax errors in template '{template_id}':\n" + "\n".join(errors)
@@ -107,13 +105,13 @@ class TemplateRenderError(TemplateError):
     def __init__(
         self,
         message: str,
-        file_path: Optional[str] = None,
-        line_number: Optional[int] = None,
-        column: Optional[int] = None,
-        context_lines: Optional[List[str]] = None,
-        variable_context: Optional[Dict[str, str]] = None,
-        suggestions: Optional[List[str]] = None,
-        original_error: Optional[Exception] = None,
+        file_path: str | None = None,
+        line_number: int | None = None,
+        column: int | None = None,
+        context_lines: list[str] | None = None,
+        variable_context: dict[str, str] | None = None,
+        suggestions: list[str] | None = None,
+        original_error: Exception | None = None,
     ):
         self.file_path = file_path
         self.line_number = line_number

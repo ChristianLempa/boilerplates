@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
 import logging
+from collections import defaultdict
+from typing import Any
 
+from ..exceptions import VariableError, VariableValidationError
 from .variable import Variable
 from .variable_section import VariableSection
-from ..exceptions import VariableValidationError, VariableError
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ class VariableCollection:
         if not isinstance(spec, dict):
             raise ValueError("Spec must be a dictionary")
 
-        self._sections: Dict[str, VariableSection] = {}
+        self._sections: dict[str, VariableSection] = {}
         # NOTE: The _variable_map provides a flat, O(1) lookup for any variable by its name,
         # avoiding the need to iterate through sections. It stores references to the same
         # Variable objects contained in the _set structure.
-        self._variable_map: Dict[str, Variable] = {}
+        self._variable_map: dict[str, Variable] = {}
         self._initialize_sections(spec)
         # Validate dependencies after all sections are loaded
         self._validate_dependencies()
@@ -112,7 +112,7 @@ class VariableCollection:
 
     def _validate_unique_variable_names(self) -> None:
         """Validate that all variable names are unique across all sections."""
-        var_to_sections: Dict[str, List[str]] = defaultdict(list)
+        var_to_sections: dict[str, list[str]] = defaultdict(list)
 
         # Build mapping of variable names to sections
         for section_key, section in self._sections.items():
@@ -168,7 +168,7 @@ class VariableCollection:
             )
 
     @staticmethod
-    def _parse_need(need_str: str) -> tuple[str, Optional[Any]]:
+    def _parse_need(need_str: str) -> tuple[str, Any | None]:
         """Parse a need string into variable name and expected value(s).
 
         Supports three formats:
@@ -245,12 +245,11 @@ class VariableCollection:
                         if variable.type == "bool":
                             if bool(actual_value) == bool(expected_converted):
                                 return True
-                        else:
-                            # String comparison for other types
-                            if actual_value is not None and str(actual_value) == str(
-                                expected_converted
-                            ):
-                                return True
+                        # String comparison for other types
+                        elif actual_value is not None and str(actual_value) == str(
+                            expected_converted
+                        ):
+                            return True
                     return False  # None of the expected values matched
                 else:
                     # Single expected value (original behavior)
@@ -287,30 +286,32 @@ class VariableCollection:
                         raise VariableError(
                             f"Section '{section_key}' depends on '{var_or_section}', but '{var_or_section}' does not exist"
                         )
-                else:
-                    # New format: validate variable exists
-                    # NOTE: We only warn here, not raise an error, because the variable might be
-                    # added later during merge with module spec. The actual runtime check in
-                    # _is_need_satisfied() will handle missing variables gracefully.
-                    if var_or_section not in self._variable_map:
-                        logger.debug(
-                            f"Section '{section_key}' has need '{dep}', but variable '{var_or_section}' "
-                            f"not found (might be added during merge)"
-                        )
+                # New format: validate variable exists
+                # NOTE: We only warn here, not raise an error, because the variable might be
+                # added later during merge with module spec. The actual runtime check in
+                # _is_need_satisfied() will handle missing variables gracefully.
+                elif (
+                    expected_value is not None
+                    and var_or_section not in self._variable_map
+                ):
+                    logger.debug(
+                        f"Section '{section_key}' has need '{dep}', but variable '{var_or_section}' "
+                        f"not found (might be added during merge)"
+                    )
 
         # Check for missing dependencies in variables
         for var_name, variable in self._variable_map.items():
             for dep in variable.needs:
                 dep_var, expected_value = self._parse_need(dep)
-                if expected_value is not None:  # Only validate new format
-                    if dep_var not in self._variable_map:
-                        # NOTE: We only warn here, not raise an error, because the variable might be
-                        # added later during merge with module spec. The actual runtime check in
-                        # _is_need_satisfied() will handle missing variables gracefully.
-                        logger.debug(
-                            f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' "
-                            f"not found (might be added during merge)"
-                        )
+                # Only validate new format
+                if expected_value is not None and dep_var not in self._variable_map:
+                    # NOTE: We only warn here, not raise an error, because the variable might be
+                    # added later during merge with module spec. The actual runtime check in
+                    # _is_need_satisfied() will handle missing variables gracefully.
+                    logger.debug(
+                        f"Variable '{var_name}' has need '{dep}', but variable '{dep_var}' "
+                        f"not found (might be added during merge)"
+                    )
 
         # Check for circular dependencies using depth-first search
         # Note: Only checks section-level dependencies in old format (section names)
@@ -433,24 +434,23 @@ class VariableCollection:
                 var_satisfied = self.is_variable_satisfied(var_name)
 
                 # If section is disabled OR variable dependencies aren't met, reset to False
-                if not section_satisfied or not is_enabled or not var_satisfied:
-                    # Only reset if current value is not already False
-                    if variable.value is not False:
-                        # Don't reset CLI-provided variables - they'll be validated later
-                        if variable.origin == "cli":
-                            continue
+                # Only reset if current value is not already False and not CLI-provided
+                if (
+                    (not section_satisfied or not is_enabled or not var_satisfied)
+                    and variable.value is not False
+                    and variable.origin != "cli"
+                ):
+                    # Store original value if not already stored (for display purposes)
+                    if not hasattr(variable, "_original_disabled"):
+                        variable._original_disabled = variable.value
 
-                        # Store original value if not already stored (for display purposes)
-                        if not hasattr(variable, "_original_disabled"):
-                            variable._original_disabled = variable.value
-
-                        variable.value = False
-                        reset_vars.append(var_name)
-                        logger.debug(
-                            f"Reset disabled bool variable '{var_name}' to False "
-                            f"(section satisfied: {section_satisfied}, enabled: {is_enabled}, "
-                            f"var satisfied: {var_satisfied})"
-                        )
+                    variable.value = False
+                    reset_vars.append(var_name)
+                    logger.debug(
+                        f"Reset disabled bool variable '{var_name}' to False "
+                        f"(section satisfied: {section_satisfied}, enabled: {is_enabled}, "
+                        f"var satisfied: {var_satisfied})"
+                    )
 
         return reset_vars
 
@@ -503,7 +503,7 @@ class VariableCollection:
         for section in self._sections.values():
             section.sort_variables(self._is_need_satisfied)
 
-    def _topological_sort(self) -> List[str]:
+    def _topological_sort(self) -> list[str]:
         """Perform topological sort on sections based on dependencies using Kahn's algorithm."""
         in_degree = {key: len(section.needs) for key, section in self._sections.items()}
         queue = [key for key, degree in in_degree.items() if degree == 0]
@@ -571,11 +571,11 @@ class VariableCollection:
 
             yield section_key, section
 
-    def get_sections(self) -> Dict[str, VariableSection]:
+    def get_sections(self) -> dict[str, VariableSection]:
         """Get all sections in the collection."""
         return self._sections.copy()
 
-    def get_section(self, key: str) -> Optional[VariableSection]:
+    def get_section(self, key: str) -> VariableSection | None:
         """Get a specific section by its key."""
         return self._sections.get(key)
 
@@ -632,7 +632,7 @@ class VariableCollection:
 
         return satisfied_values
 
-    def get_sensitive_variables(self) -> Dict[str, Any]:
+    def get_sensitive_variables(self) -> dict[str, Any]:
         """Get only the sensitive variables with their values."""
         return {
             name: var.value
@@ -828,9 +828,9 @@ class VariableCollection:
 
     def merge(
         self,
-        other_spec: Union[Dict[str, Any], "VariableCollection"],
+        other_spec: dict[str, Any] | VariableCollection,
         origin: str = "override",
-    ) -> "VariableCollection":
+    ) -> VariableCollection:
         """Merge another spec or VariableCollection into this one with precedence tracking.
 
         OPTIMIZED: Works directly on objects without dict conversions for better performance.
@@ -950,9 +950,10 @@ class VariableCollection:
                     update["needs"] = other_var.needs.copy() if other_var.needs else []
 
                 # Special handling for value/default (allow explicit null to clear)
-                if "value" in other_var._explicit_fields:
-                    update["value"] = other_var.value
-                elif "default" in other_var._explicit_fields:
+                if (
+                    "value" in other_var._explicit_fields
+                    or "default" in other_var._explicit_fields
+                ):
                     update["value"] = other_var.value
 
                 merged_section.variables[var_name] = self_var.clone(update=update)
@@ -965,8 +966,8 @@ class VariableCollection:
         return merged_section
 
     def filter_to_used(
-        self, used_variables: Set[str], keep_sensitive: bool = True
-    ) -> "VariableCollection":
+        self, used_variables: set[str], keep_sensitive: bool = True
+    ) -> VariableCollection:
         """Filter collection to only variables that are used (or sensitive).
 
         OPTIMIZED: Works directly on objects without dict conversions for better performance.
@@ -1024,7 +1025,7 @@ class VariableCollection:
 
         return filtered
 
-    def get_all_variable_names(self) -> Set[str]:
+    def get_all_variable_names(self) -> set[str]:
         """Get set of all variable names across all sections.
 
         Returns:
