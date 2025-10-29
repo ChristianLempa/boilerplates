@@ -151,6 +151,49 @@ External code should NEVER directly call `IconManager` or `console.print`, inste
 - `DisplayManager` provides a **centralized interface** for ALL CLI output rendering (Use `display_***` methods from `DisplayManager` for ALL output)
 - `IconManager` provides **Nerd Font icons** internally for DisplayManager, don't use Emojis or direct console access
 
+**DisplayManager Architecture** (Refactored for Single Responsibility Principle):
+
+`DisplayManager` acts as a facade that delegates to specialized manager classes:
+
+1. **VariableDisplayManager** - Handles all variable-related rendering
+   - `render_variable_value()` - Variable value formatting with context awareness
+   - `render_section()` - Section header display
+   - `render_variables_table()` - Complete variables table with dependencies
+
+2. **TemplateDisplayManager** - Handles all template-related rendering
+   - `render_template()` - Main template display coordinator
+   - `render_template_header()` - Template metadata display
+   - `render_file_tree()` - Template file structure visualization
+   - `render_file_generation_confirmation()` - Files preview before generation
+
+3. **StatusDisplayManager** - Handles status messages and error display
+   - `display_message()` - Core message formatting with level-based routing
+   - `display_error()`, `display_warning()`, `display_success()`, `display_info()` - Convenience methods
+   - `display_template_render_error()` - Detailed render error display
+   - `display_warning_with_confirmation()` - Interactive warning prompts
+
+4. **TableDisplayManager** - Handles table rendering
+   - `render_templates_table()` - Templates list with library indicators
+   - `render_status_table()` - Status tables with success/error indicators
+   - `render_config_tree()` - Configuration tree visualization
+
+**Usage Pattern:**
+```python
+# External code uses DisplayManager methods (backward compatible)
+display = DisplayManager()
+display.display_template(template, template_id)
+
+# Internally, DisplayManager delegates to specialized managers
+# display.templates.render_template(template, template_id)
+```
+
+**Design Principles:**
+- External code calls `DisplayManager` methods only
+- `DisplayManager` delegates to specialized managers internally
+- Each specialized manager has a single, focused responsibility
+- Backward compatibility maintained through delegation methods
+- All managers can access parent DisplayManager via `self.parent`
+
 ## Templates
 
 Templates are directory-based. Each template is a directory containing all the necessary files and subdirectories for the boilerplate.

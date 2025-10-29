@@ -76,19 +76,34 @@ class Module(ABC):
         self.libraries = LibraryManager()
         self.display = DisplayManager()
 
-    def list(
-        self,
-        raw: bool = Option(
-            False, "--raw", help="Output raw list format instead of rich table"
-        ),
-    ) -> list[Template]:
-        """List all templates."""
-        logger.debug(f"Listing templates for module '{self.name}'")
-        templates = []
+    def _load_all_templates(self, filter_fn=None) -> list[Template]:
+        """Load all templates for this module with optional filtering.
 
+        This centralized method eliminates duplicate template loading logic
+        across list(), search(), and validate() methods.
+
+        Args:
+            filter_fn: Optional function to filter templates. Takes Template and
+                      returns bool. Only templates where filter_fn returns True
+                      are included.
+
+        Returns:
+            List of successfully loaded Template objects
+
+        Example:
+            # Load all templates
+            templates = self._load_all_templates()
+
+            # Load only templates matching a search query
+            templates = self._load_all_templates(
+                lambda t: "nginx" in t.id.lower()
+            )
+        """
+        templates = []
         entries = self.libraries.find(self.name, sort_results=True)
+
         for entry in entries:
-            # Unpack entry - now returns (path, library_name, needs_qualification)
+            # Unpack entry - returns (path, library_name, needs_qualification)
             template_dir = entry[0]
             library_name = entry[1]
             needs_qualification = entry[2] if len(entry) > 2 else False
@@ -116,12 +131,27 @@ class Module(ABC):
                 if needs_qualification:
                     template.set_qualified_id()
 
-                templates.append(template)
+                # Apply filter if provided
+                if filter_fn is None or filter_fn(template):
+                    templates.append(template)
+
             except Exception as exc:
                 logger.error(f"Failed to load template from {template_dir}: {exc}")
                 continue
 
-        filtered_templates = templates
+        return templates
+
+    def list(
+        self,
+        raw: bool = Option(
+            False, "--raw", help="Output raw list format instead of rich table"
+        ),
+    ) -> list[Template]:
+        """List all templates."""
+        logger.debug(f"Listing templates for module '{self.name}'")
+        
+        # Load all templates using centralized helper
+        filtered_templates = self._load_all_templates()
 
         if filtered_templates:
             if raw:
@@ -155,45 +185,11 @@ class Module(ABC):
         logger.debug(
             f"Searching templates for module '{self.name}' with query='{query}'"
         )
-        templates = []
-
-        entries = self.libraries.find(self.name, sort_results=True)
-        for entry in entries:
-            # Unpack entry - now returns (path, library_name, needs_qualification)
-            template_dir = entry[0]
-            library_name = entry[1]
-            needs_qualification = entry[2] if len(entry) > 2 else False
-
-            try:
-                # Get library object to determine type
-                library = next(
-                    (
-                        lib
-                        for lib in self.libraries.libraries
-                        if lib.name == library_name
-                    ),
-                    None,
-                )
-                library_type = library.library_type if library else "git"
-
-                template = Template(
-                    template_dir, library_name=library_name, library_type=library_type
-                )
-
-                # Validate schema version compatibility
-                template._validate_schema_version(self.schema_version, self.name)
-
-                # If template ID needs qualification, set qualified ID
-                if needs_qualification:
-                    template.set_qualified_id()
-
-                templates.append(template)
-            except Exception as exc:
-                logger.error(f"Failed to load template from {template_dir}: {exc}")
-                continue
-
-        # Apply search filtering
-        filtered_templates = [t for t in templates if query.lower() in t.id.lower()]
+        
+        # Load templates with search filter using centralized helper
+        filtered_templates = self._load_all_templates(
+            lambda t: query.lower() in t.id.lower()
+        )
 
         if filtered_templates:
             logger.info(
@@ -256,7 +252,7 @@ class Module(ABC):
             if reset_vars:
                 logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
-        self._display_template_details(template, id)
+        self.display.display_template(template, id)
 
     def _apply_variable_defaults(self, template: Template) -> None:
         """Apply config defaults and CLI overrides to template variables.
@@ -756,7 +752,7 @@ class Module(ABC):
                 logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
         if not quiet:
-            self._display_template_details(template, id)
+            self.display.display_template(template, id)
             console.print()
 
         # Collect variable values
@@ -1241,32 +1237,33 @@ class Module(ABC):
             # Validate all templates
             console.print(f"[bold]Validating all {self.name} templates...[/bold]\n")
 
-            entries = self.libraries.find(self.name, sort_results=True)
-            total = len(entries)
             valid_count = 0
             invalid_count = 0
             errors = []
 
-            for template_dir, library_name, _ in entries:
-                template_id = template_dir.name
+            # Use centralized helper to load all templates
+            # Note: Exceptions during load are already logged by _load_all_templates
+            all_templates = self._load_all_templates()
+            total = len(all_templates)
+
+            for template in all_templates:
                 try:
-                    template = Template(template_dir, library_name=library_name)
                     # Trigger validation
                     _ = template.used_variables
                     _ = template.variables
                     valid_count += 1
                     if verbose:
-                        self.display.display_success(template_id)
+                        self.display.display_success(template.id)
                 except ValueError as e:
                     invalid_count += 1
-                    errors.append((template_id, str(e)))
+                    errors.append((template.id, str(e)))
                     if verbose:
-                        self.display.display_error(template_id)
+                        self.display.display_error(template.id)
                 except Exception as e:
                     invalid_count += 1
-                    errors.append((template_id, f"Load error: {e}"))
+                    errors.append((template.id, f"Load error: {e}"))
                     if verbose:
-                        self.display.display_warning(template_id)
+                        self.display.display_warning(template.id)
 
             # Summary
             summary_items = {
@@ -1382,13 +1379,3 @@ class Module(ABC):
                 f"Template '{id}' could not be loaded: {exc}"
             ) from exc
 
-    def _display_template_details(
-        self, template: Template, id: str
-    ) -> None:
-        """Display template information panel and variables table.
-
-        Args:
-            template: Template instance to display
-            id: Template ID
-        """
-        self.display.display_template_details(template, id)

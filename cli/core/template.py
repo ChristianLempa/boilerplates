@@ -29,186 +29,197 @@ from jinja2.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-def _extract_error_context(
-    file_path: Path, line_number: Optional[int], context_size: int = 3
-) -> List[str]:
-    """Extract lines of context around an error location.
+class TemplateErrorHandler:
+    """Handles parsing and formatting of template rendering errors.
+    
+    This class provides utilities for:
+    - Extracting error context from template files
+    - Generating helpful suggestions based on Jinja2 errors
+    - Parsing Jinja2 exceptions into structured error information
+    """
 
-    Args:
+    @staticmethod
+    def extract_error_context(
+        file_path: Path, line_number: Optional[int], context_size: int = 3
+    ) -> List[str]:
+        """Extract lines of context around an error location.
+
+        Args:
         file_path: Path to the file with the error
-        line_number: Line number where error occurred (1-indexed)
-        context_size: Number of lines to show before and after
+            line_number: Line number where error occurred (1-indexed)
+            context_size: Number of lines to show before and after
 
-    Returns:
-        List of context lines with line numbers
-    """
-    if not line_number or not file_path.exists():
-        return []
+        Returns:
+            List of context lines with line numbers
+        """
+        if not line_number or not file_path.exists():
+            return []
 
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
 
-        start_line = max(0, line_number - context_size - 1)
-        end_line = min(len(lines), line_number + context_size)
+            start_line = max(0, line_number - context_size - 1)
+            end_line = min(len(lines), line_number + context_size)
 
-        context = []
-        for i in range(start_line, end_line):
-            line_num = i + 1
-            marker = ">>>" if line_num == line_number else "   "
-            context.append(f"{marker} {line_num:4d} | {lines[i].rstrip()}")
+            context = []
+            for i in range(start_line, end_line):
+                line_num = i + 1
+                marker = ">>>" if line_num == line_number else "   "
+                context.append(f"{marker} {line_num:4d} | {lines[i].rstrip()}")
 
-        return context
-    except (IOError, OSError):
-        return []
+            return context
+        except (IOError, OSError):
+            return []
 
+    @staticmethod
+    def get_common_jinja_suggestions(error_msg: str, available_vars: set) -> List[str]:
+        """Generate helpful suggestions based on common Jinja2 errors.
 
-def _get_common_jinja_suggestions(error_msg: str, available_vars: set) -> List[str]:
-    """Generate helpful suggestions based on common Jinja2 errors.
+        Args:
+            error_msg: The error message from Jinja2
+            available_vars: Set of available variable names
 
-    Args:
-        error_msg: The error message from Jinja2
-        available_vars: Set of available variable names
+        Returns:
+            List of actionable suggestions
+        """
+        suggestions = []
+        error_lower = error_msg.lower()
 
-    Returns:
-        List of actionable suggestions
-    """
-    suggestions = []
-    error_lower = error_msg.lower()
+        # Undefined variable errors
+        if "undefined" in error_lower or "is not defined" in error_lower:
+            # Try to extract variable name from error message
+            import re
 
-    # Undefined variable errors
-    if "undefined" in error_lower or "is not defined" in error_lower:
-        # Try to extract variable name from error message
-        import re
+            var_match = re.search(r"'([^']+)'.*is undefined", error_msg)
+            if not var_match:
+                var_match = re.search(r"'([^']+)'.*is not defined", error_msg)
 
-        var_match = re.search(r"'([^']+)'.*is undefined", error_msg)
-        if not var_match:
-            var_match = re.search(r"'([^']+)'.*is not defined", error_msg)
-
-        if var_match:
-            undefined_var = var_match.group(1)
-            suggestions.append(
-                f"Variable '{undefined_var}' is not defined in the template spec"
-            )
-
-            # Suggest similar variable names (basic fuzzy matching)
-            similar = [
-                v
-                for v in available_vars
-                if undefined_var.lower() in v.lower()
-                or v.lower() in undefined_var.lower()
-            ]
-            if similar:
+            if var_match:
+                undefined_var = var_match.group(1)
                 suggestions.append(
-                    f"Did you mean one of these? {', '.join(sorted(similar)[:5])}"
+                    f"Variable '{undefined_var}' is not defined in the template spec"
                 )
 
+                # Suggest similar variable names (basic fuzzy matching)
+                similar = [
+                    v
+                    for v in available_vars
+                    if undefined_var.lower() in v.lower()
+                    or v.lower() in undefined_var.lower()
+                ]
+                if similar:
+                    suggestions.append(
+                        f"Did you mean one of these? {', '.join(sorted(similar)[:5])}"
+                    )
+
+                suggestions.append(
+                    f"Add '{undefined_var}' to your template.yaml spec with a default value"
+                )
+                suggestions.append(
+                    "Or use the Jinja2 default filter: {{ "
+                    + undefined_var
+                    + " | default('value') }}"
+                )
+            else:
+                suggestions.append(
+                    "Check that all variables used in templates are defined in template.yaml"
+                )
+                suggestions.append(
+                    "Use the Jinja2 default filter for optional variables: {{ var | default('value') }}"
+                )
+
+        # Syntax errors
+        elif "unexpected" in error_lower or "expected" in error_lower:
+            suggestions.append("Check for syntax errors in your Jinja2 template")
             suggestions.append(
-                f"Add '{undefined_var}' to your template.yaml spec with a default value"
+                "Common issues: missing {% endfor %}, {% endif %}, or {% endblock %}"
+            )
+            suggestions.append("Make sure all {{ }} and {% %} tags are properly closed")
+
+        # Filter errors
+        elif "filter" in error_lower:
+            suggestions.append("Check that the filter name is spelled correctly")
+            suggestions.append("Verify the filter exists in Jinja2 built-in filters")
+            suggestions.append("Make sure filter arguments are properly formatted")
+
+        # Template not found
+        elif "not found" in error_lower or "does not exist" in error_lower:
+            suggestions.append("Check that the included/imported template file exists")
+            suggestions.append(
+                "Verify the template path is relative to the template directory"
             )
             suggestions.append(
-                "Or use the Jinja2 default filter: {{ "
-                + undefined_var
-                + " | default('value') }}"
+                "Make sure the file has the .j2 extension if it's a Jinja2 template"
             )
+
+        # Type errors
+        elif "type" in error_lower and (
+            "int" in error_lower or "str" in error_lower or "bool" in error_lower
+        ):
+            suggestions.append("Check that variable values have the correct type")
+            suggestions.append(
+                "Use Jinja2 filters to convert types: {{ var | int }}, {{ var | string }}"
+            )
+
+        # Add generic helpful tip
+        if not suggestions:
+            suggestions.append("Check the Jinja2 template syntax and variable usage")
+            suggestions.append(
+                "Enable --debug mode for more detailed rendering information"
+            )
+
+        return suggestions
+
+    @classmethod
+    def parse_jinja_error(
+        cls,
+        error: Exception,
+        template_file: "TemplateFile",
+        template_dir: Path,
+        available_vars: set,
+    ) -> tuple[str, Optional[int], Optional[int], List[str], List[str]]:
+        """Parse a Jinja2 exception to extract detailed error information.
+
+        Args:
+            error: The Jinja2 exception
+            template_file: The TemplateFile being rendered
+            template_dir: Template directory path
+            available_vars: Set of available variable names
+
+        Returns:
+            Tuple of (error_message, line_number, column, context_lines, suggestions)
+        """
+        error_msg = str(error)
+        line_number = None
+        column = None
+        context_lines = []
+        suggestions = []
+
+        # Extract line number from Jinja2 errors
+        if hasattr(error, "lineno"):
+            line_number = error.lineno
+
+        # Extract file path and get context
+        file_path = template_dir / template_file.relative_path
+        if line_number and file_path.exists():
+            context_lines = cls.extract_error_context(file_path, line_number)
+
+        # Generate suggestions based on error type
+        if isinstance(error, UndefinedError):
+            error_msg = f"Undefined variable: {error}"
+            suggestions = cls.get_common_jinja_suggestions(str(error), available_vars)
+        elif isinstance(error, Jinja2TemplateSyntaxError):
+            error_msg = f"Template syntax error: {error}"
+            suggestions = cls.get_common_jinja_suggestions(str(error), available_vars)
+        elif isinstance(error, Jinja2TemplateNotFound):
+            error_msg = f"Template file not found: {error}"
+            suggestions = cls.get_common_jinja_suggestions(str(error), available_vars)
         else:
-            suggestions.append(
-                "Check that all variables used in templates are defined in template.yaml"
-            )
-            suggestions.append(
-                "Use the Jinja2 default filter for optional variables: {{ var | default('value') }}"
-            )
+            # Generic Jinja2 error
+            suggestions = cls.get_common_jinja_suggestions(error_msg, available_vars)
 
-    # Syntax errors
-    elif "unexpected" in error_lower or "expected" in error_lower:
-        suggestions.append("Check for syntax errors in your Jinja2 template")
-        suggestions.append(
-            "Common issues: missing {% endfor %}, {% endif %}, or {% endblock %}"
-        )
-        suggestions.append("Make sure all {{ }} and {% %} tags are properly closed")
-
-    # Filter errors
-    elif "filter" in error_lower:
-        suggestions.append("Check that the filter name is spelled correctly")
-        suggestions.append("Verify the filter exists in Jinja2 built-in filters")
-        suggestions.append("Make sure filter arguments are properly formatted")
-
-    # Template not found
-    elif "not found" in error_lower or "does not exist" in error_lower:
-        suggestions.append("Check that the included/imported template file exists")
-        suggestions.append(
-            "Verify the template path is relative to the template directory"
-        )
-        suggestions.append(
-            "Make sure the file has the .j2 extension if it's a Jinja2 template"
-        )
-
-    # Type errors
-    elif "type" in error_lower and (
-        "int" in error_lower or "str" in error_lower or "bool" in error_lower
-    ):
-        suggestions.append("Check that variable values have the correct type")
-        suggestions.append(
-            "Use Jinja2 filters to convert types: {{ var | int }}, {{ var | string }}"
-        )
-
-    # Add generic helpful tip
-    if not suggestions:
-        suggestions.append("Check the Jinja2 template syntax and variable usage")
-        suggestions.append(
-            "Enable --debug mode for more detailed rendering information"
-        )
-
-    return suggestions
-
-
-def _parse_jinja_error(
-    error: Exception,
-    template_file: TemplateFile,
-    template_dir: Path,
-    available_vars: set,
-) -> tuple[str, Optional[int], Optional[int], List[str], List[str]]:
-    """Parse a Jinja2 exception to extract detailed error information.
-
-    Args:
-        error: The Jinja2 exception
-        template_file: The TemplateFile being rendered
-        template_dir: Template directory path
-        available_vars: Set of available variable names
-
-    Returns:
-        Tuple of (error_message, line_number, column, context_lines, suggestions)
-    """
-    error_msg = str(error)
-    line_number = None
-    column = None
-    context_lines = []
-    suggestions = []
-
-    # Extract line number from Jinja2 errors
-    if hasattr(error, "lineno"):
-        line_number = error.lineno
-
-    # Extract file path and get context
-    file_path = template_dir / template_file.relative_path
-    if line_number and file_path.exists():
-        context_lines = _extract_error_context(file_path, line_number)
-
-    # Generate suggestions based on error type
-    if isinstance(error, UndefinedError):
-        error_msg = f"Undefined variable: {error}"
-        suggestions = _get_common_jinja_suggestions(str(error), available_vars)
-    elif isinstance(error, Jinja2TemplateSyntaxError):
-        error_msg = f"Template syntax error: {error}"
-        suggestions = _get_common_jinja_suggestions(str(error), available_vars)
-    elif isinstance(error, Jinja2TemplateNotFound):
-        error_msg = f"Template file not found: {error}"
-        suggestions = _get_common_jinja_suggestions(str(error), available_vars)
-    else:
-        # Generic Jinja2 error
-        suggestions = _get_common_jinja_suggestions(error_msg, available_vars)
-
-    return error_msg, line_number, column, context_lines, suggestions
+        return error_msg, line_number, column, context_lines, suggestions
 
 
 @dataclass
@@ -760,7 +771,7 @@ class Template:
                 ) as e:
                     # Parse Jinja2 error to extract detailed information
                     error_msg, line_num, col, context_lines, suggestions = (
-                        _parse_jinja_error(
+                        TemplateErrorHandler.parse_jinja_error(
                             e, template_file, self.template_dir, available_vars
                         )
                     )

@@ -6,6 +6,7 @@ import logging
 
 from .variable import Variable
 from .section import VariableSection
+from .exceptions import VariableValidationError, VariableError
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ class VariableCollection:
             )
             error_msg = "\n".join(errors)
             logger.error(error_msg)
-            raise ValueError(error_msg)
+            raise VariableValidationError("__collection__", error_msg)
 
     def _validate_section_toggle(self, section: VariableSection) -> None:
         """Validate that toggle variable is of type bool if it exists.
@@ -161,9 +162,9 @@ class VariableCollection:
             return
 
         if toggle_var.type != "bool":
-            raise ValueError(
-                f"Section '{section.key}' toggle variable '{section.toggle}' must be type 'bool', "
-                f"but is type '{toggle_var.type}'"
+            raise VariableValidationError(
+                section.toggle,
+                f"Section '{section.key}' toggle variable must be type 'bool', but is type '{toggle_var.type}'"
             )
 
     @staticmethod
@@ -283,7 +284,7 @@ class VariableCollection:
                 if expected_value is None:
                     # Old format: validate section exists
                     if var_or_section not in self._sections:
-                        raise ValueError(
+                        raise VariableError(
                             f"Section '{section_key}' depends on '{var_or_section}', but '{var_or_section}' does not exist"
                         )
                 else:
@@ -331,7 +332,7 @@ class VariableCollection:
                         if has_cycle(dep_name):
                             return True
                     elif dep_name in rec_stack:
-                        raise ValueError(
+                        raise VariableError(
                             f"Circular dependency detected: '{section_key}' depends on '{dep_name}', "
                             f"which creates a cycle"
                         )
@@ -414,10 +415,14 @@ class VariableCollection:
         """
         reset_vars = []
         
+        # Pre-compute satisfaction states to avoid repeated lookups
+        section_states = {
+            key: (self.is_section_satisfied(key), section.is_enabled())
+            for key, section in self._sections.items()
+        }
+        
         for section_key, section in self._sections.items():
-            # Check if section dependencies are satisfied
-            section_satisfied = self.is_section_satisfied(section_key)
-            is_enabled = section.is_enabled()
+            section_satisfied, is_enabled = section_states[section_key]
             
             for var_name, variable in section.variables.items():
                 # Only process bool variables
@@ -524,6 +529,47 @@ class VariableCollection:
             return list(self._sections.keys())
 
         return result
+
+    def iter_active_sections(
+        self,
+        include_disabled: bool = False,
+        include_unsatisfied: bool = False,
+    ):
+        """Iterate over sections respecting dependencies and toggles.
+
+        This is the centralized iterator for processing sections with proper
+        filtering. It eliminates duplicate iteration logic across the codebase.
+
+        Args:
+            include_disabled: If True, include sections that are disabled via toggle
+            include_unsatisfied: If True, include sections with unsatisfied dependencies
+
+        Yields:
+            Tuple of (section_key, section) for each active section
+
+        Examples:
+            # Only enabled sections with satisfied dependencies (default)
+            for key, section in variables.iter_active_sections():
+                process(section)
+
+            # Include disabled sections but skip unsatisfied dependencies
+            for key, section in variables.iter_active_sections(include_disabled=True):
+                process(section)
+        """
+        for section_key, section in self._sections.items():
+            # Check dependencies first
+            if not include_unsatisfied and not self.is_section_satisfied(section_key):
+                logger.debug(
+                    f"Skipping section '{section_key}' - dependencies not satisfied"
+                )
+                continue
+
+            # Check enabled status
+            if not include_disabled and not section.is_enabled():
+                logger.debug(f"Skipping section '{section_key}' - section is disabled")
+                continue
+
+            yield section_key, section
 
     def get_sections(self) -> Dict[str, VariableSection]:
         """Get all sections in the collection."""
@@ -770,7 +816,7 @@ class VariableCollection:
         if errors:
             error_msg = "Variable validation failed: " + ", ".join(errors)
             logger.error(error_msg)
-            raise ValueError(error_msg)
+            raise VariableValidationError("__multiple__", ", ".join(errors))
 
     def merge(
         self,

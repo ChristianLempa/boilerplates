@@ -37,40 +37,13 @@ class PromptHandler:
             set()
         )  # Track which variables we've already prompted for
 
-        # Process each section
-        for section_key, section in variables.get_sections().items():
+        # Process each section (only satisfied dependencies, include disabled for toggle handling)
+        for section_key, section in variables.iter_active_sections(include_disabled=True):
             if not section.variables:
                 continue
 
-            # Check if dependencies are satisfied
-            if not variables.is_section_satisfied(section_key):
-                # Get list of unsatisfied dependencies for better user feedback
-                unsatisfied_keys = [
-                    dep
-                    for dep in section.needs
-                    if not variables.is_section_satisfied(dep)
-                ]
-                # Convert section keys to titles for user-friendly display
-                unsatisfied_titles = []
-                for dep_key in unsatisfied_keys:
-                    dep_section = variables.get_section(dep_key)
-                    if dep_section:
-                        unsatisfied_titles.append(dep_section.title)
-                    else:
-                        unsatisfied_titles.append(dep_key)
-                dep_names = (
-                    ", ".join(unsatisfied_titles) if unsatisfied_titles else "unknown"
-                )
-                self.display.display_skipped(
-                    section.title, f"requires {dep_names} to be enabled"
-                )
-                logger.debug(
-                    f"Skipping section '{section_key}' - dependencies not satisfied: {dep_names}"
-                )
-                continue
-
             # Always show section header first
-            self.display.display_section_header(section.title, section.description)
+            self.display.display_section(section.title, section.description)
 
             # Track whether this section will be enabled
             section_will_be_enabled = True
