@@ -4,6 +4,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from .variable import Variable
+from .exceptions import VariableError
 
 
 class VariableSection:
@@ -16,13 +17,13 @@ class VariableSection:
             data: Dictionary containing section specification with required 'key' and 'title' keys
         """
         if not isinstance(data, dict):
-            raise ValueError("VariableSection data must be a dictionary")
+            raise VariableError("VariableSection data must be a dictionary")
 
         if "key" not in data:
-            raise ValueError("VariableSection data must contain 'key'")
+            raise VariableError("VariableSection data must contain 'key'")
 
         if "title" not in data:
-            raise ValueError("VariableSection data must contain 'title'")
+            raise VariableError("VariableSection data must contain 'title'")
 
         self.key: str = data["key"]
         self.title: str = data["title"]
@@ -46,7 +47,7 @@ class VariableSection:
             elif isinstance(needs_value, list):
                 self.needs: List[str] = needs_value
             else:
-                raise ValueError(
+                raise VariableError(
                     f"Section '{self.key}' has invalid 'needs' value: must be string or list"
                 )
         else:

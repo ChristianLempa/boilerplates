@@ -252,7 +252,7 @@ class Module(ABC):
             if reset_vars:
                 logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
-        self._display_template_details(template, id)
+        self.display.display_template(template, id)
 
     def _apply_variable_defaults(self, template: Template) -> None:
         """Apply config defaults and CLI overrides to template variables.
@@ -752,7 +752,7 @@ class Module(ABC):
                 logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
         if not quiet:
-            self._display_template_details(template, id)
+            self.display.display_template(template, id)
             console.print()
 
         # Collect variable values
@@ -1379,13 +1379,3 @@ class Module(ABC):
                 f"Template '{id}' could not be loaded: {exc}"
             ) from exc
 
-    def _display_template_details(
-        self, template: Template, id: str
-    ) -> None:
-        """Display template information panel and variables table.
-
-        Args:
-            template: Template instance to display
-            id: Template ID
-        """
-        self.display.display_template_details(template, id)

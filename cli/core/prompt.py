@@ -43,7 +43,7 @@ class PromptHandler:
                 continue
 
             # Always show section header first
-            self.display.display_section_header(section.title, section.description)
+            self.display.display_section(section.title, section.description)
 
             # Track whether this section will be enabled
             section_will_be_enabled = True

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 from urllib.parse import urlparse
 import logging
 import re
+
+from .exceptions import VariableValidationError, VariableError
+
+if TYPE_CHECKING:
+    from .section import VariableSection
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +32,10 @@ class Variable:
         """
         # Validate input
         if not isinstance(data, dict):
-            raise ValueError("Variable data must be a dictionary")
+            raise VariableError("Variable data must be a dictionary")
 
         if "name" not in data:
-            raise ValueError("Variable data must contain 'name' key")
+            raise VariableError("Variable data must contain 'name' key")
 
         # Track which fields were explicitly provided in source data
         self._explicit_fields: Set[str] = set(data.keys())
@@ -76,7 +81,7 @@ class Variable:
             elif isinstance(needs_value, list):
                 self.needs: List[str] = needs_value
             else:
-                raise ValueError(
+                raise VariableError(
                     f"Variable '{self.name}' has invalid 'needs' value: must be string or list"
                 )
         else:
@@ -87,7 +92,7 @@ class Variable:
             try:
                 self.value = self.convert(self.value)
             except ValueError as exc:
-                raise ValueError(f"Invalid default for variable '{self.name}': {exc}")
+                raise VariableValidationError(self.name, f"Invalid default value: {exc}")
 
     def convert(self, value: Any) -> Any:
         """Validate and convert a raw value based on the variable type.
