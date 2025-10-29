@@ -21,7 +21,11 @@ python3 -m cli --log-level DEBUG compose list
 
 Should **always** happen before pushing anything to the repository.
 
-- Use `yamllint` for YAML files and `ruff` for Python code.
+- Use `yamllint` for YAML files
+- Use `ruff` for Python code:
+  - `ruff check --fix .` - Check and auto-fix linting errors
+  - `ruff format .` - Format code according to style guidelines
+  - Both commands must be run before committing
 
 ### Project Management and Git
 
@@ -52,7 +56,15 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 
 - `cli/core/collection.py` - Dataclass for VariableCollection (stores variable sections and variables)
 - `cli/core/config.py` - Configuration management (loading, saving, validation)
-- `cli/core/display.py` - Centralized CLI output rendering (**Always use this to display output - never print directly**)
+- `cli/core/display/` - Centralized CLI output rendering package (**Always use DisplayManager - never print directly**)
+  - `__init__.py` - Package exports (DisplayManager, DisplaySettings, IconManager)
+  - `display_manager.py` - Main DisplayManager facade
+  - `display_settings.py` - DisplaySettings configuration class
+  - `icon_manager.py` - IconManager for Nerd Font icons
+  - `variable_display.py` - VariableDisplayManager for variable rendering
+  - `template_display.py` - TemplateDisplayManager for template display
+  - `status_display.py` - StatusDisplayManager for status messages
+  - `table_display.py` - TableDisplayManager for table rendering
 - `cli/core/exceptions.py` - Custom exceptions for error handling (**Always use this for raising errors**)
 - `cli/core/library.py` - LibraryManager for template discovery from git-synced libraries and static file paths
 - `cli/core/module.py` - Abstract base class for modules (defines standard commands)

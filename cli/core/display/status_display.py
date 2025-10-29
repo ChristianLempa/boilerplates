@@ -20,14 +20,14 @@ console_err = Console(stderr=True)
 
 class StatusDisplayManager:
     """Handles status messages and error display.
-    
+
     This manager is responsible for displaying success, error, warning,
     and informational messages with consistent formatting.
     """
 
     def __init__(self, parent: "DisplayManager"):
         """Initialize StatusDisplayManager.
-        
+
         Args:
             parent: Reference to parent DisplayManager for accessing shared resources
         """
@@ -44,7 +44,7 @@ class StatusDisplayManager:
             context: Optional context information
         """
         from . import IconManager
-        
+
         # Errors and warnings always go to stderr, even in quiet mode
         # Success and info respect quiet mode and go to stdout
         if level in ("error", "warning"):
@@ -95,7 +95,7 @@ class StatusDisplayManager:
 
     def display_error(self, message: str, context: str | None = None) -> None:
         """Display an error message.
-        
+
         Args:
             message: Error message
             context: Optional context
@@ -104,7 +104,7 @@ class StatusDisplayManager:
 
     def display_warning(self, message: str, context: str | None = None) -> None:
         """Display a warning message.
-        
+
         Args:
             message: Warning message
             context: Optional context
@@ -113,7 +113,7 @@ class StatusDisplayManager:
 
     def display_success(self, message: str, context: str | None = None) -> None:
         """Display a success message.
-        
+
         Args:
             message: Success message
             context: Optional context
@@ -122,7 +122,7 @@ class StatusDisplayManager:
 
     def display_info(self, message: str, context: str | None = None) -> None:
         """Display an informational message.
-        
+
         Args:
             message: Info message
             context: Optional context
@@ -131,7 +131,7 @@ class StatusDisplayManager:
 
     def display_validation_error(self, message: str) -> None:
         """Display a validation error message.
-        
+
         Args:
             message: Validation error message
         """
@@ -148,7 +148,7 @@ class StatusDisplayManager:
             current_version: Current CLI version
         """
         from . import IconManager
-        
+
         console_err.print()
         console_err.print(
             f"[bold red]{IconManager.STATUS_ERROR} Version Incompatibility[/bold red]"
@@ -181,7 +181,7 @@ class StatusDisplayManager:
             reason: Optional reason why it was skipped
         """
         from . import IconManager
-        
+
         icon = IconManager.get_status_icon("skipped")
         if reason:
             console.print(f"\n[dim]{icon} {message} (skipped - {reason})[/dim]")
@@ -202,7 +202,7 @@ class StatusDisplayManager:
             True if user confirms, False otherwise
         """
         from . import IconManager
-        
+
         icon = IconManager.get_status_icon("warning")
         console.print(f"\n[yellow]{icon} {message}[/yellow]")
 
@@ -222,7 +222,7 @@ class StatusDisplayManager:
             context: Optional context information (e.g., template ID)
         """
         from . import IconManager
-        
+
         # Always display errors to stderr
         icon = IconManager.get_status_icon("error")
         if context:
@@ -230,9 +230,7 @@ class StatusDisplayManager:
                 f"\n[red bold]{icon} Template Rendering Error[/red bold] [dim]({context})[/dim]"
             )
         else:
-            console_err.print(
-                f"\n[red bold]{icon} Template Rendering Error[/red bold]"
-            )
+            console_err.print(f"\n[red bold]{icon} Template Rendering Error[/red bold]")
 
         console_err.print()
 
@@ -274,9 +272,7 @@ class StatusDisplayManager:
                     syntax = Syntax(
                         context_text, lexer, line_numbers=False, theme="monokai"
                     )
-                    console_err.print(
-                        Panel(syntax, border_style="red", padding=(1, 2))
-                    )
+                    console_err.print(Panel(syntax, border_style="red", padding=(1, 2)))
                 else:
                     console_err.print(
                         Panel(context_text, border_style="red", padding=(1, 2))

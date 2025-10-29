@@ -14,14 +14,14 @@ console = Console()
 
 class VariableDisplayManager:
     """Handles all variable-related rendering.
-    
+
     This manager is responsible for displaying variables, sections,
     and their values with appropriate formatting based on context.
     """
 
     def __init__(self, parent: "DisplayManager"):
         """Initialize VariableDisplayManager.
-        
+
         Args:
             parent: Reference to parent DisplayManager for accessing shared resources
         """
@@ -35,25 +35,27 @@ class VariableDisplayManager:
         var_satisfied: bool = True,
     ) -> str:
         """Render variable value with appropriate formatting based on context.
-        
+
         Args:
             variable: Variable instance to render
             context: Display context ("default", "override", "disabled")
             is_dimmed: Whether the variable should be dimmed
             var_satisfied: Whether the variable's dependencies are satisfied
-            
+
         Returns:
             Formatted string representation of the variable value
         """
         from . import IconManager
-        
+
         # Handle disabled bool variables
         if (is_dimmed or not var_satisfied) and variable.type == "bool":
             if (
                 hasattr(variable, "_original_disabled")
                 and variable._original_disabled is not False
             ):
-                return f"{variable._original_disabled} {IconManager.arrow_right()} False"
+                return (
+                    f"{variable._original_disabled} {IconManager.arrow_right()} False"
+                )
             return "False"
 
         # Handle config overrides with arrow
@@ -63,20 +65,30 @@ class VariableDisplayManager:
             and variable.original_value != variable.value
         ):
             settings = self.parent.settings
-            orig = self._format_value(variable, variable.original_value, max_length=settings.VALUE_MAX_LENGTH_SHORT)
+            orig = self._format_value(
+                variable,
+                variable.original_value,
+                max_length=settings.VALUE_MAX_LENGTH_SHORT,
+            )
             curr = variable.get_display_value(
-                mask_sensitive=True, max_length=settings.VALUE_MAX_LENGTH_SHORT, show_none=False
+                mask_sensitive=True,
+                max_length=settings.VALUE_MAX_LENGTH_SHORT,
+                show_none=False,
             )
             if not curr:
-                curr = str(variable.value) if variable.value else settings.TEXT_EMPTY_OVERRIDE
-            return (
-                f"{orig} [bold {settings.COLOR_WARNING}]{IconManager.arrow_right()} {curr}[/bold {settings.COLOR_WARNING}]"
-            )
+                curr = (
+                    str(variable.value)
+                    if variable.value
+                    else settings.TEXT_EMPTY_OVERRIDE
+                )
+            return f"{orig} [bold {settings.COLOR_WARNING}]{IconManager.arrow_right()} {curr}[/bold {settings.COLOR_WARNING}]"
 
         # Default formatting
         settings = self.parent.settings
         value = variable.get_display_value(
-            mask_sensitive=True, max_length=settings.VALUE_MAX_LENGTH_DEFAULT, show_none=True
+            mask_sensitive=True,
+            max_length=settings.VALUE_MAX_LENGTH_DEFAULT,
+            show_none=True,
         )
         if not variable.value:
             return f"[{settings.COLOR_MUTED}]{value}[/{settings.COLOR_MUTED}]"
@@ -84,28 +96,28 @@ class VariableDisplayManager:
 
     def _format_value(self, variable, value, max_length: int | None = None) -> str:
         """Helper to format a specific value.
-        
+
         Args:
             variable: Variable instance
             value: Value to format
             max_length: Maximum length before truncation
-            
+
         Returns:
             Formatted value string
         """
         settings = self.parent.settings
-        
+
         if variable.sensitive:
             return settings.SENSITIVE_MASK
         if value is None or value == "":
             return f"[{settings.COLOR_MUTED}]({settings.TEXT_EMPTY_VALUE})[/{settings.COLOR_MUTED}]"
-        
+
         val_str = str(value)
         return self.parent._truncate_value(val_str, max_length)
 
     def render_section(self, title: str, description: str | None) -> None:
         """Display a section header.
-        
+
         Args:
             title: Section title
             description: Optional section description
@@ -116,59 +128,74 @@ class VariableDisplayManager:
                 f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}] [{settings.STYLE_SECTION_DESC}]- {description}[/{settings.STYLE_SECTION_DESC}]"
             )
         else:
-            console.print(f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}]")
-        console.print(settings.SECTION_SEPARATOR_CHAR * settings.SECTION_SEPARATOR_LENGTH, style=settings.COLOR_MUTED)
+            console.print(
+                f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}]"
+            )
+        console.print(
+            settings.SECTION_SEPARATOR_CHAR * settings.SECTION_SEPARATOR_LENGTH,
+            style=settings.COLOR_MUTED,
+        )
 
-    def _render_section_header(self, section, is_dimmed: bool, has_dependencies: bool) -> str:
+    def _render_section_header(
+        self, section, is_dimmed: bool, has_dependencies: bool
+    ) -> str:
         """Build section header text with appropriate styling.
-        
+
         Args:
             section: VariableSection instance
             is_dimmed: Whether section is dimmed (disabled)
             has_dependencies: Whether section has dependency requirements
-            
+
         Returns:
             Formatted header text with Rich markup
         """
         settings = self.parent.settings
-        disabled_text = settings.LABEL_DISABLED if (is_dimmed and not has_dependencies) else ""
-        
+        disabled_text = (
+            settings.LABEL_DISABLED if (is_dimmed and not has_dependencies) else ""
+        )
+
         if is_dimmed:
             required_part = " (required)" if section.required else ""
             return f"[bold {settings.STYLE_DISABLED}]{section.title}{required_part}{disabled_text}[/bold {settings.STYLE_DISABLED}]"
         else:
             required_text = settings.LABEL_REQUIRED if section.required else ""
             return f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
-    
-    def _render_variable_row(self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool) -> tuple:
+
+    def _render_variable_row(
+        self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool
+    ) -> tuple:
         """Build variable row data for table display.
-        
+
         Args:
             var_name: Variable name
             variable: Variable instance
             is_dimmed: Whether containing section is dimmed
             var_satisfied: Whether variable dependencies are satisfied
-            
+
         Returns:
             Tuple of (var_display, type, default_val, description, row_style)
         """
         from . import IconManager
-        
+
         settings = self.parent.settings
-        
+
         # Build row style
-        row_style = settings.STYLE_DISABLED if (is_dimmed or not var_satisfied) else None
-        
+        row_style = (
+            settings.STYLE_DISABLED if (is_dimmed or not var_satisfied) else None
+        )
+
         # Build default value
         default_val = self.render_variable_value(
             variable, is_dimmed=is_dimmed, var_satisfied=var_satisfied
         )
-        
+
         # Build variable display name
         sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
         required_indicator = settings.LABEL_REQUIRED if variable.required else ""
-        var_display = f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
-        
+        var_display = (
+            f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
+        )
+
         return (
             var_display,
             variable.type or "str",
@@ -191,10 +218,16 @@ class VariableDisplayManager:
 
         settings = self.parent.settings
         console.print()
-        console.print(f"[{settings.STYLE_HEADER}]Template Variables:[/{settings.STYLE_HEADER}]")
+        console.print(
+            f"[{settings.STYLE_HEADER}]Template Variables:[/{settings.STYLE_HEADER}]"
+        )
 
-        variables_table = Table(show_header=True, header_style=settings.STYLE_TABLE_HEADER)
-        variables_table.add_column("Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True)
+        variables_table = Table(
+            show_header=True, header_style=settings.STYLE_TABLE_HEADER
+        )
+        variables_table.add_column(
+            "Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True
+        )
         variables_table.add_column("Type", style=settings.STYLE_VAR_COL_TYPE)
         variables_table.add_column("Default", style=settings.STYLE_VAR_COL_DEFAULT)
         variables_table.add_column("Description", style=settings.STYLE_VAR_COL_DESC)
@@ -210,12 +243,16 @@ class VariableDisplayManager:
 
             # Check if section is enabled AND dependencies are satisfied
             is_enabled = section.is_enabled()
-            dependencies_satisfied = template.variables.is_section_satisfied(section.key)
+            dependencies_satisfied = template.variables.is_section_satisfied(
+                section.key
+            )
             is_dimmed = not (is_enabled and dependencies_satisfied)
             has_dependencies = section.needs and len(section.needs) > 0
 
             # Render section header
-            header_text = self._render_section_header(section, is_dimmed, has_dependencies)
+            header_text = self._render_section_header(
+                section, is_dimmed, has_dependencies
+            )
             variables_table.add_row(header_text, "", "", "")
 
             # Render variables
@@ -228,7 +265,9 @@ class VariableDisplayManager:
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 
                 # Build and add row
-                row_data = self._render_variable_row(var_name, variable, is_dimmed, var_satisfied)
+                row_data = self._render_variable_row(
+                    var_name, variable, is_dimmed, var_satisfied
+                )
                 variables_table.add_row(*row_data)
 
         console.print(variables_table)

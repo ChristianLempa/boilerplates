@@ -16,14 +16,14 @@ console = Console()
 
 class TableDisplayManager:
     """Handles table rendering.
-    
+
     This manager is responsible for displaying various types of tables
     including templates lists, status tables, and summaries.
     """
 
     def __init__(self, parent: "DisplayManager"):
         """Initialize TableDisplayManager.
-        
+
         Args:
             parent: Reference to parent DisplayManager for accessing shared resources
         """
@@ -53,18 +53,26 @@ class TableDisplayManager:
         table.add_column("Library", no_wrap=True)
 
         settings = self.parent.settings
-        
+
         for template in templates:
             name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            version = (
+                str(template.metadata.version) if template.metadata.version else ""
+            )
+            schema = (
+                template.schema_version
+                if hasattr(template, "schema_version")
+                else "1.0"
+            )
 
             # Use helper for library display
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
-            library_display = self.parent._format_library_display(library_name, library_type)
+            library_display = self.parent._format_library_display(
+                library_name, library_type
+            )
 
             table.add_row(template.id, name, tags, version, schema, library_display)
 
@@ -84,16 +92,14 @@ class TableDisplayManager:
             columns: Column headers (name_header, status_header)
         """
         from . import IconManager
-        
+
         table = Table(title=title, show_header=True)
         table.add_column(columns[0], style="cyan", no_wrap=True)
         table.add_column(columns[1])
 
         for name, message, success in rows:
             status_style = "green" if success else "red"
-            status_icon = IconManager.get_status_icon(
-                "success" if success else "error"
-            )
+            status_icon = IconManager.get_status_icon("success" if success else "error")
             table.add_row(
                 name, f"[{status_style}]{status_icon} {message}[/{status_style}]"
             )
@@ -108,7 +114,12 @@ class TableDisplayManager:
             items: Dictionary of key-value pairs to display
         """
         settings = self.parent.settings
-        table = Table(title=title, show_header=False, box=None, padding=settings.PADDING_TABLE_NORMAL)
+        table = Table(
+            title=title,
+            show_header=False,
+            box=None,
+            padding=settings.PADDING_TABLE_NORMAL,
+        )
         table.add_column(style="bold")
         table.add_column()
 
@@ -117,9 +128,7 @@ class TableDisplayManager:
 
         console.print(table)
 
-    def render_file_operation_table(
-        self, files: list[tuple[str, int, str]]
-    ) -> None:
+    def render_file_operation_table(self, files: list[tuple[str, int, str]]) -> None:
         """Display a table of file operations with sizes and statuses.
 
         Args:
@@ -127,7 +136,10 @@ class TableDisplayManager:
         """
         settings = self.parent.settings
         table = Table(
-            show_header=True, header_style=settings.STYLE_HEADER_ALT, box=None, padding=settings.PADDING_TABLE_COMPACT
+            show_header=True,
+            header_style=settings.STYLE_HEADER_ALT,
+            box=None,
+            padding=settings.PADDING_TABLE_COMPACT,
         )
         table.add_column("File", style="white", no_wrap=False)
         table.add_column("Size", justify="right", style=settings.COLOR_MUTED)
@@ -150,7 +162,7 @@ class TableDisplayManager:
             show_all: If True, show all details including descriptions
         """
         from . import IconManager
-        
+
         if not spec:
             console.print(
                 f"[yellow]No configuration found for module '{module_name}'[/yellow]"
@@ -202,15 +214,19 @@ class TableDisplayManager:
                         var_sensitive = var_data.get("sensitive", False)
 
                         # Build variable label
-                        var_label = (
-                            f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
-                        )
+                        var_label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
 
                         if var_default is not None and var_default != "":
                             settings = self.parent.settings
-                            display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
+                            display_val = (
+                                settings.SENSITIVE_MASK
+                                if var_sensitive
+                                else str(var_default)
+                            )
                             if not var_sensitive:
-                                display_val = self.parent._truncate_value(display_val, settings.VALUE_MAX_LENGTH_DEFAULT)
+                                display_val = self.parent._truncate_value(
+                                    display_val, settings.VALUE_MAX_LENGTH_DEFAULT
+                                )
                             var_label += f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
 
                         if show_all and var_desc:
