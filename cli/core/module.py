@@ -1149,7 +1149,7 @@ class Module(ABC):
             invalid_count = 0
             errors = []
 
-            for template_dir, library_name in entries:
+            for template_dir, library_name, _ in entries:
                 template_id = template_dir.name
                 try:
                     template = Template(template_dir, library_name=library_name)
