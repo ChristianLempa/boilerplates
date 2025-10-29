@@ -136,22 +136,22 @@ class VariableDisplayManager:
             style=settings.COLOR_MUTED,
         )
 
-    def _render_section_header(
-        self, section, is_dimmed: bool, has_dependencies: bool
-    ) -> str:
+    def _render_section_header(self, section, is_dimmed: bool) -> str:
         """Build section header text with appropriate styling.
 
         Args:
             section: VariableSection instance
             is_dimmed: Whether section is dimmed (disabled)
-            has_dependencies: Whether section has dependency requirements
 
         Returns:
             Formatted header text with Rich markup
         """
         settings = self.parent.settings
+        # Show (disabled) label if section has a toggle and is not enabled
         disabled_text = (
-            settings.LABEL_DISABLED if (is_dimmed and not has_dependencies) else ""
+            settings.LABEL_DISABLED
+            if (section.toggle and not section.is_enabled())
+            else ""
         )
 
         if is_dimmed:
@@ -247,12 +247,9 @@ class VariableDisplayManager:
                 section.key
             )
             is_dimmed = not (is_enabled and dependencies_satisfied)
-            has_dependencies = section.needs and len(section.needs) > 0
 
             # Render section header
-            header_text = self._render_section_header(
-                section, is_dimmed, has_dependencies
-            )
+            header_text = self._render_section_header(section, is_dimmed)
             variables_table.add_row(header_text, "", "", "")
 
             # Render variables
@@ -265,9 +262,17 @@ class VariableDisplayManager:
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 
                 # Build and add row
-                row_data = self._render_variable_row(
+                (
+                    var_display,
+                    var_type,
+                    default_val,
+                    description,
+                    row_style,
+                ) = self._render_variable_row(
                     var_name, variable, is_dimmed, var_satisfied
                 )
-                variables_table.add_row(*row_data)
+                variables_table.add_row(
+                    var_display, var_type, default_val, description, style=row_style
+                )
 
         console.print(variables_table)
