@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
     from . import DisplayManager
     from ..template import Template
-
-console = Console()
 
 
 class VariableDisplayManager:
@@ -124,14 +121,13 @@ class VariableDisplayManager:
         """
         settings = self.parent.settings
         if description:
-            console.print(
-                f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}] [{settings.STYLE_SECTION_DESC}]- {description}[/{settings.STYLE_SECTION_DESC}]"
+            self.parent.text(
+                f"\n{title} - {description}",
+                style=f"{settings.STYLE_SECTION_TITLE} {settings.STYLE_SECTION_DESC}",
             )
         else:
-            console.print(
-                f"\n[{settings.STYLE_SECTION_TITLE}]{title}[/{settings.STYLE_SECTION_TITLE}]"
-            )
-        console.print(
+            self.parent.text(f"\n{title}", style=settings.STYLE_SECTION_TITLE)
+        self.parent.text(
             settings.SECTION_SEPARATOR_CHAR * settings.SECTION_SEPARATOR_LENGTH,
             style=settings.COLOR_MUTED,
         )
@@ -217,10 +213,8 @@ class VariableDisplayManager:
             return
 
         settings = self.parent.settings
-        console.print()
-        console.print(
-            f"[{settings.STYLE_HEADER}]Template Variables:[/{settings.STYLE_HEADER}]"
-        )
+        self.parent.text("")
+        self.parent.heading("Template Variables")
 
         variables_table = Table(
             show_header=True, header_style=settings.STYLE_TABLE_HEADER
@@ -275,4 +269,4 @@ class VariableDisplayManager:
                     var_display, var_type, default_val, description, style=row_style
                 )
 
-        console.print(variables_table)
+        self.parent._print_table(variables_table)

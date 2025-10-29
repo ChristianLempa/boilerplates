@@ -5,10 +5,10 @@ from urllib.parse import urlparse
 import logging
 import re
 
-from .exceptions import VariableValidationError, VariableError
+from ..exceptions import VariableValidationError, VariableError
 
 if TYPE_CHECKING:
-    from .section import VariableSection
+    from .variable_section import VariableSection
 
 logger = logging.getLogger(__name__)
 

@@ -14,8 +14,7 @@ if TYPE_CHECKING:
     from ..exceptions import TemplateRenderError
 
 logger = logging.getLogger(__name__)
-console = Console()
-console_err = Console(stderr=True)
+console_err = Console(stderr=True)  # Keep for error output
 
 
 class StatusDisplayManager:
@@ -47,12 +46,8 @@ class StatusDisplayManager:
 
         # Errors and warnings always go to stderr, even in quiet mode
         # Success and info respect quiet mode and go to stdout
-        if level in ("error", "warning"):
-            output_console = console_err
-            should_print = True
-        else:
-            output_console = console
-            should_print = not self.parent.quiet
+        use_stderr = level in ("error", "warning")
+        should_print = use_stderr or not self.parent.quiet
 
         if not should_print:
             return
@@ -81,7 +76,11 @@ class StatusDisplayManager:
                 else message
             )
 
-        output_console.print(f"[{color}]{icon} {text}[/{color}]")
+        formatted_text = f"[{color}]{icon} {text}[/{color}]"
+        if use_stderr:
+            console_err.print(formatted_text)
+        else:
+            self.parent.text(formatted_text)
 
         # Log appropriately
         log_message = f"{context}: {message}" if context else message
@@ -184,9 +183,9 @@ class StatusDisplayManager:
 
         icon = IconManager.get_status_icon("skipped")
         if reason:
-            console.print(f"\n[dim]{icon} {message} (skipped - {reason})[/dim]")
+            self.parent.text(f"\n{icon} {message} (skipped - {reason})", style="dim")
         else:
-            console.print(f"\n[dim]{icon} {message} (skipped)[/dim]")
+            self.parent.text(f"\n{icon} {message} (skipped)", style="dim")
 
     def display_warning_with_confirmation(
         self, message: str, details: list[str] | None = None, default: bool = False
@@ -204,11 +203,11 @@ class StatusDisplayManager:
         from . import IconManager
 
         icon = IconManager.get_status_icon("warning")
-        console.print(f"\n[yellow]{icon} {message}[/yellow]")
+        self.parent.text(f"\n{icon} {message}", style="yellow")
 
         if details:
             for detail in details:
-                console.print(f"[yellow]  {detail}[/yellow]")
+                self.parent.text(f"  {detail}", style="yellow")
 
         return Confirm.ask("Continue?", default=default)
 

@@ -8,12 +8,10 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import yaml
-from rich.console import Console
 
-from .exceptions import ConfigError, ConfigValidationError, YAMLParseError
+from ..exceptions import ConfigError, ConfigValidationError, YAMLParseError
 
 logger = logging.getLogger(__name__)
-console = Console()
 
 # Valid Python identifier pattern for variable names
 VALID_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")

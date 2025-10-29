@@ -7,8 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import SpinnerColumn, TextColumn
 from rich.table import Table
 from typer import Argument, Option, Typer
 
@@ -17,8 +16,6 @@ from ..core.display import DisplayManager
 from ..core.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
-console = Console()
-console_err = Console(stderr=True)
 display = DisplayManager()
 
 app = Typer(help="Manage library repositories")
@@ -203,7 +200,7 @@ def update(
 
     if not libraries:
         display.display_warning("No libraries configured")
-        console.print(
+        display.text(
             "Libraries are auto-configured on first run with a default library."
         )
         return
@@ -212,9 +209,7 @@ def update(
     if library_name:
         libraries = [lib for lib in libraries if lib.get("name") == library_name]
         if not libraries:
-            console_err.print(
-                f"[red]Error:[/red] Library '{library_name}' not found in configuration"
-            )
+            display.error(f"Library '{library_name}' not found in configuration")
             return
 
     libraries_path = config.get_libraries_path()
@@ -222,10 +217,8 @@ def update(
     # Create results table
     results = []
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
+    with display.progress(
+        SpinnerColumn(), TextColumn("[progress.description]{task.description}")
     ) as progress:
         for lib in libraries:
             name = lib.get("name")
@@ -234,15 +227,15 @@ def update(
 
             if not enabled:
                 if verbose:
-                    console.print(f"[dim]Skipping disabled library: {name}[/dim]")
+                    display.text(f"Skipping disabled library: {name}", style="dim")
                 results.append((name, "Skipped (disabled)", False))
                 continue
 
             # Skip static libraries (no sync needed)
             if lib_type == "static":
                 if verbose:
-                    console.print(
-                        f"[dim]Skipping static library: {name} (no sync needed)[/dim]"
+                    display.text(
+                        f"Skipping static library: {name} (no sync needed)", style="dim"
                     )
                 results.append((name, "N/A (static)", True))
                 continue
@@ -281,16 +274,18 @@ def update(
     total = len(results)
     successful = sum(1 for _, _, success in results if success)
 
+    display.text("")
     if successful == total:
-        console.print(
-            f"\n[green]All libraries updated successfully ({successful}/{total})[/green]"
+        display.text(
+            f"All libraries updated successfully ({successful}/{total})", style="green"
         )
     elif successful > 0:
-        console.print(
-            f"\n[yellow]Partially successful: {successful}/{total} libraries updated[/yellow]"
+        display.text(
+            f"Partially successful: {successful}/{total} libraries updated",
+            style="yellow",
         )
     else:
-        console.print("\n[red]Failed to update libraries[/red]")
+        display.text("Failed to update libraries", style="red")
 
 
 @app.command()
@@ -300,10 +295,15 @@ def list() -> None:
     libraries = config.get_libraries()
 
     if not libraries:
-        console.print("[yellow]No libraries configured.[/yellow]")
+        display.text("No libraries configured.", style="yellow")
         return
 
-    table = Table(title="Configured Libraries", show_header=True)
+    settings = display.settings
+    table = Table(
+        title="Configured Libraries",
+        show_header=True,
+        header_style=settings.STYLE_TABLE_HEADER,
+    )
     table.add_column("Name", style="cyan", no_wrap=True)
     table.add_column("URL/Path", style="blue")
     table.add_column("Branch", style="yellow")
@@ -365,7 +365,7 @@ def list() -> None:
 
         table.add_row(name, url_or_path, branch, directory, type_display, status)
 
-    console.print(table)
+    display._print_table(table)
 
 
 @app.command()
@@ -427,7 +427,7 @@ def add(
         display.display_success(f"Added {library_type} library '{name}'")
 
         if library_type == "git" and sync and enabled:
-            console.print(f"\nSyncing library '{name}'...")
+            display.text(f"\nSyncing library '{name}'...")
             update(library_name=name, verbose=True)
         elif library_type == "static":
             display.display_info(f"Static library points to: {path}")

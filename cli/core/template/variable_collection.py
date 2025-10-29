@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 import logging
 
 from .variable import Variable
-from .section import VariableSection
-from .exceptions import VariableValidationError, VariableError
+from .variable_section import VariableSection
+from ..exceptions import VariableValidationError, VariableError
 
 logger = logging.getLogger(__name__)
 

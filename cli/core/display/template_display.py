@@ -3,13 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from rich.console import Console
-
 if TYPE_CHECKING:
     from . import DisplayManager
     from ..template import Template
-
-console = Console()
 
 
 class TemplateDisplayManager:
@@ -65,10 +61,11 @@ class TemplateDisplayManager:
             library_name, library_type
         )
 
-        console.print(
-            f"[{settings.STYLE_HEADER}]{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}[/{settings.STYLE_HEADER}]"
+        self.parent.text(
+            f"{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}",
+            style=settings.STYLE_HEADER,
         )
-        console.print(description)
+        self.parent.text(description)
 
     def render_file_tree(self, template: "Template") -> None:
         """Display the file structure of a template.
@@ -78,11 +75,8 @@ class TemplateDisplayManager:
         """
         from . import IconManager
 
-        settings = self.parent.settings
-        console.print()
-        console.print(
-            f"[{settings.STYLE_HEADER}]Template File Structure:[/{settings.STYLE_HEADER}]"
-        )
+        self.parent.text("")
+        self.parent.heading("Template File Structure")
 
         def get_template_file_info(template_file):
             display_name = (
@@ -99,7 +93,7 @@ class TemplateDisplayManager:
         )
 
         if file_tree.children:
-            console.print(file_tree)
+            self.parent._print_tree(file_tree)
 
     def render_file_generation_confirmation(
         self,
@@ -116,8 +110,8 @@ class TemplateDisplayManager:
         """
         from . import IconManager
 
-        console.print()
-        console.print("[bold]Files to be generated:[/bold]")
+        self.parent.text("")
+        self.parent.text("Files to be generated:", style="bold")
 
         def get_file_generation_info(file_path_str):
             file_path = Path(file_path_str)
@@ -135,5 +129,5 @@ class TemplateDisplayManager:
             get_file_generation_info,
         )
 
-        console.print(file_tree)
-        console.print()
+        self.parent._print_tree(file_tree)
+        self.parent.text("")

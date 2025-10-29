@@ -4,7 +4,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from .variable import Variable
-from .exceptions import VariableError
+from ..exceptions import VariableError
 
 
 class VariableSection:

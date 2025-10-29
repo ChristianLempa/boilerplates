@@ -259,21 +259,188 @@ class DisplayManager:
 
     # ===== Additional Methods =====
 
-    def display_heading(
-        self, text: str, icon_type: str | None = None, style: str = "bold"
-    ) -> None:
-        """Display a heading with optional icon.
+    def heading(self, text: str, style: str | None = None) -> None:
+        """Display a standardized heading.
 
         Args:
             text: Heading text
-            icon_type: Type of icon to display (e.g., 'folder', 'file', 'config')
-            style: Rich style to apply
+            style: Optional style override (defaults to STYLE_HEADER from settings)
         """
-        if icon_type:
-            icon = self._get_icon_by_type(icon_type)
-            console.print(f"[{style}]{icon} {text}[/{style}]")
-        else:
+        if style is None:
+            style = self.settings.STYLE_HEADER
+        console.print(f"[{style}]{text}[/{style}]")
+
+    def text(self, text: str, style: str | None = None) -> None:
+        """Display plain text with optional styling.
+
+        Args:
+            text: Text to display
+            style: Optional Rich style markup
+        """
+        if style:
             console.print(f"[{style}]{text}[/{style}]")
+        else:
+            console.print(text)
+
+    def error(self, text: str, style: str | None = None) -> None:
+        """Display error text to stderr.
+
+        Args:
+            text: Error text to display
+            style: Optional Rich style markup (defaults to red)
+        """
+        from rich.console import Console
+
+        console_err = Console(stderr=True)
+        if style is None:
+            style = "red"
+        console_err.print(f"[{style}]{text}[/{style}]")
+
+    def warning(self, text: str, style: str | None = None) -> None:
+        """Display warning text to stderr.
+
+        Args:
+            text: Warning text to display
+            style: Optional Rich style markup (defaults to yellow)
+        """
+        from rich.console import Console
+
+        console_err = Console(stderr=True)
+        if style is None:
+            style = "yellow"
+        console_err.print(f"[{style}]{text}[/{style}]")
+
+    def table(
+        self,
+        headers: list[str] | None = None,
+        rows: list[tuple] | None = None,
+        title: str | None = None,
+        show_header: bool = True,
+        borderless: bool = False,
+    ) -> None:
+        """Display a standardized table.
+
+        Args:
+            headers: Column headers (if None, no headers)
+            rows: List of tuples, one per row
+            title: Optional table title
+            show_header: Whether to show header row
+            borderless: If True, use borderless style (box=None)
+        """
+        from rich.table import Table
+
+        table = Table(
+            title=title,
+            show_header=show_header and headers is not None,
+            header_style=self.settings.STYLE_TABLE_HEADER,
+            box=None if borderless else None,  # Use default box unless borderless
+            padding=self.settings.PADDING_TABLE_NORMAL if borderless else (0, 1),
+        )
+
+        # Add columns
+        if headers:
+            for header in headers:
+                table.add_column(header)
+        elif rows and len(rows) > 0:
+            # No headers, but need columns for data
+            for _ in range(len(rows[0])):
+                table.add_column()
+
+        # Add rows
+        if rows:
+            for row in rows:
+                table.add_row(*[str(cell) for cell in row])
+
+        console.print(table)
+
+    def tree(self, root_label: str, nodes: dict | list) -> None:
+        """Display a tree structure.
+
+        Args:
+            root_label: Label for the root node
+            nodes: Hierarchical structure (dict or list)
+        """
+        from rich.tree import Tree
+
+        tree = Tree(root_label)
+        self._build_tree_nodes(tree, nodes)
+        console.print(tree)
+
+    def _build_tree_nodes(self, parent, nodes):
+        """Recursively build tree nodes.
+
+        Args:
+            parent: Parent tree node
+            nodes: Dict or list of child nodes
+        """
+        if isinstance(nodes, dict):
+            for key, value in nodes.items():
+                if isinstance(value, (dict, list)):
+                    branch = parent.add(str(key))
+                    self._build_tree_nodes(branch, value)
+                else:
+                    parent.add(f"{key}: {value}")
+        elif isinstance(nodes, list):
+            for item in nodes:
+                if isinstance(item, (dict, list)):
+                    self._build_tree_nodes(parent, item)
+                else:
+                    parent.add(str(item))
+
+    def _print_tree(self, tree) -> None:
+        """Print a pre-built Rich Tree object.
+
+        Args:
+            tree: Rich Tree object to print
+        """
+        console.print(tree)
+
+    def _print_table(self, table) -> None:
+        """Print a pre-built Rich Table object.
+
+        Enforces consistent header styling for all tables.
+
+        Args:
+            table: Rich Table object to print
+        """
+        # Enforce consistent header style for all tables
+        table.header_style = self.settings.STYLE_TABLE_HEADER
+        console.print(table)
+
+    def code(self, code_text: str, language: str | None = None) -> None:
+        """Display code with optional syntax highlighting.
+
+        Args:
+            code_text: Code to display
+            language: Programming language for syntax highlighting
+        """
+        from rich.syntax import Syntax
+
+        if language:
+            syntax = Syntax(code_text, language, theme="monokai", line_numbers=False)
+            console.print(syntax)
+        else:
+            # Plain code block without highlighting
+            console.print(f"[dim]{code_text}[/dim]")
+
+    def progress(self, *columns):
+        """Create a Rich Progress context manager with standardized console.
+
+        Args:
+            *columns: Progress columns (e.g., SpinnerColumn(), TextColumn())
+
+        Returns:
+            Progress context manager
+
+        Example:
+            with display.progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+                task = progress.add_task("Processing...", total=None)
+                # do work
+                progress.remove_task(task)
+        """
+        from rich.progress import Progress
+
+        return Progress(*columns, console=console)
 
     def get_lock_icon(self) -> str:
         """Get the lock icon for sensitive variables.

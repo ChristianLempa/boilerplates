@@ -23,7 +23,7 @@ Should **always** happen before pushing anything to the repository.
 
 - Use `yamllint` for YAML files
 - Use `ruff` for Python code:
-  - `ruff check --fix .` - Check and auto-fix linting errors
+  - `ruff check --fix .` - Check and auto-fix linting errors (including unused imports)
   - `ruff format .` - Format code according to style guidelines
   - Both commands must be run before committing
 
@@ -158,10 +158,16 @@ libraries:
 
 ### DisplayManager and IconManager
 
-External code should NEVER directly call `IconManager` or `console.print`, instead always use `DisplayManager` methods.
+**CRITICAL RULE - NEVER violate this:**
+- NEVER use `console.print()` outside of display manager classes (`cli/core/display/` directory)
+- NEVER import `Console` from `rich.console` except in display manager classes or `cli/__main__.py`
+- ALWAYS use `module_instance.display.display_*()` or `display.display_*()` methods for ALL output
+- Display managers (`cli/core/display/*.py`) are the ONLY exception - they implement console output
 
-- `DisplayManager` provides a **centralized interface** for ALL CLI output rendering (Use `display_***` methods from `DisplayManager` for ALL output)
-- `IconManager` provides **Nerd Font icons** internally for DisplayManager, don't use Emojis or direct console access
+**Rationale:**
+- `DisplayManager` provides a **centralized interface** for ALL CLI output rendering
+- Direct console usage bypasses formatting standards, icon management, and output consistency
+- `IconManager` provides **Nerd Font icons** internally for DisplayManager - never use emojis or direct icons
 
 **DisplayManager Architecture** (Refactored for Single Responsibility Principle):
 

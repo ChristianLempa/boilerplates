@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from rich.console import Console
 from rich.table import Table
 from rich.tree import Tree
 
@@ -11,7 +10,6 @@ if TYPE_CHECKING:
     from . import DisplayManager
 
 logger = logging.getLogger(__name__)
-console = Console()
 
 
 class TableDisplayManager:
@@ -44,7 +42,8 @@ class TableDisplayManager:
             return
 
         logger.info(f"Listing {len(templates)} templates for module '{module_name}'")
-        table = Table(title=title)
+        
+        table = Table()
         table.add_column("ID", style="bold", no_wrap=True)
         table.add_column("Name")
         table.add_column("Tags")
@@ -76,7 +75,7 @@ class TableDisplayManager:
 
             table.add_row(template.id, name, tags, version, schema, library_display)
 
-        console.print(table)
+        self.parent._print_table(table)
 
     def render_status_table(
         self,
@@ -93,7 +92,7 @@ class TableDisplayManager:
         """
         from . import IconManager
 
-        table = Table(title=title, show_header=True)
+        table = Table(show_header=True)
         table.add_column(columns[0], style="cyan", no_wrap=True)
         table.add_column(columns[1])
 
@@ -104,7 +103,7 @@ class TableDisplayManager:
                 name, f"[{status_style}]{status_icon} {message}[/{status_style}]"
             )
 
-        console.print(table)
+        self.parent._print_table(table)
 
     def render_summary_table(self, title: str, items: dict[str, str]) -> None:
         """Display a simple two-column summary table.
@@ -126,7 +125,7 @@ class TableDisplayManager:
         for key, value in items.items():
             table.add_row(key, value)
 
-        console.print(table)
+        self.parent._print_table(table)
 
     def render_file_operation_table(self, files: list[tuple[str, int, str]]) -> None:
         """Display a table of file operations with sizes and statuses.
@@ -137,7 +136,7 @@ class TableDisplayManager:
         settings = self.parent.settings
         table = Table(
             show_header=True,
-            header_style=settings.STYLE_HEADER_ALT,
+            header_style=settings.STYLE_TABLE_HEADER,
             box=None,
             padding=settings.PADDING_TABLE_COMPACT,
         )
@@ -149,7 +148,7 @@ class TableDisplayManager:
             size_str = self.parent._format_file_size(size_bytes)
             table.add_row(str(file_path), size_str, status)
 
-        console.print(table)
+        self.parent._print_table(table)
 
     def render_config_tree(
         self, spec: dict, module_name: str, show_all: bool = False
@@ -164,8 +163,8 @@ class TableDisplayManager:
         from . import IconManager
 
         if not spec:
-            console.print(
-                f"[yellow]No configuration found for module '{module_name}'[/yellow]"
+            self.parent.text(
+                f"No configuration found for module '{module_name}'", style="yellow"
             )
             return
 
@@ -239,4 +238,4 @@ class TableDisplayManager:
                             f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]"
                         )
 
-        console.print(tree)
+        self.parent._print_tree(tree)

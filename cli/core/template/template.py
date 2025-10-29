@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .collection import VariableCollection
-from .exceptions import (
+from .variable_collection import VariableCollection
+from ..exceptions import (
     TemplateLoadError,
     TemplateSyntaxError,
     TemplateValidationError,
@@ -9,7 +9,7 @@ from .exceptions import (
     YAMLParseError,
     IncompatibleSchemaVersionError,
 )
-from .version import is_compatible
+from ..version import is_compatible
 from pathlib import Path
 from typing import Any, Dict, List, Set, Optional, Literal
 from dataclasses import dataclass, field

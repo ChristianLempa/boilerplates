@@ -12,10 +12,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 import yaml
-from rich.console import Console
 
 logger = logging.getLogger(__name__)
-console = Console()
 
 
 class ValidationResult:
@@ -52,24 +50,28 @@ class ValidationResult:
         return len(self.warnings) > 0
 
     def display(self, context: str = "Validation") -> None:
-        """Display validation results to console."""
+        """Display validation results using DisplayManager."""
+        from ..display import DisplayManager
+
+        display = DisplayManager()
+
         if self.errors:
-            console.print(f"\n[red]✗ {context} Failed:[/red]")
+            display.error(f"\n✗ {context} Failed:")
             for error in self.errors:
-                console.print(f"  [red]• {error}[/red]")
+                display.error(f"  • {error}")
 
         if self.warnings:
-            console.print(f"\n[yellow]⚠ {context} Warnings:[/yellow]")
+            display.warning(f"\n⚠ {context} Warnings:")
             for warning in self.warnings:
-                console.print(f"  [yellow]• {warning}[/yellow]")
+                display.warning(f"  • {warning}")
 
         if self.info:
-            console.print(f"\n[blue]ℹ {context} Info:[/blue]")
+            display.text(f"\n[blue]ℹ {context} Info:[/blue]")
             for info_msg in self.info:
-                console.print(f"  [blue]• {info_msg}[/blue]")
+                display.text(f"  [blue]• {info_msg}[/blue]")
 
         if self.is_valid and not self.has_warnings:
-            console.print(f"\n[green]✓ {context} Passed[/green]")
+            display.text(f"\n[green]✓ {context} Passed[/green]")
 
 
 class ContentValidator(ABC):
