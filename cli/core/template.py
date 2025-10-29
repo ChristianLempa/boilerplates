@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class TemplateErrorHandler:
     """Handles parsing and formatting of template rendering errors.
-    
+
     This class provides utilities for:
     - Extracting error context from template files
     - Generating helpful suggestions based on Jinja2 errors
@@ -447,10 +447,12 @@ class Template:
             import importlib
 
             module = importlib.import_module(f"cli.modules.{kind}")
-            
+
             # Check if module has schema-specific specs (multi-schema support)
             # Try SCHEMAS constant first (uppercase), then schemas attribute
-            schemas = getattr(module, "SCHEMAS", None) or getattr(module, "schemas", None)
+            schemas = getattr(module, "SCHEMAS", None) or getattr(
+                module, "schemas", None
+            )
             if schemas and schema_version in schemas:
                 spec = schemas[schema_version]
                 logger.debug(
@@ -462,7 +464,7 @@ class Template:
                 logger.debug(
                     f"Loaded and cached module spec for kind '{kind}' (default/no schema mapping)"
                 )
-            
+
             return spec
         except Exception as e:
             raise ValueError(
@@ -562,7 +564,6 @@ class Template:
             raise TemplateSyntaxError(self.id, syntax_errors)
 
         return used_variables
-
 
     def _filter_specs_to_used(
         self,

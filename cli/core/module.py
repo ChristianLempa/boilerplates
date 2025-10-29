@@ -149,7 +149,7 @@ class Module(ABC):
     ) -> list[Template]:
         """List all templates."""
         logger.debug(f"Listing templates for module '{self.name}'")
-        
+
         # Load all templates using centralized helper
         filtered_templates = self._load_all_templates()
 
@@ -185,7 +185,7 @@ class Module(ABC):
         logger.debug(
             f"Searching templates for module '{self.name}' with query='{query}'"
         )
-        
+
         # Load templates with search filter using centralized helper
         filtered_templates = self._load_all_templates(
             lambda t: query.lower() in t.id.lower()
@@ -246,11 +246,13 @@ class Module(ABC):
 
             # Re-sort sections after applying config (toggle values may have changed)
             template.variables.sort_sections()
-            
+
             # Reset disabled bool variables to False to prevent confusion
             reset_vars = template.variables.reset_disabled_bool_variables()
             if reset_vars:
-                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+                logger.debug(
+                    f"Reset {len(reset_vars)} disabled bool variables to False"
+                )
 
         self.display.display_template(template, id)
 
@@ -308,16 +310,12 @@ class Module(ABC):
                 f"Variable file must contain a YAML dictionary, got {type(content).__name__}"
             )
 
-        logger.info(
-            f"Loaded {len(content)} variables from file: {var_path.name}"
-        )
+        logger.info(f"Loaded {len(content)} variables from file: {var_path.name}")
         logger.debug(f"Variables from file: {', '.join(content.keys())}")
 
         return content
 
-    def _apply_var_file(
-        self, template: Template, var_file_path: Optional[str]
-    ) -> None:
+    def _apply_var_file(self, template: Template, var_file_path: Optional[str]) -> None:
         """Apply variables from a YAML file to template.
 
         Args:
@@ -745,11 +743,13 @@ class Module(ABC):
         # Re-sort sections after all overrides (toggle values may have changed)
         if template.variables:
             template.variables.sort_sections()
-            
+
             # Reset disabled bool variables to False to prevent confusion
             reset_vars = template.variables.reset_disabled_bool_variables()
             if reset_vars:
-                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+                logger.debug(
+                    f"Reset {len(reset_vars)} disabled bool variables to False"
+                )
 
         if not quiet:
             self.display.display_template(template, id)
@@ -1378,4 +1378,3 @@ class Module(ABC):
             raise FileNotFoundError(
                 f"Template '{id}' could not be loaded: {exc}"
             ) from exc
-

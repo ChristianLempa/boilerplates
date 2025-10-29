@@ -92,7 +92,9 @@ class Variable:
             try:
                 self.value = self.convert(self.value)
             except ValueError as exc:
-                raise VariableValidationError(self.name, f"Invalid default value: {exc}")
+                raise VariableValidationError(
+                    self.name, f"Invalid default value: {exc}"
+                )
 
     def convert(self, value: Any) -> Any:
         """Validate and convert a raw value based on the variable type.
@@ -413,7 +415,7 @@ class Variable:
 
     def get_parent(self) -> Optional["VariableSection"]:
         """Get the parent VariableSection that contains this variable.
-        
+
         Returns:
             The parent VariableSection if set, None otherwise
         """

@@ -38,7 +38,9 @@ class PromptHandler:
         )  # Track which variables we've already prompted for
 
         # Process each section (only satisfied dependencies, include disabled for toggle handling)
-        for section_key, section in variables.iter_active_sections(include_disabled=True):
+        for section_key, section in variables.iter_active_sections(
+            include_disabled=True
+        ):
             if not section.variables:
                 continue
 
@@ -60,7 +62,9 @@ class PromptHandler:
                     # Prompt for toggle variable using standard variable prompting logic
                     # This ensures consistent handling of description, extra text, validation hints, etc.
                     current_value = toggle_var.convert(toggle_var.value)
-                    new_value = self._prompt_variable(toggle_var, required=section.required)
+                    new_value = self._prompt_variable(
+                        toggle_var, required=section.required
+                    )
 
                     if new_value != current_value:
                         collected[toggle_var.name] = new_value
