@@ -525,6 +525,47 @@ class VariableCollection:
 
         return result
 
+    def iter_active_sections(
+        self,
+        include_disabled: bool = False,
+        include_unsatisfied: bool = False,
+    ):
+        """Iterate over sections respecting dependencies and toggles.
+
+        This is the centralized iterator for processing sections with proper
+        filtering. It eliminates duplicate iteration logic across the codebase.
+
+        Args:
+            include_disabled: If True, include sections that are disabled via toggle
+            include_unsatisfied: If True, include sections with unsatisfied dependencies
+
+        Yields:
+            Tuple of (section_key, section) for each active section
+
+        Examples:
+            # Only enabled sections with satisfied dependencies (default)
+            for key, section in variables.iter_active_sections():
+                process(section)
+
+            # Include disabled sections but skip unsatisfied dependencies
+            for key, section in variables.iter_active_sections(include_disabled=True):
+                process(section)
+        """
+        for section_key, section in self._sections.items():
+            # Check dependencies first
+            if not include_unsatisfied and not self.is_section_satisfied(section_key):
+                logger.debug(
+                    f"Skipping section '{section_key}' - dependencies not satisfied"
+                )
+                continue
+
+            # Check enabled status
+            if not include_disabled and not section.is_enabled():
+                logger.debug(f"Skipping section '{section_key}' - section is disabled")
+                continue
+
+            yield section_key, section
+
     def get_sections(self) -> Dict[str, VariableSection]:
         """Get all sections in the collection."""
         return self._sections.copy()
