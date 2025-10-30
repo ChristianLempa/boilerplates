@@ -142,7 +142,7 @@ def apply_var_file(
             if successful:
                 logger.debug(f"Applied var-file overrides for: {', '.join(successful)}")
     except (FileNotFoundError, ValueError) as e:
-        display.display_error(
+        display.error(
             f"Failed to load variable file: {e}",
             context="variable file loading",
         )

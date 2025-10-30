@@ -3,27 +3,38 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .icon_manager import IconManager
+from .display_icons import IconManager
+from .display_settings import DisplaySettings
 
 if TYPE_CHECKING:
     from ..template import Template
-    from . import DisplayManager
+    from .display_base import BaseDisplay
+    from .display_variable import VariableDisplay
 
 
-class TemplateDisplayManager:
-    """Handles all template-related rendering.
+class TemplateDisplay:
+    """Template-related rendering.
 
-    This manager is responsible for displaying template information,
+    Provides methods for displaying template information,
     file trees, and metadata.
     """
 
-    def __init__(self, parent: DisplayManager):
-        """Initialize TemplateDisplayManager.
+    def __init__(
+        self,
+        settings: DisplaySettings,
+        base: BaseDisplay,
+        variables: VariableDisplay,
+    ):
+        """Initialize TemplateDisplay.
 
         Args:
-            parent: Reference to parent DisplayManager for accessing shared resources
+            settings: Display settings for formatting
+            base: BaseDisplay instance
+            variables: VariableDisplay instance for rendering variables
         """
-        self.parent = parent
+        self.settings = settings
+        self.base = base
+        self.variables = variables
 
     def render_template(self, template: Template, template_id: str) -> None:
         """Display template information panel and variables table.
@@ -34,7 +45,7 @@ class TemplateDisplayManager:
         """
         self.render_template_header(template, template_id)
         self.render_file_tree(template)
-        self.parent.variables.render_variables_table(template)
+        self.variables.render_variables_table(template)
 
     def render_template_header(self, template: Template, template_id: str) -> None:
         """Display the header for a template with library information.
@@ -43,7 +54,7 @@ class TemplateDisplayManager:
             template: Template instance
             template_id: ID of the template
         """
-        settings = self.parent.settings
+        settings = self.settings
 
         template_name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
         version = (
@@ -56,18 +67,18 @@ class TemplateDisplayManager:
         )
         description = template.metadata.description or settings.TEXT_NO_DESCRIPTION
 
-        # Get library information and format with helper
+        # Get library information and format with icon/color
         library_name = template.metadata.library or ""
         library_type = template.metadata.library_type or "git"
-        library_display = self.parent._format_library_display(
-            library_name, library_type
-        )
+        icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+        color = "yellow" if library_type == "static" else "blue"
+        library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
-        self.parent.text(
+        self.base.text(
             f"{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}",
             style=settings.STYLE_HEADER,
         )
-        self.parent.text(description)
+        self.base.text(description)
 
     def render_file_tree(self, template: Template) -> None:
         """Display the file structure of a template.
@@ -75,8 +86,8 @@ class TemplateDisplayManager:
         Args:
             template: Template instance
         """
-        self.parent.text("")
-        self.parent.heading("Template File Structure")
+        self.base.text("")
+        self.base.heading("Template File Structure")
 
         def get_template_file_info(template_file):
             display_name = (
@@ -86,14 +97,12 @@ class TemplateDisplayManager:
             )
             return (template_file.relative_path, display_name, "white", None)
 
-        file_tree = self.parent._render_file_tree_internal(
-            f"{IconManager.folder()} [white]{template.id}[/white]",
-            template.template_files,
-            get_template_file_info,
-        )
-
-        if file_tree.children:
-            self.parent._print_tree(file_tree)
+        if template.template_files:
+            self.base.file_tree(
+                f"{IconManager.folder()} [white]{template.id}[/white]",
+                template.template_files,
+                get_template_file_info,
+            )
 
     def render_file_generation_confirmation(
         self,
@@ -108,8 +117,8 @@ class TemplateDisplayManager:
             files: Dictionary of file paths to content
             existing_files: List of existing files that will be overwritten
         """
-        self.parent.text("")
-        self.parent.text("Files to be generated:", style="bold")
+        self.base.text("")
+        self.base.text("Files to be generated:", style="bold")
 
         def get_file_generation_info(file_path_str):
             file_path = Path(file_path_str)
@@ -121,11 +130,9 @@ class TemplateDisplayManager:
             else:
                 return (file_path, file_name, "green", None)
 
-        file_tree = self.parent._render_file_tree_internal(
+        self.base.file_tree(
             f"{IconManager.folder()} [cyan]{output_dir.resolve()}[/cyan]",
             files.keys(),
             get_file_generation_info,
         )
-
-        self.parent._print_tree(file_tree)
-        self.parent.text("")
+        self.base.text("")

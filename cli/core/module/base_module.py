@@ -337,5 +337,10 @@ class Module(ABC):
         )(module_instance.config_list)
         module_app.add_typer(defaults_app, name="defaults")
 
-        app.add_typer(module_app, name=cls.name, help=cls.description)
+        app.add_typer(
+            module_app,
+            name=cls.name,
+            help=cls.description,
+            rich_help_panel="Template Commands",
+        )
         logger.info(f"Module '{cls.name}' CLI commands registered")

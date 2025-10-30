@@ -101,7 +101,7 @@ class PromptHandler:
             if not section.variables:
                 continue
 
-            self.display.display_section(section.title, section.description)
+            self.display.section(section.title, section.description)
             section_enabled = self._handle_section_toggle(section, collected)
 
             for var_name, variable in section.variables.items():
@@ -197,7 +197,7 @@ class PromptHandler:
 
     def _show_validation_error(self, message: str) -> None:
         """Display validation feedback consistently."""
-        self.display.display_validation_error(message)
+        self.display.error(message)
 
     def _prompt_string(
         self, prompt_text: str, default: Any = None, is_sensitive: bool = False

@@ -10,10 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Variable file support with `--var-file` flag (#1331) - Load variables from YAML file for non-interactive deployments
 - Variable override support for `show` command with `--var` and `--var-file` flags (#1421) - Preview variable overrides before generating
+- Terraform template support (#1422) - Manage Terraform configurations with schema 1.0
+- Kubernetes template support (#1423) - Manage Kubernetes configurations with schema 1.0
+- Helm template support (#1424) - Manage Helm charts with schema 1.0
+- Ansible template support (#1426) - Manage Ansible playbooks with schema 1.0
+- Packer template support (#1427) - Manage Packer templates with schema 1.0
+- Alphabetically sorted commands in help output with grouped panels for better organization
+- Separate help panels for "Template Commands" and "Configuration Commands"
 
 ### Changed
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
-- Refactored code quality (#1364) for all core modules from single files to package structure with specific submodules 
+- Refactored code quality (#1364) for all core modules from single files to package structure with specific submodules
+- Improved debug logging to capture module discovery and registration during initialization
 
 ## [0.0.7] - 2025-10-28
 

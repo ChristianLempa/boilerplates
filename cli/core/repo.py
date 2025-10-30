@@ -207,9 +207,9 @@ def _process_library_update(
 
     if verbose:
         if success:
-            display.display_success(f"{name}: {message}")
+            display.success(f"{name}: {message}")
         else:
-            display.display_error(f"{name}: {message}")
+            display.error(f"{name}: {message}")
 
     return (name, message, success)
 
@@ -249,7 +249,7 @@ def update(
     libraries = config.get_libraries()
 
     if not libraries:
-        display.display_warning("No libraries configured")
+        display.warning("No libraries configured")
         display.text(
             "Libraries are auto-configured on first run with a default library."
         )
@@ -405,7 +405,7 @@ def add(
     try:
         if library_type == "git":
             if not url:
-                display.display_error("--url is required for git libraries")
+                display.error("--url is required for git libraries")
                 return
             config.add_library(
                 name,
@@ -417,24 +417,24 @@ def add(
             )
         elif library_type == "static":
             if not path:
-                display.display_error("--path is required for static libraries")
+                display.error("--path is required for static libraries")
                 return
             config.add_library(name, library_type="static", path=path, enabled=enabled)
         else:
-            display.display_error(
+            display.error(
                 f"Invalid library type: {library_type}. Must be 'git' or 'static'."
             )
             return
 
-        display.display_success(f"Added {library_type} library '{name}'")
+        display.success(f"Added {library_type} library '{name}'")
 
         if library_type == "git" and sync and enabled:
             display.text(f"\nSyncing library '{name}'...")
             update(library_name=name, verbose=True)
         elif library_type == "static":
-            display.display_info(f"Static library points to: {path}")
+            display.info(f"Static library points to: {path}")
     except ConfigError as e:
-        display.display_error(str(e))
+        display.error(str(e))
 
 
 @app.command()
@@ -450,7 +450,7 @@ def remove(
     try:
         # Remove from config
         config.remove_library(name)
-        display.display_success(f"Removed library '{name}' from configuration")
+        display.success(f"Removed library '{name}' from configuration")
 
         # Delete local files unless --keep-files is specified
         if not keep_files:
@@ -459,14 +459,14 @@ def remove(
 
             if library_path.exists():
                 shutil.rmtree(library_path)
-                display.display_success(f"Deleted local files at {library_path}")
+                display.success(f"Deleted local files at {library_path}")
             else:
-                display.display_info(f"No local files found at {library_path}")
+                display.info(f"No local files found at {library_path}")
     except ConfigError as e:
-        display.display_error(str(e))
+        display.error(str(e))
 
 
 # Register the repo command with the CLI
 def register_cli(parent_app: Typer) -> None:
     """Register the repo command with the parent Typer app."""
-    parent_app.add_typer(app, name="repo")
+    parent_app.add_typer(app, name="repo", rich_help_panel="Configuration Commands")

@@ -15,20 +15,32 @@ from pathlib import Path
 import click
 from rich.console import Console
 from typer import Option, Typer
+from typer.core import TyperGroup
 
 import cli.modules
 from cli import __version__
 from cli.core import repo
+from cli.core.display import DisplayManager
 from cli.core.registry import registry
 
-# Using standard Python exceptions instead of custom ones
+
+class OrderedGroup(TyperGroup):
+    """Typer Group that lists commands in alphabetical order."""
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        return sorted(super().list_commands(ctx))
+
 
 app = Typer(
     help="CLI tool for managing infrastructure boilerplates.\n\n[dim]Easily generate, customize, and deploy templates for Docker Compose, Terraform, Kubernetes, and more.\n\n [white]Made with 💜 by [bold]Christian Lempa[/bold]",
     add_completion=True,
     rich_markup_mode="rich",
+    pretty_exceptions_enable=False,
+    no_args_is_help=True,
+    cls=OrderedGroup,
 )
 console = Console()
+display = DisplayManager()
 
 
 def setup_logging(log_level: str = "WARNING") -> None:
@@ -151,7 +163,7 @@ def _register_module_classes(logger: logging.Logger) -> tuple[list, list[str]]:
             error_info = f"Registration failed for '{module_cls.__name__}': {e!s}"
             failed_registrations.append(error_info)
             logger.warning(error_info)
-            console.print(f"[yellow]Warning:[/yellow] {error_info}")
+            display.warning(error_info)
 
     return module_classes, failed_registrations
 
@@ -180,6 +192,8 @@ def init_app() -> None:
         RuntimeError: If application initialization fails
     """
     logger = logging.getLogger(__name__)
+    failed_imports = []
+    failed_registrations = []
 
     try:
         # Auto-discover and import all modules
@@ -215,25 +229,36 @@ def init_app() -> None:
 
 def run() -> None:
     """Run the CLI application."""
+    # Configure logging early if --log-level is provided
+    if "--log-level" in sys.argv:
+        try:
+            log_level_index = sys.argv.index("--log-level") + 1
+            if log_level_index < len(sys.argv):
+                log_level = sys.argv[log_level_index]
+                logging.disable(logging.NOTSET)
+                setup_logging(log_level)
+        except (ValueError, IndexError):
+            pass  # Let Typer handle argument parsing errors
+
     try:
         init_app()
         app()
     except (ValueError, RuntimeError) as e:
         # Handle configuration and initialization errors cleanly
-        console.print(f"[bold red]Error:[/bold red] {e}")
+        display.error(str(e))
         sys.exit(1)
     except ImportError as e:
         # Handle module import errors with detailed info
-        console.print(f"[bold red]Module Import Error:[/bold red] {e}")
+        display.error(f"Module Import Error: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
         # Handle Ctrl+C gracefully
-        console.print("\n[yellow]Operation cancelled by user[/yellow]")
+        display.warning("Operation cancelled by user")
         sys.exit(130)
     except Exception as e:
         # Handle unexpected errors - show simplified message
-        console.print(f"[bold red]Unexpected error:[/bold red] {e}")
-        console.print("[dim]Use --log-level DEBUG for more details[/dim]")
+        display.error(str(e))
+        display.info("Use --log-level DEBUG for more details")
         sys.exit(1)
 
 

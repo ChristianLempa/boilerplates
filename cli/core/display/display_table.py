@@ -6,28 +6,73 @@ from typing import TYPE_CHECKING
 from rich.table import Table
 from rich.tree import Tree
 
-from .icon_manager import IconManager
+from .display_icons import IconManager
+from .display_settings import DisplaySettings
 
 if TYPE_CHECKING:
-    from . import DisplayManager
+    from .display_base import BaseDisplay
 
 logger = logging.getLogger(__name__)
 
 
-class TableDisplayManager:
-    """Handles table rendering.
+class TableDisplay:
+    """Table rendering.
 
-    This manager is responsible for displaying various types of tables
-    including templates lists, status tables, and summaries.
+    Provides methods for displaying data tables with flexible formatting.
     """
 
-    def __init__(self, parent: DisplayManager):
-        """Initialize TableDisplayManager.
+    def __init__(self, settings: DisplaySettings, base: BaseDisplay):
+        """Initialize TableDisplay.
 
         Args:
-            parent: Reference to parent DisplayManager for accessing shared resources
+            settings: Display settings for formatting
+            base: BaseDisplay instance for utility methods
         """
-        self.parent = parent
+        self.settings = settings
+        self.base = base
+
+    def data_table(
+        self,
+        columns: list[dict],
+        rows: list,
+        title: str | None = None,
+        row_formatter: callable | None = None,
+    ) -> None:
+        """Display a data table with configurable columns and formatting.
+
+        Args:
+            columns: List of column definitions, each dict with:
+                     - name: Column header text
+                     - style: Optional Rich style (e.g., "bold", "cyan")
+                     - no_wrap: Optional bool to prevent text wrapping
+                     - justify: Optional justify ("left", "right", "center")
+            rows: List of data rows (dicts, tuples, or objects)
+            title: Optional table title
+            row_formatter: Optional function(row) -> tuple to transform row data
+        """
+        table = Table(title=title, show_header=True)
+
+        # Add columns
+        for col in columns:
+            table.add_column(
+                col["name"],
+                style=col.get("style"),
+                no_wrap=col.get("no_wrap", False),
+                justify=col.get("justify", "left"),
+            )
+
+        # Add rows
+        for row in rows:
+            if row_formatter:
+                formatted_row = row_formatter(row)
+            elif isinstance(row, dict):
+                formatted_row = tuple(str(row.get(col["name"], "")) for col in columns)
+            else:
+                formatted_row = tuple(str(cell) for cell in row)
+
+            table.add_row(*formatted_row)
+
+        self.base._print_table(table)
 
     def render_templates_table(
         self, templates: list, module_name: str, title: str
@@ -52,7 +97,7 @@ class TableDisplayManager:
         table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
-        settings = self.parent.settings
+        settings = self.settings
 
         for template in templates:
             name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
@@ -67,16 +112,16 @@ class TableDisplayManager:
                 else "1.0"
             )
 
-            # Use helper for library display
+            # Format library with icon and color
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
-            library_display = self.parent._format_library_display(
-                library_name, library_type
-            )
+            icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+            color = "yellow" if library_type == "static" else "blue"
+            library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
             table.add_row(template.id, name, tags, version, schema, library_display)
 
-        self.parent._print_table(table)
+        self.base._print_table(table)
 
     def render_status_table(
         self,
@@ -102,7 +147,7 @@ class TableDisplayManager:
                 name, f"[{status_style}]{status_icon} {message}[/{status_style}]"
             )
 
-        self.parent._print_table(table)
+        self.base._print_table(table)
 
     def render_summary_table(self, title: str, items: dict[str, str]) -> None:
         """Display a simple two-column summary table.
@@ -111,7 +156,7 @@ class TableDisplayManager:
             title: Table title
             items: Dictionary of key-value pairs to display
         """
-        settings = self.parent.settings
+        settings = self.settings
         table = Table(
             title=title,
             show_header=False,
@@ -124,7 +169,7 @@ class TableDisplayManager:
         for key, value in items.items():
             table.add_row(key, value)
 
-        self.parent._print_table(table)
+        self.base._print_table(table)
 
     def render_file_operation_table(self, files: list[tuple[str, int, str]]) -> None:
         """Display a table of file operations with sizes and statuses.
@@ -132,7 +177,7 @@ class TableDisplayManager:
         Args:
             files: List of tuples (file_path, size_bytes, status)
         """
-        settings = self.parent.settings
+        settings = self.settings
         table = Table(
             show_header=True,
             header_style=settings.STYLE_TABLE_HEADER,
@@ -144,10 +189,10 @@ class TableDisplayManager:
         table.add_column("Status", style=settings.COLOR_WARNING)
 
         for file_path, size_bytes, status in files:
-            size_str = self.parent._format_file_size(size_bytes)
+            size_str = self.base.format_file_size(size_bytes)
             table.add_row(str(file_path), size_str, status)
 
-        self.parent._print_table(table)
+        self.base._print_table(table)
 
     def _build_section_label(
         self,
@@ -193,10 +238,10 @@ class TableDisplayManager:
         label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
 
         if var_default is not None and var_default != "":
-            settings = self.parent.settings
+            settings = self.settings
             display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
             if not var_sensitive:
-                display_val = self.parent._truncate_value(
+                display_val = self.base.truncate(
                     display_val, settings.VALUE_MAX_LENGTH_DEFAULT
                 )
             label += (
@@ -233,7 +278,7 @@ class TableDisplayManager:
             show_all: If True, show all details including descriptions
         """
         if not spec:
-            self.parent.text(
+            self.base.text(
                 f"No configuration found for module '{module_name}'", style="yellow"
             )
             return
@@ -258,4 +303,4 @@ class TableDisplayManager:
             if section_vars:
                 self._add_section_variables(section_node, section_vars, show_all)
 
-        self.parent._print_tree(tree)
+        self.base._print_tree(tree)

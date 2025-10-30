@@ -1,0 +1,16 @@
+output "connector_id" {
+  description = "Twingate Connector ID"
+  value       = twingate_connector.{{ resource_name }}_connector.id
+}
+
+output "access_token" {
+  description = "Twingate Connector Access Token"
+  value       = twingate_connector_tokens.{{ resource_name }}_tokens.access_token
+  sensitive   = true
+}
+
+output "refresh_token" {
+  description = "Twingate Connector Refresh Token"
+  value       = twingate_connector_tokens.{{ resource_name }}_tokens.refresh_token
+  sensitive   = true
+}

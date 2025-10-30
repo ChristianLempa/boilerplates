@@ -4,27 +4,30 @@ from typing import TYPE_CHECKING
 
 from rich.table import Table
 
-from .icon_manager import IconManager
+from .display_icons import IconManager
+from .display_settings import DisplaySettings
 
 if TYPE_CHECKING:
     from ..template import Template
-    from . import DisplayManager
+    from .display_base import BaseDisplay
 
 
-class VariableDisplayManager:
-    """Handles all variable-related rendering.
+class VariableDisplay:
+    """Variable-related rendering.
 
-    This manager is responsible for displaying variables, sections,
+    Provides methods for displaying variables, sections,
     and their values with appropriate formatting based on context.
     """
 
-    def __init__(self, parent: DisplayManager):
-        """Initialize VariableDisplayManager.
+    def __init__(self, settings: DisplaySettings, base: BaseDisplay):
+        """Initialize VariableDisplay.
 
         Args:
-            parent: Reference to parent DisplayManager for accessing shared resources
+            settings: Display settings for formatting
+            base: BaseDisplay instance
         """
-        self.parent = parent
+        self.settings = settings
+        self.base = base
 
     def render_variable_value(
         self,
@@ -61,7 +64,7 @@ class VariableDisplayManager:
             and hasattr(variable, "_original_stored")
             and variable.original_value != variable.value
         ):
-            settings = self.parent.settings
+            settings = self.settings
             orig = self._format_value(
                 variable,
                 variable.original_value,
@@ -81,7 +84,7 @@ class VariableDisplayManager:
             return f"{orig} [bold {settings.COLOR_WARNING}]{IconManager.arrow_right()} {curr}[/bold {settings.COLOR_WARNING}]"
 
         # Default formatting
-        settings = self.parent.settings
+        settings = self.settings
         value = variable.get_display_value(
             mask_sensitive=True,
             max_length=settings.VALUE_MAX_LENGTH_DEFAULT,
@@ -102,7 +105,7 @@ class VariableDisplayManager:
         Returns:
             Formatted value string
         """
-        settings = self.parent.settings
+        settings = self.settings
 
         if variable.sensitive:
             return settings.SENSITIVE_MASK
@@ -110,7 +113,7 @@ class VariableDisplayManager:
             return f"[{settings.COLOR_MUTED}]({settings.TEXT_EMPTY_VALUE})[/{settings.COLOR_MUTED}]"
 
         val_str = str(value)
-        return self.parent._truncate_value(val_str, max_length)
+        return self.base.truncate(val_str, max_length)
 
     def render_section(self, title: str, description: str | None) -> None:
         """Display a section header.
@@ -119,15 +122,15 @@ class VariableDisplayManager:
             title: Section title
             description: Optional section description
         """
-        settings = self.parent.settings
+        settings = self.settings
         if description:
-            self.parent.text(
+            self.base.text(
                 f"\n{title} - {description}",
                 style=f"{settings.STYLE_SECTION_TITLE} {settings.STYLE_SECTION_DESC}",
             )
         else:
-            self.parent.text(f"\n{title}", style=settings.STYLE_SECTION_TITLE)
-        self.parent.text(
+            self.base.text(f"\n{title}", style=settings.STYLE_SECTION_TITLE)
+        self.base.text(
             settings.SECTION_SEPARATOR_CHAR * settings.SECTION_SEPARATOR_LENGTH,
             style=settings.COLOR_MUTED,
         )
@@ -142,7 +145,7 @@ class VariableDisplayManager:
         Returns:
             Formatted header text with Rich markup
         """
-        settings = self.parent.settings
+        settings = self.settings
         # Show (disabled) label if section has a toggle and is not enabled
         disabled_text = (
             settings.LABEL_DISABLED
@@ -171,7 +174,7 @@ class VariableDisplayManager:
         Returns:
             Tuple of (var_display, type, default_val, description, row_style)
         """
-        settings = self.parent.settings
+        settings = self.settings
 
         # Build row style
         row_style = (
@@ -210,9 +213,9 @@ class VariableDisplayManager:
         if not (template.variables and template.variables.has_sections()):
             return
 
-        settings = self.parent.settings
-        self.parent.text("")
-        self.parent.heading("Template Variables")
+        settings = self.settings
+        self.base.text("")
+        self.base.heading("Template Variables")
 
         variables_table = Table(
             show_header=True, header_style=settings.STYLE_TABLE_HEADER
@@ -267,4 +270,4 @@ class VariableDisplayManager:
                     var_display, var_type, default_val, description, style=row_style
                 )
 
-        self.parent._print_table(variables_table)
+        self.base._print_table(variables_table)

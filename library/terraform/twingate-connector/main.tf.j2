@@ -1,0 +1,25 @@
+terraform {
+  required_providers {
+    twingate = {
+      source  = "Twingate/twingate"
+      version = "~> 3.0"
+    }
+  }
+{% if backend_mode == "http" %}
+  backend "http" {
+  }
+{% endif %}
+}
+
+provider "twingate" {
+  network = "{{ twingate_network }}"
+}
+
+resource "twingate_connector" "{{ resource_name }}_connector" {
+  remote_network_id = var.remote_network_id
+  name              = "{{ twingate_connector_name }}"
+}
+
+resource "twingate_connector_tokens" "{{ resource_name }}_tokens" {
+  connector_id = twingate_connector.{{ resource_name }}_connector.id
+}

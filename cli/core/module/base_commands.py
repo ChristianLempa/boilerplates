@@ -6,16 +6,17 @@ import logging
 import os
 from pathlib import Path
 
-from rich.prompt import Confirm
+from jinja2 import Template as Jinja2Template
 from typer import Exit
 
 from ..config import ConfigManager
-from ..display import DisplayManager
+from ..display import DisplayManager, IconManager
 from ..exceptions import (
     TemplateRenderError,
     TemplateSyntaxError,
     TemplateValidationError,
 )
+from ..input import InputManager
 from ..template import Template
 from ..validators import get_validator_registry
 from .helpers import (
@@ -54,10 +55,32 @@ def list_templates(module_instance, raw: bool = False) -> list:
                 print(f"{template.id}\t{name}\t{tags}\t{version}\t{library}")
         else:
             # Output rich table format
-            module_instance.display.display_templates_table(
-                filtered_templates,
-                module_instance.name,
-                f"{module_instance.name.capitalize()} templates",
+            def format_template_row(template):
+                name = template.metadata.name or "Unnamed Template"
+                tags_list = template.metadata.tags or []
+                tags = ", ".join(tags_list) if tags_list else "-"
+                version = str(template.metadata.version) if template.metadata.version else ""
+                schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+                library_name = template.metadata.library or ""
+                library_type = template.metadata.library_type or "git"
+                # Format library with icon and color
+                icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+                color = "yellow" if library_type == "static" else "blue"
+                library_display = f"[{color}]{icon} {library_name}[/{color}]"
+                return (template.id, name, tags, version, schema, library_display)
+
+            module_instance.display.data_table(
+                columns=[
+                    {"name": "ID", "style": "bold", "no_wrap": True},
+                    {"name": "Name"},
+                    {"name": "Tags"},
+                    {"name": "Version", "no_wrap": True},
+                    {"name": "Schema", "no_wrap": True},
+                    {"name": "Library", "no_wrap": True},
+                ],
+                rows=filtered_templates,
+                title=f"{module_instance.name.capitalize()} templates",
+                row_formatter=format_template_row,
             )
     else:
         logger.info(f"No templates found for module '{module_instance.name}'")
@@ -80,16 +103,38 @@ def search_templates(module_instance, query: str) -> list:
         logger.info(
             f"Found {len(filtered_templates)} templates matching '{query}' for module '{module_instance.name}'"
         )
-        module_instance.display.display_templates_table(
-            filtered_templates,
-            module_instance.name,
-            f"{module_instance.name.capitalize()} templates matching '{query}'",
+        def format_template_row(template):
+            name = template.metadata.name or "Unnamed Template"
+            tags_list = template.metadata.tags or []
+            tags = ", ".join(tags_list) if tags_list else "-"
+            version = str(template.metadata.version) if template.metadata.version else ""
+            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            library_name = template.metadata.library or ""
+            library_type = template.metadata.library_type or "git"
+            # Format library with icon and color
+            icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+            color = "yellow" if library_type == "static" else "blue"
+            library_display = f"[{color}]{icon} {library_name}[/{color}]"
+            return (template.id, name, tags, version, schema, library_display)
+
+        module_instance.display.data_table(
+            columns=[
+                {"name": "ID", "style": "bold", "no_wrap": True},
+                {"name": "Name"},
+                {"name": "Tags"},
+                {"name": "Version", "no_wrap": True},
+                {"name": "Schema", "no_wrap": True},
+                {"name": "Library", "no_wrap": True},
+            ],
+            rows=filtered_templates,
+            title=f"{module_instance.name.capitalize()} templates matching '{query}'",
+            row_formatter=format_template_row,
         )
     else:
         logger.info(
             f"No templates found matching '{query}' for module '{module_instance.name}'"
         )
-        module_instance.display.display_warning(
+        module_instance.display.warning(
             f"No templates found matching '{query}'",
             context=f"module '{module_instance.name}'",
         )
@@ -105,7 +150,7 @@ def show_template(
     template = module_instance._load_template_by_id(id)
 
     if not template:
-        module_instance.display.display_error(
+        module_instance.display.error(
             f"Template '{id}' not found", context=f"module '{module_instance.name}'"
         )
         return
@@ -125,7 +170,12 @@ def show_template(
         if reset_vars:
             logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
 
-    module_instance.display.display_template(template, id)
+    # Display template header
+    module_instance.display.templates.render_template_header(template, id)
+    # Display file tree
+    module_instance.display.templates.render_file_tree(template)
+    # Display variables table
+    module_instance.display.variables.render_variables_table(template)
 
 
 def check_output_directory(
@@ -149,16 +199,13 @@ def check_output_directory(
     # Warn if directory is not empty
     if dir_not_empty:
         if interactive:
-            details = []
+            display.warning(f"Directory '{output_dir}' is not empty.")
             if existing_files:
-                details.append(f"{len(existing_files)} file(s) will be overwritten.")
+                display.text(f"  {len(existing_files)} file(s) will be overwritten.")
 
-            if not display.display_warning_with_confirmation(
-                f"Directory '{output_dir}' is not empty.",
-                details if details else None,
-                default=False,
-            ):
-                display.display_info("Generation cancelled")
+            input_mgr = InputManager()
+            if not input_mgr.confirm("Continue?", default=False):
+                display.info("Generation cancelled")
                 return None
         else:
             # Non-interactive mode: show warning but continue
@@ -182,18 +229,17 @@ def get_generation_confirmation(
     if not interactive:
         return True
 
-    display.display_file_generation_confirmation(
+    # Use templates.render_file_generation_confirmation directly for now
+    display.templates.render_file_generation_confirmation(
         output_dir, rendered_files, existing_files if existing_files else None
     )
 
     # Final confirmation (only if we didn't already ask about overwriting)
-    if (
-        not dir_not_empty
-        and not dry_run
-        and not Confirm.ask("Generate these files?", default=True)
-    ):
-        display.display_info("Generation cancelled")
-        return False
+    if not dir_not_empty and not dry_run:
+        input_mgr = InputManager()
+        if not input_mgr.confirm("Generate these files?", default=True):
+            display.info("Generation cancelled")
+            return False
 
     return True
 
@@ -201,20 +247,20 @@ def get_generation_confirmation(
 def _check_directory_permissions(output_dir: Path, display: DisplayManager) -> None:
     """Check directory existence and write permissions."""
     if output_dir.exists():
-        display.display_success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
+        display.success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
         if os.access(output_dir, os.W_OK):
-            display.display_success("Write permission verified")
+            display.success("Write permission verified")
         else:
-            display.display_warning("Write permission may be denied")
+            display.warning("Write permission may be denied")
     else:
-        display.display_info(
+        display.info(
             f"  [dim]→[/dim] Would create output directory: [cyan]{output_dir}[/cyan]"
         )
         parent = output_dir.parent
         if parent.exists() and os.access(parent, os.W_OK):
-            display.display_success("Parent directory writable")
+            display.success("Parent directory writable")
         else:
-            display.display_warning("Parent directory may not be writable")
+            display.warning("Parent directory may not be writable")
 
 
 def _collect_subdirectories(rendered_files: dict[str, str]) -> set[Path]:
@@ -271,11 +317,9 @@ def execute_dry_run(
     display: DisplayManager,
 ) -> None:
     """Execute dry run mode with comprehensive simulation."""
-    display.display_info("")
-    display.display_info(
-        "[bold cyan]Dry Run Mode - Simulating File Generation[/bold cyan]"
-    )
-    display.display_info("")
+    display.info("")
+    display.info("[bold cyan]Dry Run Mode - Simulating File Generation[/bold cyan]")
+    display.info("")
 
     # Simulate directory creation
     display.heading("Directory Operations")
@@ -284,48 +328,53 @@ def execute_dry_run(
     # Collect and display subdirectories
     subdirs = _collect_subdirectories(rendered_files)
     if subdirs:
-        display.display_info(
-            f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)"
-        )
+        display.info(f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)")
         for subdir in sorted(subdirs):
-            display.display_info(f"    [dim]📁[/dim] {subdir}/")
+            display.info(f"    [dim]📁[/dim] {subdir}/")
 
-    display.display_info("")
+    display.info("")
 
     # Display file operations in a table
     display.heading("File Operations")
     file_operations, total_size, new_files, overwrite_files = _analyze_file_operations(
         output_dir, rendered_files
     )
-    display.display_file_operation_table(file_operations)
-    display.display_info("")
+    # Use data_table for file operations
+    display.data_table(
+        columns=[
+            {"name": "File", "no_wrap": False},
+            {"name": "Size", "justify": "right", "style": "dim"},
+            {"name": "Status", "style": "yellow"},
+        ],
+        rows=file_operations,
+        row_formatter=lambda row: (str(row[0]), display.format_file_size(row[1]), row[2]),
+    )
+    display.info("")
 
     # Summary statistics
     size_str = _format_size(total_size)
-    summary_items = {
-        "Total files:": str(len(rendered_files)),
-        "New files:": str(new_files),
-        "Files to overwrite:": str(overwrite_files),
-        "Total size:": size_str,
-    }
-    display.display_summary_table("Summary", summary_items)
-    display.display_info("")
+    summary_rows = [
+        ("Total files:", str(len(rendered_files))),
+        ("New files:", str(new_files)),
+        ("Files to overwrite:", str(overwrite_files)),
+        ("Total size:", size_str),
+    ]
+    display.table(headers=None, rows=summary_rows, title="Summary", show_header=False, borderless=True)
+    display.info("")
 
     # Show file contents if requested
     if show_files:
-        display.display_info("[bold cyan]Generated File Contents:[/bold cyan]")
-        display.display_info("")
+        display.info("[bold cyan]Generated File Contents:[/bold cyan]")
+        display.info("")
         for file_path, content in sorted(rendered_files.items()):
-            display.display_info(f"[cyan]File:[/cyan] {file_path}")
-            display.display_info(f"{'─' * 80}")
-            display.display_info(content)
-            display.display_info("")  # Add blank line after content
-        display.display_info("")
+            display.info(f"[cyan]File:[/cyan] {file_path}")
+            display.info(f"{'─' * 80}")
+            display.info(content)
+            display.info("")  # Add blank line after content
+        display.info("")
 
-    display.display_success("Dry run complete - no files were written")
-    display.display_info(
-        f"[dim]Files would have been generated in '{output_dir}'[/dim]"
-    )
+    display.success("Dry run complete - no files were written")
+    display.info(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
     logger.info(
         f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes"
     )
@@ -346,10 +395,10 @@ def write_generated_files(
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)
         if not quiet:
-            display.display_success(f"Generated file: {file_path}")
+            display.success(f"Generated file: {file_path}")
 
     if not quiet:
-        display.display_success(f"Template generated successfully in '{output_dir}'")
+        display.success(f"Template generated successfully in '{output_dir}'")
     logger.info(f"Template written to directory: {output_dir}")
 
 
@@ -389,7 +438,7 @@ def _render_template(template, id: str, display: DisplayManager, interactive: bo
     )
 
     if not rendered_files:
-        display.display_error(
+        display.error(
             "Template rendering returned no files",
             context="template generation",
         )
@@ -433,8 +482,13 @@ def generate_template(
     template = _prepare_template(module_instance, id, var_file, var, display)
 
     if not quiet:
-        module_instance.display.display_template(template, id)
-        module_instance.display.display_info("")
+        # Display template header
+        module_instance.display.templates.render_template_header(template, id)
+        # Display file tree
+        module_instance.display.templates.render_file_tree(template)
+        # Display variables table
+        module_instance.display.variables.render_variables_table(template)
+        module_instance.display.info("")
 
     try:
         rendered_files, variable_values = _render_template(
@@ -471,13 +525,21 @@ def generate_template(
 
         # Display next steps (not in quiet mode)
         if template.metadata.next_steps and not quiet:
-            display.display_next_steps(template.metadata.next_steps, variable_values)
+            display.heading("Next Steps")
+            try:
+                next_steps_template = Jinja2Template(template.metadata.next_steps)
+                rendered_next_steps = next_steps_template.render(variable_values)
+                display.text(rendered_next_steps)
+            except Exception as e:
+                logger.warning(f"Failed to render next_steps as template: {e}")
+                # Fallback to plain text if rendering fails
+                display.text(template.metadata.next_steps)
 
     except TemplateRenderError as e:
-        display.display_template_render_error(e, context=f"template '{id}'")
+        display.error(str(e), context=f"template '{id}'")
         raise Exit(code=1) from None
     except Exception as e:
-        display.display_error(str(e), context=f"generating template '{id}'")
+        display.error(str(e), context=f"generating template '{id}'")
         raise Exit(code=1) from None
 
 
@@ -505,19 +567,19 @@ def _load_template_for_validation(module_instance, template_id: str, path: str |
     if path:
         template_path = Path(path).resolve()
         if not template_path.exists():
-            module_instance.display.display_error(f"Path does not exist: {path}")
+            module_instance.display.error(f"Path does not exist: {path}")
             raise Exit(code=1) from None
         if not template_path.is_dir():
-            module_instance.display.display_error(f"Path is not a directory: {path}")
+            module_instance.display.error(f"Path is not a directory: {path}")
             raise Exit(code=1) from None
 
-        module_instance.display.display_info(
+        module_instance.display.info(
             f"[bold]Validating template from path:[/bold] [cyan]{template_path}[/cyan]"
         )
         try:
             return Template(template_path, library_name="local")
         except Exception as e:
-            module_instance.display.display_error(
+            module_instance.display.error(
                 f"Failed to load template from path '{path}': {e}"
             )
             raise Exit(code=1) from None
@@ -525,12 +587,12 @@ def _load_template_for_validation(module_instance, template_id: str, path: str |
     if template_id:
         try:
             template = module_instance._load_template_by_id(template_id)
-            module_instance.display.display_info(
+            module_instance.display.info(
                 f"[bold]Validating template:[/bold] [cyan]{template_id}[/cyan]"
             )
             return template
         except Exception as e:
-            module_instance.display.display_error(
+            module_instance.display.error(
                 f"Failed to load template '{template_id}': {e}"
             )
             raise Exit(code=1) from None
@@ -546,7 +608,7 @@ def _validate_single_template(
         # Jinja2 validation
         _ = template.used_variables
         _ = template.variables
-        module_instance.display.display_success("Jinja2 validation passed")
+        module_instance.display.success("Jinja2 validation passed")
 
         # Semantic validation
         if semantic:
@@ -557,16 +619,14 @@ def _validate_single_template(
             _display_validation_details(module_instance, template, semantic)
 
     except TemplateRenderError as e:
-        module_instance.display.display_template_render_error(
-            e, context=f"template '{template_id}'"
-        )
+        module_instance.display.error(str(e), context=f"template '{template_id}'")
         raise Exit(code=1) from None
     except (TemplateSyntaxError, TemplateValidationError, ValueError) as e:
-        module_instance.display.display_error(f"Validation failed for '{template_id}':")
-        module_instance.display.display_info(f"\n{e}")
+        module_instance.display.error(f"Validation failed for '{template_id}':")
+        module_instance.display.info(f"\n{e}")
         raise Exit(code=1) from None
     except Exception as e:
-        module_instance.display.display_error(
+        module_instance.display.error(
             f"Unexpected error validating '{template_id}': {e}"
         )
         raise Exit(code=1) from None
@@ -574,8 +634,8 @@ def _validate_single_template(
 
 def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
     """Run semantic validation on rendered template files."""
-    module_instance.display.display_info("")
-    module_instance.display.display_info(
+    module_instance.display.info("")
+    module_instance.display.info(
         "[bold cyan]Running semantic validation...[/bold cyan]"
     )
 
@@ -588,38 +648,36 @@ def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
         result = registry.validate_file(content, file_path)
 
         if result.errors or result.warnings or (verbose and result.info):
-            module_instance.display.display_info(f"\n[cyan]File:[/cyan] {file_path}")
+            module_instance.display.info(f"\n[cyan]File:[/cyan] {file_path}")
             result.display(f"{file_path}")
 
             if result.errors:
                 has_semantic_errors = True
 
     if has_semantic_errors:
-        module_instance.display.display_error("Semantic validation found errors")
+        module_instance.display.error("Semantic validation found errors")
         raise Exit(code=1) from None
 
-    module_instance.display.display_success("Semantic validation passed")
+    module_instance.display.success("Semantic validation passed")
 
 
 def _display_validation_details(module_instance, template, semantic: bool) -> None:
     """Display verbose validation details."""
-    module_instance.display.display_info(
-        f"\n[dim]Template path: {template.template_dir}[/dim]"
-    )
-    module_instance.display.display_info(
+    module_instance.display.info(f"\n[dim]Template path: {template.template_dir}[/dim]")
+    module_instance.display.info(
         f"[dim]Found {len(template.used_variables)} variables[/dim]"
     )
     if semantic:
         debug_mode = logger.isEnabledFor(logging.DEBUG)
         rendered_files, _ = template.render(template.variables, debug=debug_mode)
-        module_instance.display.display_info(
+        module_instance.display.info(
             f"[dim]Generated {len(rendered_files)} files[/dim]"
         )
 
 
 def _validate_all_templates(module_instance, verbose: bool) -> None:
     """Validate all templates in the module."""
-    module_instance.display.display_info(
+    module_instance.display.info(
         f"[bold]Validating all {module_instance.name} templates...[/bold]"
     )
 
@@ -636,34 +694,34 @@ def _validate_all_templates(module_instance, verbose: bool) -> None:
             _ = template.variables
             valid_count += 1
             if verbose:
-                module_instance.display.display_success(template.id)
+                module_instance.display.success(template.id)
         except ValueError as e:
             invalid_count += 1
             errors.append((template.id, str(e)))
             if verbose:
-                module_instance.display.display_error(template.id)
+                module_instance.display.error(template.id)
         except Exception as e:
             invalid_count += 1
             errors.append((template.id, f"Load error: {e}"))
             if verbose:
-                module_instance.display.display_warning(template.id)
+                module_instance.display.warning(template.id)
 
     # Display summary
-    summary_items = {
-        "Total templates:": str(total),
-        "[green]Valid:[/green]": str(valid_count),
-        "[red]Invalid:[/red]": str(invalid_count),
-    }
-    module_instance.display.display_summary_table("Validation Summary", summary_items)
+    summary_rows = [
+        ("Total templates:", str(total)),
+        ("[green]Valid:[/green]", str(valid_count)),
+        ("[red]Invalid:[/red]", str(invalid_count)),
+    ]
+    module_instance.display.table(headers=None, rows=summary_rows, title="Validation Summary", show_header=False, borderless=True)
 
     if errors:
-        module_instance.display.display_info("")
-        module_instance.display.display_error("Validation Errors:")
+        module_instance.display.info("")
+        module_instance.display.error("Validation Errors:")
         for template_id, error_msg in errors:
-            module_instance.display.display_info(
+            module_instance.display.info(
                 f"\n[yellow]Template:[/yellow] [cyan]{template_id}[/cyan]"
             )
-            module_instance.display.display_info(f"[dim]{error_msg}[/dim]")
+            module_instance.display.info(f"[dim]{error_msg}[/dim]")
         raise Exit(code=1)
 
-    module_instance.display.display_success("All templates are valid!")
+    module_instance.display.success("All templates are valid!")
