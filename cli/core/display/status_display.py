@@ -205,6 +205,67 @@ class StatusDisplayManager:
 
         return Confirm.ask("Continue?", default=default)
 
+    def _display_error_header(self, icon: str, context: str | None) -> None:
+        """Display error header with optional context."""
+        if context:
+            console_err.print(
+                f"\n[red bold]{icon} Template Rendering Error[/red bold] [dim]({context})[/dim]"
+            )
+        else:
+            console_err.print(f"\n[red bold]{icon} Template Rendering Error[/red bold]")
+        console_err.print()
+
+    def _display_error_location(self, error: TemplateRenderError) -> None:
+        """Display error file path and location."""
+        if not error.file_path:
+            return
+
+        console_err.print(f"[red]Error in file:[/red] [cyan]{error.file_path}[/cyan]")
+        if error.line_number:
+            location = f"Line {error.line_number}"
+            if error.column:
+                location += f", Column {error.column}"
+            console_err.print(f"[red]Location:[/red] {location}")
+
+    def _display_code_context(self, error: TemplateRenderError) -> None:
+        """Display code context with syntax highlighting."""
+        if not error.context_lines:
+            return
+
+        console_err.print("[bold cyan]Code Context:[/bold cyan]")
+        context_text = "\n".join(error.context_lines)
+
+        # Determine lexer for syntax highlighting
+        lexer = self._get_lexer_for_file(error.file_path)
+
+        # Try to display with syntax highlighting, fallback to plain on error
+        try:
+            self._display_syntax_panel(context_text, lexer)
+        except Exception:
+            console_err.print(Panel(context_text, border_style="red", padding=(1, 2)))
+
+        console_err.print()
+
+    def _get_lexer_for_file(self, file_path: str | None) -> str | None:
+        """Determine lexer based on file extension."""
+        if not file_path:
+            return None
+
+        file_ext = Path(file_path).suffix
+        if file_ext == ".j2":
+            base_name = Path(file_path).stem
+            base_ext = Path(base_name).suffix
+            return "jinja2" if not base_ext else None
+        return None
+
+    def _display_syntax_panel(self, text: str, lexer: str | None) -> None:
+        """Display text in a panel with optional syntax highlighting."""
+        if lexer:
+            syntax = Syntax(text, lexer, line_numbers=False, theme="monokai")
+            console_err.print(Panel(syntax, border_style="red", padding=(1, 2)))
+        else:
+            console_err.print(Panel(text, border_style="red", padding=(1, 2)))
+
     def display_template_render_error(
         self, error: TemplateRenderError, context: str | None = None
     ) -> None:
@@ -214,67 +275,21 @@ class StatusDisplayManager:
             error: TemplateRenderError exception with detailed error information
             context: Optional context information (e.g., template ID)
         """
-        # Always display errors to stderr
+        # Display error header
         icon = IconManager.get_status_icon("error")
-        if context:
-            console_err.print(
-                f"\n[red bold]{icon} Template Rendering Error[/red bold] [dim]({context})[/dim]"
-            )
-        else:
-            console_err.print(f"\n[red bold]{icon} Template Rendering Error[/red bold]")
+        self._display_error_header(icon, context)
 
-        console_err.print()
+        # Display error location
+        self._display_error_location(error)
 
         # Display error message
-        if error.file_path:
-            console_err.print(
-                f"[red]Error in file:[/red] [cyan]{error.file_path}[/cyan]"
-            )
-            if error.line_number:
-                location = f"Line {error.line_number}"
-                if error.column:
-                    location += f", Column {error.column}"
-                console_err.print(f"[red]Location:[/red] {location}")
-
         console_err.print(
             f"[red]Message:[/red] {str(error.original_error) if error.original_error else str(error)}"
         )
         console_err.print()
 
-        # Display code context if available
-        if error.context_lines:
-            console_err.print("[bold cyan]Code Context:[/bold cyan]")
-
-            # Build the context text
-            context_text = "\n".join(error.context_lines)
-
-            # Display in a panel with syntax highlighting if possible
-            file_ext = Path(error.file_path).suffix if error.file_path else ""
-            if file_ext == ".j2":
-                # Remove .j2 to get base extension for syntax highlighting
-                base_name = Path(error.file_path).stem
-                base_ext = Path(base_name).suffix
-                lexer = "jinja2" if not base_ext else None
-            else:
-                lexer = None
-
-            try:
-                if lexer:
-                    syntax = Syntax(
-                        context_text, lexer, line_numbers=False, theme="monokai"
-                    )
-                    console_err.print(Panel(syntax, border_style="red", padding=(1, 2)))
-                else:
-                    console_err.print(
-                        Panel(context_text, border_style="red", padding=(1, 2))
-                    )
-            except Exception:
-                # Fallback to plain panel if syntax highlighting fails
-                console_err.print(
-                    Panel(context_text, border_style="red", padding=(1, 2))
-                )
-
-            console_err.print()
+        # Display code context
+        self._display_code_context(error)
 
         # Display suggestions if available
         if error.suggestions:

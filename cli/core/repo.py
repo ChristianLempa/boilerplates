@@ -74,7 +74,9 @@ def _clone_or_pull_repo(
         return _clone_new_repo(name, url, target_path, branch, sparse_dir)
 
 
-def _pull_repo_updates(name: str, target_path: Path, branch: str | None) -> tuple[bool, str]:
+def _pull_repo_updates(
+    name: str, target_path: Path, branch: str | None
+) -> tuple[bool, str]:
     """Pull updates for an existing repository."""
     logger.debug(f"Pulling updates for library '{name}' at {target_path}")
 
@@ -114,34 +116,24 @@ def _clone_sparse_repo(
 ) -> tuple[bool, str]:
     """Clone repository with sparse-checkout."""
     logger.debug(f"Using sparse-checkout for directory: {sparse_dir}")
-
     target_path.mkdir(parents=True, exist_ok=True)
 
-    # Initialize git repo
-    success, stdout, stderr = _run_git_command(["init"], cwd=target_path)
-    if not success:
-        return False, f"Failed to initialize repo: {stderr or stdout}"
+    # Define git operations to perform sequentially
+    operations = [
+        (["init"], "Failed to initialize repo"),
+        (["remote", "add", "origin", url], "Failed to add remote"),
+        (["sparse-checkout", "init", "--no-cone"], "Failed to enable sparse-checkout"),
+        (
+            ["sparse-checkout", "set", f"{sparse_dir}/*"],
+            "Failed to set sparse-checkout directory",
+        ),
+    ]
 
-    # Add remote
-    success, stdout, stderr = _run_git_command(
-        ["remote", "add", "origin", url], cwd=target_path
-    )
-    if not success:
-        return False, f"Failed to add remote: {stderr or stdout}"
-
-    # Enable sparse-checkout
-    success, stdout, stderr = _run_git_command(
-        ["sparse-checkout", "init", "--no-cone"], cwd=target_path
-    )
-    if not success:
-        return False, f"Failed to enable sparse-checkout: {stderr or stdout}"
-
-    # Set sparse-checkout directory
-    success, stdout, stderr = _run_git_command(
-        ["sparse-checkout", "set", f"{sparse_dir}/*"], cwd=target_path
-    )
-    if not success:
-        return False, f"Failed to set sparse-checkout directory: {stderr or stdout}"
+    # Execute initial operations
+    for cmd, error_msg in operations:
+        success, stdout, stderr = _run_git_command(cmd, cwd=target_path)
+        if not success:
+            return False, f"{error_msg}: {stderr or stdout}"
 
     # Fetch and checkout
     fetch_branch = branch if branch else "main"
@@ -151,11 +143,17 @@ def _clone_sparse_repo(
     if not success:
         return False, f"Fetch failed: {stderr or stdout}"
 
-    success, stdout, stderr = _run_git_command(["checkout", fetch_branch], cwd=target_path)
-    if not success:
-        return False, f"Checkout failed: {stderr or stdout}"
+    success, stdout, stderr = _run_git_command(
+        ["checkout", fetch_branch], cwd=target_path
+    )
+    result_success = success
+    result_msg = (
+        "Cloned successfully (sparse)"
+        if success
+        else f"Checkout failed: {stderr or stdout}"
+    )
 
-    return True, "Cloned successfully (sparse)"
+    return result_success, result_msg
 
 
 def _clone_full_repo(
@@ -175,6 +173,64 @@ def _clone_full_repo(
         error_msg = stderr or stdout
         logger.error(f"Failed to clone library '{name}': {error_msg}")
         return False, f"Clone failed: {error_msg}"
+
+
+def _process_library_update(
+    lib: dict, libraries_path: Path, progress, verbose: bool
+) -> tuple[str, str, bool]:
+    """Process a single library update and return result."""
+    name = lib.get("name")
+    lib_type = lib.get("type", "git")
+    enabled = lib.get("enabled", True)
+
+    if not enabled:
+        if verbose:
+            display.text(f"Skipping disabled library: {name}", style="dim")
+        return (name, "Skipped (disabled)", False)
+
+    if lib_type == "static":
+        if verbose:
+            display.text(
+                f"Skipping static library: {name} (no sync needed)", style="dim"
+            )
+        return (name, "N/A (static)", True)
+
+    # Handle git libraries
+    url = lib.get("url")
+    branch = lib.get("branch")
+    directory = lib.get("directory", "library")
+
+    task = progress.add_task(f"Updating {name}...", total=None)
+    target_path = libraries_path / name
+    success, message = _clone_or_pull_repo(name, url, target_path, branch, directory)
+    progress.remove_task(task)
+
+    if verbose:
+        if success:
+            display.display_success(f"{name}: {message}")
+        else:
+            display.display_error(f"{name}: {message}")
+
+    return (name, message, success)
+
+
+def _display_update_summary(results: list[tuple[str, str, bool]]) -> None:
+    """Display update summary."""
+    total = len(results)
+    successful = sum(1 for _, _, success in results if success)
+
+    display.text("")
+    if successful == total:
+        display.text(
+            f"All libraries updated successfully ({successful}/{total})", style="green"
+        )
+    elif successful > 0:
+        display.text(
+            f"Partially successful: {successful}/{total} libraries updated",
+            style="yellow",
+        )
+    else:
+        display.text("Failed to update libraries", style="red")
 
 
 @app.command()
@@ -207,56 +263,14 @@ def update(
             return
 
     libraries_path = config.get_libraries_path()
-
-    # Create results table
     results = []
 
     with display.progress(
         SpinnerColumn(), TextColumn("[progress.description]{task.description}")
     ) as progress:
         for lib in libraries:
-            name = lib.get("name")
-            lib_type = lib.get("type", "git")
-            enabled = lib.get("enabled", True)
-
-            if not enabled:
-                if verbose:
-                    display.text(f"Skipping disabled library: {name}", style="dim")
-                results.append((name, "Skipped (disabled)", False))
-                continue
-
-            # Skip static libraries (no sync needed)
-            if lib_type == "static":
-                if verbose:
-                    display.text(
-                        f"Skipping static library: {name} (no sync needed)", style="dim"
-                    )
-                results.append((name, "N/A (static)", True))
-                continue
-
-            # Handle git libraries
-            url = lib.get("url")
-            branch = lib.get("branch")
-            directory = lib.get("directory", "library")
-
-            task = progress.add_task(f"Updating {name}...", total=None)
-
-            # Target path: ~/.config/boilerplates/libraries/{name}/
-            target_path = libraries_path / name
-
-            # Clone or pull the repository with sparse-checkout if directory is specified
-            success, message = _clone_or_pull_repo(
-                name, url, target_path, branch, directory
-            )
-
-            results.append((name, message, success))
-            progress.remove_task(task)
-
-            if verbose:
-                if success:
-                    display.display_success(f"{name}: {message}")
-                else:
-                    display.display_error(f"{name}: {message}")
+            result = _process_library_update(lib, libraries_path, progress, verbose)
+            results.append(result)
 
     # Display summary table
     if not verbose:
@@ -264,22 +278,69 @@ def update(
             "Library Update Summary", results, columns=("Library", "Status")
         )
 
-    # Summary
-    total = len(results)
-    successful = sum(1 for _, _, success in results if success)
+    _display_update_summary(results)
 
-    display.text("")
-    if successful == total:
-        display.text(
-            f"All libraries updated successfully ({successful}/{total})", style="green"
-        )
-    elif successful > 0:
-        display.text(
-            f"Partially successful: {successful}/{total} libraries updated",
-            style="yellow",
-        )
+
+def _get_library_path_for_git(lib: dict, libraries_path: Path, name: str) -> Path:
+    """Get library path for git library type."""
+    directory = lib.get("directory", "library")
+    library_base = libraries_path / name
+    if directory and directory != ".":
+        return library_base / directory
     else:
-        display.text("Failed to update libraries", style="red")
+        return library_base
+
+
+def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
+    """Get library path for static library type."""
+    url_or_path = lib.get("path", "")
+    library_path = Path(url_or_path).expanduser()
+    if not library_path.is_absolute():
+        library_path = (config.config_path.parent / library_path).resolve()
+    return library_path
+
+
+def _get_library_info(
+    lib: dict, config: ConfigManager, libraries_path: Path
+) -> tuple[str, str, str, str, bool]:
+    """Extract library information based on type."""
+    name = lib.get("name", "")
+    lib_type = lib.get("type", "git")
+    enabled = lib.get("enabled", True)
+
+    if lib_type == "git":
+        url_or_path = lib.get("url", "")
+        branch = lib.get("branch", "main")
+        directory = lib.get("directory", "library")
+        library_path = _get_library_path_for_git(lib, libraries_path, name)
+        exists = library_path.exists()
+
+    elif lib_type == "static":
+        url_or_path = lib.get("path", "")
+        branch = "-"
+        directory = "-"
+        library_path = _get_library_path_for_static(lib, config)
+        exists = library_path.exists()
+
+    else:
+        # Unknown type
+        url_or_path = "<unknown type>"
+        branch = "-"
+        directory = "-"
+        exists = False
+
+    # Build status string
+    status_parts = []
+    if not enabled:
+        status_parts.append("[dim]disabled[/dim]")
+    elif exists:
+        status_parts.append("[green]available[/green]")
+    else:
+        status_parts.append("[yellow]not found[/yellow]")
+
+    status = " ".join(status_parts)
+
+    return url_or_path, branch, directory, lib_type, status
 
 
 @app.command()
@@ -309,52 +370,9 @@ def list() -> None:
 
     for lib in libraries:
         name = lib.get("name", "")
-        lib_type = lib.get("type", "git")
-        enabled = lib.get("enabled", True)
-
-        if lib_type == "git":
-            url_or_path = lib.get("url", "")
-            branch = lib.get("branch", "main")
-            directory = lib.get("directory", "library")
-
-            # Check if library exists locally
-            library_base = libraries_path / name
-            if directory and directory != ".":
-                library_path = library_base / directory
-            else:
-                library_path = library_base
-            exists = library_path.exists()
-
-        elif lib_type == "static":
-            url_or_path = lib.get("path", "")
-            branch = "-"
-            directory = "-"
-
-            # Check if static path exists
-            library_path = Path(url_or_path).expanduser()
-            if not library_path.is_absolute():
-                library_path = (config.config_path.parent / library_path).resolve()
-            exists = library_path.exists()
-
-        else:
-            # Unknown type
-            url_or_path = "<unknown type>"
-            branch = "-"
-            directory = "-"
-            exists = False
-
-        type_display = lib_type
-
-        status_parts = []
-        if not enabled:
-            status_parts.append("[dim]disabled[/dim]")
-        elif exists:
-            status_parts.append("[green]available[/green]")
-        else:
-            status_parts.append("[yellow]not found[/yellow]")
-
-        status = " ".join(status_parts)
-
+        url_or_path, branch, directory, type_display, status = _get_library_info(
+            lib, config, libraries_path
+        )
         table.add_row(name, url_or_path, branch, directory, type_display, status)
 
     display._print_table(table)
@@ -440,7 +458,6 @@ def remove(
             library_path = libraries_path / name
 
             if library_path.exists():
-
                 shutil.rmtree(library_path)
                 display.display_success(f"Deleted local files at {library_path}")
             else:

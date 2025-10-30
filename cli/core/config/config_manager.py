@@ -13,7 +13,6 @@ from ..exceptions import ConfigError, ConfigValidationError, YAMLParseError
 logger = logging.getLogger(__name__)
 
 
-
 class ConfigManager:
     """Manages configuration for the CLI application."""
 
@@ -109,7 +108,6 @@ class ConfigManager:
                 logger.info("Config migration completed successfully")
         except Exception as e:
             logger.warning(f"Config migration failed: {e}")
-
 
     def _read_config(self) -> dict[str, Any]:
         """Read configuration from file.
@@ -244,13 +242,19 @@ class ConfigManager:
 
         for i, library in enumerate(config["libraries"]):
             if not isinstance(library, dict):
-                raise ConfigValidationError(f"Library at index {i} must be a dictionary")
+                raise ConfigValidationError(
+                    f"Library at index {i} must be a dictionary"
+                )
 
             if "name" not in library:
-                raise ConfigValidationError(f"Library at index {i} missing required field 'name'")
+                raise ConfigValidationError(
+                    f"Library at index {i} missing required field 'name'"
+                )
 
             lib_type = library.get("type", "git")
-            if lib_type == "git" and ("url" not in library or "directory" not in library):
+            if lib_type == "git" and (
+                "url" not in library or "directory" not in library
+            ):
                 raise ConfigValidationError(
                     f"Git library at index {i} missing required fields 'url' and/or 'directory'"
                 )
@@ -478,7 +482,9 @@ class ConfigManager:
         # Type-specific validation
         if library_type == "git":
             if not url or not directory:
-                raise ConfigValidationError("Git libraries require 'url' and 'directory' parameters")
+                raise ConfigValidationError(
+                    "Git libraries require 'url' and 'directory' parameters"
+                )
 
             library_config = {
                 "name": name,

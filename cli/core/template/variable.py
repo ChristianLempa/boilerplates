@@ -319,29 +319,31 @@ class Variable:
 
         # Type-specific handlers
         if self.type == "enum":
-            if not self.options:
-                return typed
-            return (
-                self.options[0]
-                if typed is None or str(typed) not in self.options
-                else str(typed)
+            result = (
+                typed
+                if not self.options
+                else (
+                    self.options[0]
+                    if typed is None or str(typed) not in self.options
+                    else str(typed)
+                )
             )
-
-        if self.type == "bool":
-            return (
+        elif self.type == "bool":
+            result = (
                 typed
                 if isinstance(typed, bool)
                 else (None if typed is None else bool(typed))
             )
-
-        if self.type == "int":
+        elif self.type == "int":
             try:
-                return int(typed) if typed not in (None, "") else None
+                result = int(typed) if typed not in (None, "") else None
             except Exception:
-                return None
+                result = None
+        else:
+            # Default: return string or None
+            result = None if typed is None else str(typed)
 
-        # Default: return string or None
-        return None if typed is None else str(typed)
+        return result
 
     def get_prompt_text(self) -> str:
         """Get formatted prompt text for interactive input.

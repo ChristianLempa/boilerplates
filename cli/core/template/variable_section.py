@@ -132,43 +132,31 @@ class VariableSection:
 
         return cloned
 
-    def sort_variables(self, is_need_satisfied_func=None) -> None:
-        """Sort variables within section for optimal display and user interaction.
-
-        Current sorting strategy:
-        - Variables with no dependencies come first
-        - Variables that depend on others come after their dependencies (topological sort)
-        - Original order is preserved for variables at the same dependency level
-
-        Future sorting strategies can be added here (e.g., by type, required first, etc.)
-
-        Args:
-            is_need_satisfied_func: Optional function to check if a variable need is satisfied
-                                   (reserved for future use in conditional sorting)
-        """
-        if not self.variables:
-            return
-
-        # Build dependency graph
-        var_list = list(self.variables.keys())
+    def _build_dependency_graph(self, var_list: list[str]) -> dict[str, list[str]]:
+        """Build dependency graph for variables in this section."""
         var_set = set(var_list)
-
-        # For each variable, find which OTHER variables in THIS section it depends on
         dependencies = {var_name: [] for var_name in var_list}
+
         for var_name in var_list:
             variable = self.variables[var_name]
-            if variable.needs:
-                for need in variable.needs:
-                    # Parse need format: "variable_name=value"
-                    dep_var = need.split("=")[0] if "=" in need else need
-                    # Only track dependencies within THIS section
-                    if dep_var in var_set and dep_var != var_name:
-                        dependencies[var_name].append(dep_var)
+            if not variable.needs:
+                continue
 
-        # Topological sort using Kahn's algorithm
+            for need in variable.needs:
+                # Parse need format: "variable_name=value"
+                dep_var = need.split("=")[0] if "=" in need else need
+                # Only track dependencies within THIS section
+                if dep_var in var_set and dep_var != var_name:
+                    dependencies[var_name].append(dep_var)
+
+        return dependencies
+
+    def _topological_sort(
+        self, var_list: list[str], dependencies: dict[str, list[str]]
+    ) -> list[str]:
+        """Perform topological sort using Kahn's algorithm."""
         in_degree = {var_name: len(deps) for var_name, deps in dependencies.items()}
         queue = [var for var, degree in in_degree.items() if degree == 0]
-        # Preserve original order for variables with same dependency level
         queue.sort(key=lambda v: var_list.index(v))
         result = []
 
@@ -186,12 +174,32 @@ class VariableSection:
 
         # If not all variables were sorted (cycle), append remaining in original order
         if len(result) != len(var_list):
-            for var_name in var_list:
-                if var_name not in result:
-                    result.append(var_name)
+            result.extend(var_name for var_name in var_list if var_name not in result)
+
+        return result
+
+    def sort_variables(self, is_need_satisfied_func=None) -> None:
+        """Sort variables within section for optimal display and user interaction.
+
+        Current sorting strategy:
+        - Variables with no dependencies come first
+        - Variables that depend on others come after their dependencies (topological sort)
+        - Original order is preserved for variables at the same dependency level
+
+        Future sorting strategies can be added here (e.g., by type, required first, etc.)
+
+        Args:
+            is_need_satisfied_func: Optional function to check if a variable need is satisfied
+                                   (reserved for future use in conditional sorting)
+        """
+        if not self.variables:
+            return
+
+        var_list = list(self.variables.keys())
+        dependencies = self._build_dependency_graph(var_list)
+        result = self._topological_sort(var_list, dependencies)
 
         # Rebuild variables OrderedDict in new order
-        sorted_vars = OrderedDict()
-        for var_name in result:
-            sorted_vars[var_name] = self.variables[var_name]
-        self.variables = sorted_vars
+        self.variables = OrderedDict(
+            (var_name, self.variables[var_name]) for var_name in result
+        )

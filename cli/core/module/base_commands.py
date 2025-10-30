@@ -97,8 +97,10 @@ def search_templates(module_instance, query: str) -> list:
     return filtered_templates
 
 
-def show_template(module_instance, id: str) -> None:
-    """Show template details."""
+def show_template(
+    module_instance, id: str, var: list[str] | None = None, var_file: str | None = None
+) -> None:
+    """Show template details with optional variable overrides."""
     logger.debug(f"Showing template '{id}' from module '{module_instance.name}'")
     template = module_instance._load_template_by_id(id)
 
@@ -108,20 +110,14 @@ def show_template(module_instance, id: str) -> None:
         )
         return
 
-    # Apply config defaults (same as in generate)
-    # This ensures the display shows the actual defaults that will be used
+    # Apply defaults and overrides (same precedence as generate command)
     if template.variables:
         config = ConfigManager()
-        config_defaults = config.get_defaults(module_instance.name)
+        apply_variable_defaults(template, config, module_instance.name)
+        apply_var_file(template, var_file, module_instance.display)
+        apply_cli_overrides(template, var)
 
-        if config_defaults:
-            logger.debug(f"Loading config defaults for module '{module_instance.name}'")
-            # Apply config defaults (this respects the variable types and validation)
-            successful = template.variables.apply_defaults(config_defaults, "config")
-            if successful:
-                logger.debug(f"Applied config defaults for: {', '.join(successful)}")
-
-        # Re-sort sections after applying config (toggle values may have changed)
+        # Re-sort sections after applying overrides (toggle values may have changed)
         template.variables.sort_sections()
 
         # Reset disabled bool variables to False to prevent confusion
@@ -202,6 +198,71 @@ def get_generation_confirmation(
     return True
 
 
+def _check_directory_permissions(output_dir: Path, display: DisplayManager) -> None:
+    """Check directory existence and write permissions."""
+    if output_dir.exists():
+        display.display_success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
+        if os.access(output_dir, os.W_OK):
+            display.display_success("Write permission verified")
+        else:
+            display.display_warning("Write permission may be denied")
+    else:
+        display.display_info(
+            f"  [dim]→[/dim] Would create output directory: [cyan]{output_dir}[/cyan]"
+        )
+        parent = output_dir.parent
+        if parent.exists() and os.access(parent, os.W_OK):
+            display.display_success("Parent directory writable")
+        else:
+            display.display_warning("Parent directory may not be writable")
+
+
+def _collect_subdirectories(rendered_files: dict[str, str]) -> set[Path]:
+    """Collect unique subdirectories from file paths."""
+    subdirs = set()
+    for file_path in rendered_files:
+        parts = Path(file_path).parts
+        for i in range(1, len(parts)):
+            subdirs.add(Path(*parts[:i]))
+    return subdirs
+
+
+def _analyze_file_operations(
+    output_dir: Path, rendered_files: dict[str, str]
+) -> tuple[list[tuple[str, int, str]], int, int, int]:
+    """Analyze file operations and return statistics."""
+    total_size = 0
+    new_files = 0
+    overwrite_files = 0
+    file_operations = []
+
+    for file_path, content in sorted(rendered_files.items()):
+        full_path = output_dir / file_path
+        file_size = len(content.encode("utf-8"))
+        total_size += file_size
+
+        if full_path.exists():
+            status = "Overwrite"
+            overwrite_files += 1
+        else:
+            status = "Create"
+            new_files += 1
+
+        file_operations.append((file_path, file_size, status))
+
+    return file_operations, total_size, new_files, overwrite_files
+
+
+def _format_size(total_size: int) -> str:
+    """Format byte size into human-readable string."""
+    if total_size < BYTES_PER_KB:
+        return f"{total_size}B"
+    elif total_size < BYTES_PER_MB:
+        return f"{total_size / BYTES_PER_KB:.1f}KB"
+    else:
+        return f"{total_size / BYTES_PER_MB:.1f}MB"
+
+
 def execute_dry_run(
     id: str,
     output_dir: Path,
@@ -218,33 +279,10 @@ def execute_dry_run(
 
     # Simulate directory creation
     display.heading("Directory Operations")
+    _check_directory_permissions(output_dir, display)
 
-    # Check if output directory exists
-    if output_dir.exists():
-        display.display_success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
-        # Check if we have write permissions
-        if os.access(output_dir, os.W_OK):
-            display.display_success("Write permission verified")
-        else:
-            display.display_warning("Write permission may be denied")
-    else:
-        display.display_info(
-            f"  [dim]→[/dim] Would create output directory: [cyan]{output_dir}[/cyan]"
-        )
-        # Check if parent directory exists and is writable
-        parent = output_dir.parent
-        if parent.exists() and os.access(parent, os.W_OK):
-            display.display_success("Parent directory writable")
-        else:
-            display.display_warning("Parent directory may not be writable")
-
-    # Collect unique subdirectories that would be created
-    subdirs = set()
-    for file_path in rendered_files:
-        parts = Path(file_path).parts
-        for i in range(1, len(parts)):
-            subdirs.add(Path(*parts[:i]))
-
+    # Collect and display subdirectories
+    subdirs = _collect_subdirectories(rendered_files)
     if subdirs:
         display.display_info(
             f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)"
@@ -256,38 +294,14 @@ def execute_dry_run(
 
     # Display file operations in a table
     display.heading("File Operations")
-
-    total_size = 0
-    new_files = 0
-    overwrite_files = 0
-    file_operations = []
-
-    for file_path, content in sorted(rendered_files.items()):
-        full_path = output_dir / file_path
-        file_size = len(content.encode("utf-8"))
-        total_size += file_size
-
-        # Determine status
-        if full_path.exists():
-            status = "Overwrite"
-            overwrite_files += 1
-        else:
-            status = "Create"
-            new_files += 1
-
-        file_operations.append((file_path, file_size, status))
-
+    file_operations, total_size, new_files, overwrite_files = _analyze_file_operations(
+        output_dir, rendered_files
+    )
     display.display_file_operation_table(file_operations)
     display.display_info("")
 
     # Summary statistics
-    if total_size < BYTES_PER_KB:
-        size_str = f"{total_size}B"
-    elif total_size < BYTES_PER_MB:
-        size_str = f"{total_size / BYTES_PER_KB:.1f}KB"
-    else:
-        size_str = f"{total_size / BYTES_PER_MB:.1f}MB"
-
+    size_str = _format_size(total_size)
     summary_items = {
         "Total files:": str(len(rendered_files)),
         "New files:": str(new_files),
@@ -339,6 +353,66 @@ def write_generated_files(
     logger.info(f"Template written to directory: {output_dir}")
 
 
+def _prepare_template(
+    module_instance,
+    id: str,
+    var_file: str | None,
+    var: list[str] | None,
+    display: DisplayManager,
+):
+    """Load template and apply all defaults/overrides."""
+    template = module_instance._load_template_by_id(id)
+    config = ConfigManager()
+    apply_variable_defaults(template, config, module_instance.name)
+    apply_var_file(template, var_file, display)
+    apply_cli_overrides(template, var)
+
+    if template.variables:
+        template.variables.sort_sections()
+        reset_vars = template.variables.reset_disabled_bool_variables()
+        if reset_vars:
+            logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+
+    return template
+
+
+def _render_template(template, id: str, display: DisplayManager, interactive: bool):
+    """Validate, render template and collect variable values."""
+    variable_values = collect_variable_values(template, interactive)
+
+    if template.variables:
+        template.variables.validate_all()
+
+    debug_mode = logger.isEnabledFor(logging.DEBUG)
+    rendered_files, variable_values = template.render(
+        template.variables, debug=debug_mode
+    )
+
+    if not rendered_files:
+        display.display_error(
+            "Template rendering returned no files",
+            context="template generation",
+        )
+        raise Exit(code=1)
+
+    logger.info(f"Successfully rendered template '{id}'")
+    return rendered_files, variable_values
+
+
+def _determine_output_dir(directory: str | None, id: str) -> Path:
+    """Determine and normalize output directory path."""
+    if directory:
+        output_dir = Path(directory)
+        if not output_dir.is_absolute() and str(output_dir).startswith(
+            ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
+        ):
+            output_dir = Path("/") / output_dir
+            logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
+    else:
+        output_dir = Path(id)
+    return output_dir
+
+
 def generate_template(
     module_instance,
     id: str,
@@ -355,67 +429,18 @@ def generate_template(
         f"Starting generation for template '{id}' from module '{module_instance.name}'"
     )
 
-    # Create a display manager with quiet mode if needed
     display = DisplayManager(quiet=quiet) if quiet else module_instance.display
-
-    template = module_instance._load_template_by_id(id)
-
-    # Apply defaults and overrides (in precedence order)
-    config = ConfigManager()
-    apply_variable_defaults(template, config, module_instance.name)
-    apply_var_file(template, var_file, display)
-    apply_cli_overrides(template, var)
-
-    # Re-sort sections after all overrides (toggle values may have changed)
-    if template.variables:
-        template.variables.sort_sections()
-
-        # Reset disabled bool variables to False to prevent confusion
-        reset_vars = template.variables.reset_disabled_bool_variables()
-        if reset_vars:
-            logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+    template = _prepare_template(module_instance, id, var_file, var, display)
 
     if not quiet:
         module_instance.display.display_template(template, id)
         module_instance.display.display_info("")
 
-    # Collect variable values
-    variable_values = collect_variable_values(template, interactive)
-
     try:
-        # Validate and render template
-        if template.variables:
-            template.variables.validate_all()
-
-        # Check if we're in debug mode (logger level is DEBUG)
-        debug_mode = logger.isEnabledFor(logging.DEBUG)
-
-        rendered_files, variable_values = template.render(
-            template.variables, debug=debug_mode
+        rendered_files, variable_values = _render_template(
+            template, id, display, interactive
         )
-
-        if not rendered_files:
-            display.display_error(
-                "Template rendering returned no files",
-                context="template generation",
-            )
-            raise Exit(code=1)
-
-        logger.info(f"Successfully rendered template '{id}'")
-
-        # Determine output directory
-        if directory:
-            output_dir = Path(directory)
-            # Check if path looks like an absolute path but is missing the leading slash
-            if not output_dir.is_absolute() and str(output_dir).startswith(
-                ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
-            ):
-                output_dir = Path("/") / output_dir
-                logger.debug(
-                    f"Normalized relative-looking absolute path to: {output_dir}"
-                )
-        else:
-            output_dir = Path(id)
+        output_dir = _determine_output_dir(directory, id)
 
         # Check for conflicts and get confirmation (skip in quiet mode)
         if not quiet:
@@ -425,7 +450,6 @@ def generate_template(
             if existing_files is None:
                 return  # User cancelled
 
-            # Get final confirmation for generation
             dir_not_empty = output_dir.exists() and any(output_dir.iterdir())
             if not get_generation_confirmation(
                 output_dir,
@@ -437,9 +461,6 @@ def generate_template(
                 display,
             ):
                 return  # User cancelled
-        else:
-            # In quiet mode, just check for existing files without prompts
-            existing_files = []
 
         # Execute generation (dry run or actual)
         if dry_run:
@@ -453,7 +474,6 @@ def generate_template(
             display.display_next_steps(template.metadata.next_steps, variable_values)
 
     except TemplateRenderError as e:
-        # Display enhanced error information for template rendering errors (always show errors)
         display.display_template_render_error(e, context=f"template '{id}'")
         raise Exit(code=1) from None
     except Exception as e:
@@ -473,7 +493,9 @@ def validate_templates(
     template = _load_template_for_validation(module_instance, template_id, path)
 
     if template:
-        _validate_single_template(module_instance, template, template_id, verbose, semantic)
+        _validate_single_template(
+            module_instance, template, template_id, verbose, semantic
+        )
     else:
         _validate_all_templates(module_instance, verbose)
 
@@ -508,13 +530,17 @@ def _load_template_for_validation(module_instance, template_id: str, path: str |
             )
             return template
         except Exception as e:
-            module_instance.display.display_error(f"Failed to load template '{template_id}': {e}")
+            module_instance.display.display_error(
+                f"Failed to load template '{template_id}': {e}"
+            )
             raise Exit(code=1) from None
 
     return None
 
 
-def _validate_single_template(module_instance, template, template_id: str, verbose: bool, semantic: bool) -> None:
+def _validate_single_template(
+    module_instance, template, template_id: str, verbose: bool, semantic: bool
+) -> None:
     """Validate a single template."""
     try:
         # Jinja2 validation
@@ -540,14 +566,18 @@ def _validate_single_template(module_instance, template, template_id: str, verbo
         module_instance.display.display_info(f"\n{e}")
         raise Exit(code=1) from None
     except Exception as e:
-        module_instance.display.display_error(f"Unexpected error validating '{template_id}': {e}")
+        module_instance.display.display_error(
+            f"Unexpected error validating '{template_id}': {e}"
+        )
         raise Exit(code=1) from None
 
 
 def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
     """Run semantic validation on rendered template files."""
     module_instance.display.display_info("")
-    module_instance.display.display_info("[bold cyan]Running semantic validation...[/bold cyan]")
+    module_instance.display.display_info(
+        "[bold cyan]Running semantic validation...[/bold cyan]"
+    )
 
     registry = get_validator_registry()
     debug_mode = logger.isEnabledFor(logging.DEBUG)
@@ -573,12 +603,18 @@ def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
 
 def _display_validation_details(module_instance, template, semantic: bool) -> None:
     """Display verbose validation details."""
-    module_instance.display.display_info(f"\n[dim]Template path: {template.template_dir}[/dim]")
-    module_instance.display.display_info(f"[dim]Found {len(template.used_variables)} variables[/dim]")
+    module_instance.display.display_info(
+        f"\n[dim]Template path: {template.template_dir}[/dim]"
+    )
+    module_instance.display.display_info(
+        f"[dim]Found {len(template.used_variables)} variables[/dim]"
+    )
     if semantic:
         debug_mode = logger.isEnabledFor(logging.DEBUG)
         rendered_files, _ = template.render(template.variables, debug=debug_mode)
-        module_instance.display.display_info(f"[dim]Generated {len(rendered_files)} files[/dim]")
+        module_instance.display.display_info(
+            f"[dim]Generated {len(rendered_files)} files[/dim]"
+        )
 
 
 def _validate_all_templates(module_instance, verbose: bool) -> None:

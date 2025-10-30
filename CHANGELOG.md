@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Variable file support with `--var-file` flag (#1331) - Load variables from YAML file for non-interactive deployments
+- Variable override support for `show` command with `--var` and `--var-file` flags (#1421) - Preview variable overrides before generating
 
 ### Changed
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs

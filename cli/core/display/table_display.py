@@ -149,6 +149,79 @@ class TableDisplayManager:
 
         self.parent._print_table(table)
 
+    def _build_section_label(
+        self,
+        section_name: str,
+        section_data: dict,
+        show_all: bool,
+    ) -> str:
+        """Build section label with metadata."""
+        section_desc = section_data.get("description", "")
+        section_required = section_data.get("required", False)
+        section_toggle = section_data.get("toggle")
+        section_needs = section_data.get("needs")
+
+        label = f"[cyan]{section_name}[/cyan]"
+        if section_required:
+            label += " [yellow](required)[/yellow]"
+        if section_toggle:
+            label += f" [dim](toggle: {section_toggle})[/dim]"
+        if section_needs:
+            needs_str = (
+                ", ".join(section_needs)
+                if isinstance(section_needs, list)
+                else section_needs
+            )
+            label += f" [dim](needs: {needs_str})[/dim]"
+        if show_all and section_desc:
+            label += f"\n  [dim]{section_desc}[/dim]"
+
+        return label
+
+    def _build_variable_label(
+        self,
+        var_name: str,
+        var_data: dict,
+        show_all: bool,
+    ) -> str:
+        """Build variable label with type and default value."""
+        var_type = var_data.get("type", "string")
+        var_default = var_data.get("default", "")
+        var_desc = var_data.get("description", "")
+        var_sensitive = var_data.get("sensitive", False)
+
+        label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
+
+        if var_default is not None and var_default != "":
+            settings = self.parent.settings
+            display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
+            if not var_sensitive:
+                display_val = self.parent._truncate_value(
+                    display_val, settings.VALUE_MAX_LENGTH_DEFAULT
+                )
+            label += (
+                f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
+            )
+
+        if show_all and var_desc:
+            label += f"\n    [dim]{var_desc}[/dim]"
+
+        return label
+
+    def _add_section_variables(
+        self, section_node, section_vars: dict, show_all: bool
+    ) -> None:
+        """Add variables to a section node."""
+        for var_name, var_data in section_vars.items():
+            if isinstance(var_data, dict):
+                var_label = self._build_variable_label(var_name, var_data, show_all)
+                section_node.add(var_label)
+            else:
+                # Simple key-value pair
+                section_node.add(
+                    f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]"
+                )
+
     def render_config_tree(
         self, spec: dict, module_name: str, show_all: bool = False
     ) -> None:
@@ -174,65 +247,15 @@ class TableDisplayManager:
             if not isinstance(section_data, dict):
                 continue
 
-            # Determine if this is a section with variables
-            section_vars = section_data.get("vars") or {}
-            section_desc = section_data.get("description", "")
-            section_required = section_data.get("required", False)
-            section_toggle = section_data.get("toggle", None)
-            section_needs = section_data.get("needs", None)
-
-            # Build section label
-            section_label = f"[cyan]{section_name}[/cyan]"
-            if section_required:
-                section_label += " [yellow](required)[/yellow]"
-            if section_toggle:
-                section_label += f" [dim](toggle: {section_toggle})[/dim]"
-            if section_needs:
-                needs_str = (
-                    ", ".join(section_needs)
-                    if isinstance(section_needs, list)
-                    else section_needs
-                )
-                section_label += f" [dim](needs: {needs_str})[/dim]"
-
-            if show_all and section_desc:
-                section_label += f"\n  [dim]{section_desc}[/dim]"
-
+            # Build and add section
+            section_label = self._build_section_label(
+                section_name, section_data, show_all
+            )
             section_node = tree.add(section_label)
 
-            # Add variables
+            # Add variables to section
+            section_vars = section_data.get("vars") or {}
             if section_vars:
-                for var_name, var_data in section_vars.items():
-                    if isinstance(var_data, dict):
-                        var_type = var_data.get("type", "string")
-                        var_default = var_data.get("default", "")
-                        var_desc = var_data.get("description", "")
-                        var_sensitive = var_data.get("sensitive", False)
-
-                        # Build variable label
-                        var_label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
-
-                        if var_default is not None and var_default != "":
-                            settings = self.parent.settings
-                            display_val = (
-                                settings.SENSITIVE_MASK
-                                if var_sensitive
-                                else str(var_default)
-                            )
-                            if not var_sensitive:
-                                display_val = self.parent._truncate_value(
-                                    display_val, settings.VALUE_MAX_LENGTH_DEFAULT
-                                )
-                            var_label += f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
-
-                        if show_all and var_desc:
-                            var_label += f"\n    [dim]{var_desc}[/dim]"
-
-                        section_node.add(var_label)
-                    else:
-                        # Simple key-value pair
-                        section_node.add(
-                            f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]"
-                        )
+                self._add_section_variables(section_node, section_vars, show_all)
 
         self.parent._print_tree(tree)

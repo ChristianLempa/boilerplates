@@ -206,6 +206,48 @@ class VariableCollection:
             # Old format: section name (backwards compatibility)
             return (need_str.strip(), None)
 
+    def _check_section_need(self, section_name: str) -> bool:
+        """Check if a section dependency is satisfied."""
+        section = self._sections.get(section_name)
+        if not section:
+            logger.warning(f"Need references missing section '{section_name}'")
+            return False
+        return section.is_enabled()
+
+    def _check_value_match(
+        self, actual_value: Any, expected: Any, var_type: str
+    ) -> bool:
+        """Check if actual value matches expected value based on variable type."""
+        if var_type == "bool":
+            return bool(actual_value) == bool(expected)
+        return actual_value is not None and str(actual_value) == str(expected)
+
+    def _check_variable_need(
+        self, var_name: str, expected_value: Any, variable
+    ) -> bool:
+        """Check if a variable dependency is satisfied."""
+        try:
+            actual_value = variable.convert(variable.value)
+
+            # Handle multiple expected values
+            if isinstance(expected_value, list):
+                for expected in expected_value:
+                    expected_converted = variable.convert(expected)
+                    if self._check_value_match(
+                        actual_value, expected_converted, variable.type
+                    ):
+                        return True
+                return False
+
+            # Single expected value
+            expected_converted = variable.convert(expected_value)
+            return self._check_value_match(
+                actual_value, expected_converted, variable.type
+            )
+        except Exception as e:
+            logger.debug(f"Failed to compare need for '{var_name}': {e}")
+            return False
+
     def _is_need_satisfied(self, need_str: str) -> bool:
         """Check if a single need condition is satisfied.
 
@@ -217,57 +259,17 @@ class VariableCollection:
         """
         var_or_section, expected_value = self._parse_need(need_str)
 
+        # Old format: section name check
         if expected_value is None:
-            # Old format: check if section is enabled (backwards compatibility)
-            section = self._sections.get(var_or_section)
-            if not section:
-                logger.warning(f"Need references missing section '{var_or_section}'")
-                return False
-            return section.is_enabled()
-        else:
-            # New format: check if variable has expected value(s)
-            variable = self._variable_map.get(var_or_section)
-            if not variable:
-                logger.warning(f"Need references missing variable '{var_or_section}'")
-                return False
+            return self._check_section_need(var_or_section)
 
-            # Convert actual value for comparison
-            try:
-                actual_value = variable.convert(variable.value)
+        # New format: variable value check
+        variable = self._variable_map.get(var_or_section)
+        if not variable:
+            logger.warning(f"Need references missing variable '{var_or_section}'")
+            return False
 
-                # Handle multiple expected values (comma-separated in needs)
-                if isinstance(expected_value, list):
-                    # Check if actual value matches any of the expected values
-                    for expected in expected_value:
-                        expected_converted = variable.convert(expected)
-
-                        # Handle boolean comparisons specially
-                        if variable.type == "bool":
-                            if bool(actual_value) == bool(expected_converted):
-                                return True
-                        # String comparison for other types
-                        elif actual_value is not None and str(actual_value) == str(
-                            expected_converted
-                        ):
-                            return True
-                    return False  # None of the expected values matched
-                else:
-                    # Single expected value (original behavior)
-                    expected_converted = variable.convert(expected_value)
-
-                    # Handle boolean comparisons specially
-                    if variable.type == "bool":
-                        return bool(actual_value) == bool(expected_converted)
-
-                    # String comparison for other types
-                    return (
-                        str(actual_value) == str(expected_converted)
-                        if actual_value is not None
-                        else False
-                    )
-            except Exception as e:
-                logger.debug(f"Failed to compare need '{need_str}': {e}")
-                return False
+        return self._check_variable_need(var_or_section, expected_value, variable)
 
     def _validate_dependencies(self) -> None:
         """Validate section dependencies for cycles and missing references.
@@ -723,6 +725,121 @@ class VariableCollection:
 
         return successful
 
+    def _collect_unmet_needs(self, section, var_name: str, variable) -> set[str]:
+        """Collect unmet needs for a variable."""
+        section_satisfied = self.is_section_satisfied(section.key)
+        var_satisfied = self.is_variable_satisfied(var_name)
+        unmet_needs = set()
+
+        if not section_satisfied:
+            for need in section.needs:
+                if not self._is_need_satisfied(need):
+                    unmet_needs.add(need)
+        if not var_satisfied:
+            for need in variable.needs:
+                if not self._is_need_satisfied(need):
+                    unmet_needs.add(need)
+
+        return unmet_needs
+
+    def _validate_cli_bool_variables(self) -> list[str]:
+        """Validate CLI-provided bool variables with unsatisfied dependencies."""
+        errors: list[str] = []
+
+        for section_key, section in self._sections.items():
+            section_satisfied = self.is_section_satisfied(section_key)
+            is_enabled = section.is_enabled()
+
+            for var_name, variable in section.variables.items():
+                if (
+                    variable.type == "bool"
+                    and variable.origin == "cli"
+                    and variable.value is not False
+                ):
+                    var_satisfied = self.is_variable_satisfied(var_name)
+
+                    if not section_satisfied or not is_enabled or not var_satisfied:
+                        unmet_needs = self._collect_unmet_needs(
+                            section, var_name, variable
+                        )
+                        needs_str = (
+                            ", ".join(sorted(unmet_needs))
+                            if unmet_needs
+                            else "dependencies not satisfied"
+                        )
+                        errors.append(
+                            f"{section.key}.{var_name} (set via CLI to {variable.value} but requires: {needs_str})"
+                        )
+
+        return errors
+
+    def _validate_variable(self, section, var_name: str, variable) -> str | None:
+        """Validate a single variable and return error message if invalid."""
+        try:
+            # Skip autogenerated variables when empty
+            if variable.autogenerated and not variable.value:
+                return None
+
+            # Check required fields
+            if variable.value is None:
+                return self._validate_none_value(section, var_name, variable)
+
+            # Validate typed value
+            typed = variable.convert(variable.value)
+            if variable.type not in ("bool",) and not typed:
+                return self._validate_empty_value(section, var_name, variable)
+
+        except ValueError as e:
+            return f"{section.key}.{var_name} (invalid format: {e})"
+
+        return None
+
+    def _validate_none_value(self, section, var_name: str, variable) -> str | None:
+        """Validate when variable value is None."""
+        # Optional variables can be None/empty
+        if hasattr(variable, "optional") and variable.optional:
+            return None
+        if variable.is_required():
+            return f"{section.key}.{var_name} (required - no default provided)"
+        return None
+
+    def _validate_empty_value(self, section, var_name: str, variable) -> str | None:
+        """Validate when variable value is empty."""
+        msg = f"{section.key}.{var_name}"
+        if variable.is_required():
+            return f"{msg} (required - cannot be empty)"
+        return f"{msg} (empty)"
+
+    def _validate_section_variables(self, section_key: str, section) -> list[str]:
+        """Validate all variables in a section."""
+        errors: list[str] = []
+
+        # Skip sections with unsatisfied dependencies
+        if not self.is_section_satisfied(section_key):
+            logger.debug(
+                f"Skipping validation for section '{section_key}' - dependencies not satisfied"
+            )
+            return errors
+
+        is_enabled = section.is_enabled()
+
+        if not is_enabled:
+            logger.debug(
+                f"Section '{section_key}' is disabled - validating only required variables"
+            )
+
+        # Validate variables in the section
+        for var_name, variable in section.variables.items():
+            # Skip all variables in disabled sections
+            if not is_enabled:
+                continue
+
+            error = self._validate_variable(section, var_name, variable)
+            if error:
+                errors.append(error)
+
+        return errors
+
     def validate_all(self) -> None:
         """Validate all variables in the collection.
 
@@ -734,92 +851,11 @@ class VariableCollection:
         errors: list[str] = []
 
         # First, check for CLI-provided bool variables with unsatisfied dependencies
-        for section_key, section in self._sections.items():
-            section_satisfied = self.is_section_satisfied(section_key)
-            is_enabled = section.is_enabled()
-
-            for var_name, variable in section.variables.items():
-                # Check CLI-provided bool variables with unsatisfied dependencies
-                if (
-                    variable.type == "bool"
-                    and variable.origin == "cli"
-                    and variable.value is not False
-                ):
-                    var_satisfied = self.is_variable_satisfied(var_name)
-
-                    if not section_satisfied or not is_enabled or not var_satisfied:
-                        # Build error message with unmet needs (use set to avoid duplicates)
-                        unmet_needs = set()
-                        if not section_satisfied:
-                            for need in section.needs:
-                                if not self._is_need_satisfied(need):
-                                    unmet_needs.add(need)
-                        if not var_satisfied:
-                            for need in variable.needs:
-                                if not self._is_need_satisfied(need):
-                                    unmet_needs.add(need)
-
-                        needs_str = (
-                            ", ".join(sorted(unmet_needs))
-                            if unmet_needs
-                            else "dependencies not satisfied"
-                        )
-                        errors.append(
-                            f"{section.key}.{var_name} (set via CLI to {variable.value} but requires: {needs_str})"
-                        )
+        errors.extend(self._validate_cli_bool_variables())
 
         # Then validate all other variables
         for section_key, section in self._sections.items():
-            # Skip sections with unsatisfied dependencies (even for required variables)
-            if not self.is_section_satisfied(section_key):
-                logger.debug(
-                    f"Skipping validation for section '{section_key}' - dependencies not satisfied"
-                )
-                continue
-
-            # Check if section is enabled
-            is_enabled = section.is_enabled()
-
-            if not is_enabled:
-                logger.debug(
-                    f"Section '{section_key}' is disabled - validating only required variables"
-                )
-
-            # Validate variables in the section
-            for var_name, variable in section.variables.items():
-                # Skip all variables (including required ones) in disabled sections
-                # Required variables are only required when their section is actually enabled
-                if not is_enabled:
-                    continue
-
-                try:
-                    # Skip autogenerated variables when empty
-                    if variable.autogenerated and not variable.value:
-                        continue
-
-                    # Check required fields
-                    if variable.value is None:
-                        # Optional variables can be None/empty
-                        if hasattr(variable, "optional") and variable.optional:
-                            continue
-                        if variable.is_required():
-                            errors.append(
-                                f"{section.key}.{var_name} (required - no default provided)"
-                            )
-                        continue
-
-                    # Validate typed value
-                    typed = variable.convert(variable.value)
-                    if variable.type not in ("bool",) and not typed:
-                        msg = f"{section.key}.{var_name}"
-                        errors.append(
-                            f"{msg} (required - cannot be empty)"
-                            if variable.is_required()
-                            else f"{msg} (empty)"
-                        )
-
-                except ValueError as e:
-                    errors.append(f"{section.key}.{var_name} (invalid format: {e})")
+            errors.extend(self._validate_section_variables(section_key, section))
 
         if errors:
             error_msg = "Variable validation failed: " + ", ".join(errors)

@@ -11,6 +11,7 @@ from ..config import ConfigManager
 
 logger = logging.getLogger(__name__)
 
+
 def config_get(module_instance, var_name: str | None = None) -> None:
     """Get default value(s) for this module."""
     config = ConfigManager()

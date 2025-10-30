@@ -49,7 +49,9 @@ class Module(ABC):
 
     def __init__(self) -> None:
         # Validate required class attributes
-        if not hasattr(self.__class__, 'name') or not hasattr(self.__class__, 'description'):
+        if not hasattr(self.__class__, "name") or not hasattr(
+            self.__class__, "description"
+        ):
             raise TypeError(
                 f"Module {self.__class__.__name__} must define 'name' and 'description' class attributes"
             )
@@ -162,9 +164,28 @@ class Module(ABC):
         """Search for templates by ID containing the search string."""
         return search_templates(self, query)
 
-    def show(self, id: str) -> None:
-        """Show template details."""
-        return show_template(self, id)
+    def show(
+        self,
+        id: str,
+        var: Annotated[
+            list[str] | None,
+            Option(
+                "--var",
+                "-v",
+                help="Variable override (repeatable). Supports: KEY=VALUE or KEY VALUE",
+            ),
+        ] = None,
+        var_file: Annotated[
+            str | None,
+            Option(
+                "--var-file",
+                "-f",
+                help="Load variables from YAML file (overrides config defaults)",
+            ),
+        ] = None,
+    ) -> None:
+        """Show template details with optional variable overrides."""
+        return show_template(self, id, var, var_file)
 
     def generate(
         self,
@@ -197,7 +218,10 @@ class Module(ABC):
             ),
         ] = None,
         dry_run: Annotated[
-            bool, Option("--dry-run", help="Preview template generation without writing files")
+            bool,
+            Option(
+                "--dry-run", help="Preview template generation without writing files"
+            ),
         ] = False,
         show_files: Annotated[
             bool,

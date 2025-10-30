@@ -159,6 +159,40 @@ class LibraryManager:
         self.config = ConfigManager()
         self.libraries = self._load_libraries_from_config()
 
+    def _resolve_git_library_path(
+        self, name: str, lib_config: dict, libraries_path: Path
+    ) -> Path:
+        """Resolve path for a git-based library."""
+        directory = lib_config.get("directory", ".")
+        library_base = libraries_path / name
+        if directory and directory != ".":
+            return library_base / directory
+        return library_base
+
+    def _resolve_static_library_path(self, name: str, lib_config: dict) -> Path | None:
+        """Resolve path for a static library."""
+        path_str = lib_config.get("path")
+        if not path_str:
+            logger.warning(f"Static library '{name}' has no path configured")
+            return None
+
+        library_path = Path(path_str).expanduser()
+        if not library_path.is_absolute():
+            library_path = (self.config.config_path.parent / library_path).resolve()
+        return library_path
+
+    def _warn_missing_library(
+        self, name: str, library_path: Path, lib_type: str
+    ) -> None:
+        """Log warning about missing library."""
+        if lib_type == "git":
+            logger.warning(
+                f"Library '{name}' not found at {library_path}. "
+                f"Run 'repo update' to sync libraries."
+            )
+        else:
+            logger.warning(f"Static library '{name}' not found at {library_path}")
+
     def _load_libraries_from_config(self) -> list[Library]:
         """Load libraries from configuration.
 
@@ -167,8 +201,6 @@ class LibraryManager:
         """
         libraries = []
         libraries_path = self.config.get_libraries_path()
-
-        # Get library configurations from config
         library_configs = self.config.get_libraries()
 
         for i, lib_config in enumerate(library_configs):
@@ -178,38 +210,17 @@ class LibraryManager:
                 continue
 
             name = lib_config.get("name")
-            lib_type = lib_config.get(
-                "type", "git"
-            )  # Default to "git" for backward compat
+            lib_type = lib_config.get("type", "git")
 
-            # Handle library type-specific path resolution
+            # Resolve library path based on type
             if lib_type == "git":
-                # Existing git logic
-                directory = lib_config.get("directory", ".")
-
-                # Build path to library: ~/.config/boilerplates/libraries/{name}/{directory}/
-                # For sparse-checkout, files remain in the specified directory
-                library_base = libraries_path / name
-                if directory and directory != ".":
-                    library_path = library_base / directory
-                else:
-                    library_path = library_base
-
+                library_path = self._resolve_git_library_path(
+                    name, lib_config, libraries_path
+                )
             elif lib_type == "static":
-                # New static logic - use path directly
-                path_str = lib_config.get("path")
-                if not path_str:
-                    logger.warning(f"Static library '{name}' has no path configured")
+                library_path = self._resolve_static_library_path(name, lib_config)
+                if not library_path:
                     continue
-
-                # Expand ~ and resolve relative paths
-                library_path = Path(path_str).expanduser()
-                if not library_path.is_absolute():
-                    # Resolve relative to config directory
-                    library_path = (
-                        self.config.config_path.parent / library_path
-                    ).resolve()
-
             else:
                 logger.warning(
                     f"Unknown library type '{lib_type}' for library '{name}'"
@@ -218,18 +229,10 @@ class LibraryManager:
 
             # Check if library path exists
             if not library_path.exists():
-                if lib_type == "git":
-                    logger.warning(
-                        f"Library '{name}' not found at {library_path}. "
-                        f"Run 'repo update' to sync libraries."
-                    )
-                else:
-                    logger.warning(
-                        f"Static library '{name}' not found at {library_path}"
-                    )
+                self._warn_missing_library(name, library_path, lib_type)
                 continue
 
-            # Create Library instance with type and priority based on order (first = highest priority)
+            # Create Library instance with priority based on order
             priority = len(library_configs) - i
             libraries.append(
                 Library(

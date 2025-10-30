@@ -103,6 +103,75 @@ def main(
         sys.exit(0)
 
 
+def _import_modules(modules_path: Path, logger: logging.Logger) -> list[str]:
+    """Import all modules and return list of failures."""
+    failed_imports = []
+    for _finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
+        if not name.startswith("_") and name != "base":
+            try:
+                logger.debug(
+                    f"Importing module: {name} ({'package' if ispkg else 'file'})"
+                )
+                importlib.import_module(f"cli.modules.{name}")
+            except ImportError as e:
+                error_info = f"Import failed for '{name}': {e!s}"
+                failed_imports.append(error_info)
+                logger.warning(error_info)
+            except Exception as e:
+                error_info = f"Unexpected error importing '{name}': {e!s}"
+                failed_imports.append(error_info)
+                logger.error(error_info)
+    return failed_imports
+
+
+def _register_repo_command(logger: logging.Logger) -> list[str]:
+    """Register repo command and return list of failures."""
+    failed = []
+    try:
+        logger.debug("Registering repo command")
+        repo.register_cli(app)
+    except Exception as e:
+        error_info = f"Repo command registration failed: {e!s}"
+        failed.append(error_info)
+        logger.warning(error_info)
+    return failed
+
+
+def _register_module_classes(logger: logging.Logger) -> tuple[list, list[str]]:
+    """Register template-based modules and return (module_classes, failures)."""
+    failed_registrations = []
+    module_classes = list(registry.iter_module_classes())
+    logger.debug(f"Registering {len(module_classes)} template-based modules")
+
+    for _name, module_cls in module_classes:
+        try:
+            logger.debug(f"Registering module class: {module_cls.__name__}")
+            module_cls.register_cli(app)
+        except Exception as e:
+            error_info = f"Registration failed for '{module_cls.__name__}': {e!s}"
+            failed_registrations.append(error_info)
+            logger.warning(error_info)
+            console.print(f"[yellow]Warning:[/yellow] {error_info}")
+
+    return module_classes, failed_registrations
+
+
+def _build_error_details(
+    failed_imports: list[str], failed_registrations: list[str]
+) -> str:
+    """Build detailed error message from failures."""
+    error_details = []
+    if failed_imports:
+        error_details.extend(
+            ["Import failures:"] + [f"  - {err}" for err in failed_imports]
+        )
+    if failed_registrations:
+        error_details.extend(
+            ["Registration failures:"] + [f"  - {err}" for err in failed_registrations]
+        )
+    return "\n".join(error_details) if error_details else ""
+
+
 def init_app() -> None:
     """Initialize the application by discovering and registering modules.
 
@@ -111,56 +180,21 @@ def init_app() -> None:
         RuntimeError: If application initialization fails
     """
     logger = logging.getLogger(__name__)
-    failed_imports = []
-    failed_registrations = []
 
     try:
         # Auto-discover and import all modules
         modules_path = Path(cli.modules.__file__).parent
         logger.debug(f"Discovering modules in {modules_path}")
-
-        for _finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
-            # Import both module files and packages (for multi-schema modules)
-            if not name.startswith("_") and name != "base":
-                try:
-                    logger.debug(
-                        f"Importing module: {name} ({'package' if ispkg else 'file'})"
-                    )
-                    importlib.import_module(f"cli.modules.{name}")
-                except ImportError as e:
-                    error_info = f"Import failed for '{name}': {e!s}"
-                    failed_imports.append(error_info)
-                    logger.warning(error_info)
-                except Exception as e:
-                    error_info = f"Unexpected error importing '{name}': {e!s}"
-                    failed_imports.append(error_info)
-                    logger.error(error_info)
+        failed_imports = _import_modules(modules_path, logger)
 
         # Register core repo command
-        try:
-            logger.debug("Registering repo command")
-            repo.register_cli(app)
-        except Exception as e:
-            error_info = f"Repo command registration failed: {e!s}"
-            failed_registrations.append(error_info)
-            logger.warning(error_info)
+        repo_failures = _register_repo_command(logger)
 
-        # Register template-based modules with app
-        module_classes = list(registry.iter_module_classes())
-        logger.debug(f"Registering {len(module_classes)} template-based modules")
+        # Register template-based modules
+        module_classes, failed_registrations = _register_module_classes(logger)
+        failed_registrations.extend(repo_failures)
 
-        for _name, module_cls in module_classes:
-            try:
-                logger.debug(f"Registering module class: {module_cls.__name__}")
-                module_cls.register_cli(app)
-            except Exception as e:
-                error_info = f"Registration failed for '{module_cls.__name__}': {e!s}"
-                failed_registrations.append(error_info)
-                # Log warning but don't raise exception for individual module failures
-                logger.warning(error_info)
-                console.print(f"[yellow]Warning:[/yellow] {error_info}")
-
-        # If we have no modules registered at all, that's a critical error
+        # Validate we have modules
         if not module_classes and not failed_imports:
             raise RuntimeError("No modules found to register")
 
@@ -169,25 +203,13 @@ def init_app() -> None:
         logger.info(
             f"Application initialized: {successful_modules} modules registered successfully"
         )
-
         if failed_imports:
             logger.info(f"Module import failures: {len(failed_imports)}")
         if failed_registrations:
             logger.info(f"Module registration failures: {len(failed_registrations)}")
 
     except Exception as e:
-        error_details = []
-        if failed_imports:
-            error_details.extend(
-                ["Import failures:"] + [f"  - {err}" for err in failed_imports]
-            )
-        if failed_registrations:
-            error_details.extend(
-                ["Registration failures:"]
-                + [f"  - {err}" for err in failed_registrations]
-            )
-
-        details = "\n".join(error_details) if error_details else str(e)
+        details = _build_error_details(failed_imports, failed_registrations) or str(e)
         raise RuntimeError(f"Application initialization failed: {details}") from e
 
 
