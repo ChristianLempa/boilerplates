@@ -3,7 +3,7 @@ volumes:
     driver: local
 services:
   prometheus:
-    image: docker.io/prom/prometheus:v3.6.0
+    image: docker.io/prom/prometheus:v3.7.3
     container_name: prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
