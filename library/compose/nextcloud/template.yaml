@@ -13,9 +13,9 @@ metadata:
     Documentation: https://docs.nextcloud.com/
 
     GitHub: https://github.com/nextcloud/server
-  version: 31.0.8-apache
+  version: 31.0.10-apache
   author: Christian Lempa
-  date: '2025-10-02'
+  date: '2025-10-31'
   tags:
     - cloud
     - file-sharing
