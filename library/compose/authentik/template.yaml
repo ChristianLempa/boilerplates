@@ -14,7 +14,7 @@ metadata:
     Documentation: https://goauthentik.io/docs/
 
     GitHub: https://github.com/goauthentik/authentik
-  version: 2025.6.4
+  version: 2025.10.0
   author: Christian Lempa
   date: '2025-10-31'
   tags:
