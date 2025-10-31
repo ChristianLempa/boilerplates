@@ -9,9 +9,9 @@ metadata:
     Project: https://github.com/bastienwirtz/homer
 
     Documentation: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
-  version: v25.08.1
+  version: v25.10.1
   author: Christian Lempa
-  date: '2025-10-02'
+  date: '2025-10-31'
   tags:
     - dashboard
   next_steps: |
