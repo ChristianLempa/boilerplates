@@ -13,9 +13,9 @@ metadata:
     Documentation: https://docs.portainer.io/
 
     GitHub: https://github.com/portainer/portainer
-  version: 2.33.1-alpine
+  version: 2.33.3-alpine
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-31'
   tags:
     - management
     - docker
