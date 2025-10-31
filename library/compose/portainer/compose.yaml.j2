@@ -1,7 +1,7 @@
 services:
   {{ service_name }}:
     container_name: {{ container_name }}
-    image: docker.io/portainer/portainer-ce:2.33.3-alpine
+    image: docker.io/portainer/portainer-ce:2.35.0-alpine
     environment:
       - TZ={{ container_timezone }}
     {% if ports_enabled %}
