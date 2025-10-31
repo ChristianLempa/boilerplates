@@ -13,7 +13,7 @@ metadata:
     Documentation: https://docs.portainer.io/
 
     GitHub: https://github.com/portainer/portainer
-  version: 2.33.3-alpine
+  version: 2.35.0-alpine
   author: Christian Lempa
   date: '2025-10-31'
   tags:
