@@ -1,6 +1,6 @@
 services:
   {{ service_name | default('nextcloud-app') }}:
-    image: docker.io/library/nextcloud:31.0.8-apache
+    image: docker.io/library/nextcloud:31.0.10-apache
     container_name: {{ container_name | default('nextcloud-app') }}
     environment:
       - TZ={{ container_timezone | default('UTC') }}
