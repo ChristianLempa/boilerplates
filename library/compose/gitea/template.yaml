@@ -17,8 +17,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-07'
   tags:
-    - git
-    - ci-cd
+    - traefik
 spec:
   general:
     vars:

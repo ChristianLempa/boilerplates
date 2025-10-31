@@ -18,10 +18,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-10'
   tags:
-    - automation
-    - ansible
-    - terraform
-    - python
+    - traefik
   next_steps: |
     1. Start Semaphore UI:
        docker compose up -d

@@ -18,8 +18,8 @@ metadata:
   author: Christian Lempa
   date: '2025-10-28'
   tags:
-    - dns
-    - ad-blocking
+    - traefik
+    - swarm
   next_steps: |
     {% if swarm_enabled -%}
     1. Deploy to Docker Swarm:

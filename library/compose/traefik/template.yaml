@@ -15,11 +15,17 @@ metadata:
   author: "Christian Lempa"
   date: "2025-10-02"
   tags:
-    - reverse-proxy
-    - load-balancer
+    - traefik
+    - authentik
+    - swarm
   next_steps: |
-    1. Start Traefik:
+    {% if swarm_enabled %}
+    1. Deploy Traefik to Docker Swarm:
+       docker stack deploy -c docker-compose.yaml traefik
+    {% else %}
+    1. Start Traefik with Docker Compose:
        docker compose up -d
+    {% endif %}
 spec:
   general:
     title: "General"

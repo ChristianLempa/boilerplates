@@ -13,7 +13,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-02'
   tags:
-    - dashboard
+    - traefik
   next_steps: |
     1. Start the Homer dashboard:
        docker compose up -d

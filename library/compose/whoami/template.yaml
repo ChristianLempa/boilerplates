@@ -17,8 +17,6 @@ metadata:
   author: Christian Lempa
   date: '2025-10-30'
   tags:
-    - reverse-proxy
-    - testing
     - traefik
     - swarm
   draft: false

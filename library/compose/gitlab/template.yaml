@@ -15,8 +15,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-08'
   tags:
-    - git
-    - ci-cd
+    - traefik
   next_steps: |
     1. Start GitLab:
        docker compose up -d

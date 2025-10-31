@@ -18,8 +18,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-13'
   tags:
-    - monitoring
-    - grafana
+    - traefik
 spec:
   general:
     vars:

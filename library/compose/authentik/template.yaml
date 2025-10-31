@@ -18,7 +18,8 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - authentication
+    - traefik
+    - authentik
   next_steps: |
     1. Start Authentik:
        docker compose up -d
