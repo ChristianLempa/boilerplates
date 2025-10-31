@@ -245,6 +245,17 @@ spec:
         default: latest
 ```
 
+### Template Metadata Versioning
+
+**Template Version Field:**
+The `metadata.version` field in `template.yaml` should reflect the version of the underlying application or resource:
+- **Compose templates**: Match the Docker image version (e.g., `nginx:1.25.3` → `version: 1.25.3`)
+- **Terraform templates**: Match the provider version (e.g., AWS provider 5.23.0 → `version: 5.23.0`)
+- **Other templates**: Match the primary application/tool version being deployed
+- Use `latest` or increment template-specific version (e.g., `0.1.0`, `0.2.0`) only when no specific application version applies
+
+**Rationale:** This helps users identify which version of the application/provider the template is designed for and ensures template versions track upstream changes.
+
 ### Template Schema Versioning
 
 Templates and modules use schema versioning to ensure compatibility. Each module defines a supported schema version, and templates declare which schema version they use.
@@ -323,6 +334,23 @@ class ComposeModule(Module):
 2. Template `spec` (overrides module defaults)
 3. User `config.yaml` (overrides template and module defaults)
 4. CLI `--var` (highest priority)
+
+**Template Variable Overrides:**
+Template `spec` variables can:
+- **Override module defaults**: Only specify properties that differ from module spec (e.g., change `default` value)
+- **Create new variables**: Define template-specific variables not in module spec
+- **Minimize duplication**: Do NOT re-specify `type`, `description`, or other properties if they remain unchanged from module spec
+
+**Example:**
+```yaml
+# Module spec defines: service_name (type: str, no default)
+# Template spec overrides:
+spec:
+  general:
+    vars:
+      service_name:
+        default: whoami  # Only override the default, type already defined in module
+```
 
 **Variable Types:**
 - `str` (default), `int`, `float`, `bool`

@@ -160,8 +160,8 @@ def config_list(module_instance) -> None:
         return
 
     # Display defaults using DisplayManager
-    module_instance.display.info(
-        f"[bold]Defaults for module '{module_instance.name}':[/bold]\n"
+    module_instance.display.heading(
+        f"Defaults for module '{module_instance.name}':"
     )
 
     # Convert defaults to display format (rows for table)

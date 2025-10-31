@@ -3,7 +3,10 @@ services:
     image: docker.io/library/traefik:v3.5.3
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
+    security_opt:
+      - no-new-privileges:true
     {% endif %}
+    hostname: {{ container_hostname }}
     ports:
       - "{{ ports_http }}:80"
       - "{{ ports_https }}:443"
@@ -24,23 +27,21 @@ services:
       - traefik_certs:/var/traefik/certs/:rw
       {% endif %}
       {% endif %}
-      {% if traefik_tls_enabled %}
-      {% if not swarm_enabled %}
+      {% if traefik_tls_enabled and not swarm_enabled %}
       - ./.env.secret:/.env.secret:ro
       {% endif %}
     env_file:
       - ./.env
-    {% endif %}
     {% if swarm_enabled %}
     configs:
       - source: traefik_config
         target: /etc/traefik/traefik.yaml
       - source: traefik_middlewares
         target: /etc/traefik/files/middlewares.yaml
-      - source: traefik_tls
-        target: /etc/traefik/files/tls.yaml
-      - source: traefik_external_services
-        target: /etc/traefik/files/external-services.yaml
+      - source: traefik_routers
+        target: /etc/traefik/files/routers.yaml
+      - source: traefik_services
+        target: /etc/traefik/files/services.yaml
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
@@ -50,15 +51,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
     networks:
-      {{ traefik_network }}:
-        {% if network_mode == 'macvlan' %}
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-        {% endif %}
-    {% endif %}
+      - {{ traefik_network }}
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
     secrets:
@@ -88,7 +82,7 @@ volumes:
     driver: local
     driver_opts:
       type: nfs
-      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      o: addr={{ swarm_volume_nfs_server }},nfsvers=4,{{ swarm_volume_nfs_options }}
       device: ":{{ swarm_volume_nfs_path }}"
     {% endif %}
 {% endif %}
@@ -98,10 +92,10 @@ configs:
     file: ./config/traefik.yaml
   traefik_middlewares:
     file: ./config/files/middlewares.yaml
-  traefik_tls:
-    file: ./config/files/tls.yaml
-  traefik_external_services:
-    file: ./config/files/external-services.yaml
+  traefik_routers:
+    file: ./config/files/routers.yaml
+  traefik_services:
+    file: ./config/files/services.yaml
 
 {% if traefik_tls_enabled %}
 secrets:
@@ -110,28 +104,16 @@ secrets:
 {% endif %}
 {% endif %}
 
-{% if network_mode != 'host' %}
 networks:
   {{ traefik_network }}:
-    {% if network_external %}
+    {% if traefik_network_external %}
     external: true
     {% else %}
     {% if swarm_enabled %}
     driver: overlay
     attachable: true
     {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    {% else %}
     driver: bridge
-    {% endif %}
     {% endif %}
     name: {{ traefik_network }}
     {% endif %}
-{% endif %}
