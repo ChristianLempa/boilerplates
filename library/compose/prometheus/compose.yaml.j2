@@ -1,17 +1,104 @@
-volumes:
-  prometheus-data:
-    driver: local
 services:
-  prometheus:
-    image: docker.io/prom/prometheus:v3.6.0
-    container_name: prometheus
+  {{ service_name }}:
+    {% if not swarm_enabled %}
+    container_name: {{ container_name }}
+    hostname: {{ container_hostname }}
+    {% endif %}
+    image: docker.io/prom/prometheus:3.6.0
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
-      - --storage.tsdb.retention.time=7d
-      - --storage.tsdb.retention.size=2GB
+      - --storage.tsdb.retention.time={{ metrics_retention_time }}
+      {% if metrics_retention_size != '0' %}
+      - --storage.tsdb.retention.size={{ metrics_retention_size }}
+      {% endif %}
+      {% if metrics_web_external_url %}
+      - --web.external-url={{ metrics_web_external_url }}
+      {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+    {% if network_mode == 'bridge' and not traefik_enabled %}
     ports:
-      - 9090:9090
+      {% if swarm_enabled %}
+      - target: 9090
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:9090"
+      {% endif %}
+    {% endif %}
     volumes:
       - ./config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
       - prometheus-data:/prometheus
-    restart: unless-stopped
+    {% if network_mode == 'bridge' %}
+    networks:
+      {% if network_mode == 'bridge' and not traefik_enabled %}
+      - {{ network_name }}
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    {% if swarm_enabled %}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.{{ service_name }}.loadbalancer.server.port=9090
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% else %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=9090
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy }}
+    {% endif %}
+
+volumes:
+  prometheus-data:
+    driver: local
+
+{% if network_mode == 'bridge' %}
+networks:
+  {% if network_mode == 'bridge' and not traefik_enabled %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    {% if traefik_network_external %}
+    external: true
+    {% endif %}
+  {% endif %}
+{% endif %}

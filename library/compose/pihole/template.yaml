@@ -3,17 +3,19 @@ kind: compose
 schema: "1.1"
 metadata:
   name: Pihole
-  description: >
+  description: |
     Network-wide advertisement and internet tracker blocking application that functions as a DNS blackhole.
     Provides DNS-level content filtering for all network devices, improving browsing performance, privacy, and security.
     Supports custom blocklists, whitelists, and seamless integration with existing network infrastructure.
 
+    ##  Swarm Deployment Warning
+    Pi-hole uses local storage and configuration files and does NOT support running multiple replicas.
+    This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
 
-    Project: https://pi-hole.net/
-
-    Documentation: https://docs.pi-hole.net/
-
-    GitHub: https://github.com/pi-hole/pi-hole
+    ## Resources
+    - **Project**: https://pi-hole.net/
+    - **Documentation**: https://docs.pi-hole.net/
+    - **GitHub**: https://github.com/pi-hole/pi-hole
   version: 2025.10.2
   author: Christian Lempa
   date: '2025-10-28'

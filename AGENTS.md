@@ -114,6 +114,22 @@ cli/modules/compose/
   - `spec_v1_0.py` - Basic compose spec
   - `spec_v1_1.py` - Extended with network_mode, swarm support
 
+**Compose Module Schema Differences:**
+
+**Schema 1.0:**
+- `network` section: Has `toggle: "network_enabled"` with explicit `network_enabled` boolean variable (default: False)
+- `ports` section: Has `toggle: "ports_enabled"` with explicit `ports_enabled` boolean variable (default: True)
+- Templates check `{% if network_enabled %}` and `{% if ports_enabled %}`
+
+**Schema 1.1:**
+- `network` section: NO toggle - always available, controlled by `network_mode` enum (bridge/host/macvlan)
+- `ports` section: Has `toggle: "ports_enabled"` but the variable is AUTO-CREATED and NOT available in templates
+- Templates check `{% if network_mode == 'bridge' %}` for networks and `{% if network_mode == 'bridge' and not traefik_enabled %}` for ports
+- **Key changes**:
+  - `network_enabled` doesn't exist - use `network_mode` conditionals instead
+  - `ports_enabled` is not usable in templates - use `network_mode` and `traefik_enabled` conditionals instead
+  - Port visibility is controlled by: network mode (must be bridge) + Traefik (ports not needed when using Traefik)
+
 **(Work in Progress):** terraform, docker, ansible, kubernetes, packer modules
 
 ### LibraryManager
@@ -378,6 +394,10 @@ spec:
 **Section Features:**
 - **Required Sections**: Mark with `required: true` (general is implicit). Users must provide all values.
 - **Toggle Settings**: Conditional sections via `toggle: "bool_var_name"`. If false, section is skipped.
+  - **IMPORTANT**: When a section has `toggle: "var_name"`, that boolean variable is AUTO-CREATED by the system
+  - In schema 1.0: Toggle variables are explicitly defined in the section's `vars`
+  - In schema 1.1: Toggle variables are auto-created and don't need explicit definition (unless customizing defaults)
+  - Example: `ports` section with `toggle: "ports_enabled"` automatically provides `ports_enabled` boolean
 - **Dependencies**: Use `needs: "section_name"` or `needs: ["sec1", "sec2"]`. Dependent sections only shown when dependencies are enabled. Auto-validated (detects circular/missing/self dependencies). Topologically sorted.
 
 **Example Section with Dependencies:**
