@@ -140,4 +140,3 @@ class StatusDisplay:
             self.base.text(f"\n{icon} {message} (skipped - {reason})", style="dim")
         else:
             self.base.text(f"\n{icon} {message} (skipped)", style="dim")
-

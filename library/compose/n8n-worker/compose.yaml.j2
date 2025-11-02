@@ -1,0 +1,103 @@
+services:
+  {{ service_name }}:
+    image: n8nio/n8n:1.118.1
+    command: worker
+    {% if not swarm_enabled -%}
+    container_name: {{ container_name }}
+    hostname: {{ container_hostname }}
+    {% endif -%}
+    environment:
+      - N8N_LOG_LEVEL={{ container_loglevel }}
+      - GENERIC_TIMEZONE={{ container_timezone }}
+      - TZ={{ container_timezone }}
+      {% if database_enabled -%}
+      {% if database_type == 'postgres' -%}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST={{ database_host }}
+      - DB_POSTGRESDB_PORT={{ database_port }}
+      - DB_POSTGRESDB_DATABASE={{ database_name }}
+      - DB_POSTGRESDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_POSTGRESDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_POSTGRESDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% elif database_type == 'mysql' -%}
+      - DB_TYPE=mysqldb
+      - DB_MYSQLDB_HOST={{ database_host }}
+      - DB_MYSQLDB_PORT={{ database_port }}
+      - DB_MYSQLDB_DATABASE={{ database_name }}
+      - DB_MYSQLDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_MYSQLDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_MYSQLDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% endif -%}
+      {% endif -%}
+      {% if swarm_enabled -%}
+      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/{{ encryption_key_secret_name }}
+      {% else -%}
+      - N8N_ENCRYPTION_KEY={{ encryption_key }}
+      {% endif -%}
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST={{ redis_host }}
+      - QUEUE_BULL_REDIS_PORT={{ redis_port }}
+      - QUEUE_HEALTH_CHECK_ACTIVE=true
+      {% if metrics_enabled -%}
+      - N8N_METRICS=true
+      {% if metrics_detailed -%}
+      - N8N_METRICS_INCLUDE_WORKFLOW_ID_LABELS=true
+      - N8N_METRICS_INCLUDE_NODE_TYPE_LABEL=true
+      {% endif -%}
+      {% endif -%}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/home/node/.n8n
+    {% if network_mode == 'bridge' -%}
+    networks:
+      - {{ network_name }}
+    {% else -%}
+    network_mode: {{ network_mode }}
+    {% endif -%}
+    {% if not swarm_enabled -%}
+    restart: {{ restart_policy }}
+    {% endif -%}
+    {% if swarm_enabled -%}
+    deploy:
+      replicas: {{ swarm_replicas }}
+      {% if swarm_placement_host -%}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif -%}
+    secrets:
+      - {{ encryption_key_secret_name }}
+      {% if database_enabled -%}
+      - {{ database_password_secret_name }}
+      {% endif -%}
+    {% endif -%}
+
+volumes:
+  data:
+    driver: local
+
+{% if network_mode == 'bridge' -%}
+networks:
+  {{ network_name }}:
+  {% if network_external -%}
+    external: true
+  {% else -%}
+    driver: bridge
+  {% endif -%}
+{% endif -%}
+
+{% if swarm_enabled -%}
+secrets:
+  {{ encryption_key_secret_name }}:
+    external: true
+  {% if database_enabled -%}
+  {{ database_password_secret_name }}:
+    external: true
+  {% endif -%}
+{% endif -%}

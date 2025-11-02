@@ -70,7 +70,11 @@ class TemplateDisplay:
         # Get library information and format with icon/color
         library_name = template.metadata.library or ""
         library_type = template.metadata.library_type or "git"
-        icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+        icon = (
+            IconManager.UI_LIBRARY_STATIC
+            if library_type == "static"
+            else IconManager.UI_LIBRARY_GIT
+        )
         color = "yellow" if library_type == "static" else "blue"
         library_display = f"[{color}]{icon} {library_name}[/{color}]"
 

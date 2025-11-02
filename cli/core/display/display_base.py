@@ -185,9 +185,7 @@ class BaseDisplay:
         """
         return Progress(*columns, console=console)
 
-
     # ===== Formatting Utilities =====
-
 
     def truncate(self, value: str, max_length: int | None = None) -> str:
         """Truncate a string value if it exceeds maximum length.

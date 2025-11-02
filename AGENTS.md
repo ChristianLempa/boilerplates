@@ -256,6 +256,13 @@ The `metadata.version` field in `template.yaml` should reflect the version of th
 
 **Rationale:** This helps users identify which version of the application/provider the template is designed for and ensures template versions track upstream changes.
 
+**Application Version Variables:**
+- **IMPORTANT**: Application/image versions should be **hardcoded** in template files (e.g., `image: nginx:1.25.3`)
+- Do NOT create template variables for application versions (e.g., no `nginx_version` variable)
+- Users should update the template file directly when they need a different version
+- This prevents version mismatches and ensures templates are tested with specific, known versions
+- Exception: Only create version variables if there's a strong technical reason (e.g., multi-component version pinning)
+
 ### Template Schema Versioning
 
 Templates and modules use schema versioning to ensure compatibility. Each module defines a supported schema version, and templates declare which schema version they use.

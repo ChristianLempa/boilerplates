@@ -59,12 +59,22 @@ def list_templates(module_instance, raw: bool = False) -> list:
                 name = template.metadata.name or "Unnamed Template"
                 tags_list = template.metadata.tags or []
                 tags = ", ".join(tags_list) if tags_list else "-"
-                version = str(template.metadata.version) if template.metadata.version else ""
-                schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+                version = (
+                    str(template.metadata.version) if template.metadata.version else ""
+                )
+                schema = (
+                    template.schema_version
+                    if hasattr(template, "schema_version")
+                    else "1.0"
+                )
                 library_name = template.metadata.library or ""
                 library_type = template.metadata.library_type or "git"
                 # Format library with icon and color
-                icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+                icon = (
+                    IconManager.UI_LIBRARY_STATIC
+                    if library_type == "static"
+                    else IconManager.UI_LIBRARY_GIT
+                )
                 color = "yellow" if library_type == "static" else "blue"
                 library_display = f"[{color}]{icon} {library_name}[/{color}]"
                 return (template.id, name, tags, version, schema, library_display)
@@ -103,16 +113,27 @@ def search_templates(module_instance, query: str) -> list:
         logger.info(
             f"Found {len(filtered_templates)} templates matching '{query}' for module '{module_instance.name}'"
         )
+
         def format_template_row(template):
             name = template.metadata.name or "Unnamed Template"
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            version = (
+                str(template.metadata.version) if template.metadata.version else ""
+            )
+            schema = (
+                template.schema_version
+                if hasattr(template, "schema_version")
+                else "1.0"
+            )
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
             # Format library with icon and color
-            icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
+            icon = (
+                IconManager.UI_LIBRARY_STATIC
+                if library_type == "static"
+                else IconManager.UI_LIBRARY_GIT
+            )
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
             return (template.id, name, tags, version, schema, library_display)
@@ -347,7 +368,11 @@ def execute_dry_run(
             {"name": "Status", "style": "yellow"},
         ],
         rows=file_operations,
-        row_formatter=lambda row: (str(row[0]), display.format_file_size(row[1]), row[2]),
+        row_formatter=lambda row: (
+            str(row[0]),
+            display.format_file_size(row[1]),
+            row[2],
+        ),
     )
     display.info("")
 
@@ -359,7 +384,13 @@ def execute_dry_run(
         ("Files to overwrite:", str(overwrite_files)),
         ("Total size:", size_str),
     ]
-    display.table(headers=None, rows=summary_rows, title="Summary", show_header=False, borderless=True)
+    display.table(
+        headers=None,
+        rows=summary_rows,
+        title="Summary",
+        show_header=False,
+        borderless=True,
+    )
     display.info("")
 
     # Show file contents if requested
@@ -712,7 +743,13 @@ def _validate_all_templates(module_instance, verbose: bool) -> None:
         ("[green]Valid:[/green]", str(valid_count)),
         ("[red]Invalid:[/red]", str(invalid_count)),
     ]
-    module_instance.display.table(headers=None, rows=summary_rows, title="Validation Summary", show_header=False, borderless=True)
+    module_instance.display.table(
+        headers=None,
+        rows=summary_rows,
+        title="Validation Summary",
+        show_header=False,
+        borderless=True,
+    )
 
     if errors:
         module_instance.display.info("")
