@@ -555,16 +555,17 @@ def generate_template(
             write_generated_files(output_dir, rendered_files, quiet, display)
 
         # Display next steps (not in quiet mode)
-        if template.metadata.next_steps and not quiet:
+        if template.metadata.next_steps and not quiet and not dry_run:
+            display.text("")
             display.heading("Next Steps")
             try:
                 next_steps_template = Jinja2Template(template.metadata.next_steps)
                 rendered_next_steps = next_steps_template.render(variable_values)
-                display.text(rendered_next_steps)
+                display.status.markdown(rendered_next_steps)
             except Exception as e:
                 logger.warning(f"Failed to render next_steps as template: {e}")
                 # Fallback to plain text if rendering fails
-                display.text(template.metadata.next_steps)
+                display.status.markdown(template.metadata.next_steps)
 
     except TemplateRenderError as e:
         display.error(str(e), context=f"template '{id}'")

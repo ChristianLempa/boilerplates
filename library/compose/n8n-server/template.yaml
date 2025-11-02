@@ -3,38 +3,29 @@ kind: compose
 schema: "1.1"
 metadata:
   name: N8N Server
-  description: >
+  description: |
     N8n is a free and source-available workflow automation tool. It enables you to connect
     various apps and services to automate repetitive tasks without coding.
     With its user-friendly interface, you can create complex workflows by simply dragging
     and dropping nodes that represent different actions and triggers.
 
-
     This template provides the n8n server component with optional queue mode support.
     For scaled deployments, combine with the n8n-worker template.
 
-
-    **Queue Mode Benefits:**
-
-    - **Scalability**: Distribute workflow execution across multiple workers
-
-    - **Reliability**: Jobs are persisted in Redis, survive server restarts
-
-    - **Performance**: Separate web UI from workflow execution
-
-
-    **Deployment Options:**
-
-    - **Single Instance**: Enable queue mode with embedded worker (testing/small workloads)
-
-    - **Production**: Use external Redis + separate n8n-worker instances for true scaling
-
-
-    Project: https://n8n.io/
-
-    Documentation: https://docs.n8n.io/
-
-    GitHub: https://github.com/n8n-io/n8n
+    ## Database Backend
+    By default, n8n uses SQLite as its database, which is suitable for small-scale or
+    personal use. For production environments, it is recommended to use an external
+    database like PostgreSQL or MySQL for better performance and reliability. This is also
+    required when using Queue Mode.
+    ## Queue Mode
+    Queue mode allows n8n to handle a large number of workflows and tasks efficiently, by using
+    multiple Workers, and Redis as the queue backend. This is essential for high-availability
+    setups where multiple n8n instances work together. It also supports Queue Monitoring
+    (when Prometheus metrics are enabled).
+    ## Resources
+    - **Project**: https://n8n.io/
+    - **Documentation**: https://docs.n8n.io/
+    - **GitHub**: https://github.com/n8n-io/n8n
   version: 1.118.1
   author: Christian Lempa
   date: '2025-11-02'
@@ -71,6 +62,8 @@ spec:
   queue:
     title: "Queue Mode"
     description: "Enable queue mode with Redis for scaled deployments"
+    toggle: queue_enabled
+    needs: "database_enabled=true"
     vars:
       queue_enabled:
         type: bool

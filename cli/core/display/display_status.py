@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from rich.console import Console
+from rich import box
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.markdown import Heading, Markdown
+from rich.panel import Panel
 
 from .display_icons import IconManager
 from .display_settings import DisplaySettings
@@ -13,6 +16,37 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 console_err = Console(stderr=True)  # Keep for error output
+
+
+class LeftAlignedHeading(Heading):
+    """Custom Heading element with left alignment and no extra spacing."""
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        text = self.text
+        text.justify = "left"  # Override center justification
+        if self.tag == "h1":
+            # Draw a border around h1s (left-aligned)
+            yield Panel(
+                text,
+                box=box.HEAVY,
+                style="markdown.h1.border",
+            )
+        else:
+            # Styled text for h2 and beyond (no blank line before h2)
+            yield text
+
+
+class LeftAlignedMarkdown(Markdown):
+    """Custom Markdown renderer with left-aligned headings."""
+
+    def __init__(self, markup: str, **kwargs):
+        """Initialize with custom heading element."""
+        super().__init__(markup, **kwargs)
+
+        # Replace heading element to use left alignment
+        self.elements["heading_open"] = LeftAlignedHeading
 
 
 class StatusDisplay:
@@ -140,3 +174,13 @@ class StatusDisplay:
             self.base.text(f"\n{icon} {message} (skipped - {reason})", style="dim")
         else:
             self.base.text(f"\n{icon} {message} (skipped)", style="dim")
+
+    def markdown(self, content: str) -> None:
+        """Render markdown content with left-aligned headings.
+
+        Args:
+            content: Markdown-formatted text to render
+        """
+        if not self.quiet:
+            console = Console()
+            console.print(LeftAlignedMarkdown(content))

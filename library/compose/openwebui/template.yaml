@@ -2,18 +2,34 @@
 kind: compose
 metadata:
   name: Openwebui
-  description: >
-    OpenWebUI is an open-source web-based user interface for managing and interacting with AI models.
-    It provides a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as
-    image generation, text generation, and more. OpenWebUI supports integration with popular AI frameworks
-    and offers features like model management, user authentication, and real-time interaction.
-
-
-    Project: https://openwebui.io/
-
-    Documentation: https://docs.openwebui.io/
-
-    GitHub: https://github.com/openwebui/openwebui
+  description: |
+    # OpenWebUI
+    An **open-source web-based user interface** for managing and interacting with AI models.
+    ## Features
+    - User-friendly platform to deploy and monitor AI models
+    - Image generation and text generation support
+    - Integration with popular AI frameworks
+    - Model management and user authentication
+    - Real-time interaction
+    ## Resources
+    - **Project**: https://openwebui.io/
+    - **Documentation**: https://docs.openwebui.io/
+    - **GitHub**: https://github.com/openwebui/openwebui
+  next_steps: |
+    ## Post-Installation Steps
+    1. **Review the generated files**:
+       - Check `docker-compose.yml` for service configuration
+       - Verify environment variables in `.env`
+    2. **Start the service**:
+       ```bash
+       docker compose up -d
+       ```
+    3. **Access OpenWebUI**:
+       - Open your browser and navigate to the configured host
+       - Complete the initial setup wizard
+    4. **Configure AI models**:
+       - Add your AI model endpoints in the admin panel
+       - Set up user authentication if needed
   version: 0.6.33
   author: Christian Lempa
   date: '2025-10-08'

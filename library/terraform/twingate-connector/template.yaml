@@ -4,7 +4,7 @@ schema: "1.0"
 metadata:
   name: Twingate Connector
   description: >
-    Twingate Connector deployment using Terraform. The Connector establishes secure connections between your 
+    Twingate Connector deployment using Terraform. The Connector establishes secure connections between your
     private network and Twingate service, enabling zero-trust network access.
 
 

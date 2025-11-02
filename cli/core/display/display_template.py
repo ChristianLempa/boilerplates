@@ -9,6 +9,7 @@ from .display_settings import DisplaySettings
 if TYPE_CHECKING:
     from ..template import Template
     from .display_base import BaseDisplay
+    from .display_status import StatusDisplay
     from .display_variable import VariableDisplay
 
 
@@ -24,6 +25,7 @@ class TemplateDisplay:
         settings: DisplaySettings,
         base: BaseDisplay,
         variables: VariableDisplay,
+        status: StatusDisplay,
     ):
         """Initialize TemplateDisplay.
 
@@ -31,10 +33,12 @@ class TemplateDisplay:
             settings: Display settings for formatting
             base: BaseDisplay instance
             variables: VariableDisplay instance for rendering variables
+            status: StatusDisplay instance for markdown rendering
         """
         self.settings = settings
         self.base = base
         self.variables = variables
+        self.status = status
 
     def render_template(self, template: Template, template_id: str) -> None:
         """Display template information panel and variables table.
@@ -82,7 +86,8 @@ class TemplateDisplay:
             f"{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}",
             style=settings.STYLE_HEADER,
         )
-        self.base.text(description)
+        self.base.text("")
+        self.status.markdown(description)
 
     def render_file_tree(self, template: Template) -> None:
         """Display the file structure of a template.
