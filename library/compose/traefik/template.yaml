@@ -86,6 +86,17 @@ spec:
         description: "Enable Prometheus metrics"
         default: false
         extra: "Exposes metrics on internal port 9090 (not publicly exposed)"
+      security_enabled:
+        type: "bool"
+        description: "Create production-ready security headers middleware"
+        default: true
+        extra: "Enables HSTS, XSS protection, frame denial, etc."
+      traefik_security_middleware_name:
+        type: "str"
+        description: "Name of the security headers middleware"
+        default: "security-headers"
+        needs: "security_enabled"
+        extra: "Reference in router labels as '{name}@file'"
   traefik_tls:
     title: "TLS Settings"
     needs: []
@@ -148,15 +159,21 @@ spec:
         description: "Docker Swarm secret name for API token"
         default: "cloudflare_api_token"
   authentik:
-    title: Authentik Middleware
-    description: Enable Authentik SSO integration for Traefik
+    title: "Authentik Middleware"
+    description: "Enable Authentik SSO integration for Traefik"
     vars:
+      authentik_enabled:
+        type: "bool"
+        description: "Enable Authentik SSO integration"
+        default: false
       authentik_outpost_url:
         type: "url"
         description: "Authentik outpost URL (e.g., http://authentik-outpost:9000)"
         default: "http://authentik-outpost:9000"
+        needs: "authentik_enabled"
       traefik_authentik_middleware_name:
         type: "str"
         description: "Name of the Authentik middleware"
         default: "authentik"
-        extra: "Reference this in router labels as '{name}@file'"
+        needs: "authentik_enabled"
+        extra: "Reference in router labels as '{name}@file'"

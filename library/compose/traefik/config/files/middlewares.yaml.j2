@@ -2,11 +2,27 @@
 # Traefik Dynamic Middleware Configuration
 # This file is watched by Traefik and changes are applied automatically
 
-{% if authentik_enabled -%}
+{% if security_enabled or authentik_enabled -%}
 http:
   middlewares:
+{% if security_enabled -%}
+    # Production-Ready Security Headers Middleware
+    # Use in service labels: traefik.http.routers.myservice.middlewares={{ traefik_security_middleware_name }}@file
+    {{ traefik_security_middleware_name }}:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        sslRedirect: true
+        forceSTSHeader: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+{% endif -%}
+{% if authentik_enabled -%}
     # Authentik Forward Auth Middleware
-    # Use this middleware in your service labels: traefik.http.routers.myservice.middlewares={{ traefik_authentik_middleware_name }}@file
+    # Use in service labels: traefik.http.routers.myservice.middlewares={{ traefik_authentik_middleware_name }}@file
     {{ traefik_authentik_middleware_name }}:
       forwardAuth:
         address: {{ authentik_outpost_url }}/outpost.goauthentik.io/auth/traefik
@@ -24,33 +40,14 @@ http:
           - X-authentik-meta-app
           - X-authentik-meta-version
 
-    # Example 1: Security headers
-    # security-headers:
-    #   headers:
-    #     frameDeny: true
-    #     browserXssFilter: true
-    #     contentTypeNosniff: true
-    #     stsSeconds: 31536000
-    #
-    # Example 2: Rate limiting
-    # rate-limit:
-    #   rateLimit:
-    #     average: 100
-    #     burst: 50
+{% endif -%}
 {% else -%}
-# Uncomment and customize the examples below as needed
-
+# No middlewares configured
+# Uncomment the example below to add custom middlewares:
+#
 # http:
 #   middlewares:
-#     # Example 1: Security headers
-#     security-headers:
-#       headers:
-#         frameDeny: true
-#         browserXssFilter: true
-#         contentTypeNosniff: true
-#         stsSeconds: 31536000
-#
-#     # Example 2: Rate limiting
+#     # Example: Rate limiting
 #     rate-limit:
 #       rateLimit:
 #         average: 100
