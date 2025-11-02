@@ -13,7 +13,7 @@ metadata:
     Documentation: https://docs.twingate.com/docs/architecture/connectors
 
     GitHub: https://github.com/twingate/twingate-connector
-  version: 1.0.0
+  version: 3.5.0
   author: Christian Lempa
   date: '2025-10-30'
   tags:
