@@ -12,13 +12,29 @@ log:
 accesslog: {}
 {% endif %}
 
-{% if traefik_dashboard_enabled %}
+ping:
+  entryPoint: ping
+
+{% if dashboard_enabled %}
 api:
   dashboard: true
   insecure: true
 {% endif %}
 
+{% if prometheus_enabled %}
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addRoutersLabels: true
+{% endif %}
+
 entryPoints:
+  ping:
+    address: :8082
+  {% if prometheus_enabled %}
+  metrics:
+    address: :9090
+  {% endif %}
   {{ traefik_entrypoint }}:
     address: :80
     {% if traefik_tls_enabled and traefik_tls_redirect %}
@@ -35,28 +51,51 @@ entryPoints:
 
 {% if traefik_tls_enabled %}
 certificatesResolvers:
-  {{ traefik_tls_certresolver | default('cloudflare') }}:
+  {{ traefik_tls_certresolver }}:
     acme:
       email: {{ traefik_tls_acme_email }}
       storage: /var/traefik/certs/acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
-        provider: {{ traefik_tls_acme_provider | default('cloudflare') }}
+        provider: {{ traefik_tls_acme_provider }}
         resolvers:
           - 1.1.1.1:53
           - 8.8.8.8:53
+
+tls:
+  options:
+    default:
+      minVersion: {{ traefik_tls_min_version }}
+      {% if traefik_tls_secure_ciphers %}
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+      {% endif %}
 {% endif %}
 
-# NOTE: If using self-signed certificates in your backend services, uncomment the following section
-# to disable certificate verification (not recommended for production use).
-# ---
-# serversTransport:
-#   insecureSkipVerify: true
+{% if traefik_tls_skipverify %}
+http:
+  serversTransports:
+    insecure:
+      insecureSkipVerify: true
+{% endif %}
+
 
 providers:
+  {% if swarm_enabled %}
+  swarm:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: {{ traefik_network }}
+  {% else %}
   docker:
     exposedByDefault: false
-    network: {{ network_name }}
+    network: {{ traefik_network }}
+  {% endif %}
   file:
     directory: /etc/traefik/files
     watch: true

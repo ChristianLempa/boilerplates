@@ -1,0 +1,27 @@
+---
+# Traefik Dynamic Router Configuration
+# Define routers to route traffic to services
+# Uncomment and customize the examples below
+
+# http:
+#   routers:
+#     # Example 1: Simple host-based routing with HTTPS
+#     my-app:
+#       rule: "Host(`app.example.com`)"
+#       service: my-app-service
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: cloudflare
+#
+#     # Example 2: Path-based routing with middleware
+#     api:
+#       rule: "Host(`example.com`) && PathPrefix(`/api`)"
+#       service: api-service
+#       priority: 10
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: cloudflare
+#       middlewares:
+#         - rate-limit@file
