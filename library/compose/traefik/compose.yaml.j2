@@ -45,6 +45,9 @@ services:
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
+      {% if traefik_tls_enabled and traefik_tls_acme_provider == 'cloudflare' %}
+      - CF_API_TOKEN_FILE=/.env.secret
+      {% endif %}
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
