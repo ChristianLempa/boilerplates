@@ -23,8 +23,6 @@ metadata:
   author: Christian Lempa
   date: '2025-11-02'
   tags:
-    - automation
-    - workflow
     - swarm
   next_steps: |
     {% if swarm_enabled -%}

@@ -30,8 +30,6 @@ metadata:
   author: Christian Lempa
   date: '2025-11-02'
   tags:
-    - automation
-    - workflow
     - traefik
     - swarm
   next_steps: |
