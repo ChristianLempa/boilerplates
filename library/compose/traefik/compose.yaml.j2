@@ -1,17 +1,18 @@
 services:
   {{ service_name }}:
-    image: docker.io/library/traefik:v3.5.4
+    image: docker.io/library/traefik:v3.5.3
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
+    security_opt:
+      - no-new-privileges:true
     {% endif %}
-    {% if ports_enabled %}
+    hostname: {{ container_hostname }}
     ports:
-      - "80:80"
-      - "443:443"
-      {% if traefik_dashboard_enabled %}
-      - "8080:8080"  # Dashboard (don't use in production)
+      - "{{ ports_http }}:80"
+      - "{{ ports_https }}:443"
+      {% if dashboard_enabled %}
+      - "{{ ports_dashboard }}:8080"
       {% endif %}
-    {% endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       {% if not swarm_enabled %}
@@ -26,23 +27,21 @@ services:
       - traefik_certs:/var/traefik/certs/:rw
       {% endif %}
       {% endif %}
-      {% if traefik_tls_enabled %}
-      {% if not swarm_enabled %}
+      {% if traefik_tls_enabled and not swarm_enabled %}
       - ./.env.secret:/.env.secret:ro
       {% endif %}
     env_file:
       - ./.env
-    {% endif %}
     {% if swarm_enabled %}
     configs:
       - source: traefik_config
         target: /etc/traefik/traefik.yaml
       - source: traefik_middlewares
         target: /etc/traefik/files/middlewares.yaml
-      - source: traefik_tls
-        target: /etc/traefik/files/tls.yaml
-      - source: traefik_external_services
-        target: /etc/traefik/files/external-services.yaml
+      - source: traefik_routers
+        target: /etc/traefik/files/routers.yaml
+      - source: traefik_services
+        target: /etc/traefik/files/services.yaml
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
@@ -52,10 +51,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    {% if network_enabled %}
     networks:
-      - {{ network_name }}
-    {% endif %}
+      - {{ traefik_network }}
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
     secrets:
@@ -85,7 +82,7 @@ volumes:
     driver: local
     driver_opts:
       type: nfs
-      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      o: addr={{ swarm_volume_nfs_server }},nfsvers=4,{{ swarm_volume_nfs_options }}
       device: ":{{ swarm_volume_nfs_path }}"
     {% endif %}
 {% endif %}
@@ -95,10 +92,10 @@ configs:
     file: ./config/traefik.yaml
   traefik_middlewares:
     file: ./config/files/middlewares.yaml
-  traefik_tls:
-    file: ./config/files/tls.yaml
-  traefik_external_services:
-    file: ./config/files/external-services.yaml
+  traefik_routers:
+    file: ./config/files/routers.yaml
+  traefik_services:
+    file: ./config/files/services.yaml
 
 {% if traefik_tls_enabled %}
 secrets:
@@ -107,10 +104,9 @@ secrets:
 {% endif %}
 {% endif %}
 
-{% if network_enabled %}
 networks:
-  {{ network_name }}:
-    {% if network_external %}
+  {{ traefik_network }}:
+    {% if traefik_network_external %}
     external: true
     {% else %}
     {% if swarm_enabled %}
@@ -119,6 +115,5 @@ networks:
     {% else %}
     driver: bridge
     {% endif %}
-    name: {{ network_name }}
+    name: {{ traefik_network }}
     {% endif %}
-{% endif %}

@@ -11,53 +11,21 @@ metadata:
     Project: https://traefik.io/
 
     Documentation: https://doc.traefik.io/traefik/
-  version: v3.5.4
+  version: v3.5.3
   author: "Christian Lempa"
-  date: '2025-10-31'
+  date: "2025-10-02"
   tags:
-    - reverse-proxy
-    - load-balancer
+    - traefik
+    - authentik
+    - swarm
   next_steps: |
-    1. Start Traefik:
+    {% if swarm_enabled %}
+    1. Deploy Traefik to Docker Swarm:
+       docker stack deploy -c docker-compose.yaml traefik
+    {% else %}
+    1. Start Traefik with Docker Compose:
        docker compose up -d
-
-    2. Configure your domain DNS:
-       - Point your domain A/AAAA records to your server IP
-       {% if traefik_tls_enabled -%}
-       - Configure DNS API credentials in .env file
-       - Ensure {{ traefik_tls_acme_provider }} API token has DNS edit permissions
-       {%- endif %}
-
-    3. Access the dashboard:
-       {% if traefik_dashboard_enabled -%}
-       - Dashboard: http://localhost:8080
-       - WARNING: Dashboard is in insecure mode - don't use in production!
-       {%- else -%}
-       - Dashboard is disabled (secure production setup)
-       - Enable it temporarily by setting traefik_dashboard_enabled=true
-       {%- endif %}
-
-    4. Deploy your services:
-       - Ensure services use the '{{ network_name }}' network
-       - Add Traefik labels to your service containers
-       - Services will be automatically discovered and routed
-
-    5. Configuration files:
-       - Static config: config/traefik.yml
-       - Dynamic config: config/conf.d/*.yml
-       {% if traefik_tls_enabled -%}
-       - TLS certificates: certs/acme.json
-       {%- endif %}
-
-    6. Security recommendations:
-       - Disable dashboard in production (traefik_dashboard_enabled=false)
-       - Use TLS/HTTPS for all services
-       - Store API tokens in Docker secrets (Swarm) or secure vaults
-       - Regularly update Traefik to latest version
-       - Review and limit network exposure
-
-    For more information, visit: https://doc.traefik.io/traefik/
-  draft: true
+    {% endif %}
 spec:
   general:
     title: "General"
@@ -67,34 +35,83 @@ spec:
         default: "traefik"
       container_name:
         default: "traefik"
+      container_hostname:
+        default: "traefik"
+  ports:
+    needs: []
+    vars:
+      ports_http:
+        type: "int"
+        description: "HTTP port (external)"
+        default: 80
+        extra: "Maps to entrypoint 'web'"
+      ports_https:
+        type: "int"
+        description: "HTTPS port (external)"
+        default: 443
+        extra: "Maps to entrypoint 'websecure'"
+      ports_dashboard:
+        type: "int"
+        description: "Dashboard port (external)"
+        default: 8080
+        extra: "Only used when dashboard is enabled"
+  traefik:
+    title: "Settings"
+    needs: []
+    vars:
+      traefik_network:
+        type: "str"
+        description: "Traefik network name"
+        default: "traefik"
+        extra: "Network that Traefik uses to connect to services"
+      traefik_network_external:
+        type: "bool"
+        description: "Use existing Docker network (external)"
+        default: false
+      traefik_entrypoint:
+        type: "str"
+        description: "HTTP entrypoint"
+        default: "web"
+      dashboard_enabled:
+        type: "bool"
+        description: "Enable Traefik dashboard"
+        default: false
+        extra: "WARNING: Don't use in production!"
       accesslog_enabled:
         type: "bool"
         description: "Enable Traefik access log"
         default: false
-  traefik:
-    title: "Traefik Settings"
-    description: "Configure Traefik as a reverse proxy"
-    required: true
-    vars:
-      traefik_entrypoint:
-        type: "str"
-        description: "HTTP entrypoint name (non-TLS)"
-        default: "web"
-        extra: "Standard HTTP traffic on port 80"
-      traefik_dashboard_enabled:
+      prometheus_enabled:
         type: "bool"
-        description: "Enable Traefik dashboard (insecure mode)"
+        description: "Enable Prometheus metrics"
         default: false
-        extra: "WARNING: Don't use in production! Exposes dashboard on port 8080"
+      security_enabled:
+        type: "bool"
+        description: "Create production-ready security headers middleware"
+        default: true
+        extra: "Enables HSTS, XSS protection, frame denial, etc."
+      traefik_security_middleware_name:
+        type: "str"
+        description: "Name of the security headers middleware"
+        default: "security-headers"
+        needs: "security_enabled"
+        extra: "Reference in router labels as '{name}@file'"
   traefik_tls:
-    title: "Traefik TLS Settings"
-    description: "Configure TLS/SSL with Let's Encrypt ACME"
-    needs: null
+    title: "TLS Settings"
+    needs: []
     vars:
       traefik_tls_enabled:
         type: "bool"
         description: "Enable HTTPS/TLS with ACME"
         default: false
+      traefik_tls_entrypoint:
+        type: "str"
+        description: "TLS entrypoint"
+        default: "websecure"
+      traefik_tls_certresolver:
+        type: "str"
+        description: "Traefik certificate resolver name"
+        default: "cloudflare"
       traefik_tls_acme_provider:
         type: "enum"
         description: "ACME DNS challenge provider"
@@ -106,12 +123,6 @@ spec:
         type: "str"
         description: "DNS provider API token"
         sensitive: true
-        extra: "For Cloudflare, create an API token with Zone:DNS:Edit permissions. Leave empty to use Docker Swarm secrets."
-      traefik_tls_acme_secret_name:
-        type: "str"
-        description: "Docker Swarm secret name for API token (swarm mode only)"
-        default: "cloudflare_api_token"
-        extra: "The secret name to use in Docker Swarm for storing the API token"
       traefik_tls_acme_email:
         type: "str"
         description: "Email address for ACME (Let's Encrypt) registration"
@@ -121,39 +132,47 @@ spec:
         type: "bool"
         description: "Redirect all HTTP traffic to HTTPS"
         default: true
-  ports:
-    toggle: "ports_enabled"
-    vars:
-      traefik_http_port:
-        type: "int"
-        description: "HTTP port (external)"
-        default: 80
-        extra: "Maps to entrypoint 'web' (port 80)"
-      traefik_https_port:
-        type: "int"
-        description: "HTTPS port (external)"
-        default: 443
-        extra: "Maps to entrypoint 'websecure' (port 443)"
-  network:
-    vars:
-      network_enabled:
+      traefik_tls_min_version:
+        type: "enum"
+        description: "Minimum TLS version"
+        default: "VersionTLS12"
+        options:
+          - "VersionTLS12"
+          - "VersionTLS13"
+        extra: "TLS 1.2 is recommended for compatibility, TLS 1.3 for maximum security"
+      traefik_tls_secure_ciphers:
+        type: "bool"
+        description: "Enable strict cipher suites (recommended)"
         default: true
-      network_mode:
-        default: "bridge"
-      network_name:
-        default: "proxy"
-      network_external:
+        extra: "Enforces modern, secure cipher suites"
+      traefik_tls_skipverify:
+        type: "bool"
+        description: "Skip TLS verification for backend servers"
         default: false
-  authentik:
-    title: Authentik Middleware
-    description: Enable Authentik SSO integration for Traefik
+        extra: "WARNING: Only enable for self-signed certificates in trusted environments"
+  swarm:
+    needs: []
     vars:
+      traefik_tls_acme_secret_name:
+        type: "str"
+        description: "Docker Swarm secret name for API token"
+        default: "cloudflare_api_token"
+  authentik:
+    title: "Authentik Middleware"
+    description: "Enable Authentik SSO integration for Traefik"
+    vars:
+      authentik_enabled:
+        type: "bool"
+        description: "Enable Authentik SSO integration"
+        default: false
       authentik_outpost_url:
         type: "url"
         description: "Authentik outpost URL (e.g., http://authentik-outpost:9000)"
         default: "http://authentik-outpost:9000"
+        needs: "authentik_enabled"
       traefik_authentik_middleware_name:
         type: "str"
         description: "Name of the Authentik middleware"
         default: "authentik"
-        extra: "Reference this in router labels as '{name}@file'"
+        needs: "authentik_enabled"
+        extra: "Reference in router labels as '{name}@file'"

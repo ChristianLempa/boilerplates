@@ -1,0 +1,28 @@
+---
+# Traefik Dynamic Service Configuration
+# Define backend services that routers connect to
+# Uncomment and customize the examples below
+
+# http:
+#   services:
+#     # Example 1: Single backend server
+#     my-app-service:
+#       loadBalancer:
+#         servers:
+#           - url: "http://192.168.1.100:8080"
+#
+#     # Example 2: Load balanced service with multiple backends
+#     api-service:
+#       loadBalancer:
+#         servers:
+#           - url: "http://192.168.1.10:8080"
+#           - url: "http://192.168.1.11:8080"
+#         sticky:
+#           cookie:
+#             name: api-sticky
+#             httpOnly: true
+#
+# # Server Transport for HTTPS backends with self-signed certificates
+# serversTransports:
+#   insecure:
+#     insecureSkipVerify: true
