@@ -44,12 +44,12 @@ spec:
         type: "int"
         description: "HTTP port (external)"
         default: 80
-        extra: "Maps to entrypoint 'web' (port 80)"
+        extra: "Maps to entrypoint 'web'"
       ports_https:
         type: "int"
         description: "HTTPS port (external)"
         default: 443
-        extra: "Maps to entrypoint 'websecure' (port 443)"
+        extra: "Maps to entrypoint 'websecure'"
       ports_dashboard:
         type: "int"
         description: "Dashboard port (external)"
@@ -70,7 +70,7 @@ spec:
         default: false
       traefik_entrypoint:
         type: "str"
-        description: "HTTP entrypoint (non-TLS)"
+        description: "HTTP entrypoint"
         default: "web"
       dashboard_enabled:
         type: "bool"
@@ -85,7 +85,6 @@ spec:
         type: "bool"
         description: "Enable Prometheus metrics"
         default: false
-        extra: "Exposes metrics on internal port 9090 (not publicly exposed)"
       security_enabled:
         type: "bool"
         description: "Create production-ready security headers middleware"
