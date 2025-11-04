@@ -1,0 +1,18 @@
+version: '3'
+
+networks:
+  frontend:
+    external: true
+
+services:
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    networks:
+      - frontend
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.public.rule=Host(`your-domain.com`)'
+      - 'traefik.http.routers.public.entrypoints=websecure'
+      - 'traefik.http.routers.public.tls=true'
+    restart: unless-stopped
