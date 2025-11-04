@@ -1,41 +1,51 @@
 services:
-  {{ service_name | default('whoami') }}:
-    image: traefik/whoami
-    container_name: {{ container_name | default('whoami') }}
+  {{ service_name }}:
+    image: traefik/whoami:v1.11.0
+    {% if not swarm_enabled %}
+    container_name: {{ container_name }}
+    restart: {{ restart_policy }}
+    {% endif %}
+    hostname: {{ container_hostname }}
     {% if swarm_enabled %}
     deploy:
-      replicas: {{ swarm_replicas | default(1) }}
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == "replicated" %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
       restart_policy:
         condition: on-failure
-    {% endif %}
-    {% if ports_enabled %}
-    ports:
-      - "{{ ports_http | default(8080) }}:80"
-      - "{{ ports_https | default(8443) }}:443"
-    {% endif %}
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default("bridge") }}
-    {% endif %}
-    {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.{{ service_name }}.loadbalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+    {% else %}
     labels:
       - traefik.enable=true
-      - traefik.http.services.{{ service_name | default("whoami") }}.loadbalancer.server.port=80
-      - traefik.http.routers.{{ service_name | default("whoami") }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default("whoami") }}-http.entrypoints={{ traefik_entrypoint | default("web") }}
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default("whoami") }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default("whoami") }}-https.entrypoints={{ traefik_tls_entrypoint | default("websecure") }}
-      - traefik.http.routers.{{ service_name | default("whoami") }}-https.tls=true
-      - traefik.http.routers.{{ service_name | default("whoami") }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy | default("unless-stopped") }}
+    networks:
+      - {{ traefik_network }}
 
-{% if network_enabled %}
 networks:
-  {{ network_name | default("bridge") }}:
-    {% if network_external %}
+  {{ traefik_network }}:
     external: true
-    {% endif %}
-{% endif %}

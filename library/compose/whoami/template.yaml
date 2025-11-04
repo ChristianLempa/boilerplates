@@ -1,38 +1,58 @@
 ---
 kind: compose
+schema: "1.1"
 metadata:
   name: Whoami
-  description: >
-    Whoami is a simple web application that displays information about the HTTP request it receives.
-    It is often used for testing and debugging purposes to verify that a web server or reverse proxy is functioning correctly.
-
-
-    Project: https://github.com/traefik/whoami
-
-    Documentation: https://traefik.io/docs/
-
-    GitHub: https://github.com/traefik/whoami
-  version: 0.1.0
+  description: |
+    A **simple web application** that displays information about the HTTP request it receives.
+    ## Use Cases
+    - Testing reverse proxy configurations
+    - Debugging web server setups
+    - Verifying load balancer functionality
+    - Quick HTTP endpoint testing
+    ## Resources
+    - **Project**: https://github.com/traefik/whoami
+    - **Documentation**: https://traefik.io/docs/
+    - **GitHub**: https://github.com/traefik/whoami
+  next_steps: |
+    ## Post-Installation Steps
+    1. **Start the service**:
+       ```bash
+       docker compose up -d
+       ```
+    2. **Verify the service is running**:
+       ```bash
+       docker compose ps
+       ```
+    3. **Test the endpoint**:
+       - Visit the configured host in your browser
+       - Or use curl: `curl http://{{ traefik_host }}`
+    4. **Check Traefik dashboard** (if enabled):
+       - Verify the route is registered correctly
+       - Check middleware configuration
+  version: 1.11.0
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-30'
   tags:
-    - reverse-proxy
-    - testing
-  draft: true
+    - traefik
+    - swarm
+  draft: false
 spec:
-  ports:
-    vars:
-      ports_http:
-        description: "Host port for HTTP (80)"
-        type: int
-        default: 80
-      ports_https:
-        description: "Host port for HTTPS (443)"
-        type: int
-        default: 443
   general:
     vars:
-      whoami_version:
-        type: str
-        description: Whoami version
-        default: latest
+      service_name:
+        default: whoami
+      container_name:
+        default: whoami
+      container_hostname:
+        default: whoami
+  traefik:
+    required: true
+    needs: []
+    vars:
+      traefik_host:
+        default: whoami.localhost
+  traefik_tls:
+    needs: []
+  swarm:
+    needs: []
