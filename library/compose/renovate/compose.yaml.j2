@@ -1,0 +1,153 @@
+services:
+  {{ service_name }}:
+    image: ghcr.io/mend/renovate-ce:10.5.0-full
+    {% if not swarm_enabled %}
+    container_name: {{ container_name }}
+    restart: {{ restart_policy }}
+    {% endif %}
+    hostname: {{ container_hostname }}
+    {% if not traefik_enabled and network_mode == 'bridge' %}
+    ports:
+      - "{{ ports_http }}:8080"
+    {% endif %}
+    {% if swarm_enabled %}
+    environment:
+      {% if renovate_platform == 'gitlab' %}
+      - MEND_RNV_LICENSE_KEY_FILE=/run/secrets/{{ license_key_secret_name }}
+      - MEND_RNV_GITLAB_PAT_FILE=/run/secrets/{{ git_token_secret_name }}
+      - GITHUB_COM_TOKEN_FILE=/run/secrets/{{ git_token_secret_name }}
+      {% elif renovate_platform == 'github' %}
+      - MEND_RNV_LICENSE_KEY_FILE=/run/secrets/{{ license_key_secret_name }}
+      - MEND_RNV_GITHUB_APP_KEY_FILE=/run/secrets/{{ git_token_secret_name }}
+      - GITHUB_COM_TOKEN_FILE=/run/secrets/{{ git_token_secret_name }}
+      {% elif renovate_platform == 'gitea' %}
+      - MEND_RNV_LICENSE_KEY_FILE=/run/secrets/{{ license_key_secret_name }}
+      - MEND_RNV_GITEA_TOKEN_FILE=/run/secrets/{{ git_token_secret_name }}
+      - GITHUB_COM_TOKEN_FILE=/run/secrets/{{ git_token_secret_name }}
+      {% endif %}
+      {% if webhook_secret %}
+      - MEND_RNV_WEBHOOK_SECRET_FILE=/run/secrets/{{ webhook_secret_name }}
+      {% endif %}
+      - MEND_RNV_ACCEPT_TOS=Y
+      - MEND_RNV_PLATFORM={{ renovate_platform }}
+      - MEND_RNV_ENDPOINT={{ renovate_endpoint }}
+      {% if renovate_autodiscover %}
+      - MEND_RNV_AUTODISCOVER=true
+      {% endif %}
+      - LOG_LEVEL={{ container_loglevel }}
+    {% else %}
+    env_file:
+      - ./.env
+    {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - source: {{ license_key_secret_name }}
+        target: {{ license_key_secret_name }}
+        mode: 0400
+      - source: {{ git_token_secret_name }}
+        target: {{ git_token_secret_name }}
+        mode: 0400
+      {% if webhook_secret %}
+      - source: {{ webhook_secret_name }}
+        target: {{ webhook_secret_name }}
+        mode: 0400
+      {% endif %}
+    deploy:
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.{{ service_name }}.loadbalancer.server.port=8080
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% else %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=8080
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    {% endif %}
+    networks:
+      {% if network_mode == 'bridge' %}
+      - {{ network_name }}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+      {% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+{% if swarm_enabled %}
+secrets:
+  {{ license_key_secret_name }}:
+    file: ./.env.secret.license
+  {{ git_token_secret_name }}:
+    file: ./.env.secret.token
+  {% if webhook_secret %}
+  {{ webhook_secret_name }}:
+    file: ./.env.secret.webhook
+  {% endif %}
+{% endif %}
+
+networks:
+  {% if network_mode == 'bridge' %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    name: {{ network_name }}
+    {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+  {% elif network_mode == 'host' %}
+  {}
+  {% elif network_mode == 'macvlan' %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% endif %}
+  {% endif %}
