@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 TRUE_VALUES = {"true", "1", "yes", "on"}
 FALSE_VALUES = {"false", "0", "no", "off"}
-EMAIL_REGEX = re.compile(r"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class Variable:
