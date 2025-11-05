@@ -68,7 +68,7 @@ services:
     restart: {{ restart_policy }}
 
   {{ service_name }}-redis:
-    image: docker.io/library/redis:8.2.2
+    image: docker.io/library/redis:8.2.3
     container_name: {{ service_name }}-redis
     command: --save 60 1 --loglevel warning
     healthcheck:
