@@ -1,6 +1,6 @@
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v1.5.0
+    image: ghcr.io/gethomepage/homepage:v1.6.1
     container_name: homepage
     environment:
       # (Required) See https://gethomepage.dev/installation/#homepage_allowed_hosts
@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 #   (Optional) For secure docker socket integration
 #   dockerproxy:
-#     image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.0
+#     image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.1
 #     container_name: homepage-demo-1-dockerproxy
 #     environment:
 #       - CONTAINERS=1 # Allow access to viewing containers

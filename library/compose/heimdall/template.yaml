@@ -10,9 +10,9 @@ metadata:
     Project: https://heimdall.site/
 
     Documentation: https://docs.heimdall.site/
-  version: 2.7.4
+  version: 2.7.6
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-31'
   tags:
     - dashboard
   draft: true

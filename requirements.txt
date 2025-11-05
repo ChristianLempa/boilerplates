@@ -1,4 +1,4 @@
-typer==0.19.2
+typer==0.20.0
 rich==14.2.0
 PyYAML==6.0.3
 python-frontmatter==1.1.0

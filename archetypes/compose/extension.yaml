@@ -1,0 +1,142 @@
+---
+# Extension variables for archetype testing
+# These variables are only available when testing archetypes
+# and are NOT part of the main module spec
+# They provide reasonable defaults for variables that normally have None values
+
+# General service defaults
+service_name:
+  type: str
+  description: Service name for testing
+  default: testapp
+
+container_name:
+  type: str
+  description: Container name for testing
+  default: testapp-container
+
+container_hostname:
+  type: str
+  description: Container hostname for testing
+  default: testapp-host
+
+# Traefik defaults
+traefik_host:
+  type: hostname
+  description: Traefik host for testing
+  default: app.example.com
+
+# Database defaults
+database_port:
+  type: int
+  description: Database port for testing
+  default: 5432
+
+database_name:
+  type: str
+  description: Database name for testing
+  default: testdb
+
+database_user:
+  type: str
+  description: Database user for testing
+  default: dbuser
+
+database_password:
+  type: str
+  description: Database password for testing
+  default: secretpassword123
+  sensitive: true
+
+# Email server defaults
+email_host:
+  type: str
+  description: Email server host for testing
+  default: smtp.example.com
+
+email_username:
+  type: str
+  description: Email username for testing
+  default: noreply@example.com
+
+email_password:
+  type: str
+  description: Email password for testing
+  default: emailpass123
+  sensitive: true
+
+email_from:
+  type: str
+  description: Email from address for testing
+  default: noreply@example.com
+
+# Authentik SSO defaults
+authentik_url:
+  type: url
+  description: Authentik URL for testing
+  default: https://auth.example.com
+
+authentik_slug:
+  type: str
+  description: Authentik application slug for testing
+  default: testapp
+
+authentik_client_id:
+  type: str
+  description: Authentik client ID for testing
+  default: client_id_12345
+
+authentik_client_secret:
+  type: str
+  description: Authentik client secret for testing
+  default: client_secret_abcdef
+  sensitive: true
+
+# Ports defaults
+ports_http:
+  type: int
+  description: HTTP port for testing
+  default: 8080
+
+ports_https:
+  type: int
+  description: HTTPS port for testing
+  default: 8443
+
+# Additional test variables
+test_image:
+  type: str
+  description: Docker image for testing
+  default: nginx:alpine
+
+test_port:
+  type: int
+  description: Port number for testing
+  default: 80
+
+test_secret_token:
+  type: str
+  description: Example secret token
+  default: my-secret-token-123
+  sensitive: true
+
+test_api_key:
+  type: str
+  description: Example API key
+  default: api_key_example_12345
+  sensitive: true
+
+test_database_url:
+  type: str
+  description: Example database connection string
+  default: postgresql://user:pass@localhost:5432/db
+
+test_environment_var:
+  type: str
+  description: Example environment variable
+  default: production
+
+test_config_path:
+  type: str
+  description: Example configuration file path
+  default: /etc/app/config.yaml

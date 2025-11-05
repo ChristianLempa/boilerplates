@@ -12,13 +12,14 @@ metadata:
     Pi-hole uses local storage and configuration files and does NOT support running multiple replicas.
     This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
 
-    ## Resources
-    - **Project**: https://pi-hole.net/
-    - **Documentation**: https://docs.pi-hole.net/
-    - **GitHub**: https://github.com/pi-hole/pi-hole
-  version: 2025.10.2
+    Project: https://pi-hole.net/
+
+    Documentation: https://docs.pi-hole.net/
+
+    GitHub: https://github.com/pi-hole/pi-hole
+  version: 2025.11.0
   author: Christian Lempa
-  date: '2025-10-28'
+  date: '2025-11-05'
   tags:
     - traefik
     - swarm

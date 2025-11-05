@@ -4,7 +4,7 @@ services:
     container_name: {{ container_name }}
     hostname: {{ container_hostname }}
     {% endif %}
-    image: docker.io/prom/prometheus:3.6.0
+    image: docker.io/prom/prometheus:v3.7.3
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
       - --storage.tsdb.retention.time={{ metrics_retention_time }}

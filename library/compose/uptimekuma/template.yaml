@@ -12,9 +12,9 @@ metadata:
     Documentation: https://docs.uptime.kuma.pet/
 
     GitHub: https://github.com/louislam/uptime-kuma
-  version: 1.23.16
+  version: 1.23.17
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-10-31'
   tags:
     - monitoring
     - alerting

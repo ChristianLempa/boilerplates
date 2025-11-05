@@ -12,13 +12,14 @@ metadata:
     Prometheus uses local TSDB storage and does NOT support running multiple replicas.
     This template enforces a single replica with node placement constraints. For true HA, consider remote storage solutions (Thanos, Cortex, VictoriaMetrics).
 
-    ## Resources
-    - **Project**: https://prometheus.io/
-    - **Documentation**: https://prometheus.io/docs/
-    - **GitHub**: https://github.com/prometheus/prometheus
-  version: 3.6.0
+    Project: https://prometheus.io/
+
+    Documentation: https://prometheus.io/docs/
+
+    GitHub: https://github.com/prometheus/prometheus
+  version: v3.7.3
   author: Christian Lempa
-  date: '2025-11-02'
+  date: '2025-10-31'
   tags:
     - traefik
     - swarm
