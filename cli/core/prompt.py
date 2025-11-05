@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Callable
 import logging
-from rich.console import Console
-from rich.prompt import Prompt, Confirm, IntPrompt
+from typing import Any, Callable
 
+from rich.console import Console
+from rich.prompt import Confirm, IntPrompt, Prompt
+
+from .collection import VariableCollection
 from .display import DisplayManager
 from .variable import Variable
-from .collection import VariableCollection
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +33,7 @@ class PromptHandler:
             logger.info("User opted to keep all default values")
             return {}
 
-        collected: Dict[str, Any] = {}
-        prompted_variables: set[str] = (
-            set()
-        )  # Track which variables we've already prompted for
+        collected: dict[str, Any] = {}
 
         # Process each section
         for section_key, section in variables.get_sections().items():
@@ -43,114 +41,115 @@ class PromptHandler:
                 continue
 
             # Check if dependencies are satisfied
-            if not variables.is_section_satisfied(section_key):
-                # Get list of unsatisfied dependencies for better user feedback
-                unsatisfied_keys = [
-                    dep
-                    for dep in section.needs
-                    if not variables.is_section_satisfied(dep)
-                ]
-                # Convert section keys to titles for user-friendly display
-                unsatisfied_titles = []
-                for dep_key in unsatisfied_keys:
-                    dep_section = variables.get_section(dep_key)
-                    if dep_section:
-                        unsatisfied_titles.append(dep_section.title)
-                    else:
-                        unsatisfied_titles.append(dep_key)
-                dep_names = (
-                    ", ".join(unsatisfied_titles) if unsatisfied_titles else "unknown"
-                )
-                self.display.display_skipped(
-                    section.title, f"requires {dep_names} to be enabled"
-                )
-                logger.debug(
-                    f"Skipping section '{section_key}' - dependencies not satisfied: {dep_names}"
-                )
+            if not self._check_section_dependencies(variables, section_key, section):
                 continue
 
             # Always show section header first
             self.display.display_section_header(section.title, section.description)
 
-            # Track whether this section will be enabled
-            section_will_be_enabled = True
-
-            # Handle section toggle - skip for required sections
-            if section.required:
-                # Required sections are always processed, no toggle prompt needed
-                logger.debug(
-                    f"Processing required section '{section.key}' without toggle prompt"
-                )
-            elif section.toggle:
-                toggle_var = section.variables.get(section.toggle)
-                if toggle_var:
-                    # Prompt for toggle variable using standard variable prompting logic
-                    # This ensures consistent handling of description, extra text, validation hints, etc.
-                    current_value = toggle_var.convert(toggle_var.value)
-                    new_value = self._prompt_variable(
-                        toggle_var, required=section.required
-                    )
-
-                    if new_value != current_value:
-                        collected[toggle_var.name] = new_value
-                        toggle_var.value = new_value
-
-                    # Use section's native is_enabled() method
-                    if not section.is_enabled():
-                        section_will_be_enabled = False
+            # Handle section toggle and determine if enabled
+            section_will_be_enabled = self._handle_section_toggle(section, collected)
 
             # Collect variables in this section
-            for var_name, variable in section.variables.items():
-                # Skip toggle variable (already handled)
-                if section.toggle and var_name == section.toggle:
-                    continue
-
-                # Skip variables with unsatisfied needs (similar to display logic)
-                if not variables.is_variable_satisfied(var_name):
-                    logger.debug(
-                        f"Skipping variable '{var_name}' - needs not satisfied"
-                    )
-                    continue
-
-                # Skip all variables if section is disabled
-                if not section_will_be_enabled:
-                    logger.debug(
-                        f"Skipping variable '{var_name}' from disabled section '{section_key}'"
-                    )
-                    continue
-
-                # Prompt for the variable
-                current_value = variable.convert(variable.value)
-                # Pass section.required so _prompt_variable can enforce required inputs
-                new_value = self._prompt_variable(variable, required=section.required)
-
-                # Track that we've prompted for this variable
-                prompted_variables.add(var_name)
-
-                # For autogenerated variables, always update even if None (signals autogeneration)
-                if variable.autogenerated and new_value is None:
-                    collected[var_name] = None
-                    variable.value = None
-                elif new_value != current_value:
-                    collected[var_name] = new_value
-                    variable.value = new_value
+            self._collect_section_variables(section, section_key, section_will_be_enabled, variables, collected)
 
         logger.info(f"Variable collection completed. Collected {len(collected)} values")
         return collected
 
-    def _prompt_variable(self, variable: Variable, required: bool = False) -> Any:
+    def _check_section_dependencies(self, variables: VariableCollection, section_key: str, section) -> bool:
+        """Check if section dependencies are satisfied and display skip message if not."""
+        if not variables.is_section_satisfied(section_key):
+            # Get list of unsatisfied dependencies for better user feedback
+            unsatisfied_keys = [dep for dep in section.needs if not variables.is_section_satisfied(dep)]
+            # Convert section keys to titles for user-friendly display
+            unsatisfied_titles = []
+            for dep_key in unsatisfied_keys:
+                dep_section = variables.get_section(dep_key)
+                unsatisfied_titles.append(dep_section.title if dep_section else dep_key)
+
+            dep_names = ", ".join(unsatisfied_titles) if unsatisfied_titles else "unknown"
+            self.display.display_skipped(section.title, f"requires {dep_names} to be enabled")
+            logger.debug(f"Skipping section '{section_key}' - dependencies not satisfied: {dep_names}")
+            return False
+        return True
+
+    def _handle_section_toggle(self, section, collected: dict[str, Any]) -> bool:
+        """Handle section toggle prompt and return whether section will be enabled."""
+        # Required sections are always enabled
+        if section.required:
+            logger.debug(f"Processing required section '{section.key}' without toggle prompt")
+            return True
+
+        # Handle optional sections with toggle
+        if not section.toggle:
+            return True
+
+        toggle_var = section.variables.get(section.toggle)
+        if not toggle_var:
+            return True
+
+        # Prompt for toggle variable
+        current_value = toggle_var.convert(toggle_var.value)
+        new_value = self._prompt_variable(toggle_var, required=section.required)
+
+        if new_value != current_value:
+            collected[toggle_var.name] = new_value
+            toggle_var.value = new_value
+
+        # Return whether section is enabled
+        return section.is_enabled()
+
+    def _collect_section_variables(
+        self,
+        section,
+        section_key: str,
+        section_enabled: bool,
+        variables: VariableCollection,
+        collected: dict[str, Any],
+    ) -> None:
+        """Collect values for all variables in a section."""
+        for var_name, variable in section.variables.items():
+            # Skip toggle variable (already handled)
+            if section.toggle and var_name == section.toggle:
+                continue
+
+            # Skip variables with unsatisfied needs
+            if not variables.is_variable_satisfied(var_name):
+                logger.debug(f"Skipping variable '{var_name}' - needs not satisfied")
+                continue
+
+            # Skip all variables if section is disabled
+            if not section_enabled:
+                logger.debug(f"Skipping variable '{var_name}' from disabled section '{section_key}'")
+                continue
+
+            # Prompt for the variable and update if changed
+            self._prompt_and_update_variable(variable, collected)
+
+    def _prompt_and_update_variable(self, variable: Variable, collected: dict[str, Any]) -> None:
+        """Prompt for a variable and update collected values if changed."""
+        current_value = variable.convert(variable.value)
+        new_value = self._prompt_variable(variable, required=False)
+
+        # For autogenerated variables, always update even if None (signals autogeneration)
+        if variable.autogenerated and new_value is None:
+            collected[variable.name] = None
+            variable.value = None
+        elif new_value != current_value:
+            collected[variable.name] = new_value
+            variable.value = new_value
+
+    def _prompt_variable(self, variable: Variable, _required: bool = False) -> Any:
         """Prompt for a single variable value based on its type.
 
         Args:
             variable: The variable to prompt for
-            required: Whether the containing section is required (for context/display)
+            _required: Whether the containing section is required (unused, kept for API compatibility)
 
         Returns:
             The validated value entered by the user
         """
-        logger.debug(
-            f"Prompting for variable '{variable.name}' (type: {variable.type})"
-        )
+        logger.debug(f"Prompting for variable '{variable.name}' (type: {variable.type})")
 
         # Use variable's native methods for prompt text and default value
         prompt_text = variable.get_prompt_text()
@@ -184,18 +183,15 @@ class PromptHandler:
                 # - Type conversion
                 # - Autogenerated variable detection
                 # - Required field validation
-                converted = variable.validate_and_convert(raw, check_required=True)
+                return variable.validate_and_convert(raw, check_required=True)
 
                 # Return the converted value (caller will update variable.value)
-                return converted
             except ValueError as exc:
                 # Conversion/validation failed — show a consistent error message and retry
                 self._show_validation_error(str(exc))
             except Exception as e:
                 # Unexpected error — log and retry using the stored (unconverted) value
-                logger.error(
-                    f"Error prompting for variable '{variable.name}': {str(e)}"
-                )
+                logger.error(f"Error prompting for variable '{variable.name}': {e!s}")
                 default_value = variable.value
                 handler = self._get_prompt_handler(variable)
 
@@ -215,18 +211,14 @@ class PromptHandler:
         }
         return handlers.get(
             variable.type,
-            lambda text, default: self._prompt_string(
-                text, default, is_sensitive=variable.sensitive
-            ),
+            lambda text, default: self._prompt_string(text, default, is_sensitive=variable.sensitive),
         )
 
     def _show_validation_error(self, message: str) -> None:
         """Display validation feedback consistently."""
         self.display.display_validation_error(message)
 
-    def _prompt_string(
-        self, prompt_text: str, default: Any = None, is_sensitive: bool = False
-    ) -> str | None:
+    def _prompt_string(self, prompt_text: str, default: Any = None, is_sensitive: bool = False) -> str | None:
         value = Prompt.ask(
             prompt_text,
             default=str(default) if default is not None else "",
@@ -239,11 +231,7 @@ class PromptHandler:
     def _prompt_bool(self, prompt_text: str, default: Any = None) -> bool | None:
         if default is None:
             return Confirm.ask(prompt_text, default=None)
-        converted = (
-            default
-            if isinstance(default, bool)
-            else str(default).lower() in ("true", "1", "yes", "on")
-        )
+        converted = default if isinstance(default, bool) else str(default).lower() in ("true", "1", "yes", "on")
         return Confirm.ask(prompt_text, default=converted)
 
     def _prompt_int(self, prompt_text: str, default: Any = None) -> int | None:
@@ -260,7 +248,7 @@ class PromptHandler:
         prompt_text: str,
         options: list[str],
         default: Any = None,
-        extra: str | None = None,
+        _extra: str | None = None,
     ) -> str:
         """Prompt for enum selection with validation.
 
@@ -282,6 +270,4 @@ class PromptHandler:
             )
             if value in options:
                 return value
-            self.console.print(
-                f"[red]Invalid choice. Select from: {', '.join(options)}[/red]"
-            )
+            self.console.print(f"[red]Invalid choice. Select from: {', '.join(options)}[/red]")

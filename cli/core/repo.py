@@ -11,7 +11,7 @@ from rich.progress import SpinnerColumn, TextColumn
 from rich.table import Table
 from typer import Argument, Option, Typer
 
-from ..core.config import ConfigManager
+from ..core.config import ConfigManager, LibraryConfig
 from ..core.display import DisplayManager
 from ..core.exceptions import ConfigError
 
@@ -70,20 +70,15 @@ def _clone_or_pull_repo(
     """
     if target_path.exists() and (target_path / ".git").exists():
         return _pull_repo_updates(name, target_path, branch)
-    else:
-        return _clone_new_repo(name, url, target_path, branch, sparse_dir)
+    return _clone_new_repo(name, url, target_path, branch, sparse_dir)
 
 
-def _pull_repo_updates(
-    name: str, target_path: Path, branch: str | None
-) -> tuple[bool, str]:
+def _pull_repo_updates(name: str, target_path: Path, branch: str | None) -> tuple[bool, str]:
     """Pull updates for an existing repository."""
     logger.debug(f"Pulling updates for library '{name}' at {target_path}")
 
     pull_branch = branch if branch else "main"
-    success, stdout, stderr = _run_git_command(
-        ["pull", "--ff-only", "origin", pull_branch], cwd=target_path
-    )
+    success, stdout, stderr = _run_git_command(["pull", "--ff-only", "origin", pull_branch], cwd=target_path)
 
     if not success:
         error_msg = stderr or stdout
@@ -92,8 +87,7 @@ def _pull_repo_updates(
 
     if "Already up to date" in stdout or "Already up-to-date" in stdout:
         return True, "Already up to date"
-    else:
-        return True, "Updated successfully"
+    return True, "Updated successfully"
 
 
 def _clone_new_repo(
@@ -107,13 +101,10 @@ def _clone_new_repo(
 
     if use_sparse:
         return _clone_sparse_repo(url, target_path, branch, sparse_dir)
-    else:
-        return _clone_full_repo(name, url, target_path, branch)
+    return _clone_full_repo(name, url, target_path, branch)
 
 
-def _clone_sparse_repo(
-    url: str, target_path: Path, branch: str | None, sparse_dir: str
-) -> tuple[bool, str]:
+def _clone_sparse_repo(url: str, target_path: Path, branch: str | None, sparse_dir: str) -> tuple[bool, str]:
     """Clone repository with sparse-checkout."""
     logger.debug(f"Using sparse-checkout for directory: {sparse_dir}")
     target_path.mkdir(parents=True, exist_ok=True)
@@ -137,28 +128,18 @@ def _clone_sparse_repo(
 
     # Fetch and checkout
     fetch_branch = branch if branch else "main"
-    success, stdout, stderr = _run_git_command(
-        ["fetch", "--depth", "1", "origin", fetch_branch], cwd=target_path
-    )
+    success, stdout, stderr = _run_git_command(["fetch", "--depth", "1", "origin", fetch_branch], cwd=target_path)
     if not success:
         return False, f"Fetch failed: {stderr or stdout}"
 
-    success, stdout, stderr = _run_git_command(
-        ["checkout", fetch_branch], cwd=target_path
-    )
+    success, stdout, stderr = _run_git_command(["checkout", fetch_branch], cwd=target_path)
     result_success = success
-    result_msg = (
-        "Cloned successfully (sparse)"
-        if success
-        else f"Checkout failed: {stderr or stdout}"
-    )
+    result_msg = "Cloned successfully (sparse)" if success else f"Checkout failed: {stderr or stdout}"
 
     return result_success, result_msg
 
 
-def _clone_full_repo(
-    name: str, url: str, target_path: Path, branch: str | None
-) -> tuple[bool, str]:
+def _clone_full_repo(name: str, url: str, target_path: Path, branch: str | None) -> tuple[bool, str]:
     """Clone full repository."""
     clone_args = ["clone", "--depth", "1"]
     if branch:
@@ -169,15 +150,12 @@ def _clone_full_repo(
 
     if success:
         return True, "Cloned successfully"
-    else:
-        error_msg = stderr or stdout
-        logger.error(f"Failed to clone library '{name}': {error_msg}")
-        return False, f"Clone failed: {error_msg}"
+    error_msg = stderr or stdout
+    logger.error(f"Failed to clone library '{name}': {error_msg}")
+    return False, f"Clone failed: {error_msg}"
 
 
-def _process_library_update(
-    lib: dict, libraries_path: Path, progress, verbose: bool
-) -> tuple[str, str, bool]:
+def _process_library_update(lib: dict, libraries_path: Path, progress, verbose: bool) -> tuple[str, str, bool]:
     """Process a single library update and return result."""
     name = lib.get("name")
     lib_type = lib.get("type", "git")
@@ -190,9 +168,7 @@ def _process_library_update(
 
     if lib_type == "static":
         if verbose:
-            display.text(
-                f"Skipping static library: {name} (no sync needed)", style="dim"
-            )
+            display.text(f"Skipping static library: {name} (no sync needed)", style="dim")
         return (name, "N/A (static)", True)
 
     # Handle git libraries
@@ -221,9 +197,7 @@ def _display_update_summary(results: list[tuple[str, str, bool]]) -> None:
 
     display.text("")
     if successful == total:
-        display.text(
-            f"All libraries updated successfully ({successful}/{total})", style="green"
-        )
+        display.text(f"All libraries updated successfully ({successful}/{total})", style="green")
     elif successful > 0:
         display.text(
             f"Partially successful: {successful}/{total} libraries updated",
@@ -235,9 +209,7 @@ def _display_update_summary(results: list[tuple[str, str, bool]]) -> None:
 
 @app.command()
 def update(
-    library_name: str | None = Argument(
-        None, help="Name of specific library to update (updates all if not specified)"
-    ),
+    library_name: str | None = Argument(None, help="Name of specific library to update (updates all if not specified)"),
     verbose: bool = Option(False, "--verbose", "-v", help="Show detailed output"),
 ) -> None:
     """Update library repositories by cloning or pulling from git.
@@ -250,9 +222,7 @@ def update(
 
     if not libraries:
         display.warning("No libraries configured")
-        display.text(
-            "Libraries are auto-configured on first run with a default library."
-        )
+        display.text("Libraries are auto-configured on first run with a default library.")
         return
 
     # Filter to specific library if requested
@@ -265,18 +235,14 @@ def update(
     libraries_path = config.get_libraries_path()
     results = []
 
-    with display.progress(
-        SpinnerColumn(), TextColumn("[progress.description]{task.description}")
-    ) as progress:
+    with display.progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
         for lib in libraries:
             result = _process_library_update(lib, libraries_path, progress, verbose)
             results.append(result)
 
     # Display summary table
     if not verbose:
-        display.display_status_table(
-            "Library Update Summary", results, columns=("Library", "Status")
-        )
+        display.display_status_table("Library Update Summary", results, columns=("Library", "Status"))
 
     _display_update_summary(results)
 
@@ -287,8 +253,7 @@ def _get_library_path_for_git(lib: dict, libraries_path: Path, name: str) -> Pat
     library_base = libraries_path / name
     if directory and directory != ".":
         return library_base / directory
-    else:
-        return library_base
+    return library_base
 
 
 def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
@@ -300,9 +265,7 @@ def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
     return library_path
 
 
-def _get_library_info(
-    lib: dict, config: ConfigManager, libraries_path: Path
-) -> tuple[str, str, str, str, bool]:
+def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, bool]:
     """Extract library information based on type."""
     name = lib.get("name", "")
     lib_type = lib.get("type", "git")
@@ -370,9 +333,7 @@ def list() -> None:
 
     for lib in libraries:
         name = lib.get("name", "")
-        url_or_path, branch, directory, type_display, status = _get_library_info(
-            lib, config, libraries_path
-        )
+        url_or_path, branch, directory, type_display, status = _get_library_info(lib, config, libraries_path)
         table.add_row(name, url_or_path, branch, directory, type_display, status)
 
     display._print_table(table)
@@ -381,14 +342,13 @@ def list() -> None:
 @app.command()
 def add(
     name: str = Argument(..., help="Unique name for the library"),
+    *,
     library_type: str | None = None,
     url: str | None = None,
     branch: str = "main",
     directory: str = "library",
     path: str | None = None,
-    enabled: bool = Option(
-        True, "--enabled/--disabled", help="Enable or disable the library"
-    ),
+    enabled: bool = Option(True, "--enabled/--disabled", help="Enable or disable the library"),
     sync: bool = Option(True, "--sync/--no-sync", help="Sync after adding (git only)"),
 ) -> None:
     """Add a new library to the configuration.
@@ -407,8 +367,8 @@ def add(
             if not url:
                 display.error("--url is required for git libraries")
                 return
-            config.add_library(
-                name,
+            lib_config = LibraryConfig(
+                name=name,
                 library_type="git",
                 url=url,
                 branch=branch,
@@ -419,13 +379,17 @@ def add(
             if not path:
                 display.error("--path is required for static libraries")
                 return
-            config.add_library(name, library_type="static", path=path, enabled=enabled)
-        else:
-            display.error(
-                f"Invalid library type: {library_type}. Must be 'git' or 'static'."
+            lib_config = LibraryConfig(
+                name=name,
+                library_type="static",
+                path=path,
+                enabled=enabled,
             )
+        else:
+            display.error(f"Invalid library type: {library_type}. Must be 'git' or 'static'.")
             return
 
+        config.add_library(lib_config)
         display.success(f"Added {library_type} library '{name}'")
 
         if library_type == "git" and sync and enabled:
@@ -440,9 +404,7 @@ def add(
 @app.command()
 def remove(
     name: str = Argument(..., help="Name of the library to remove"),
-    keep_files: bool = Option(
-        False, "--keep-files", help="Keep the local library files (don't delete)"
-    ),
+    keep_files: bool = Option(False, "--keep-files", help="Keep the local library files (don't delete)"),
 ) -> None:
     """Remove a library from the configuration and delete its local files."""
     config = ConfigManager()

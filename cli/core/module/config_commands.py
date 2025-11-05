@@ -20,9 +20,7 @@ def config_get(module_instance, var_name: str | None = None) -> None:
         # Get specific variable default
         value = config.get_default_value(module_instance.name, var_name)
         if value is not None:
-            module_instance.display.info(
-                f"[green]{var_name}[/green] = [yellow]{value}[/yellow]"
-            )
+            module_instance.display.info(f"[green]{var_name}[/green] = [yellow]{value}[/yellow]")
         else:
             module_instance.display.warning(
                 f"No default set for variable '{var_name}'",
@@ -32,17 +30,11 @@ def config_get(module_instance, var_name: str | None = None) -> None:
         # Show all defaults (flat list)
         defaults = config.get_defaults(module_instance.name)
         if defaults:
-            module_instance.display.info(
-                f"[bold]Config defaults for module '{module_instance.name}':[/bold]"
-            )
+            module_instance.display.info(f"[bold]Config defaults for module '{module_instance.name}':[/bold]")
             for config_var_name, var_value in defaults.items():
-                module_instance.display.info(
-                    f"  [green]{config_var_name}[/green] = [yellow]{var_value}[/yellow]"
-                )
+                module_instance.display.info(f"  [green]{config_var_name}[/green] = [yellow]{var_value}[/yellow]")
         else:
-            module_instance.display.warning(
-                f"No defaults configured for module '{module_instance.name}'"
-            )
+            module_instance.display.warning(f"No defaults configured for module '{module_instance.name}'")
 
 
 def config_set(module_instance, var_name: str, value: str | None = None) -> None:
@@ -60,19 +52,13 @@ def config_set(module_instance, var_name: str, value: str | None = None) -> None
         actual_var_name = var_name
         actual_value = value
     else:
-        module_instance.display.error(
-            f"Missing value for variable '{var_name}'", context="config set"
-        )
-        module_instance.display.info(
-            "[dim]Usage: defaults set VAR_NAME VALUE or defaults set VAR_NAME=VALUE[/dim]"
-        )
+        module_instance.display.error(f"Missing value for variable '{var_name}'", context="config set")
+        module_instance.display.info("[dim]Usage: defaults set VAR_NAME VALUE or defaults set VAR_NAME=VALUE[/dim]")
         raise Exit(code=1)
 
     # Set the default value
     config.set_default_value(module_instance.name, actual_var_name, actual_value)
-    module_instance.display.success(
-        f"Set default: [cyan]{actual_var_name}[/cyan] = [yellow]{actual_value}[/yellow]"
-    )
+    module_instance.display.success(f"Set default: [cyan]{actual_var_name}[/cyan] = [yellow]{actual_value}[/yellow]")
     module_instance.display.info(
         "[dim]This will be used as the default value when generating templates with this module.[/dim]"
     )
@@ -84,9 +70,7 @@ def config_remove(module_instance, var_name: str) -> None:
     defaults = config.get_defaults(module_instance.name)
 
     if not defaults:
-        module_instance.display.warning(
-            f"No defaults configured for module '{module_instance.name}'"
-        )
+        module_instance.display.warning(f"No defaults configured for module '{module_instance.name}'")
         return
 
     if var_name in defaults:
@@ -97,17 +81,13 @@ def config_remove(module_instance, var_name: str) -> None:
         module_instance.display.error(f"No default found for variable '{var_name}'")
 
 
-def config_clear(
-    module_instance, var_name: str | None = None, force: bool = False
-) -> None:
+def config_clear(module_instance, var_name: str | None = None, force: bool = False) -> None:
     """Clear default value(s) for this module."""
     config = ConfigManager()
     defaults = config.get_defaults(module_instance.name)
 
     if not defaults:
-        module_instance.display.warning(
-            f"No defaults configured for module '{module_instance.name}'"
-        )
+        module_instance.display.warning(f"No defaults configured for module '{module_instance.name}'")
         return
 
     if var_name:
@@ -126,9 +106,7 @@ def config_clear(
                 "",
             ]
             for clear_var_name, var_value in defaults.items():
-                detail_lines.append(
-                    f"  [green]{clear_var_name}[/green] = [yellow]{var_value}[/yellow]"
-                )
+                detail_lines.append(f"  [green]{clear_var_name}[/green] = [yellow]{var_value}[/yellow]")
 
             module_instance.display.warning("Warning: This will clear ALL defaults")
             module_instance.display.info("")
@@ -141,9 +119,7 @@ def config_clear(
                 return
 
         config.clear_defaults(module_instance.name)
-        module_instance.display.success(
-            f"Cleared all defaults for module '{module_instance.name}'"
-        )
+        module_instance.display.success(f"Cleared all defaults for module '{module_instance.name}'")
 
 
 def config_list(module_instance) -> None:
@@ -154,18 +130,12 @@ def config_list(module_instance) -> None:
     defaults = config.get_defaults(module_instance.name)
 
     if not defaults:
-        module_instance.display.warning(
-            f"No defaults configured for module '{module_instance.name}'"
-        )
+        module_instance.display.warning(f"No defaults configured for module '{module_instance.name}'")
         return
 
     # Display defaults using DisplayManager
     module_instance.display.heading(f"Defaults for module '{module_instance.name}':")
 
     # Convert defaults to display format (rows for table)
-    rows = [
-        (f"{var_name}:", str(var_value)) for var_name, var_value in defaults.items()
-    ]
-    module_instance.display.table(
-        headers=None, rows=rows, title="", show_header=False, borderless=True
-    )
+    rows = [(f"{var_name}:", str(var_value)) for var_name, var_value in defaults.items()]
+    module_instance.display.table(headers=None, rows=rows, title="", show_header=False, borderless=True)

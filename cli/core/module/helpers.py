@@ -68,7 +68,7 @@ def load_var_file(var_file_path: str) -> dict:
         raise ValueError(f"Variable file path is not a file: {var_file_path}")
 
     try:
-        with open(var_path, encoding="utf-8") as f:
+        with var_path.open(encoding="utf-8") as f:
             content = yaml.safe_load(f)
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in variable file: {e}") from e
@@ -76,9 +76,7 @@ def load_var_file(var_file_path: str) -> dict:
         raise ValueError(f"Error reading variable file: {e}") from e
 
     if not isinstance(content, dict):
-        raise ValueError(
-            f"Variable file must contain a YAML dictionary, got {type(content).__name__}"
-        )
+        raise ValueError(f"Variable file must contain a YAML dictionary, got {type(content).__name__}")
 
     logger.info(f"Loaded {len(content)} variables from file: {var_path.name}")
     logger.debug(f"Variables from file: {', '.join(content.keys())}")
@@ -106,9 +104,7 @@ def apply_variable_defaults(template, config_manager, module_name: str) -> None:
             logger.debug(f"Applied config defaults for: {', '.join(successful)}")
 
 
-def apply_var_file(
-    template, var_file_path: str | None, display: DisplayManager
-) -> None:
+def apply_var_file(template, var_file_path: str | None, display: DisplayManager) -> None:
     """Apply variables from a YAML file to template.
 
     Args:
@@ -134,9 +130,7 @@ def apply_var_file(
             unknown_vars = set(var_file_vars.keys()) - valid_vars
             if unknown_vars:
                 for var_name in sorted(unknown_vars):
-                    logger.warning(
-                        f"Variable '{var_name}' from var-file does not exist in template '{template.id}'"
-                    )
+                    logger.warning(f"Variable '{var_name}' from var-file does not exist in template '{template.id}'")
 
             successful = template.variables.apply_defaults(var_file_vars, "var-file")
             if successful:
@@ -174,9 +168,7 @@ def apply_cli_overrides(template, var: list[str] | None, ctx=None) -> None:
         logger.info(f"Received {len(cli_overrides)} variable overrides from CLI")
         successful_overrides = template.variables.apply_defaults(cli_overrides, "cli")
         if successful_overrides:
-            logger.debug(
-                f"Applied CLI overrides for: {', '.join(successful_overrides)}"
-            )
+            logger.debug(f"Applied CLI overrides for: {', '.join(successful_overrides)}")
 
 
 def collect_variable_values(template, interactive: bool) -> dict[str, Any]:
@@ -197,9 +189,7 @@ def collect_variable_values(template, interactive: bool) -> dict[str, Any]:
         collected_values = prompt_handler.collect_variables(template.variables)
         if collected_values:
             variable_values.update(collected_values)
-            logger.info(
-                f"Collected {len(collected_values)} variable values from user input"
-            )
+            logger.info(f"Collected {len(collected_values)} variable values from user input")
 
     # Add satisfied variable values (respects dependencies and toggles)
     if template.variables:

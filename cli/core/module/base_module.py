@@ -12,6 +12,7 @@ from ..display import DisplayManager
 from ..library import LibraryManager
 from ..template import Template
 from .base_commands import (
+    GenerationConfig,
     generate_template,
     list_templates,
     search_templates,
@@ -49,17 +50,11 @@ class Module(ABC):
 
     def __init__(self) -> None:
         # Validate required class attributes
-        if not hasattr(self.__class__, "name") or not hasattr(
-            self.__class__, "description"
-        ):
-            raise TypeError(
-                f"Module {self.__class__.__name__} must define 'name' and 'description' class attributes"
-            )
+        if not hasattr(self.__class__, "name") or not hasattr(self.__class__, "description"):
+            raise TypeError(f"Module {self.__class__.__name__} must define 'name' and 'description' class attributes")
 
         logger.info(f"Initializing module '{self.name}'")
-        logger.debug(
-            f"Module '{self.name}' configuration: description='{self.description}'"
-        )
+        logger.debug(f"Module '{self.name}' configuration: description='{self.description}'")
         self.libraries = LibraryManager()
         self.display = DisplayManager()
 
@@ -72,25 +67,17 @@ class Module(ABC):
             # Unpack entry - returns (path, library_name, needs_qualification)
             template_dir = entry[0]
             library_name = entry[1]
-            needs_qualification = (
-                entry[2] if len(entry) > LIBRARY_ENTRY_MIN_LENGTH else False
-            )
+            needs_qualification = entry[2] if len(entry) > LIBRARY_ENTRY_MIN_LENGTH else False
 
             try:
                 # Get library object to determine type
                 library = next(
-                    (
-                        lib
-                        for lib in self.libraries.libraries
-                        if lib.name == library_name
-                    ),
+                    (lib for lib in self.libraries.libraries if lib.name == library_name),
                     None,
                 )
                 library_type = library.library_type if library else "git"
 
-                template = Template(
-                    template_dir, library_name=library_name, library_type=library_type
-                )
+                template = Template(template_dir, library_name=library_name, library_type=library_type)
 
                 # Validate schema version compatibility
                 template._validate_schema_version(self.schema_version, self.name)
@@ -117,22 +104,16 @@ class Module(ABC):
         result = self.libraries.find_by_id(self.name, id)
 
         if not result:
-            raise FileNotFoundError(
-                f"Template '{id}' not found in module '{self.name}'"
-            )
+            raise FileNotFoundError(f"Template '{id}' not found in module '{self.name}'")
 
         template_dir, library_name = result
 
         # Get library type
-        library = next(
-            (lib for lib in self.libraries.libraries if lib.name == library_name), None
-        )
+        library = next((lib for lib in self.libraries.libraries if lib.name == library_name), None)
         library_type = library.library_type if library else "git"
 
         try:
-            template = Template(
-                template_dir, library_name=library_name, library_type=library_type
-            )
+            template = Template(template_dir, library_name=library_name, library_type=library_type)
 
             # Validate schema version compatibility
             template._validate_schema_version(self.schema_version, self.name)
@@ -144,15 +125,11 @@ class Module(ABC):
             return template
         except Exception as exc:
             logger.error(f"Failed to load template '{id}': {exc}")
-            raise FileNotFoundError(
-                f"Template '{id}' could not be loaded: {exc}"
-            ) from exc
+            raise FileNotFoundError(f"Template '{id}' could not be loaded: {exc}") from exc
 
     def list(
         self,
-        raw: Annotated[
-            bool, Option("--raw", help="Output raw list format instead of rich table")
-        ] = False,
+        raw: Annotated[bool, Option("--raw", help="Output raw list format instead of rich table")] = False,
     ) -> list:
         """List all templates."""
         return list_templates(self, raw)
@@ -190,9 +167,8 @@ class Module(ABC):
     def generate(
         self,
         id: Annotated[str, Argument(help="Template ID")],
-        directory: Annotated[
-            str | None, Argument(help="Output directory (defaults to template ID)")
-        ] = None,
+        directory: Annotated[str | None, Argument(help="Output directory (defaults to template ID)")] = None,
+        *,
         interactive: Annotated[
             bool,
             Option(
@@ -219,9 +195,7 @@ class Module(ABC):
         ] = None,
         dry_run: Annotated[
             bool,
-            Option(
-                "--dry-run", help="Preview template generation without writing files"
-            ),
+            Option("--dry-run", help="Preview template generation without writing files"),
         ] = False,
         show_files: Annotated[
             bool,
@@ -230,9 +204,7 @@ class Module(ABC):
                 help="Display generated file contents in plain text (use with --dry-run)",
             ),
         ] = False,
-        quiet: Annotated[
-            bool, Option("--quiet", "-q", help="Suppress all non-error output")
-        ] = False,
+        quiet: Annotated[bool, Option("--quiet", "-q", help="Suppress all non-error output")] = False,
     ) -> None:
         """Generate from template.
 
@@ -243,17 +215,23 @@ class Module(ABC):
         4. Variable file (from --var-file)
         5. CLI overrides (--var flags)
         """
-        return generate_template(
-            self, id, directory, interactive, var, var_file, dry_run, show_files, quiet
+        config = GenerationConfig(
+            id=id,
+            directory=directory,
+            interactive=interactive,
+            var=var,
+            var_file=var_file,
+            dry_run=dry_run,
+            show_files=show_files,
+            quiet=quiet,
         )
+        return generate_template(self, config)
 
     def validate(
         self,
         template_id: str | None = None,
         path: str | None = None,
-        verbose: Annotated[
-            bool, Option("--verbose", "-v", help="Show detailed validation information")
-        ] = False,
+        verbose: Annotated[bool, Option("--verbose", "-v", help="Show detailed validation information")] = False,
         semantic: Annotated[
             bool,
             Option(
@@ -320,21 +298,13 @@ class Module(ABC):
 
         # Add defaults commands (simplified - only manage default values)
         defaults_app = Typer(help="Manage default values for template variables")
-        defaults_app.command("get", help="Get default value(s)")(
-            module_instance.config_get
+        defaults_app.command("get", help="Get default value(s)")(module_instance.config_get)
+        defaults_app.command("set", help="Set a default value")(module_instance.config_set)
+        defaults_app.command("rm", help="Remove a specific default value")(module_instance.config_remove)
+        defaults_app.command("clear", help="Clear default value(s)")(module_instance.config_clear)
+        defaults_app.command("list", help="Display the config for this module in YAML format")(
+            module_instance.config_list
         )
-        defaults_app.command("set", help="Set a default value")(
-            module_instance.config_set
-        )
-        defaults_app.command("rm", help="Remove a specific default value")(
-            module_instance.config_remove
-        )
-        defaults_app.command("clear", help="Clear default value(s)")(
-            module_instance.config_clear
-        )
-        defaults_app.command(
-            "list", help="Display the config for this module in YAML format"
-        )(module_instance.config_list)
         module_app.add_typer(defaults_app, name="defaults")
 
         app.add_typer(

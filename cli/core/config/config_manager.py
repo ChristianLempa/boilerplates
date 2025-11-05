@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import shutil
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,19 @@ import yaml
 from ..exceptions import ConfigError, ConfigValidationError, YAMLParseError
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class LibraryConfig:
+    """Configuration for a template library."""
+
+    name: str
+    library_type: str = "git"
+    url: str | None = None
+    directory: str | None = None
+    branch: str = "main"
+    path: str | None = None
+    enabled: bool = True
 
 
 class ConfigManager:
@@ -92,13 +106,13 @@ class ConfigManager:
                 needs_migration = True
             else:
                 # Migrate existing libraries to add 'type' field if missing
-                # For backward compatibility, assume all old libraries without 'type' are git libraries
+                # For backward compatibility, assume all old libraries without
+                # 'type' are git libraries
                 libraries = config.get("libraries", [])
                 for library in libraries:
                     if "type" not in library:
-                        logger.info(
-                            f"Migrating library '{library.get('name', 'unknown')}': adding type: git"
-                        )
+                        lib_name = library.get("name", "unknown")
+                        logger.info(f"Migrating library '{lib_name}': adding type: git")
                         library["type"] = "git"
                         needs_migration = True
 
@@ -121,7 +135,7 @@ class ConfigManager:
             ConfigError: If reading fails for other reasons.
         """
         try:
-            with open(self.config_path) as f:
+            with self.config_path.open() as f:
                 config = yaml.safe_load(f) or {}
 
             # Validate config structure
@@ -136,9 +150,7 @@ class ConfigManager:
             raise
         except OSError as e:
             logger.error(f"Failed to read configuration file: {e}")
-            raise ConfigError(
-                f"Failed to read configuration file '{self.config_path}': {e}"
-            ) from e
+            raise ConfigError(f"Failed to read configuration file '{self.config_path}': {e}") from e
 
     def _write_config(self, config: dict[str, Any]) -> None:
         """Write configuration to file atomically using temp file + rename pattern.
@@ -188,9 +200,7 @@ class ConfigManager:
                 except OSError:
                     logger.warning(f"Failed to clean up temporary file: {tmp_path}")
             logger.error(f"Failed to write configuration file: {e}")
-            raise ConfigError(
-                f"Failed to write configuration to '{self.config_path}': {e}"
-            ) from e
+            raise ConfigError(f"Failed to write configuration to '{self.config_path}': {e}") from e
 
     def _validate_config_structure(self, config: dict[str, Any]) -> None:
         """Validate the configuration structure - basic type checking.
@@ -231,9 +241,7 @@ class ConfigManager:
 
         for module_name, module_defaults in config["defaults"].items():
             if not isinstance(module_defaults, dict):
-                raise ConfigValidationError(
-                    f"Defaults for module '{module_name}' must be a dictionary"
-                )
+                raise ConfigValidationError(f"Defaults for module '{module_name}' must be a dictionary")
 
     def _validate_libraries_fields(self, config: dict[str, Any]) -> None:
         """Validate libraries have required fields."""
@@ -242,26 +250,18 @@ class ConfigManager:
 
         for i, library in enumerate(config["libraries"]):
             if not isinstance(library, dict):
-                raise ConfigValidationError(
-                    f"Library at index {i} must be a dictionary"
-                )
+                raise ConfigValidationError(f"Library at index {i} must be a dictionary")
 
             if "name" not in library:
-                raise ConfigValidationError(
-                    f"Library at index {i} missing required field 'name'"
-                )
+                raise ConfigValidationError(f"Library at index {i} missing required field 'name'")
 
             lib_type = library.get("type", "git")
-            if lib_type == "git" and (
-                "url" not in library or "directory" not in library
-            ):
+            if lib_type == "git" and ("url" not in library or "directory" not in library):
                 raise ConfigValidationError(
                     f"Git library at index {i} missing required fields 'url' and/or 'directory'"
                 )
-            elif lib_type == "static" and "path" not in library:
-                raise ConfigValidationError(
-                    f"Static library at index {i} missing required field 'path'"
-                )
+            if lib_type == "static" and "path" not in library:
+                raise ConfigValidationError(f"Static library at index {i} missing required field 'path'")
 
     def get_config_path(self) -> Path:
         """Get the path to the configuration file being used.
@@ -443,72 +443,53 @@ class ConfigManager:
                 return library
         return None
 
-    def add_library(
-        self,
-        name: str,
-        library_type: str = "git",
-        url: str | None = None,
-        directory: str | None = None,
-        branch: str = "main",
-        path: str | None = None,
-        enabled: bool = True,
-    ) -> None:
+    def add_library(self, lib_config: LibraryConfig) -> None:
         """Add a new library to the configuration.
 
         Args:
-            name: Unique name for the library
-            library_type: Type of library ("git" or "static")
-            url: Git repository URL (required for git type)
-            directory: Directory within repo (required for git type)
-            branch: Git branch (for git type)
-            path: Local path to templates (required for static type)
-            enabled: Whether the library is enabled
+            lib_config: Library configuration
 
         Raises:
             ConfigValidationError: If library with the same name already exists or validation fails
         """
         # Basic validation
-        if not isinstance(name, str) or not name:
+        if not isinstance(lib_config.name, str) or not lib_config.name:
             raise ConfigValidationError("Library name must be a non-empty string")
 
-        if library_type not in ("git", "static"):
-            raise ConfigValidationError(
-                f"Library type must be 'git' or 'static', got '{library_type}'"
-            )
+        if lib_config.library_type not in ("git", "static"):
+            raise ConfigValidationError(f"Library type must be 'git' or 'static', got '{lib_config.library_type}'")
 
-        if self.get_library_by_name(name):
-            raise ConfigValidationError(f"Library '{name}' already exists")
+        if self.get_library_by_name(lib_config.name):
+            raise ConfigValidationError(f"Library '{lib_config.name}' already exists")
 
         # Type-specific validation
-        if library_type == "git":
-            if not url or not directory:
-                raise ConfigValidationError(
-                    "Git libraries require 'url' and 'directory' parameters"
-                )
+        if lib_config.library_type == "git":
+            if not lib_config.url or not lib_config.directory:
+                raise ConfigValidationError("Git libraries require 'url' and 'directory' parameters")
 
-            library_config = {
-                "name": name,
+            library_dict = {
+                "name": lib_config.name,
                 "type": "git",
-                "url": url,
-                "branch": branch,
-                "directory": directory,
-                "enabled": enabled,
+                "url": lib_config.url,
+                "branch": lib_config.branch,
+                "directory": lib_config.directory,
+                "enabled": lib_config.enabled,
             }
 
         else:  # static
-            if not path:
+            if not lib_config.path:
                 raise ConfigValidationError("Static libraries require 'path' parameter")
 
             # For backward compatibility with older CLI versions,
             # add dummy values for git-specific fields
-            library_config = {
-                "name": name,
+            library_dict = {
+                "name": lib_config.name,
                 "type": "static",
                 "url": "",  # Empty string for backward compatibility
                 "branch": "main",  # Default value for backward compatibility
                 "directory": ".",  # Default value for backward compatibility
-                "path": path,
-                "enabled": enabled,
+                "path": lib_config.path,
+                "enabled": lib_config.enabled,
             }
 
         config = self._read_config()
@@ -516,10 +497,10 @@ class ConfigManager:
         if "libraries" not in config:
             config["libraries"] = []
 
-        config["libraries"].append(library_config)
+        config["libraries"].append(library_dict)
 
         self._write_config(config)
-        logger.info(f"Added {library_type} library '{name}'")
+        logger.info(f"Added {lib_config.library_type} library '{lib_config.name}'")
 
     def remove_library(self, name: str) -> None:
         """Remove a library from the configuration.

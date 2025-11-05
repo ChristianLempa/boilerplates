@@ -32,7 +32,12 @@ class OrderedGroup(TyperGroup):
 
 
 app = Typer(
-    help="CLI tool for managing infrastructure boilerplates.\n\n[dim]Easily generate, customize, and deploy templates for Docker Compose, Terraform, Kubernetes, and more.\n\n [white]Made with 💜 by [bold]Christian Lempa[/bold]",
+    help=(
+        "CLI tool for managing infrastructure boilerplates.\n\n"
+        "[dim]Easily generate, customize, and deploy templates for Docker Compose, "
+        "Terraform, Kubernetes, and more.\n\n "
+        "[white]Made with 💜 by [bold]Christian Lempa[/bold]"
+    ),
     add_completion=True,
     rich_markup_mode="rich",
     pretty_exceptions_enable=False,
@@ -55,9 +60,7 @@ def setup_logging(log_level: str = "WARNING") -> None:
     """
     numeric_level = getattr(logging, log_level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError(
-            f"Invalid log level '{log_level}'. Valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL"
-        )
+        raise ValueError(f"Invalid log level '{log_level}'. Valid levels: DEBUG, INFO, WARNING, ERROR, CRITICAL")
 
     try:
         logging.basicConfig(
@@ -74,22 +77,19 @@ def setup_logging(log_level: str = "WARNING") -> None:
 
 @app.callback(invoke_without_command=True)
 def main(
-    version: bool | None = Option(
+    _version: bool | None = Option(
         None,
         "--version",
         "-v",
         help="Show the application version and exit.",
         is_flag=True,
-        callback=lambda v: console.print(f"boilerplates version {__version__}")
-        or sys.exit(0)
-        if v
-        else None,
+        callback=lambda v: console.print(f"boilerplates version {__version__}") or sys.exit(0) if v else None,
         is_eager=True,
     ),
     log_level: str | None = Option(
         None,
         "--log-level",
-        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If omitted, logging is disabled.",
+        help=("Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If omitted, logging is disabled."),
     ),
 ) -> None:
     """CLI tool for managing infrastructure boilerplates."""
@@ -121,9 +121,7 @@ def _import_modules(modules_path: Path, logger: logging.Logger) -> list[str]:
     for _finder, name, ispkg in pkgutil.iter_modules([str(modules_path)]):
         if not name.startswith("_") and name != "base":
             try:
-                logger.debug(
-                    f"Importing module: {name} ({'package' if ispkg else 'file'})"
-                )
+                logger.debug(f"Importing module: {name} ({'package' if ispkg else 'file'})")
                 importlib.import_module(f"cli.modules.{name}")
             except ImportError as e:
                 error_info = f"Import failed for '{name}': {e!s}"
@@ -168,19 +166,13 @@ def _register_module_classes(logger: logging.Logger) -> tuple[list, list[str]]:
     return module_classes, failed_registrations
 
 
-def _build_error_details(
-    failed_imports: list[str], failed_registrations: list[str]
-) -> str:
+def _build_error_details(failed_imports: list[str], failed_registrations: list[str]) -> str:
     """Build detailed error message from failures."""
     error_details = []
     if failed_imports:
-        error_details.extend(
-            ["Import failures:"] + [f"  - {err}" for err in failed_imports]
-        )
+        error_details.extend(["Import failures:"] + [f"  - {err}" for err in failed_imports])
     if failed_registrations:
-        error_details.extend(
-            ["Registration failures:"] + [f"  - {err}" for err in failed_registrations]
-        )
+        error_details.extend(["Registration failures:"] + [f"  - {err}" for err in failed_registrations])
     return "\n".join(error_details) if error_details else ""
 
 
@@ -214,9 +206,7 @@ def init_app() -> None:
 
         # Log summary
         successful_modules = len(module_classes) - len(failed_registrations)
-        logger.info(
-            f"Application initialized: {successful_modules} modules registered successfully"
-        )
+        logger.info(f"Application initialized: {successful_modules} modules registered successfully")
         if failed_imports:
             logger.info(f"Module import failures: {len(failed_imports)}")
         if failed_registrations:

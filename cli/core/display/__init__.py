@@ -50,9 +50,7 @@ class DisplayManager:
         # Create specialized display components
         self.status = StatusDisplay(self.settings, quiet, self.base)
         self.variables = VariableDisplay(self.settings, self.base)
-        self.templates = TemplateDisplay(
-            self.settings, self.base, self.variables, self.status
-        )
+        self.templates = TemplateDisplay(self.settings, self.base, self.variables, self.status)
         self.tables = TableDisplay(self.settings, self.base)
 
     # ===== Delegate to base display =====

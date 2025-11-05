@@ -21,9 +21,7 @@ console_err = Console(stderr=True)  # Keep for error output
 class LeftAlignedHeading(Heading):
     """Custom Heading element with left alignment and no extra spacing."""
 
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
         text = self.text
         text.justify = "left"  # Override center justification
         if self.tag == "h1":
@@ -68,9 +66,7 @@ class StatusDisplay:
         self.quiet = quiet
         self.base = base
 
-    def _display_message(
-        self, level: str, message: str, context: str | None = None
-    ) -> None:
+    def _display_message(self, level: str, message: str, context: str | None = None) -> None:
         """Display a message with consistent formatting.
 
         Args:
@@ -104,11 +100,7 @@ class StatusDisplay:
                 else f"{context}: {message}"
             )
         else:
-            text = (
-                f"{level.capitalize()}: {message}"
-                if level in {"error", "warning"}
-                else message
-            )
+            text = f"{level.capitalize()}: {message}" if level in {"error", "warning"} else message
 
         formatted_text = f"[{color}]{icon} {text}[/{color}]"
         if use_stderr:

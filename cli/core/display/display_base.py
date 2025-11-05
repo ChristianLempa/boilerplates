@@ -178,7 +178,9 @@ class BaseDisplay:
             Progress context manager
 
         Example:
-            with display.progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            with display.progress(
+                SpinnerColumn(), TextColumn("[progress.description]{task.description}")
+            ) as progress:
                 task = progress.add_task("Processing...", total=None)
                 # do work
                 progress.remove_task(task)
@@ -201,10 +203,7 @@ class BaseDisplay:
             max_length = self.settings.VALUE_MAX_LENGTH_DEFAULT
 
         if max_length > 0 and len(value) > max_length:
-            return (
-                value[: max_length - len(self.settings.TRUNCATION_SUFFIX)]
-                + self.settings.TRUNCATION_SUFFIX
-            )
+            return value[: max_length - len(self.settings.TRUNCATION_SUFFIX)] + self.settings.TRUNCATION_SUFFIX
         return value
 
     def format_file_size(self, size_bytes: int) -> str:
@@ -218,12 +217,11 @@ class BaseDisplay:
         """
         if size_bytes < self.settings.SIZE_KB_THRESHOLD:
             return f"{size_bytes}B"
-        elif size_bytes < self.settings.SIZE_MB_THRESHOLD:
+        if size_bytes < self.settings.SIZE_MB_THRESHOLD:
             kb = size_bytes / self.settings.SIZE_KB_THRESHOLD
             return f"{kb:.{self.settings.SIZE_DECIMAL_PLACES}f}KB"
-        else:
-            mb = size_bytes / self.settings.SIZE_MB_THRESHOLD
-            return f"{mb:.{self.settings.SIZE_DECIMAL_PLACES}f}MB"
+        mb = size_bytes / self.settings.SIZE_MB_THRESHOLD
+        return f"{mb:.{self.settings.SIZE_DECIMAL_PLACES}f}MB"
 
     def file_tree(
         self,
@@ -237,32 +235,31 @@ class BaseDisplay:
         Args:
             root_label: Label for root node (e.g., "📁 my-project")
             files: List of file items to display
-            file_info_fn: Function that takes a file and returns (path, display_name, color, extra_text)
+            file_info_fn: Function that takes a file and returns
+                         (path, display_name, color, extra_text) where:
                          - path: Path object for directory structure
                          - display_name: Name to show for the file
                          - color: Rich color for the filename
-                         - extra_text: Optional additional text (e.g., "(will overwrite)")
+                         - extra_text: Optional additional text
             title: Optional heading to display before tree
         """
         if title:
             self.heading(title)
 
         tree = Tree(root_label)
-        tree_nodes = {Path("."): tree}
+        tree_nodes = {Path(): tree}
 
         for file_item in sorted(files, key=lambda f: file_info_fn(f)[0]):
             path, display_name, color, extra_text = file_info_fn(file_item)
             parts = path.parts
-            current_path = Path(".")
+            current_path = Path()
             current_node = tree
 
             # Build directory structure
             for part in parts[:-1]:
                 current_path = current_path / part
                 if current_path not in tree_nodes:
-                    new_node = current_node.add(
-                        f"{IconManager.folder()} [white]{part}[/white]"
-                    )
+                    new_node = current_node.add(f"{IconManager.folder()} [white]{part}[/white]")
                     tree_nodes[current_path] = new_node
                 current_node = tree_nodes[current_path]
 

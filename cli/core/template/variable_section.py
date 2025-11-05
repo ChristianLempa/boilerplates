@@ -41,15 +41,11 @@ class VariableSection:
             if isinstance(needs_value, str):
                 # Split by semicolon to support multiple AND conditions in a single string
                 # Example: "traefik_enabled=true;network_mode=bridge,macvlan"
-                self.needs: list[str] = [
-                    need.strip() for need in needs_value.split(";") if need.strip()
-                ]
+                self.needs: list[str] = [need.strip() for need in needs_value.split(";") if need.strip()]
             elif isinstance(needs_value, list):
                 self.needs: list[str] = needs_value
             else:
-                raise VariableError(
-                    f"Section '{self.key}' has invalid 'needs' value: must be string or list"
-                )
+                raise VariableError(f"Section '{self.key}' has invalid 'needs' value: must be string or list")
         else:
             self.needs: list[str] = []
 
@@ -67,9 +63,7 @@ class VariableSection:
 
         # Store dependencies (single value if only one, list otherwise)
         if self.needs:
-            section_dict["needs"] = (
-                self.needs[0] if len(self.needs) == 1 else self.needs
-            )
+            section_dict["needs"] = self.needs[0] if len(self.needs) == 1 else self.needs
 
         return section_dict
 
@@ -124,9 +118,7 @@ class VariableSection:
         # Deep copy all variables
         for var_name, variable in self.variables.items():
             if origin_update:
-                cloned.variables[var_name] = variable.clone(
-                    update={"origin": origin_update}
-                )
+                cloned.variables[var_name] = variable.clone(update={"origin": origin_update})
             else:
                 cloned.variables[var_name] = variable.clone()
 
@@ -151,9 +143,7 @@ class VariableSection:
 
         return dependencies
 
-    def _topological_sort(
-        self, var_list: list[str], dependencies: dict[str, list[str]]
-    ) -> list[str]:
+    def _topological_sort(self, var_list: list[str], dependencies: dict[str, list[str]]) -> list[str]:
         """Perform topological sort using Kahn's algorithm."""
         in_degree = {var_name: len(deps) for var_name, deps in dependencies.items()}
         queue = [var for var, degree in in_degree.items() if degree == 0]
@@ -178,7 +168,7 @@ class VariableSection:
 
         return result
 
-    def sort_variables(self, is_need_satisfied_func=None) -> None:
+    def sort_variables(self, _is_need_satisfied_func=None) -> None:
         """Sort variables within section for optimal display and user interaction.
 
         Current sorting strategy:
@@ -189,8 +179,8 @@ class VariableSection:
         Future sorting strategies can be added here (e.g., by type, required first, etc.)
 
         Args:
-            is_need_satisfied_func: Optional function to check if a variable need is satisfied
-                                   (reserved for future use in conditional sorting)
+            _is_need_satisfied_func: Optional function to check if a variable need is satisfied
+                                    (unused, reserved for future use in conditional sorting)
         """
         if not self.variables:
             return
@@ -200,6 +190,4 @@ class VariableSection:
         result = self._topological_sort(var_list, dependencies)
 
         # Rebuild variables OrderedDict in new order
-        self.variables = OrderedDict(
-            (var_name, self.variables[var_name]) for var_name in result
-        )
+        self.variables = OrderedDict((var_name, self.variables[var_name]) for var_name in result)

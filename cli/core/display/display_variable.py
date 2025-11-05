@@ -32,7 +32,7 @@ class VariableDisplay:
     def render_variable_value(
         self,
         variable,
-        context: str = "default",
+        _context: str = "default",
         is_dimmed: bool = False,
         var_satisfied: bool = True,
     ) -> str:
@@ -40,7 +40,7 @@ class VariableDisplay:
 
         Args:
             variable: Variable instance to render
-            context: Display context ("default", "override", "disabled")
+            _context: Display context (unused, kept for API compatibility)
             is_dimmed: Whether the variable should be dimmed
             var_satisfied: Whether the variable's dependencies are satisfied
 
@@ -49,13 +49,8 @@ class VariableDisplay:
         """
         # Handle disabled bool variables
         if (is_dimmed or not var_satisfied) and variable.type == "bool":
-            if (
-                hasattr(variable, "_original_disabled")
-                and variable._original_disabled is not False
-            ):
-                return (
-                    f"{variable._original_disabled} {IconManager.arrow_right()} False"
-                )
+            if hasattr(variable, "_original_disabled") and variable._original_disabled is not False:
+                return f"{variable._original_disabled} {IconManager.arrow_right()} False"
             return "False"
 
         # Handle config overrides with arrow
@@ -76,12 +71,10 @@ class VariableDisplay:
                 show_none=False,
             )
             if not curr:
-                curr = (
-                    str(variable.value)
-                    if variable.value
-                    else settings.TEXT_EMPTY_OVERRIDE
-                )
-            return f"{orig} [bold {settings.COLOR_WARNING}]{IconManager.arrow_right()} {curr}[/bold {settings.COLOR_WARNING}]"
+                curr = str(variable.value) if variable.value else settings.TEXT_EMPTY_OVERRIDE
+            arrow = IconManager.arrow_right()
+            color = settings.COLOR_WARNING
+            return f"{orig} [bold {color}]{arrow} {curr}[/bold {color}]"
 
         # Default formatting
         settings = self.settings
@@ -147,22 +140,16 @@ class VariableDisplay:
         """
         settings = self.settings
         # Show (disabled) label if section has a toggle and is not enabled
-        disabled_text = (
-            settings.LABEL_DISABLED
-            if (section.toggle and not section.is_enabled())
-            else ""
-        )
+        disabled_text = settings.LABEL_DISABLED if (section.toggle and not section.is_enabled()) else ""
 
         if is_dimmed:
             required_part = " (required)" if section.required else ""
-            return f"[bold {settings.STYLE_DISABLED}]{section.title}{required_part}{disabled_text}[/bold {settings.STYLE_DISABLED}]"
-        else:
-            required_text = settings.LABEL_REQUIRED if section.required else ""
-            return f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
+            style = settings.STYLE_DISABLED
+            return f"[bold {style}]{section.title}{required_part}{disabled_text}[/bold {style}]"
+        required_text = settings.LABEL_REQUIRED if section.required else ""
+        return f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
 
-    def _render_variable_row(
-        self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool
-    ) -> tuple:
+    def _render_variable_row(self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool) -> tuple:
         """Build variable row data for table display.
 
         Args:
@@ -177,21 +164,15 @@ class VariableDisplay:
         settings = self.settings
 
         # Build row style
-        row_style = (
-            settings.STYLE_DISABLED if (is_dimmed or not var_satisfied) else None
-        )
+        row_style = settings.STYLE_DISABLED if (is_dimmed or not var_satisfied) else None
 
         # Build default value
-        default_val = self.render_variable_value(
-            variable, is_dimmed=is_dimmed, var_satisfied=var_satisfied
-        )
+        default_val = self.render_variable_value(variable, is_dimmed=is_dimmed, var_satisfied=var_satisfied)
 
         # Build variable display name
         sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
         required_indicator = settings.LABEL_REQUIRED if variable.required else ""
-        var_display = (
-            f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
-        )
+        var_display = f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
 
         return (
             var_display,
@@ -217,12 +198,8 @@ class VariableDisplay:
         self.base.text("")
         self.base.heading("Template Variables")
 
-        variables_table = Table(
-            show_header=True, header_style=settings.STYLE_TABLE_HEADER
-        )
-        variables_table.add_column(
-            "Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True
-        )
+        variables_table = Table(show_header=True, header_style=settings.STYLE_TABLE_HEADER)
+        variables_table.add_column("Variable", style=settings.STYLE_VAR_COL_NAME, no_wrap=True)
         variables_table.add_column("Type", style=settings.STYLE_VAR_COL_TYPE)
         variables_table.add_column("Default", style=settings.STYLE_VAR_COL_DEFAULT)
         variables_table.add_column("Description", style=settings.STYLE_VAR_COL_DESC)
@@ -238,9 +215,7 @@ class VariableDisplay:
 
             # Check if section is enabled AND dependencies are satisfied
             is_enabled = section.is_enabled()
-            dependencies_satisfied = template.variables.is_section_satisfied(
-                section.key
-            )
+            dependencies_satisfied = template.variables.is_section_satisfied(section.key)
             is_dimmed = not (is_enabled and dependencies_satisfied)
 
             # Render section header
@@ -263,11 +238,7 @@ class VariableDisplay:
                     default_val,
                     description,
                     row_style,
-                ) = self._render_variable_row(
-                    var_name, variable, is_dimmed, var_satisfied
-                )
-                variables_table.add_row(
-                    var_display, var_type, default_val, description, style=row_style
-                )
+                ) = self._render_variable_row(var_name, variable, is_dimmed, var_satisfied)
+                variables_table.add_row(var_display, var_type, default_val, description, style=row_style)
 
         self.base._print_table(variables_table)

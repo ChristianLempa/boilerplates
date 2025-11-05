@@ -41,10 +41,7 @@ def parse_version(version_str: str) -> tuple[int, int]:
     match = re.match(pattern, version_str)
 
     if not match:
-        raise ValueError(
-            f"Invalid version format '{version_str}'. "
-            "Expected format: major.minor (e.g., '1.0', '1.2')"
-        )
+        raise ValueError(f"Invalid version format '{version_str}'. Expected format: major.minor (e.g., '1.0', '1.2')")
 
     major, minor = match.groups()
     return (int(major), int(minor))

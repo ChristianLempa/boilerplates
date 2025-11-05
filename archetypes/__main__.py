@@ -6,18 +6,25 @@ Usage: python3 -m archetypes <module> <command>
 
 from __future__ import annotations
 
+import builtins
+import importlib
 import logging
 import sys
+from collections import OrderedDict
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any
 
-from typer import Typer, Argument, Option
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
+import click
+import yaml
 
 # Import CLI components
 from cli.core.collection import VariableCollection
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from typer import Argument, Option, Typer
+
 from cli.core.display import DisplayManager
 from cli.core.exceptions import (
     TemplateRenderError,
@@ -74,88 +81,110 @@ class ArchetypeTemplate:
         # Parse spec from module if available
         self.variables = self._load_module_spec()
 
-    def _load_module_spec(self) -> Optional[VariableCollection]:
+    def _load_module_spec(self) -> VariableCollection | None:
         """Load variable spec from the module and merge with extension.yaml if present."""
         try:
-            # Import the module to get its spec
-            if self.module_name == "compose":
-                from cli.modules.compose import spec
-                from collections import OrderedDict
-                import yaml
+            spec = self._import_module_spec()
+            if spec is None:
+                return None
 
-                # Convert spec to dict if needed
-                if isinstance(spec, (dict, OrderedDict)):
-                    spec_dict = OrderedDict(spec)
-                elif isinstance(spec, VariableCollection):
-                    # Extract dict from existing VariableCollection (shouldn't happen)
-                    spec_dict = OrderedDict()
-                else:
-                    logging.warning(
-                        f"Spec for {self.module_name} has unexpected type: {type(spec)}"
-                    )
-                    return None
+            spec_dict = self._convert_spec_to_dict(spec)
+            if spec_dict is None:
+                return None
 
-                # Check for extension.yaml in the archetype directory
-                extension_file = self.template_dir / "extension.yaml"
-                if extension_file.exists():
-                    try:
-                        with open(extension_file, "r") as f:
-                            extension_vars = yaml.safe_load(f)
-
-                        if extension_vars:
-                            # Apply extension defaults to existing variables in their sections
-                            # Extension vars that don't exist will be added to a "testing" section
-                            applied_count = 0
-                            new_vars = {}
-
-                            for var_name, var_spec in extension_vars.items():
-                                found = False
-                                # Search for the variable in existing sections
-                                for section_name, section_data in spec_dict.items():
-                                    if (
-                                        "vars" in section_data
-                                        and var_name in section_data["vars"]
-                                    ):
-                                        # Update the default value for existing variable
-                                        if "default" in var_spec:
-                                            section_data["vars"][var_name][
-                                                "default"
-                                            ] = var_spec["default"]
-                                            applied_count += 1
-                                            found = True
-                                            break
-
-                                # If variable doesn't exist in spec, add it to testing section
-                                if not found:
-                                    new_vars[var_name] = var_spec
-
-                            # Add new test-only variables to testing section
-                            if new_vars:
-                                if "testing" not in spec_dict:
-                                    spec_dict["testing"] = {
-                                        "title": "Testing Variables",
-                                        "description": "Additional variables for archetype testing",
-                                        "vars": {},
-                                    }
-                                spec_dict["testing"]["vars"].update(new_vars)
-
-                            logging.debug(
-                                f"Applied {applied_count} extension defaults, added {len(new_vars)} new test variables from {extension_file}"
-                            )
-                    except Exception as e:
-                        logging.warning(f"Failed to load extension.yaml: {e}")
-
-                return VariableCollection(spec_dict)
+            self._merge_extension_file(spec_dict)
+            return VariableCollection(spec_dict)
         except Exception as e:
             logging.warning(f"Could not load spec for module {self.module_name}: {e}")
             return None
 
-    def render(self, variables: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    def _import_module_spec(self) -> Any | None:
+        """Import module and retrieve spec attribute."""
+        module_path = f"cli.modules.{self.module_name}"
+        try:
+            module = importlib.import_module(module_path)
+            spec = getattr(module, "spec", None)
+            if spec is None:
+                logging.warning(f"Module {self.module_name} has no 'spec' attribute")
+            return spec
+        except (ImportError, AttributeError) as e:
+            logging.warning(f"Could not load spec from {module_path}: {e}")
+            return None
+
+    def _convert_spec_to_dict(self, spec: Any) -> OrderedDict | None:
+        """Convert spec to OrderedDict."""
+        if isinstance(spec, (dict, OrderedDict)):
+            return OrderedDict(spec)
+        if isinstance(spec, VariableCollection):
+            # Extract dict from existing VariableCollection (shouldn't happen)
+            return OrderedDict()
+        logging.warning(f"Spec for {self.module_name} has unexpected type: {type(spec)}")
+        return None
+
+    def _merge_extension_file(self, spec_dict: OrderedDict) -> None:
+        """Merge extension.yaml variables into spec_dict."""
+        extension_file = self.template_dir / "extension.yaml"
+        if not extension_file.exists():
+            return
+
+        try:
+            with extension_file.open() as f:
+                extension_vars = yaml.safe_load(f)
+
+            if not extension_vars:
+                return
+
+            applied_count, new_vars = self._apply_extension_vars(spec_dict, extension_vars)
+            self._add_testing_section(spec_dict, new_vars)
+
+            logging.debug(
+                f"Applied {applied_count} extension defaults, "
+                f"added {len(new_vars)} new test variables from {extension_file}"
+            )
+        except Exception as e:
+            logging.warning(f"Failed to load extension.yaml: {e}")
+
+    def _apply_extension_vars(self, spec_dict: OrderedDict, extension_vars: dict) -> tuple[int, dict]:
+        """Apply extension variables to existing spec sections."""
+        applied_count = 0
+        new_vars = {}
+
+        for var_name, var_spec in extension_vars.items():
+            if self._update_existing_var(spec_dict, var_name, var_spec):
+                applied_count += 1
+            else:
+                new_vars[var_name] = var_spec
+
+        return applied_count, new_vars
+
+    def _update_existing_var(self, spec_dict: OrderedDict, var_name: str, var_spec: dict) -> bool:
+        """Update existing variable with extension default."""
+        if "default" not in var_spec:
+            return False
+
+        for _section_name, section_data in spec_dict.items():
+            if "vars" in section_data and var_name in section_data["vars"]:
+                section_data["vars"][var_name]["default"] = var_spec["default"]
+                return True
+        return False
+
+    def _add_testing_section(self, spec_dict: OrderedDict, new_vars: dict) -> None:
+        """Add new variables to testing section."""
+        if not new_vars:
+            return
+
+        if "testing" not in spec_dict:
+            spec_dict["testing"] = {
+                "title": "Testing Variables",
+                "description": "Additional variables for archetype testing",
+                "vars": {},
+            }
+        spec_dict["testing"]["vars"].update(new_vars)
+
+    def render(self, variables: dict[str, Any] | None = None) -> dict[str, str]:
         """Render the single .j2 file using CLI's Template class."""
         # Create a minimal template directory structure in memory
         # by using the Template class's rendering capabilities
-        from jinja2 import Environment, FileSystemLoader, StrictUndefined
-
         # Set up Jinja2 environment with the archetype directory
         env = Environment(
             loader=FileSystemLoader(str(self.template_dir)),
@@ -175,7 +204,7 @@ class ArchetypeTemplate:
             # This is needed for archetype testing where we want full template context
             # Include None values so templates can properly handle optional variables
             spec_values = {}
-            for section_name, section in self.variables._sections.items():
+            for _section_name, section in self.variables._sections.items():
                 for var_name, var in section.variables.items():
                     # Include ALL variables, even if value is None
                     # This allows Jinja2 templates to handle optional variables properly
@@ -195,10 +224,10 @@ class ArchetypeTemplate:
 
             return {output_filename: rendered_content}
         except Exception as e:
-            raise TemplateRenderError(f"Failed to render {self.file_path.name}: {e}")
+            raise TemplateRenderError(f"Failed to render {self.file_path.name}: {e}") from e
 
 
-def find_archetypes(module_name: str) -> List[Path]:
+def find_archetypes(module_name: str) -> list[Path]:
     """Find all .j2 files in the module's archetype directory."""
     module_dir = ARCHETYPES_DIR / module_name
 
@@ -209,6 +238,99 @@ def find_archetypes(module_name: str) -> List[Path]:
     # Find all .j2 files
     j2_files = list(module_dir.glob("*.j2"))
     return sorted(j2_files)
+
+
+def _find_archetype_by_id(archetypes: list[Path], id: str) -> Path | None:
+    """Find an archetype file by its ID."""
+    for path in archetypes:
+        if path.stem == id:
+            return path
+    return None
+
+
+def _create_list_table(module_name: str, archetypes: list[Path]) -> Table:
+    """Create a table showing archetype files."""
+    table = Table(
+        title=f"Archetypes for '{module_name}'",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("ID", style="cyan")
+    table.add_column("Filename", style="white")
+    table.add_column("Size", style="dim")
+
+    size_threshold = 1024
+    for archetype_path in archetypes:
+        file_size = archetype_path.stat().st_size
+        size_str = f"{file_size}B" if file_size < size_threshold else f"{file_size / size_threshold:.1f}KB"
+        table.add_row(archetype_path.stem, archetype_path.name, size_str)
+
+    return table
+
+
+def _display_archetype_details(archetype: ArchetypeTemplate, module_name: str) -> None:
+    """Display archetype metadata and variables."""
+    console.print()
+    console.print(
+        Panel(
+            f"[bold]{archetype.metadata.name}[/bold]\n"
+            f"{archetype.metadata.description}\n\n"
+            f"[dim]Module:[/dim] {module_name}\n"
+            f"[dim]File:[/dim] {archetype.file_path.name}\n"
+            f"[dim]Path:[/dim] {archetype.file_path}",
+            title="Archetype Details",
+            border_style="cyan",
+        )
+    )
+
+    if archetype.variables:
+        console.print("\n[bold]Available Variables:[/bold]")
+        for section_name, section in archetype.variables._sections.items():
+            if section.variables:
+                console.print(f"\n[cyan]{section.title or section_name.capitalize()}:[/cyan]")
+                for var_name, var in section.variables.items():
+                    default = var.value if var.value is not None else "[dim]none[/dim]"
+                    console.print(f"  {var_name}: {default}")
+    else:
+        console.print("\n[yellow]No variable spec loaded for this module[/yellow]")
+
+
+def _display_archetype_content(archetype_path: Path) -> None:
+    """Display the archetype template file content."""
+    console.print("\n[bold]Template Content:[/bold]")
+    console.print("─" * 80)
+    with archetype_path.open() as f:
+        console.print(f.read())
+    console.print()
+
+
+def _parse_var_overrides(var: list[str] | None) -> dict[str, str]:
+    """Parse --var options into a dictionary."""
+    variables = {}
+    if not var:
+        return variables
+
+    for var_option in var:
+        if "=" in var_option:
+            key, value = var_option.split("=", 1)
+            variables[key] = value
+        else:
+            console.print(f"[yellow]Warning: Invalid --var format '{var_option}' (use KEY=VALUE)[/yellow]")
+    return variables
+
+
+def _display_generated_preview(output_dir: Path, rendered_files: dict[str, str]) -> None:
+    """Display the generated archetype preview."""
+    console.print()
+    console.print("[bold cyan]Archetype Preview (Testing Mode)[/bold cyan]")
+    console.print("[dim]This tool never writes files - it's for testing template snippets only[/dim]")
+    console.print(f"\n[dim]Reference directory:[/dim] {output_dir}\n")
+
+    for filename, content in rendered_files.items():
+        console.print(f"[bold cyan]{filename}[/bold cyan]")
+        console.print("─" * 80)
+        console.print(content)
+        console.print()
 
 
 def create_module_commands(module_name: str) -> Typer:
@@ -227,29 +349,7 @@ def create_module_commands(module_name: str) -> Typer:
             )
             return
 
-        # Create table
-        table = Table(
-            title=f"Archetypes for '{module_name}'",
-            show_header=True,
-            header_style="bold cyan",
-        )
-        table.add_column("ID", style="cyan")
-        table.add_column("Filename", style="white")
-        table.add_column("Size", style="dim")
-
-        for archetype_path in archetypes:
-            file_size = archetype_path.stat().st_size
-            if file_size < 1024:
-                size_str = f"{file_size}B"
-            else:
-                size_str = f"{file_size / 1024:.1f}KB"
-
-            table.add_row(
-                archetype_path.stem,
-                archetype_path.name,
-                size_str,
-            )
-
+        table = _create_list_table(module_name, archetypes)
         console.print(table)
         console.print(f"\n[dim]Found {len(archetypes)} archetype(s)[/dim]")
 
@@ -259,148 +359,41 @@ def create_module_commands(module_name: str) -> Typer:
     ) -> None:
         """Show details of an archetype file."""
         archetypes = find_archetypes(module_name)
-
-        # Find the archetype
-        archetype_path = None
-        for path in archetypes:
-            if path.stem == id:
-                archetype_path = path
-                break
+        archetype_path = _find_archetype_by_id(archetypes, id)
 
         if not archetype_path:
-            display.display_error(
-                f"Archetype '{id}' not found", context=f"module '{module_name}'"
-            )
+            display.display_error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
             return
 
-        # Load archetype
         archetype = ArchetypeTemplate(archetype_path, module_name)
-
-        # Display details
-        console.print()
-        console.print(
-            Panel(
-                f"[bold]{archetype.metadata.name}[/bold]\n"
-                f"{archetype.metadata.description}\n\n"
-                f"[dim]Module:[/dim] {module_name}\n"
-                f"[dim]File:[/dim] {archetype_path.name}\n"
-                f"[dim]Path:[/dim] {archetype_path}",
-                title="Archetype Details",
-                border_style="cyan",
-            )
-        )
-
-        # Show variables if spec is loaded
-        if archetype.variables:
-            console.print("\n[bold]Available Variables:[/bold]")
-
-            # Access the private _sections attribute
-            for section_name, section in archetype.variables._sections.items():
-                if section.variables:
-                    console.print(
-                        f"\n[cyan]{section.title or section_name.capitalize()}:[/cyan]"
-                    )
-                    for var_name, var in section.variables.items():
-                        default = (
-                            var.value if var.value is not None else "[dim]none[/dim]"
-                        )
-                        console.print(f"  {var_name}: {default}")
-        else:
-            console.print("\n[yellow]No variable spec loaded for this module[/yellow]")
-
-        # Show file content
-        console.print("\n[bold]Template Content:[/bold]")
-        console.print("─" * 80)
-        with open(archetype_path, "r") as f:
-            console.print(f.read())
-        console.print()
+        _display_archetype_details(archetype, module_name)
+        _display_archetype_content(archetype_path)
 
     @module_app.command()
     def generate(
         id: str = Argument(..., help="Archetype ID (filename without .j2)"),
-        directory: Optional[str] = Argument(
-            None, help="Output directory (for reference only - no files are written)"
-        ),
-        var: Optional[List[str]] = Option(
-            None,
-            "--var",
-            "-v",
-            help="Variable override (KEY=VALUE format)",
-        ),
+        directory: str | None = Argument(None, help="Output directory (for reference only - no files are written)"),
+        var: builtins.list[str] | None = None,
     ) -> None:
         """Generate output from an archetype file (always in preview mode)."""
-        # Archetypes ALWAYS run in dry-run mode with content display
-        # This is a testing tool - it never writes actual files
-
         archetypes = find_archetypes(module_name)
-
-        # Find the archetype
-        archetype_path = None
-        for path in archetypes:
-            if path.stem == id:
-                archetype_path = path
-                break
+        archetype_path = _find_archetype_by_id(archetypes, id)
 
         if not archetype_path:
-            display.display_error(
-                f"Archetype '{id}' not found", context=f"module '{module_name}'"
-            )
+            display.display_error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
             return
 
-        # Load archetype
         archetype = ArchetypeTemplate(archetype_path, module_name)
+        variables = _parse_var_overrides(var)
 
-        # Parse variable overrides
-        variables = {}
-        if var:
-            for var_option in var:
-                if "=" in var_option:
-                    key, value = var_option.split("=", 1)
-                    variables[key] = value
-                else:
-                    console.print(
-                        f"[yellow]Warning: Invalid --var format '{var_option}' (use KEY=VALUE)[/yellow]"
-                    )
-
-        # Render the archetype
         try:
             rendered_files = archetype.render(variables)
         except Exception as e:
-            display.display_error(
-                f"Failed to render archetype: {e}", context=f"archetype '{id}'"
-            )
+            display.display_error(f"Failed to render archetype: {e}", context=f"archetype '{id}'")
             return
 
-        # Determine output directory (for display purposes only)
-        if directory:
-            output_dir = Path(directory)
-        else:
-            output_dir = Path.cwd()
-
-        # Always show preview (archetypes never write files)
-        console.print()
-        console.print("[bold cyan]Archetype Preview (Testing Mode)[/bold cyan]")
-        console.print(
-            "[dim]This tool never writes files - it's for testing template snippets only[/dim]"
-        )
-        console.print()
-        console.print(f"[dim]Reference directory:[/dim] {output_dir}")
-        console.print(f"[dim]Files to preview:[/dim] {len(rendered_files)}")
-        console.print()
-
-        for filename, content in rendered_files.items():
-            full_path = output_dir / filename
-            status = "Would overwrite" if full_path.exists() else "Would create"
-            size = len(content.encode("utf-8"))
-            console.print(f"  [{status}] {filename} ({size} bytes)")
-
-        console.print()
-        console.print("[bold]Rendered Content:[/bold]")
-        console.print("─" * 80)
-        for filename, content in rendered_files.items():
-            console.print(content)
-
-        console.print()
+        output_dir = Path(directory) if directory else Path.cwd()
+        _display_generated_preview(output_dir, rendered_files)
         display.display_success("Preview complete - no files were written")
 
     return module_app
@@ -420,7 +413,7 @@ def init_app() -> None:
 
 @app.callback(invoke_without_command=True)
 def main(
-    log_level: Optional[str] = Option(
+    log_level: str | None = Option(
         None,
         "--log-level",
         help="Set logging level (DEBUG, INFO, WARNING, ERROR)",
@@ -431,8 +424,6 @@ def main(
         setup_logging(log_level)
     else:
         logging.disable(logging.CRITICAL)
-
-    import click
 
     ctx = click.get_current_context()
 

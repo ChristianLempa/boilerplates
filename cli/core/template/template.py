@@ -29,6 +29,7 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from ..exceptions import (
     IncompatibleSchemaVersionError,
+    RenderErrorContext,
     TemplateLoadError,
     TemplateRenderError,
     TemplateSyntaxError,
@@ -51,9 +52,7 @@ class TemplateErrorHandler:
     """
 
     @staticmethod
-    def extract_error_context(
-        file_path: Path, line_number: int | None, context_size: int = 3
-    ) -> list[str]:
+    def extract_error_context(file_path: Path, line_number: int | None, context_size: int = 3) -> list[str]:
         """Extract lines of context around an error location.
 
         Args:
@@ -68,7 +67,7 @@ class TemplateErrorHandler:
             return []
 
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 lines = f.readlines()
 
             start_line = max(0, line_number - context_size - 1)
@@ -107,44 +106,27 @@ class TemplateErrorHandler:
 
             if var_match:
                 undefined_var = var_match.group(1)
-                suggestions.append(
-                    f"Variable '{undefined_var}' is not defined in the template spec"
-                )
+                suggestions.append(f"Variable '{undefined_var}' is not defined in the template spec")
 
                 # Suggest similar variable names (basic fuzzy matching)
                 similar = [
                     v
                     for v in available_vars
-                    if undefined_var.lower() in v.lower()
-                    or v.lower() in undefined_var.lower()
+                    if undefined_var.lower() in v.lower() or v.lower() in undefined_var.lower()
                 ]
                 if similar:
-                    suggestions.append(
-                        f"Did you mean one of these? {', '.join(sorted(similar)[:5])}"
-                    )
+                    suggestions.append(f"Did you mean one of these? {', '.join(sorted(similar)[:5])}")
 
-                suggestions.append(
-                    f"Add '{undefined_var}' to your template.yaml spec with a default value"
-                )
-                suggestions.append(
-                    "Or use the Jinja2 default filter: {{ "
-                    + undefined_var
-                    + " | default('value') }}"
-                )
+                suggestions.append(f"Add '{undefined_var}' to your template.yaml spec with a default value")
+                suggestions.append("Or use the Jinja2 default filter: {{ " + undefined_var + " | default('value') }}")
             else:
-                suggestions.append(
-                    "Check that all variables used in templates are defined in template.yaml"
-                )
-                suggestions.append(
-                    "Use the Jinja2 default filter for optional variables: {{ var | default('value') }}"
-                )
+                suggestions.append("Check that all variables used in templates are defined in template.yaml")
+                suggestions.append("Use the Jinja2 default filter for optional variables: {{ var | default('value') }}")
 
         # Syntax errors
         elif "unexpected" in error_lower or "expected" in error_lower:
             suggestions.append("Check for syntax errors in your Jinja2 template")
-            suggestions.append(
-                "Common issues: missing {% endfor %}, {% endif %}, or {% endblock %}"
-            )
+            suggestions.append("Common issues: missing {% endfor %}, {% endif %}, or {% endblock %}")
             suggestions.append("Make sure all {{ }} and {% %} tags are properly closed")
 
         # Filter errors
@@ -156,28 +138,18 @@ class TemplateErrorHandler:
         # Template not found
         elif "not found" in error_lower or "does not exist" in error_lower:
             suggestions.append("Check that the included/imported template file exists")
-            suggestions.append(
-                "Verify the template path is relative to the template directory"
-            )
-            suggestions.append(
-                "Make sure the file has the .j2 extension if it's a Jinja2 template"
-            )
+            suggestions.append("Verify the template path is relative to the template directory")
+            suggestions.append("Make sure the file has the .j2 extension if it's a Jinja2 template")
 
         # Type errors
-        elif "type" in error_lower and (
-            "int" in error_lower or "str" in error_lower or "bool" in error_lower
-        ):
+        elif "type" in error_lower and ("int" in error_lower or "str" in error_lower or "bool" in error_lower):
             suggestions.append("Check that variable values have the correct type")
-            suggestions.append(
-                "Use Jinja2 filters to convert types: {{ var | int }}, {{ var | string }}"
-            )
+            suggestions.append("Use Jinja2 filters to convert types: {{ var | int }}, {{ var | string }}")
 
         # Add generic helpful tip
         if not suggestions:
             suggestions.append("Check the Jinja2 template syntax and variable usage")
-            suggestions.append(
-                "Enable --debug mode for more detailed rendering information"
-            )
+            suggestions.append("Enable --debug mode for more detailed rendering information")
 
         return suggestions
 
@@ -279,10 +251,8 @@ class TemplateMetadata:
         # YAML block scalar (|) preserves a trailing newline. Remove only trailing newlines
         # while preserving internal newlines/formatting.
         raw_description = metadata_section.get("description", "")
-        if isinstance(raw_description, str):
-            description = raw_description.rstrip("\n")
-        else:
-            description = str(raw_description)
+        # TODO: remove when all templates have been migrated to markdown
+        description = raw_description.rstrip("\n") if isinstance(raw_description, str) else str(raw_description)
         self.description = description or "No description available"
         self.author = metadata_section.get("author", "")
         self.date = metadata_section.get("date", "")
@@ -317,23 +287,17 @@ class TemplateMetadata:
 
         # Validate that metadata section has all required fields
         required_fields = ["name", "author", "version", "date", "description"]
-        missing_fields = [
-            field for field in required_fields if not metadata_section.get(field)
-        ]
+        missing_fields = [field for field in required_fields if not metadata_section.get(field)]
 
         if missing_fields:
-            raise ValueError(
-                f"Template format error: missing required metadata fields: {missing_fields}"
-            )
+            raise ValueError(f"Template format error: missing required metadata fields: {missing_fields}")
 
 
 @dataclass
 class Template:
     """Represents a template directory."""
 
-    def __init__(
-        self, template_dir: Path, library_name: str, library_type: str = "git"
-    ) -> None:
+    def __init__(self, template_dir: Path, library_name: str, library_type: str = "git") -> None:
         """Create a Template instance from a directory path.
 
         Args:
@@ -359,7 +323,7 @@ class Template:
         try:
             # Find and parse the main template file (template.yaml or template.yml)
             main_template_path = self._find_main_template_file()
-            with open(main_template_path, encoding="utf-8") as f:
+            with main_template_path.open(encoding="utf-8") as f:
                 # Load all YAML documents (handles templates with empty lines before ---)
                 documents = list(yaml.safe_load_all(f))
 
@@ -370,9 +334,7 @@ class Template:
                     raise ValueError("Template file contains no valid YAML data")
 
                 if len(valid_docs) > 1:
-                    logger.warning(
-                        "Template file contains multiple YAML documents, using the first one"
-                    )
+                    logger.warning("Template file contains multiple YAML documents, using the first one")
 
                 self._template_data = valid_docs[0]
 
@@ -381,9 +343,7 @@ class Template:
                 raise ValueError("Template file must contain a valid YAML dictionary")
 
             # Load metadata (always needed)
-            self.metadata = TemplateMetadata(
-                self._template_data, library_name, library_type
-            )
+            self.metadata = TemplateMetadata(self._template_data, library_name, library_type)
             logger.debug(f"Loaded metadata: {self.metadata}")
 
             # Validate 'kind' field (always needed)
@@ -402,17 +362,13 @@ class Template:
 
         except (ValueError, FileNotFoundError) as e:
             logger.error(f"Error loading template from {template_dir}: {e}")
-            raise TemplateLoadError(
-                f"Error loading template from {template_dir}: {e}"
-            ) from e
+            raise TemplateLoadError(f"Error loading template from {template_dir}: {e}") from e
         except yaml.YAMLError as e:
             logger.error(f"YAML parsing error in template {template_dir}: {e}")
             raise YAMLParseError(str(template_dir / "template.y*ml"), e) from e
         except OSError as e:
             logger.error(f"File I/O error loading template {template_dir}: {e}")
-            raise TemplateLoadError(
-                f"File I/O error loading template from {template_dir}: {e}"
-            ) from e
+            raise TemplateLoadError(f"File I/O error loading template from {template_dir}: {e}") from e
 
     def set_qualified_id(self, library_name: str | None = None) -> None:
         """Set a qualified ID for this template (used when duplicates exist across libraries).
@@ -430,9 +386,7 @@ class Template:
             path = self.template_dir / filename
             if path.exists():
                 return path
-        raise FileNotFoundError(
-            f"Main template file (template.yaml or template.yml) not found in {self.template_dir}"
-        )
+        raise FileNotFoundError(f"Main template file (template.yaml or template.yml) not found in {self.template_dir}")
 
     @staticmethod
     @lru_cache(maxsize=32)
@@ -455,31 +409,31 @@ class Template:
         """
         if not kind:
             return {}
+
+        # Log cache statistics for performance monitoring
+        cache_info = Template._load_module_specs_for_schema.cache_info()
+        logger.debug(
+            f"Loading module spec: kind='{kind}', schema={schema_version} "
+            f"(cache: hits={cache_info.hits}, misses={cache_info.misses}, size={cache_info.currsize})"
+        )
+
         try:
             module = importlib.import_module(f"cli.modules.{kind}")
 
             # Check if module has schema-specific specs (multi-schema support)
             # Try SCHEMAS constant first (uppercase), then schemas attribute
-            schemas = getattr(module, "SCHEMAS", None) or getattr(
-                module, "schemas", None
-            )
+            schemas = getattr(module, "SCHEMAS", None) or getattr(module, "schemas", None)
             if schemas and schema_version in schemas:
                 spec = schemas[schema_version]
-                logger.debug(
-                    f"Loaded and cached module spec for kind '{kind}' schema {schema_version}"
-                )
+                logger.debug(f"Loaded and cached module spec for kind '{kind}' schema {schema_version}")
             else:
                 # Fallback to default spec if schema mapping not available
                 spec = getattr(module, "spec", {})
-                logger.debug(
-                    f"Loaded and cached module spec for kind '{kind}' (default/no schema mapping)"
-                )
+                logger.debug(f"Loaded and cached module spec for kind '{kind}' (default/no schema mapping)")
 
             return spec
         except Exception as e:
-            raise ValueError(
-                f"Error loading module specifications for kind '{kind}': {e}"
-            ) from e
+            raise ValueError(f"Error loading module specifications for kind '{kind}': {e}") from e
 
     def _merge_specs(self, module_specs: dict, template_specs: dict) -> dict:
         """Deep merge template specs with module specs using VariableCollection.
@@ -488,9 +442,7 @@ class Template:
         Module specs are base, template specs override with origin tracking.
         """
         # Create VariableCollection from module specs (base)
-        module_collection = (
-            VariableCollection(module_specs) if module_specs else VariableCollection({})
-        )
+        module_collection = VariableCollection(module_specs) if module_specs else VariableCollection({})
 
         # Set origin for module variables
         for section in module_collection.get_sections().values():
@@ -500,9 +452,7 @@ class Template:
 
         # Merge template specs into module specs (template overrides)
         if template_specs:
-            merged_collection = module_collection.merge(
-                template_specs, origin="template"
-            )
+            merged_collection = module_collection.merge(template_specs, origin="template")
         else:
             merged_collection = module_collection
 
@@ -556,7 +506,7 @@ class Template:
             if template_file.file_type == "j2":
                 file_path = self.template_dir / template_file.relative_path
                 try:
-                    with open(file_path, encoding="utf-8") as f:
+                    with file_path.open(encoding="utf-8") as f:
                         content = f.read()
                         ast = self.jinja_env.parse(content)  # Use lazy-loaded jinja_env
                         used_variables.update(meta.find_undeclared_variables(ast))
@@ -579,7 +529,7 @@ class Template:
         self,
         used_variables: set,
         merged_specs: dict,
-        module_specs: dict,
+        _module_specs: dict,
         template_specs: dict,
     ) -> dict:
         """Filter specs to only include variables used in templates using VariableCollection.
@@ -601,9 +551,7 @@ class Template:
         # 1. Actually used in template files, OR
         # 2. Explicitly defined in the template spec (even if not yet used)
         variables_to_keep = used_variables | template_defined_vars
-        filtered_collection = merged_collection.filter_to_used(
-            variables_to_keep, keep_sensitive=False
-        )
+        filtered_collection = merged_collection.filter_to_used(variables_to_keep, keep_sensitive=False)
 
         # Convert back to dict format
         filtered_specs = {}
@@ -655,9 +603,7 @@ class Template:
         if not template_data.get("kind"):
             raise TemplateValidationError("Template format error: missing 'kind' field")
 
-    def _validate_variable_definitions(
-        self, used_variables: set[str], merged_specs: dict[str, Any]
-    ) -> None:
+    def _validate_variable_definitions(self, used_variables: set[str], merged_specs: dict[str, Any]) -> None:
         """Validate that all variables used in Jinja2 content are defined in the spec."""
         defined_variables = set()
         for section_data in merged_specs.values():
@@ -706,19 +652,13 @@ class Template:
             keep_trailing_newline=False,
         )
 
-    def _generate_autogenerated_values(
-        self, variables: VariableCollection, variable_values: dict
-    ) -> None:
+    def _generate_autogenerated_values(self, variables: VariableCollection, variable_values: dict) -> None:
         """Generate values for autogenerated variables that are empty."""
         for section in variables.get_sections().values():
             for var_name, variable in section.variables.items():
-                if variable.autogenerated and (
-                    variable.value is None or variable.value == ""
-                ):
+                if variable.autogenerated and (variable.value is None or variable.value == ""):
                     alphabet = string.ascii_letters + string.digits
-                    generated_value = "".join(
-                        secrets.choice(alphabet) for _ in range(32)
-                    )
+                    generated_value = "".join(secrets.choice(alphabet) for _ in range(32))
                     variable_values[var_name] = generated_value
                     logger.debug(f"Auto-generated value for variable '{var_name}'")
 
@@ -729,27 +669,19 @@ class Template:
             logger.info(f"Available variables: {sorted(variable_values.keys())}")
             logger.info(f"Variable values: {variable_values}")
         else:
-            logger.debug(
-                f"Rendering template '{self.id}' with variables: {variable_values}"
-            )
+            logger.debug(f"Rendering template '{self.id}' with variables: {variable_values}")
 
-    def _render_jinja2_file(
-        self, template_file, variable_values: dict, available_vars: set, debug: bool
-    ) -> str:
+    def _render_jinja2_file(self, template_file, variable_values: dict, _available_vars: set, debug: bool) -> str:
         """Render a single Jinja2 template file."""
         if debug:
             logger.info(f"Rendering Jinja2 template: {template_file.relative_path}")
 
         template = self.jinja_env.get_template(str(template_file.relative_path))
         rendered_content = template.render(**variable_values)
-        rendered_content = self._sanitize_content(
-            rendered_content, template_file.output_path
-        )
+        rendered_content = self._sanitize_content(rendered_content, template_file.output_path)
 
         if debug:
-            logger.info(
-                f"Successfully rendered: {template_file.relative_path} -> {template_file.output_path}"
-            )
+            logger.info(f"Successfully rendered: {template_file.relative_path} -> {template_file.output_path}")
 
         return rendered_content
 
@@ -762,27 +694,21 @@ class Template:
         debug: bool,
     ) -> None:
         """Handle Jinja2 rendering errors."""
-        error_msg, line_num, col, context_lines, suggestions = (
-            TemplateErrorHandler.parse_jinja_error(
-                e, template_file, self.template_dir, available_vars
-            )
+        error_msg, line_num, col, context_lines, suggestions = TemplateErrorHandler.parse_jinja_error(
+            e, template_file, self.template_dir, available_vars
         )
-        logger.error(
-            f"Error rendering template file {template_file.relative_path}: {error_msg}"
-        )
+        logger.error(f"Error rendering template file {template_file.relative_path}: {error_msg}")
 
-        raise TemplateRenderError(
-            message=error_msg,
+        context = RenderErrorContext(
             file_path=str(template_file.relative_path),
             line_number=line_num,
             column=col,
             context_lines=context_lines,
-            variable_context={k: str(v) for k, v in variable_values.items()}
-            if debug
-            else {},
+            variable_context={k: str(v) for k, v in variable_values.items()} if debug else {},
             suggestions=suggestions,
             original_error=e,
-        ) from e
+        )
+        raise TemplateRenderError(message=error_msg, context=context) from e
 
     def _render_static_file(self, template_file, debug: bool) -> str:
         """Read and return content of a static file."""
@@ -791,20 +717,21 @@ class Template:
             logger.info(f"Copying static file: {template_file.relative_path}")
 
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 return f.read()
         except OSError as e:
             logger.error(f"Error reading static file {file_path}: {e}")
-            raise TemplateRenderError(
-                message=f"Error reading static file: {e}",
+            context = RenderErrorContext(
                 file_path=str(template_file.relative_path),
                 suggestions=["Check that the file exists and has read permissions"],
                 original_error=e,
+            )
+            raise TemplateRenderError(
+                message=f"Error reading static file: {e}",
+                context=context,
             ) from e
 
-    def render(
-        self, variables: VariableCollection, debug: bool = False
-    ) -> tuple[dict[str, str], dict[str, Any]]:
+    def render(self, variables: VariableCollection, debug: bool = False) -> tuple[dict[str, str], dict[str, Any]]:
         """Render all .j2 files in the template directory.
 
         Args:
@@ -824,9 +751,7 @@ class Template:
         for template_file in self.template_files:
             if template_file.file_type == "j2":
                 try:
-                    content = self._render_jinja2_file(
-                        template_file, variable_values, available_vars, debug
-                    )
+                    content = self._render_jinja2_file(template_file, variable_values, available_vars, debug)
                     rendered_files[str(template_file.output_path)] = content
                 except (
                     UndefinedError,
@@ -834,20 +759,17 @@ class Template:
                     Jinja2TemplateNotFound,
                     Jinja2TemplateError,
                 ) as e:
-                    self._handle_jinja2_error(
-                        e, template_file, available_vars, variable_values, debug
-                    )
+                    self._handle_jinja2_error(e, template_file, available_vars, variable_values, debug)
                 except Exception as e:
-                    logger.error(
-                        f"Unexpected error rendering template file {template_file.relative_path}: {e}"
+                    logger.error(f"Unexpected error rendering template file {template_file.relative_path}: {e}")
+                    context = RenderErrorContext(
+                        file_path=str(template_file.relative_path),
+                        suggestions=["This is an unexpected error. Please check the template for issues."],
+                        original_error=e,
                     )
                     raise TemplateRenderError(
                         message=f"Unexpected rendering error: {e}",
-                        file_path=str(template_file.relative_path),
-                        suggestions=[
-                            "This is an unexpected error. Please check the template for issues."
-                        ],
-                        original_error=e,
+                        context=context,
                     ) from e
             elif template_file.file_type == "static":
                 content = self._render_static_file(template_file, debug)
@@ -855,7 +777,7 @@ class Template:
 
         return rendered_files, variable_values
 
-    def _sanitize_content(self, content: str, file_path: Path) -> str:
+    def _sanitize_content(self, content: str, _file_path: Path) -> str:
         """Sanitize rendered content by removing excessive blank lines and trailing whitespace."""
         if not content:
             return content
@@ -890,17 +812,13 @@ class Template:
         """Get the spec from the module definition for this template's schema version."""
         if self.__module_specs is None:
             kind = self._template_data.get("kind")
-            self.__module_specs = self._load_module_specs_for_schema(
-                kind, self.schema_version
-            )
+            self.__module_specs = self._load_module_specs_for_schema(kind, self.schema_version)
         return self.__module_specs
 
     @property
     def merged_specs(self) -> dict:
         if self.__merged_specs is None:
-            self.__merged_specs = self._merge_specs(
-                self.module_specs, self.template_specs
-            )
+            self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)
         return self.__merged_specs
 
     @property

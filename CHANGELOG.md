@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
 - Refactored code quality (#1364) for all core modules from single files to package structure with specific submodules
 - Improved debug logging to capture module discovery and registration during initialization
+- Enhanced debug logging for better troubleshooting
 
 ## [0.0.7] - 2025-10-28
 

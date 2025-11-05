@@ -66,9 +66,7 @@ class InputManager:
 
             if validator and not validator(result):
                 msg = error_message or "Invalid input"
-                console.print(
-                    f"[{self.settings.PROMPT_ERROR_STYLE}]{msg}[/{self.settings.PROMPT_ERROR_STYLE}]"
-                )
+                console.print(f"[{self.settings.PROMPT_ERROR_STYLE}]{msg}[/{self.settings.PROMPT_ERROR_STYLE}]")
                 continue
 
             return result
@@ -148,22 +146,18 @@ class InputManager:
 
             # Validate range
             if min_value is not None and result < min_value:
-                console.print(
-                    f"[{self.settings.PROMPT_ERROR_STYLE}]Value must be at least {min_value}[/{self.settings.PROMPT_ERROR_STYLE}]"
-                )
+                error_style = self.settings.PROMPT_ERROR_STYLE
+                console.print(f"[{error_style}]Value must be at least {min_value}[/{error_style}]")
                 continue
 
             if max_value is not None and result > max_value:
-                console.print(
-                    f"[{self.settings.PROMPT_ERROR_STYLE}]Value must be at most {max_value}[/{self.settings.PROMPT_ERROR_STYLE}]"
-                )
+                error_style = self.settings.PROMPT_ERROR_STYLE
+                console.print(f"[{error_style}]Value must be at most {max_value}[/{error_style}]")
                 continue
 
             return result
 
-    def choice(
-        self, prompt: str, choices: list[str], default: str | None = None
-    ) -> str:
+    def choice(self, prompt: str, choices: list[str], default: str | None = None) -> str:
         """Prompt user to select one option from a list.
 
         Args:
@@ -227,5 +221,8 @@ class InputManager:
         Returns:
             True if valid, False otherwise
         """
-        pattern = r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+        pattern = (
+            r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*"
+            r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$"
+        )
         return bool(re.match(pattern, hostname))

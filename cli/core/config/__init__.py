@@ -4,6 +4,6 @@ This package provides the ConfigManager class for managing application configura
 including defaults, preferences, and library configurations.
 """
 
-from .config_manager import ConfigManager
+from .config_manager import ConfigManager, LibraryConfig
 
-__all__ = ["ConfigManager"]
+__all__ = ["ConfigManager", "LibraryConfig"]

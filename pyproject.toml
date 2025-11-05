@@ -32,8 +32,8 @@ include = ["cli*"]
 exclude = ["tests*", "scripts*"]
 
 [tool.ruff]
-# PEP 8 compliant line length (88 is Black's default, good balance)
-line-length = 88
+# Extended line length for better readability
+line-length = 120
 
 # Python 3.9+ as minimum version
 target-version = "py39"
@@ -53,22 +53,20 @@ exclude = [
 # Enable rule categories
 select = [
     "E",      # pycodestyle errors
+    "F",      # Pyflakes
     "W",      # pycodestyle warnings
-    "F",      # pyflakes
     "I",      # isort (import sorting)
     "N",      # pep8-naming
-    "UP",     # pyupgrade
-    "B",      # flake8-bugbear
+    "UP",     # pyupgrade (modern Python syntax)
+    "B",      # flake8-bugbear (likely bugs)
     "C4",     # flake8-comprehensions
-    "PL",     # pylint
     "SIM",    # flake8-simplify
-    "RUF",    # ruff-specific rules
-]
-
-# Disable specific rules
-ignore = [
-    "E501",   # Line too long (handled by formatter)
-    "PLR0913", # Too many arguments
+    "RET",    # flake8-return
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "PL",     # Pylint
+    "RUF",    # Ruff-specific rules
+    "T20",    # flake8-print
 ]
 
 # Allow auto-fixing for these rules
@@ -84,3 +82,8 @@ quote-style = "double"
 
 # Unix line endings
 line-ending = "lf"
+
+[tool.ruff.lint.per-file-ignores]
+# CLI command functions need many parameters for command-line arguments
+"cli/core/module/base_module.py" = ["PLR0913"]  # generate() needs all CLI options
+"cli/core/repo.py" = ["PLR0913"]                # add() needs all library config options

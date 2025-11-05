@@ -74,15 +74,13 @@ class TableDisplay:
 
         self.base._print_table(table)
 
-    def render_templates_table(
-        self, templates: list, module_name: str, title: str
-    ) -> None:
+    def render_templates_table(self, templates: list, module_name: str, _title: str) -> None:
         """Display a table of templates with library type indicators.
 
         Args:
             templates: List of Template objects
             module_name: Name of the module
-            title: Title for the table
+            _title: Title for the table (unused, kept for API compatibility)
         """
         if not templates:
             logger.info(f"No templates found for module '{module_name}'")
@@ -103,23 +101,13 @@ class TableDisplay:
             name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = (
-                str(template.metadata.version) if template.metadata.version else ""
-            )
-            schema = (
-                template.schema_version
-                if hasattr(template, "schema_version")
-                else "1.0"
-            )
+            version = str(template.metadata.version) if template.metadata.version else ""
+            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
 
             # Format library with icon and color
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
-            icon = (
-                IconManager.UI_LIBRARY_STATIC
-                if library_type == "static"
-                else IconManager.UI_LIBRARY_GIT
-            )
+            icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
@@ -129,14 +117,14 @@ class TableDisplay:
 
     def render_status_table(
         self,
-        title: str,
+        _title: str,
         rows: list[tuple[str, str, bool]],
         columns: tuple[str, str] = ("Item", "Status"),
     ) -> None:
         """Display a status table with success/error indicators.
 
         Args:
-            title: Table title
+            _title: Table title (unused, kept for API compatibility)
             rows: List of tuples (name, message, success_bool)
             columns: Column headers (name_header, status_header)
         """
@@ -147,9 +135,7 @@ class TableDisplay:
         for name, message, success in rows:
             status_style = "green" if success else "red"
             status_icon = IconManager.get_status_icon("success" if success else "error")
-            table.add_row(
-                name, f"[{status_style}]{status_icon} {message}[/{status_style}]"
-            )
+            table.add_row(name, f"[{status_style}]{status_icon} {message}[/{status_style}]")
 
         self.base._print_table(table)
 
@@ -216,11 +202,7 @@ class TableDisplay:
         if section_toggle:
             label += f" [dim](toggle: {section_toggle})[/dim]"
         if section_needs:
-            needs_str = (
-                ", ".join(section_needs)
-                if isinstance(section_needs, list)
-                else section_needs
-            )
+            needs_str = ", ".join(section_needs) if isinstance(section_needs, list) else section_needs
             label += f" [dim](needs: {needs_str})[/dim]"
         if show_all and section_desc:
             label += f"\n  [dim]{section_desc}[/dim]"
@@ -245,21 +227,15 @@ class TableDisplay:
             settings = self.settings
             display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
             if not var_sensitive:
-                display_val = self.base.truncate(
-                    display_val, settings.VALUE_MAX_LENGTH_DEFAULT
-                )
-            label += (
-                f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
-            )
+                display_val = self.base.truncate(display_val, settings.VALUE_MAX_LENGTH_DEFAULT)
+            label += f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
 
         if show_all and var_desc:
             label += f"\n    [dim]{var_desc}[/dim]"
 
         return label
 
-    def _add_section_variables(
-        self, section_node, section_vars: dict, show_all: bool
-    ) -> None:
+    def _add_section_variables(self, section_node, section_vars: dict, show_all: bool) -> None:
         """Add variables to a section node."""
         for var_name, var_data in section_vars.items():
             if isinstance(var_data, dict):
@@ -267,13 +243,9 @@ class TableDisplay:
                 section_node.add(var_label)
             else:
                 # Simple key-value pair
-                section_node.add(
-                    f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]"
-                )
+                section_node.add(f"[green]{var_name}[/green] = [yellow]{var_data}[/yellow]")
 
-    def render_config_tree(
-        self, spec: dict, module_name: str, show_all: bool = False
-    ) -> None:
+    def render_config_tree(self, spec: dict, module_name: str, show_all: bool = False) -> None:
         """Display configuration spec as a tree view.
 
         Args:
@@ -282,24 +254,19 @@ class TableDisplay:
             show_all: If True, show all details including descriptions
         """
         if not spec:
-            self.base.text(
-                f"No configuration found for module '{module_name}'", style="yellow"
-            )
+            self.base.text(f"No configuration found for module '{module_name}'", style="yellow")
             return
 
         # Create root tree node
-        tree = Tree(
-            f"[bold blue]{IconManager.config()} {str.capitalize(module_name)} Configuration[/bold blue]"
-        )
+        icon = IconManager.config()
+        tree = Tree(f"[bold blue]{icon} {str.capitalize(module_name)} Configuration[/bold blue]")
 
         for section_name, section_data in spec.items():
             if not isinstance(section_data, dict):
                 continue
 
             # Build and add section
-            section_label = self._build_section_label(
-                section_name, section_data, show_all
-            )
+            section_label = self._build_section_label(section_name, section_data, show_all)
             section_node = tree.add(section_label)
 
             # Add variables to section

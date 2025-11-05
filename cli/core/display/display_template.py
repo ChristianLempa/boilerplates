@@ -61,29 +61,20 @@ class TemplateDisplay:
         settings = self.settings
 
         template_name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
-        version = (
-            str(template.metadata.version)
-            if template.metadata.version
-            else settings.TEXT_VERSION_NOT_SPECIFIED
-        )
-        schema = (
-            template.schema_version if hasattr(template, "schema_version") else "1.0"
-        )
+        version = str(template.metadata.version) if template.metadata.version else settings.TEXT_VERSION_NOT_SPECIFIED
+        schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
         description = template.metadata.description or settings.TEXT_NO_DESCRIPTION
 
         # Get library information and format with icon/color
         library_name = template.metadata.library or ""
         library_type = template.metadata.library_type or "git"
-        icon = (
-            IconManager.UI_LIBRARY_STATIC
-            if library_type == "static"
-            else IconManager.UI_LIBRARY_GIT
-        )
+        icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
         color = "yellow" if library_type == "static" else "blue"
         library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
         self.base.text(
-            f"{template_name} ({template_id} - [cyan]{version}[/cyan] - [magenta]schema {schema}[/magenta]) {library_display}",
+            f"{template_name} ({template_id} - [cyan]{version}[/cyan] - "
+            f"[magenta]schema {schema}[/magenta]) {library_display}",
             style=settings.STYLE_HEADER,
         )
         self.base.text("")
@@ -136,8 +127,7 @@ class TemplateDisplay:
 
             if existing_files and full_path in existing_files:
                 return (file_path, file_name, "yellow", "[red](will overwrite)[/red]")
-            else:
-                return (file_path, file_name, "green", None)
+            return (file_path, file_name, "green", None)
 
         self.base.file_tree(
             f"{IconManager.folder()} [cyan]{output_dir.resolve()}[/cyan]",
