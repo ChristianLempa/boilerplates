@@ -249,11 +249,13 @@ class Module(ABC):
 
             # Re-sort sections after applying config (toggle values may have changed)
             template.variables.sort_sections()
-            
+
             # Reset disabled bool variables to False to prevent confusion
             reset_vars = template.variables.reset_disabled_bool_variables()
             if reset_vars:
-                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+                logger.debug(
+                    f"Reset {len(reset_vars)} disabled bool variables to False"
+                )
 
         self._display_template_details(template, id)
 
@@ -651,11 +653,13 @@ class Module(ABC):
         # Re-sort sections after all overrides (toggle values may have changed)
         if template.variables:
             template.variables.sort_sections()
-            
+
             # Reset disabled bool variables to False to prevent confusion
             reset_vars = template.variables.reset_disabled_bool_variables()
             if reset_vars:
-                logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
+                logger.debug(
+                    f"Reset {len(reset_vars)} disabled bool variables to False"
+                )
 
         if not quiet:
             self._display_template_details(template, id)
@@ -1284,9 +1288,7 @@ class Module(ABC):
                 f"Template '{id}' could not be loaded: {exc}"
             ) from exc
 
-    def _display_template_details(
-        self, template: Template, id: str
-    ) -> None:
+    def _display_template_details(self, template: Template, id: str) -> None:
         """Display template information panel and variables table.
 
         Args:

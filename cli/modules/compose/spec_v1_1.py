@@ -105,8 +105,7 @@ spec = OrderedDict(
             "title": "Ports",
             "toggle": "ports_enabled",
             "needs": "network_mode=bridge",
-            "vars": {
-            },
+            "vars": {},
         },
         "traefik": {
             "title": "Traefik",
