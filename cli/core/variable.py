@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 from urllib.parse import urlparse
 import logging
 import re
+
+if TYPE_CHECKING:
+    from cli.core.section import VariableSection
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +411,7 @@ class Variable:
 
     def get_parent(self) -> Optional["VariableSection"]:
         """Get the parent VariableSection that contains this variable.
-        
+
         Returns:
             The parent VariableSection if set, None otherwise
         """

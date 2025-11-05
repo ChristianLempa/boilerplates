@@ -205,7 +205,11 @@ class DisplayManager:
             version = (
                 str(template.metadata.version) if template.metadata.version else ""
             )
-            schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
+            schema = (
+                template.schema_version
+                if hasattr(template, "schema_version")
+                else "1.0"
+            )
 
             # Show library with type indicator and color
             library_name = template.metadata.library or ""
@@ -229,9 +233,7 @@ class DisplayManager:
 
         console.print(table)
 
-    def display_template_details(
-        self, template: Template, template_id: str
-    ) -> None:
+    def display_template_details(self, template: Template, template_id: str) -> None:
         """Display template information panel and variables table.
 
         Args:
@@ -371,7 +373,9 @@ class DisplayManager:
             if template.metadata.version
             else "Not specified"
         )
-        schema = template.schema_version if hasattr(template, 'schema_version') else "1.0"
+        schema = (
+            template.schema_version if hasattr(template, "schema_version") else "1.0"
+        )
         description = template.metadata.description or "No description available"
 
         # Get library information
@@ -456,9 +460,7 @@ class DisplayManager:
         if file_tree.children:
             console.print(file_tree)
 
-    def _display_variables_table(
-        self, template: Template
-    ) -> None:
+    def _display_variables_table(self, template: Template) -> None:
         """Display a table of variables for a template.
 
         All variables and sections are always shown. Disabled sections/variables
@@ -531,7 +533,10 @@ class DisplayManager:
                 # Special case: disabled bool variables show as "original → False"
                 if (is_dimmed or not var_satisfied) and variable.type == "bool":
                     # Show that disabled bool variables are forced to False
-                    if hasattr(variable, "_original_disabled") and variable._original_disabled is not False:
+                    if (
+                        hasattr(variable, "_original_disabled")
+                        and variable._original_disabled is not False
+                    ):
                         orig_val = str(variable._original_disabled)
                         default_val = f"{orig_val} {IconManager.arrow_right()} False"
                     else:

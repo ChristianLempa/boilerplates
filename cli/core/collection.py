@@ -71,7 +71,7 @@ class VariableCollection:
             "key": key,
             "title": data.get("title", key.replace("_", " ").title()),
         }
-        
+
         # Only add optional fields if explicitly provided in the source data
         if "description" in data:
             section_init_data["description"] = data["description"]
@@ -83,7 +83,7 @@ class VariableCollection:
             section_init_data["required"] = True
         if "needs" in data:
             section_init_data["needs"] = data["needs"]
-            
+
         return VariableSection(section_init_data)
 
     def _initialize_variables(
@@ -402,31 +402,31 @@ class VariableCollection:
 
     def reset_disabled_bool_variables(self) -> list[str]:
         """Reset bool variables with unsatisfied dependencies to False.
-        
+
         This ensures that disabled bool variables don't accidentally remain True
         and cause confusion in templates or configuration.
-        
+
         Note: CLI-provided variables are NOT reset here - they are validated
         later in validate_all() to provide better error messages.
-        
+
         Returns:
             List of variable names that were reset
         """
         reset_vars = []
-        
+
         for section_key, section in self._sections.items():
             # Check if section dependencies are satisfied
             section_satisfied = self.is_section_satisfied(section_key)
             is_enabled = section.is_enabled()
-            
+
             for var_name, variable in section.variables.items():
                 # Only process bool variables
                 if variable.type != "bool":
                     continue
-                    
+
                 # Check if variable's own dependencies are satisfied
                 var_satisfied = self.is_variable_satisfied(var_name)
-                
+
                 # If section is disabled OR variable dependencies aren't met, reset to False
                 if not section_satisfied or not is_enabled or not var_satisfied:
                     # Only reset if current value is not already False
@@ -434,11 +434,11 @@ class VariableCollection:
                         # Don't reset CLI-provided variables - they'll be validated later
                         if variable.origin == "cli":
                             continue
-                        
+
                         # Store original value if not already stored (for display purposes)
                         if not hasattr(variable, "_original_disabled"):
                             variable._original_disabled = variable.value
-                        
+
                         variable.value = False
                         reset_vars.append(var_name)
                         logger.debug(
@@ -446,7 +446,7 @@ class VariableCollection:
                             f"(section satisfied: {section_satisfied}, enabled: {is_enabled}, "
                             f"var satisfied: {var_satisfied})"
                         )
-        
+
         return reset_vars
 
     def sort_sections(self) -> None:
@@ -691,12 +691,16 @@ class VariableCollection:
         for section_key, section in self._sections.items():
             section_satisfied = self.is_section_satisfied(section_key)
             is_enabled = section.is_enabled()
-            
+
             for var_name, variable in section.variables.items():
                 # Check CLI-provided bool variables with unsatisfied dependencies
-                if variable.type == "bool" and variable.origin == "cli" and variable.value is not False:
+                if (
+                    variable.type == "bool"
+                    and variable.origin == "cli"
+                    and variable.value is not False
+                ):
                     var_satisfied = self.is_variable_satisfied(var_name)
-                    
+
                     if not section_satisfied or not is_enabled or not var_satisfied:
                         # Build error message with unmet needs (use set to avoid duplicates)
                         unmet_needs = set()
@@ -708,8 +712,12 @@ class VariableCollection:
                             for need in variable.needs:
                                 if not self._is_need_satisfied(need):
                                     unmet_needs.add(need)
-                        
-                        needs_str = ", ".join(sorted(unmet_needs)) if unmet_needs else "dependencies not satisfied"
+
+                        needs_str = (
+                            ", ".join(sorted(unmet_needs))
+                            if unmet_needs
+                            else "dependencies not satisfied"
+                        )
                         errors.append(
                             f"{section.key}.{var_name} (set via CLI to {variable.value} but requires: {needs_str})"
                         )
@@ -893,9 +901,7 @@ class VariableCollection:
 
                 # Special handling for needs (allow explicit null/empty to clear)
                 if "needs" in other_var._explicit_fields:
-                    update["needs"] = (
-                        other_var.needs.copy() if other_var.needs else []
-                    )
+                    update["needs"] = other_var.needs.copy() if other_var.needs else []
 
                 # Special handling for value/default (allow explicit null to clear)
                 if "value" in other_var._explicit_fields:
