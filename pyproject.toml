@@ -22,6 +22,7 @@ dependencies = [
     "PyYAML>=6.0",
     "python-frontmatter>=1.0.0",
     "Jinja2>=3.0",
+    "email-validator>=2.0.0",
 ]
 
 [project.scripts]
