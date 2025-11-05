@@ -47,10 +47,16 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
   - `library/kubernetes/` - Kubernetes deployments
   - `library/packer/` - Packer templates
   - `library/terraform/` - OpenTofu/Terraform templates and examples
+- `archetypes/` - Testing tool for template snippets (archetype development)
+  - `archetypes/__init__.py` - Package initialization
+  - `archetypes/__main__.py` - CLI tool entry point
+  - `archetypes/<module>/` - Module-specific archetype snippets (e.g., `archetypes/compose/`)
 
 ### Core Components
 
-- `cli/core/collection.py` - Dataclass for VariableCollection (stores variable sections and variables)
+- `cli/core/collection.py` - VariableCollection class (manages sections and variables)
+  - **Key Attributes**: `_sections` (dict of VariableSection objects), `_variable_map` (flat lookup dict)
+  - **Key Methods**: `get_satisfied_values()` (returns enabled variables), `apply_defaults()`, `sort_sections()`
 - `cli/core/config.py` - Configuration management (loading, saving, validation)
 - `cli/core/display.py` - Centralized CLI output rendering (**Always use this to display output - never print directly**)
 - `cli/core/exceptions.py` - Custom exceptions for error handling (**Always use this for raising errors**)
@@ -59,9 +65,12 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 - `cli/core/prompt.py` - Interactive CLI prompts using rich library
 - `cli/core/registry.py` - Central registry for module classes (auto-discovers modules)
 - `cli/core/repo.py` - Repository management for syncing git-based template libraries
-- `cli/core/section.py` - Dataclass for VariableSection (stores section metadata and variables)
+- `cli/core/section.py` - VariableSection class (stores section metadata and variables)
+  - **Key Attributes**: `key`, `title`, `toggle`, `required`, `needs`, `variables` (dict of Variable objects)
 - `cli/core/template.py` - Template Class for parsing, managing and rendering templates
-- `cli/core/variable.py` - Dataclass for Variable (stores variable metadata and values)
+- `cli/core/variable.py` - Variable class (stores variable metadata and values)
+  - **Key Attributes**: `name`, `type`, `value` (stores default or current value), `description`, `sensitive`, `needs`
+  - **Note**: Default values are stored in `value` attribute, NOT in a separate `default` attribute
 - `cli/core/validators.py` - Semantic validators for template content (Docker Compose, YAML, etc.)
 - `cli/core/version.py` - Version comparison utilities for semantic versioning
 
@@ -80,12 +89,36 @@ Modules can be either single files or packages:
 - Auto-discovered and registered at CLI startup
 
 **Module Spec:**
-Optional class attribute for module-wide variable defaults. Example:
+Module-wide variable specification defining defaults for all templates of that kind.
+
+**Important**: The `spec` variable is an **OrderedDict** (or regular dict), NOT a VariableCollection object. It's converted to VariableCollection when needed.
+
+Example:
 ```python
-spec = VariableCollection.from_dict({
-  "general": {"vars": {"common_var": {"type": "str", "default": "value"}}},
-  "networking": {"title": "Network", "toggle": "net_enabled", "vars": {...}}
+from collections import OrderedDict
+
+# Spec is a dict/OrderedDict, not a VariableCollection
+spec = OrderedDict({
+  "general": {
+    "title": "General",
+    "vars": {
+      "common_var": {
+        "type": "str",
+        "default": "value",
+        "description": "A common variable"
+      }
+    }
+  },
+  "networking": {
+    "title": "Network",
+    "toggle": "net_enabled",
+    "vars": {...}
+  }
 })
+
+# To use the spec, convert it to VariableCollection:
+from cli.core.collection import VariableCollection
+variable_collection = VariableCollection(spec)
 ```
 
 **Multi-Schema Modules:**
@@ -352,3 +385,89 @@ To skip the prompt use the `--no-interactive` flag, which will use defaults or e
 **Core Commands:**
 - `repo sync` - Sync git-based libraries
 - `repo list` - List configured libraries
+
+## Archetypes Testing Tool
+
+The `archetypes` package provides a testing tool for developing and testing individual template snippets (Jinja2 files) without needing a full template directory structure.
+
+### Purpose
+
+Archetypes are template "snippets" or "parts" that can be tested in isolation. This is useful for:
+- Developing specific sections of templates (e.g., network configurations, volume mounts)
+- Testing Jinja2 logic with different variable combinations
+- Validating template rendering before integrating into full templates
+
+### Usage
+
+```bash
+# Run the archetypes tool
+python3 -m archetypes
+
+# List all archetypes for a module
+python3 -m archetypes compose list
+
+# Show details of an archetype (displays variables and content)
+python3 -m archetypes compose show network-v1
+
+# Preview generated output (always in preview mode - never writes files)
+python3 -m archetypes compose generate network-v1
+
+# Preview with variable overrides
+python3 -m archetypes compose generate network-v1 \
+  --var network_mode=macvlan \
+  --var network_macvlan_ipv4_address=192.168.1.100
+
+# Preview with reference directory (for context only - no files written)
+python3 -m archetypes compose generate network-v1 /tmp/output --var network_mode=host
+```
+
+### Structure
+
+```
+archetypes/
+  __init__.py           # Package initialization
+  __main__.py           # CLI tool (auto-discovers modules)
+  compose/              # Module-specific archetypes
+    network-v1.j2       # Archetype snippet (just a .j2 file)
+    volumes-v1.j2       # Another archetype
+  terraform/            # Another module's archetypes
+    vpc.j2
+```
+
+### Key Features
+
+- **Auto-discovers modules**: Scans `archetypes/` for subdirectories (module names)
+- **Reuses CLI components**: Imports actual CLI classes (Template, VariableCollection, DisplayManager) for identical behavior
+- **Loads module specs**: Pulls variable specifications from `cli/modules/<module>/spec_v*.py` for defaults
+- **Full variable context**: Provides ALL variables with defaults (not just satisfied ones) for complete rendering
+- **Three commands**: `list`, `show`, `generate`
+- **Testing only**: The `generate` command NEVER writes files - it always shows preview output only
+
+### Implementation Details
+
+**How it works:**
+1. Module discovery: Finds subdirectories in `archetypes/` (e.g., `compose`)
+2. For each module, creates a Typer sub-app with list/show/generate commands
+3. Archetype files are simple `.j2` files (no `template.yaml` needed)
+4. Variable defaults come from module spec: `cli/modules/<module>/spec_v*.py`
+5. Rendering uses Jinja2 with full variable context from spec
+
+**ArchetypeTemplate class:**
+- Simplified template wrapper for single .j2 files
+- Loads module spec and converts to VariableCollection
+- Extracts ALL variables (not just satisfied) from spec sections
+- Merges user overrides (`--var`) on top of spec defaults
+- Renders using Jinja2 FileSystemLoader
+
+**Variable defaults source:**
+```python
+# Defaults come from module spec files
+from cli.modules.compose import spec  # OrderedDict with variable definitions
+vc = VariableCollection(spec)         # Convert to VariableCollection
+
+# Extract all variables with their default values
+for section_name, section in vc._sections.items():
+    for var_name, var in section.variables.items():
+        if var.value is not None:  # var.value stores the default
+            render_context[var_name] = var.value
+```

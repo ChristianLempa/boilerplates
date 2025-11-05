@@ -1,0 +1,9 @@
+---
+services:
+  test_service:
+    networks:
+      bridge:
+
+networks:
+  bridge:
+    driver: bridge
