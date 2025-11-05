@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
+
+from email_validator import EmailNotValidError, validate_email
 
 if TYPE_CHECKING:
     from cli.core.template.variable_section import VariableSection
@@ -12,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 TRUE_VALUES = {"true", "1", "yes", "on"}
 FALSE_VALUES = {"false", "0", "no", "off"}
-EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class Variable:
@@ -221,9 +221,12 @@ class Variable:
         val = str(value).strip()
         if not val:
             return None
-        if not EMAIL_REGEX.fullmatch(val):
-            raise ValueError("value must be a valid email address")
-        return val
+        try:
+            # Validate email using RFC 5321/5322 compliant parser
+            validated = validate_email(val, check_deliverability=False)
+            return validated.normalized
+        except EmailNotValidError as exc:
+            raise ValueError(f"value must be a valid email address: {exc}") from exc
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize Variable to a dictionary for storage."""
