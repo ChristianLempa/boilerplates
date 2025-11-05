@@ -3,7 +3,7 @@ services:
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
     {% endif %}
-    image: docker.io/pihole/pihole:2025.10.3
+    image: docker.io/pihole/pihole:2025.11.0
     env_file:
       - .env.pihole
     {% if network_mode == 'host' %}
