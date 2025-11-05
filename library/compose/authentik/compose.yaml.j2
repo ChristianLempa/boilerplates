@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: ghcr.io/goauthentik/server:2025.10.0
+    image: ghcr.io/goauthentik/server:2025.10.1
     container_name: {{ container_name }}
     command: server
     env_file:
@@ -42,7 +42,7 @@ services:
     restart: {{ restart_policy }}
 
   {{ service_name }}-worker:
-    image: ghcr.io/goauthentik/server:2025.10.0
+    image: ghcr.io/goauthentik/server:2025.10.1
     container_name: {{ service_name }}-worker
     command: worker
     env_file:
