@@ -14,9 +14,9 @@ metadata:
     Documentation: https://docs.pi-hole.net/
 
     GitHub: https://github.com/pi-hole/pi-hole
-  version: 2025.10.3
+  version: 2025.11.0
   author: Christian Lempa
-  date: '2025-10-31'
+  date: '2025-11-05'
   tags:
     - dns
     - ad-blocking
