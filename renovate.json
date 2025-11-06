@@ -161,9 +161,6 @@
     }
   ],
   "gitAuthor": "github-actions[bot] <github-actions[bot]@users.noreply.github.com>",
-  "prConcurrentLimit": 50,
-  "branchConcurrentLimit": 100,
-  "prHourlyLimit": 5,
   "autoDeleteBranch": true,
   "separateMinorPatch": true,
   "stopUpdatingLabel": "renovate/stop_updating"
