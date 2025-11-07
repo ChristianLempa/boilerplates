@@ -161,7 +161,6 @@
     }
   ],
   "gitAuthor": "github-actions[bot] <github-actions[bot]@users.noreply.github.com>",
-  "autoDeleteBranch": true,
   "separateMinorPatch": true,
   "stopUpdatingLabel": "renovate/stop_updating"
 }
