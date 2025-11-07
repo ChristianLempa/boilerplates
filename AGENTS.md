@@ -288,6 +288,17 @@ class ComposeModule(Module):
 - **Static Files**: Non-`.j2` files copied as-is.
 - **Sanitization**: Auto-sanitized (single blank lines, no leading blanks, trimmed whitespace, single trailing newline).
 
+### Docker Compose Best Practices
+
+**Traefik Integration:**
+
+When using Traefik with Docker Compose, the `traefik.docker.network` label is **CRITICAL** for stacks with multiple networks. When containers are connected to multiple networks, Traefik must know which network to use for routing.
+
+**Implementation:**
+- ALL templates using Traefik MUST follow the patterns in `archetypes/compose/traefik-v1.j2` (standard mode) and `archetypes/compose/swarm-v1.j2` (swarm mode)
+- These archetypes are the authoritative reference for correct Traefik label configuration
+- The `traefik.docker.network={{ traefik_network }}` label must be present in both standard `labels:` and `deploy.labels:` sections
+
 ### Variables
 
 **Precedence** (lowest to highest):

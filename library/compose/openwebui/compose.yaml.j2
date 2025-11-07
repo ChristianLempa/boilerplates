@@ -22,6 +22,7 @@ services:
       - frontend
     labels:
       - traefik.enable=true
+      - traefik.docker.network=frontend
       - traefik.http.routers.openwebui.rule=Host(`openwebui.example.com`)
       - traefik.http.routers.openwebui.entrypoints=websecure
       - traefik.http.routers.openwebui.tls=true
