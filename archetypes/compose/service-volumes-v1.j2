@@ -1,0 +1,25 @@
+{#
+  Archetype: service-volumes-swarm-v1
+  
+  Description:
+    Swarm-aware volume mounts supporting mount/local/NFS modes.
+  
+  Approach:
+    - Swarm mount mode: Uses host path for bind mounts
+    - Swarm local/NFS mode: Uses named volumes
+    - Standalone mode: Always uses named volumes
+  
+  Usage:
+    Use for swarm deployments where you need flexibility in volume storage.
+    Requires swarm_volume_mode and swarm_volume_mount_path variables.
+#}
+    volumes:
+      {% if swarm_enabled %}
+        {% if swarm_volume_mode == 'mount' %}
+      - {{ swarm_volume_mount_path }}/data:/data:rw
+        {% elif swarm_volume_mode in ['local', 'nfs'] %}
+      - app_data:/data
+        {% endif %}
+      {% else %}
+      - app_data:/data
+      {% endif %}

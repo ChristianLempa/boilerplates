@@ -1,0 +1,23 @@
+{#
+  Archetype: service-basic-v1
+  
+  Description:
+    Basic service definition with image, container name (non-swarm), and hostname.
+    This is the foundation for any Docker Compose service.
+  
+  Approach:
+    - Defines the service name and image
+    - Conditionally adds container_name only for non-swarm deployments
+    - Sets hostname for service identification
+  
+  Usage:
+    Use this as the starting point for any service definition.
+#}
+services:
+  {{ service_name }}:
+    image: {{ service_image }}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}

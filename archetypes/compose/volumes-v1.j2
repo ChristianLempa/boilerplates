@@ -1,0 +1,40 @@
+{#
+  Archetype: volumes-v1
+  
+  Description:
+    Consolidated top-level volumes section supporting multiple modes:
+    - Simple: Basic local volumes for standalone deployments
+    - External: Reference pre-existing volumes
+    - NFS: Network filesystem for shared storage in swarm
+    - Swarm: Flexible mode supporting mount/local/NFS strategies
+  
+  Approach:
+    - External volumes: No definition needed (external: true not used at top-level)
+    - Standalone mode: Always uses local volumes
+    - Swarm mode with mount: No volume definition (uses bind mounts)
+    - Swarm mode with local: Simple local volumes
+    - Swarm mode with NFS: Network filesystem with driver options
+  
+  Usage:
+    Use as the single volumes archetype for all deployment types.
+    Adapts based on volume_external, swarm_enabled, and swarm_volume_mode variables.
+#}
+{% if not volume_external %}
+{% if swarm_enabled %}
+{% if swarm_volume_mode in ['local', 'nfs'] %}
+volumes:
+  {{ volume_name }}:
+    {% if swarm_volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ swarm_volume_nfs_server }},{{ swarm_volume_nfs_options }}
+      device: ":{{ swarm_volume_nfs_path }}"
+    {% endif %}
+{% endif %}
+{% else %}
+volumes:
+  {{ volume_name }}:
+    driver: local
+{% endif %}
+{% endif %}

@@ -1,0 +1,28 @@
+{#
+  Archetype: service-ports-conditional-v1
+  
+  Description:
+    Port mappings that are only exposed when Traefik is disabled.
+  
+  Approach:
+    - Swarm mode: Uses long syntax with mode:host for proper host binding
+    - Standalone mode: Uses short syntax for simplicity
+    - Conditionally skipped if Traefik handles routing
+  
+  Usage:
+    Use for HTTP/HTTPS services that can be proxied through Traefik.
+    Ports are only exposed directly when traefik_enabled=false.
+#}
+    {% if not traefik_enabled %}
+    ports:
+      {% if swarm_enabled %}
+      # Swarm: long syntax with mode host
+      - target: {{ service_port }}
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      # Standalone: short syntax
+      - "{{ ports_http }}:{{ service_port }}"
+      {% endif %}
+    {% endif %}

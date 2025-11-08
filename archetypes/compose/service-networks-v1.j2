@@ -1,0 +1,30 @@
+{#
+  Archetype: service-networks-macvlan-v1
+  
+  Description:
+    Network configuration supporting host, bridge, and macvlan modes.
+  
+  Approach:
+    - Host mode: Uses network_mode: host (no networks section)
+    - Macvlan mode: Assigns static IP address
+    - Bridge mode: Simple network attachment
+    - Always includes Traefik network if enabled
+  
+  Usage:
+    Use for services that need specific network modes (e.g., Pi-hole with macvlan).
+    Requires network_mode variable ('host', 'bridge', or 'macvlan').
+#}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}

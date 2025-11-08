@@ -1,29 +1,33 @@
----
-services:
-  {{ service_name }}:
-    image: {{ test_image }}
+{#
+  Archetype: service-labels-traefik-middleware-v1
+  
+  Description:
+    Traefik labels with middleware support for authentication, headers, etc.
+  
+  Approach:
+    - Extends HTTPS configuration with middleware assignment
+    - Middlewares applied to both HTTP and HTTPS routers
+    - Supports chaining multiple middlewares (comma-separated)
+  
+  Usage:
+    Use when you need authentication, rate limiting, headers, or other
+    Traefik middleware features. Define middlewares in Traefik config or labels.
+#}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port={{ test_port }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port={{ service_port }}
       - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-http.middlewares={{ traefik_middleware }}
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-https.middlewares={{ traefik_middleware }}
       {% endif %}
-    networks:
-      - {{ traefik_network }}
     {% endif %}
-    restart: {{ restart_policy }}
-
-{% if traefik_enabled %}
-networks:
-  {{ traefik_network }}:
-    external: true
-{% endif %}
