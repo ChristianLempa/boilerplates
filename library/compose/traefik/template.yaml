@@ -11,9 +11,9 @@ metadata:
     Project: https://traefik.io/
 
     Documentation: https://doc.traefik.io/traefik/
-  version: v3.5.4
+  version: v3.5.6
   author: "Christian Lempa"
-  date: '2025-11-05'
+  date: '2025-11-08'
   tags:
     - traefik
     - authentik
