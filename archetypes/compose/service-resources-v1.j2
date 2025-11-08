@@ -1,0 +1,28 @@
+{#
+  Archetype: service-resources-v1
+  
+  Description:
+    Resource limits (CPU/memory) for production deployments (schema 1.2+).
+  
+  Approach:
+    - Standalone mode: Uses deploy.resources (Compose spec v3+)
+    - Swarm mode: Includes reservations for resource guarantees
+    - CPU limits specified as decimal (0.5, 1.0, 2.0)
+    - Memory limits with units (512M, 1G, 2G)
+  
+  Usage:
+    Use for production services that need resource constraints.
+    Prevents resource exhaustion and enables better capacity planning.
+#}
+    {% if resources_enabled %}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+    {% endif %}

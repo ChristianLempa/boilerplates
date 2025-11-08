@@ -1,0 +1,29 @@
+{#
+  Archetype: volumes-v2
+  
+  Description:
+    Top-level volumes section using dedicated volume section (schema 1.2+).
+  
+  Approach:
+    - Uses volume_mode instead of swarm_volume_mode
+    - Mount mode: No volume definition (uses bind mounts)
+    - Local mode: Simple local volumes
+    - NFS mode: Network filesystem with driver options
+  
+  Usage:
+    Use for schema 1.2+ templates with the new volume section.
+    Works universally for both standalone and swarm modes.
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ volume_name }}:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ volume_name }}:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}"
+{% endif %}
