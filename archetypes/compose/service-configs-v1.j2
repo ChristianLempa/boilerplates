@@ -1,0 +1,20 @@
+{#
+  Archetype: service-configs-v1
+  
+  Description:
+    Swarm configs reference for configuration files.
+  
+  Approach:
+    - Only applies to swarm mode
+    - References configs defined in top-level configs section
+    - Configs mounted at specified target path
+  
+  Usage:
+    Use for application configuration files in swarm.
+    Requires corresponding toplevel-configs-v1 archetype.
+#}
+    {% if swarm_enabled %}
+    configs:
+      - source: {{ config_name }}
+        target: /etc/app/config.yaml
+    {% endif %}

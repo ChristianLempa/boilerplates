@@ -19,6 +19,7 @@ services:
       - frontend
     labels:
       - traefik.enable=true
+      - traefik.docker.network=frontend
       - traefik.http.services.checkmk.loadbalancer.server.port=5000
       - traefik.http.services.checkmk.loadbalancer.server.scheme=http
       - traefik.http.routers.checkmk.service=checkmk

@@ -1,0 +1,50 @@
+{#
+  Archetype: networks-v1
+  
+  Description:
+    Consolidated top-level networks section supporting multiple modes:
+    - Bridge: Simple bridge network for standalone deployments
+    - External: Reference pre-existing networks
+    - Macvlan: L2 network access with static IP assignment
+    - Swarm: Overlay networks for multi-node swarm clusters
+  
+  Approach:
+    - Conditionally creates network based on network_mode or network_enabled
+    - Supports external networks (network_external flag)
+    - Macvlan includes IPAM configuration
+    - Swarm mode uses overlay driver with attachable option
+    - Always includes Traefik network as external when enabled
+  
+  Usage:
+    Use as the single networks archetype for all deployment types.
+    Adapts based on network_mode, swarm_enabled, and network_external variables.
+#}
+{% if network_enabled or traefik_enabled %}
+networks:
+  {% if network_enabled %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}

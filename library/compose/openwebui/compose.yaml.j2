@@ -1,6 +1,6 @@
 services:
   openwebui:
-    image: ghcr.io/open-webui/open-webui:0.6.34
+    image: ghcr.io/open-webui/open-webui:v0.6.36
     container_name: openwebui
     ports:
       - "8080:8080"
@@ -22,6 +22,7 @@ services:
       - frontend
     labels:
       - traefik.enable=true
+      - traefik.docker.network=frontend
       - traefik.http.routers.openwebui.rule=Host(`openwebui.example.com`)
       - traefik.http.routers.openwebui.entrypoints=websecure
       - traefik.http.routers.openwebui.tls=true

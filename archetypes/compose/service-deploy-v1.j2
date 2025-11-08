@@ -1,0 +1,38 @@
+{#
+  Archetype: service-deploy-traefik-v1
+  
+  Description:
+    Swarm deployment with Traefik labels in deploy section.
+  
+  Approach:
+    - Labels must be in deploy section for swarm mode
+    - Includes full HTTP + HTTPS Traefik configuration
+    - Critical: traefik.docker.network label for multi-network containers
+  
+  Usage:
+    Use for swarm services exposed through Traefik.
+    Combines with service-labels-traefik-https-v1 for standalone mode.
+#}
+    {% if swarm_enabled and traefik_enabled %}
+    deploy:
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port={{ service_port }}
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+    {% endif %}

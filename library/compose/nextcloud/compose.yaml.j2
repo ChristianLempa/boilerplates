@@ -28,6 +28,7 @@ services:
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
+      - traefik.docker.network={{ traefik_network | default('traefik') }}
       - traefik.http.services.{{ service_name | default('nextcloud') }}.loadbalancer.server.port=80
       - traefik.http.routers.{{ service_name | default('nextcloud') }}-http.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name | default('nextcloud') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}

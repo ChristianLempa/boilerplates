@@ -121,9 +121,20 @@ prometheus.exporter.cadvisor "dockermetrics" {
   storage_duration = "5m"
 }
 
+/* Relabel component to drop container_spec metrics that often have NaN values */
+prometheus.relabel "docker_filter" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  
+  rule {
+    source_labels = ["__name__"]
+    regex = "container_spec_(cpu_period|cpu_quota|cpu_shares|memory_limit_bytes|memory_swap_limit_bytes|memory_reservation_limit_bytes)"
+    action = "drop"
+  }
+}
+
 prometheus.scrape "dockermetrics" {
   targets    = prometheus.exporter.cadvisor.dockermetrics.targets
-  forward_to = [prometheus.remote_write.default.receiver]
+  forward_to = [prometheus.relabel.docker_filter.receiver]
   scrape_interval = "10s"
 }
 {% endif %}

@@ -26,6 +26,7 @@ services:
 {% if traefik_enabled %}
     labels:
       - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
       - traefik.http.services.{{ container_name }}.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ container_name }}-http.service={{ container_name }}

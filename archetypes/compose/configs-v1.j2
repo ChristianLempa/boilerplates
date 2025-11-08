@@ -1,0 +1,20 @@
+{#
+  Archetype: toplevel-configs-v1
+  
+  Description:
+    Swarm configs definition from file source.
+  
+  Approach:
+    - Only applies to swarm mode
+    - Reads config from file at deploy time
+    - Configs are immutable once created
+  
+  Usage:
+    Use with service-configs-v1 for configuration file management.
+    Create configuration file before deploying stack.
+#}
+{% if swarm_enabled %}
+configs:
+  {{ config_name }}:
+    file: ./config/app.yaml
+{% endif %}

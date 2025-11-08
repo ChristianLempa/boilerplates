@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/semaphoreui/semaphore:v2.16.37
+    image: docker.io/semaphoreui/semaphore:v2.16.43
     container_name: {{ container_name }}
     user: "{{ user_uid }}:{{ user_gid }}"
     env_file:
@@ -21,6 +21,7 @@ services:
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}.loadbalancer.server.port=3000
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}

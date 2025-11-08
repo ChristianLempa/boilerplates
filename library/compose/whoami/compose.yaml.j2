@@ -21,6 +21,7 @@ services:
         condition: on-failure
       labels:
         - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
         - traefik.http.services.{{ service_name }}.loadbalancer.server.port=80
         - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
         - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
@@ -33,6 +34,7 @@ services:
     {% else %}
     labels:
       - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}.loadbalancer.server.port=80
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
       - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}

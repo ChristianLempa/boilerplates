@@ -1,0 +1,26 @@
+{#
+  Archetype: service-volumes-v1
+  
+  Description:
+    Service volume mounts supporting standalone and swarm modes.
+  
+  Approach:
+    - Standalone mode: Uses named volumes
+    - Swarm mount mode: Uses bind mounts from swarm_volume_mount_path
+    - Swarm local/nfs mode: Uses named volumes
+  
+  Usage:
+    Use for services that need persistent storage.
+    Follows the pattern from pihole template.
+    Uses volume_name variable for named volumes.
+#}
+    volumes:
+      {% if not swarm_enabled %}
+      - {{ volume_name }}:/data
+      {% else %}
+      {% if swarm_volume_mode == 'mount' %}
+      - {{ swarm_volume_mount_path }}/data:/data:rw
+      {% elif swarm_volume_mode in ['local', 'nfs'] %}
+      - {{ volume_name }}:/data
+      {% endif %}
+      {% endif %}
