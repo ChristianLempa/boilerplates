@@ -16,13 +16,11 @@
     {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
-      # Swarm: long syntax with mode host
       - target: {{ service_port }}
         published: {{ ports_http }}
         protocol: tcp
         mode: host
       {% else %}
-      # Standalone: short syntax
       - "{{ ports_http }}:{{ service_port }}"
       {% endif %}
     {% endif %}

@@ -1,10 +1,9 @@
 ---
 # Extension variables for archetype testing
-# These variables are only available when testing archetypes
-# and are NOT part of the main module spec
-# They provide reasonable defaults for variables that normally have None values
+# These variables provide defaults for variables that have no default in the module spec
+# or add custom variables specifically needed for archetype testing
 
-# General service defaults
+# Variables from spec that need defaults for testing
 service_name:
   type: str
   description: Service name for testing
@@ -20,13 +19,11 @@ container_hostname:
   description: Container hostname for testing
   default: testapp-host
 
-# Traefik defaults
 traefik_host:
   type: hostname
   description: Traefik host for testing
   default: app.example.com
 
-# Database defaults
 database_port:
   type: int
   description: Database port for testing
@@ -48,7 +45,6 @@ database_password:
   default: secretpassword123
   sensitive: true
 
-# Email server defaults
 email_host:
   type: str
   description: Email server host for testing
@@ -70,7 +66,6 @@ email_from:
   description: Email from address for testing
   default: noreply@example.com
 
-# Authentik SSO defaults
 authentik_url:
   type: url
   description: Authentik URL for testing
@@ -92,51 +87,48 @@ authentik_client_secret:
   default: client_secret_abcdef
   sensitive: true
 
-# Ports defaults
+# Custom variables specific to archetype testing (not in module spec)
+network_enabled:
+  type: bool
+  description: Enable network configuration for testing
+  default: true
+
+volume_external:
+  type: bool
+  description: Use external volume for testing
+  default: false
+
 ports_http:
   type: int
   description: HTTP port for testing
   default: 8080
 
-ports_https:
-  type: int
-  description: HTTPS port for testing
-  default: 8443
-
-# Additional test variables
-test_image:
+secret_name:
   type: str
-  description: Docker image for testing
+  description: Secret name for testing
+  default: app_secret
+
+config_name:
+  type: str
+  description: Config name for testing
+  default: app_config
+
+service_image:
+  type: str
+  description: Service image for testing
   default: nginx:alpine
 
-test_port:
+service_port:
   type: int
-  description: Port number for testing
-  default: 80
+  description: Service port for testing
+  default: 8080
 
-test_secret_token:
+volume_name:
   type: str
-  description: Example secret token
-  default: my-secret-token-123
-  sensitive: true
+  description: Volume name for testing
+  default: app_data
 
-test_api_key:
+traefik_middleware:
   type: str
-  description: Example API key
-  default: api_key_example_12345
-  sensitive: true
-
-test_database_url:
-  type: str
-  description: Example database connection string
-  default: postgresql://user:pass@localhost:5432/db
-
-test_environment_var:
-  type: str
-  description: Example environment variable
-  default: production
-
-test_config_path:
-  type: str
-  description: Example configuration file path
-  default: /etc/app/config.yaml
+  description: Traefik middleware for testing
+  default: auth@file

@@ -2,20 +2,24 @@
   Archetype: service-environment-v1
   
   Description:
-    Sets environment variables directly in the compose file.
+    Environment variables for common container configurations.
   
   Approach:
-    - Always includes TZ (timezone) variable
-    - Swarm-compatible (env_file doesn't work in Swarm mode)
-    - Can be extended with additional environment variables
+    - Sets standard environment variables (timezone, UID/GID)
+    - Demonstrates secret handling: file-based for swarm, env var for standalone
+    - Uses user_uid/user_gid from module spec general section
   
   Usage:
-    Use for services that need environment variables set directly.
-    This approach works in both standard Docker Compose and Swarm mode.
-    
-  Notes:
-    - For sensitive data in Swarm mode, use secrets instead
-    - For many variables in standard mode, consider env_file archetype
+    Use for services that need timezone and user/group configuration.
+    Adapt the secret handling pattern for your specific secret variables.
+    Replace SECRET example with actual secret variable names as needed.
 #}
     environment:
       - TZ={{ container_timezone }}
+      - UID={{ user_uid }}
+      - GID={{ user_gid }}
+      {% if swarm_enabled %}
+      - SECRET=/run/secrets/{{ secret_name }}
+      {% else %}
+      - SECRET=${SECRET}
+      {% endif %}
