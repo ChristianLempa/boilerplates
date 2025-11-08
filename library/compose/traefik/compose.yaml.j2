@@ -46,7 +46,11 @@ services:
     environment:
       - TZ={{ container_timezone }}
       {% if traefik_tls_enabled and traefik_tls_acme_provider == 'cloudflare' %}
-      - CF_API_TOKEN_FILE=/.env.secret
+      {% if swarm_enabled %}
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}
+      {% else %}
+      - CF_DNS_API_TOKEN_FILE=/.env.secret
+      {% endif %}
       {% endif %}
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
@@ -59,9 +63,7 @@ services:
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
     secrets:
-      - source: {{ traefik_tls_acme_secret_name }}
-        target: /.env.secret
-        mode: 0400
+      - {{ traefik_tls_acme_secret_name }}
     {% endif %}
     deploy:
       mode: {{ swarm_placement_mode }}
