@@ -1,12 +1,25 @@
-    {% if swarm_enabled %}
+    {% if swarm_enabled or resources_enabled %}
     deploy:
+      {% if swarm_enabled %}
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
       {% endif %}
       restart_policy:
         condition: on-failure
-      {% if traefik_enabled %}
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {% if swarm_enabled and traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}

@@ -1,3 +1,4 @@
+{% if network_mode != 'host' %}
 networks:
   {{ network_name }}:
     {% if network_external %}
@@ -23,3 +24,4 @@ networks:
   {{ traefik_network }}:
     external: true
   {% endif %}
+{% endif %}

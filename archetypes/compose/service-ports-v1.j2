@@ -1,4 +1,4 @@
-    {% if not traefik_enabled %}
+    {% if not traefik_enabled and network_mode == 'bridge' %}
     ports:
       {% if swarm_enabled %}
       - target: 80
