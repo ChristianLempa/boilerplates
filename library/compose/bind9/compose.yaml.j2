@@ -1,20 +1,20 @@
 services:
-  {{ service_name | default('bind9') }}:
-    image: docker.io/ubuntu/bind9:{{ bind9_version | default('9.20-24.10_edge') }}
-    container_name: {{ container_name | default('bind9') }}
-    hostname: {{ container_hostname | default('ns1') }}
+  {{ service_name }}:
+    image: docker.io/ubuntu/bind9:{{ bind9_version }}
+    container_name: {{ container_name }}
+    hostname: {{ container_hostname }}
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
       - BIND9_USER=bind
     {% if network_mode == 'host' %}
     network_mode: host
     {% else %}
     networks:
       {% if network_mode == 'macvlan' %}
-      {{ network_name | default('bridge') }}:
+      {{ network_name }}:
         ipv4_address: {{ network_macvlan_ipv4_address }}
       {% elif network_mode == 'bridge' %}
-      {{ network_name | default('bridge') }}:
+      {{ network_name }}:
       {% endif %}
     {% endif %}
     {% if network_mode != 'host' %}
@@ -26,7 +26,7 @@ services:
       - ./config:/etc/bind
       - bind9_zones:/var/lib/bind
       - bind9_cache:/var/cache/bind
-    restart: {{ restart_policy | default('unless-stopped') }}
+    restart: {{ restart_policy }}
 
 volumes:
   bind9_zones:
@@ -36,7 +36,7 @@ volumes:
 
 {% if network_mode != 'host' %}
 networks:
-  {{ network_name | default('bridge') }}:
+  {{ network_name }}:
     {% if network_external %}
     external: true
     {% else %}
@@ -52,5 +52,5 @@ networks:
     driver: bridge
     {% endif %}
     {% endif %}
-    name: {{ network_name | default('bridge') }}
+    name: {{ network_name }}
 {% endif %}

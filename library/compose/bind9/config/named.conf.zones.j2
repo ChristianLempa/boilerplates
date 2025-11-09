@@ -1,16 +1,16 @@
 // Custom DNS Zones Configuration
 // Add your authoritative zones here
 
-// Example zone for {{ domain_name | default('example.com') }}
-zone "{{ domain_name | default('example.com') }}" {
+// Example zone for {{ domain_name }}
+zone "{{ domain_name }}" {
     type master;
-    file "/var/lib/bind/db.{{ domain_name | default('example.com') }}";
+    file "/var/lib/bind/db.{{ domain_name }}";
     
     // Allow zone transfers using TSIG key
-    allow-transfer { key "{{ tsig_key_name | default('transfer-key') }}"; };
+    allow-transfer { key "{{ tsig_key_name }}"; };
     
     // Enable zone updates with TSIG (for dynamic DNS)
-    // allow-update { key "{{ tsig_key_name | default('transfer-key') }}"; };
+    // allow-update { key "{{ tsig_key_name }}"; };
     
     // Enable DNSSEC inline signing (optional)
     // dnssec-policy default;
@@ -21,12 +21,12 @@ zone "{{ domain_name | default('example.com') }}" {
 // zone "1.168.192.in-addr.arpa" {
 //     type master;
 //     file "/var/lib/bind/db.192.168.1";
-//     allow-transfer { key "{{ tsig_key_name | default('transfer-key') }}"; };
+//     allow-transfer { key "{{ tsig_key_name }}"; };
 // };
 
 // Secondary/Slave zone example
 // zone "secondary.example.com" {
 //     type slave;
-//     masters { 192.168.1.100 key {{ tsig_key_name | default('transfer-key') }}; };
+//     masters { 192.168.1.100 key {{ tsig_key_name }}; };
 //     file "/var/lib/bind/db.secondary.example.com";
 // };

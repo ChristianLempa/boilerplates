@@ -42,6 +42,12 @@ metadata:
 spec:
   general:
     vars:
+      service_name:
+        default: bind9
+      container_name:
+        default: bind9
+      container_hostname:
+        default: ns1
       bind9_version:
         type: str
         description: BIND9 Docker image tag
