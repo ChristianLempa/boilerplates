@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Loki
   description: >
@@ -16,13 +17,14 @@ metadata:
   author: Christian Lempa
   date: '2025-11-07'
   tags:
-    - grafana
-    - monitoring
-    - logging
-  draft: true
+    - traefik
 spec:
   general:
     vars:
+      service_name:
+        default: loki
+      container_name:
+        default: loki
       loki_version:
         type: str
         description: Loki version

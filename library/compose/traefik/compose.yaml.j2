@@ -19,18 +19,14 @@ services:
       - ./config/:/etc/traefik/:ro
       - ./certs/:/var/traefik/certs/:rw
       {% else %}
-      {% if swarm_volume_mode == 'mount' %}
-      - {{ swarm_volume_mount_path }}:/var/traefik/certs/:rw
-      {% elif swarm_volume_mode == 'local' %}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}:/var/traefik/certs/:rw
+      {% elif volume_mode == 'local' %}
       - traefik_certs:/var/traefik/certs/:rw
-      {% elif swarm_volume_mode == 'nfs' %}
+      {% elif volume_mode == 'nfs' %}
       - traefik_certs:/var/traefik/certs/:rw
       {% endif %}
       {% endif %}
-    {% if not swarm_enabled %}
-    env_file:
-      - ./.env
-    {% endif %}
     environment:
       - TZ={{ container_timezone }}
       {% if traefik_tls_enabled %}
@@ -81,15 +77,15 @@ services:
     {% endif %}
 
 {% if swarm_enabled %}
-{% if swarm_volume_mode in ['local', 'nfs'] %}
+{% if volume_mode in ['local', 'nfs'] %}
 volumes:
   traefik_certs:
-    {% if swarm_volume_mode == 'nfs' %}
+    {% if volume_mode == 'nfs' %}
     driver: local
     driver_opts:
       type: nfs
-      o: addr={{ swarm_volume_nfs_server }},nfsvers=4,{{ swarm_volume_nfs_options }}
-      device: ":{{ swarm_volume_nfs_path }}"
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}"
     {% endif %}
 {% endif %}
 

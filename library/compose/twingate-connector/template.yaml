@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Twingate_Connector
   description: >
@@ -17,10 +18,7 @@ metadata:
   version: 1.79.0
   author: Christian Lempa
   date: '2025-10-31'
-  tags:
-    - zero-trust
-    - remote-access
-  draft: true
+  tags: []
 spec:
   general:
     vars:

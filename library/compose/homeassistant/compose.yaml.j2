@@ -1,6 +1,6 @@
 services:
-  homeassistant:
-    container_name: homeassistant
+  {{ service_name }}:
+    container_name: {{ container_name }}
     image: ghcr.io/home-assistant/home-assistant:2025.11.1
     volumes:
       - ./config:/config

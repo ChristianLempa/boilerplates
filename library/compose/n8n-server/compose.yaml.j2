@@ -143,7 +143,8 @@ services:
       {% else -%}
       - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_entrypoint }}
       {% endif -%}
-      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=5678
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=5678
+      - traefik.http.routers.{{ service_name }}.service={{ service_name }}-web
     {% endif -%}
     {% if not swarm_enabled -%}
     restart: {{ restart_policy }}
@@ -172,7 +173,8 @@ services:
         {% else -%}
         - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_entrypoint }}
         {% endif -%}
-        - traefik.http.services.{{ service_name }}.loadbalancer.server.port=5678
+        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=5678
+        - traefik.http.routers.{{ service_name }}.service={{ service_name }}-web
       {% endif -%}
     secrets:
       - {{ encryption_key_secret_name }}

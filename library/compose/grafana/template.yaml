@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Grafana
   description: >

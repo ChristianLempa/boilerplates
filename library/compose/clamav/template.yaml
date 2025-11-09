@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Clamav
   description: >
@@ -15,13 +16,14 @@ metadata:
   version: 1.5.1
   author: Christian Lempa
   date: '2025-10-31'
-  tags:
-    - antivirus
-    - security
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: clamav
+      container_name:
+        default: clamav
       clamav_version:
         type: str
         description: Clamav version

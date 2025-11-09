@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Dockge
   description: >
@@ -14,14 +15,29 @@ metadata:
   version: 1.5.0
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - management
-    - docker
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: dockge
+      container_name:
+        default: dockge
       dockge_version:
         type: str
         description: Dockge version
         default: latest
+      stacks_path:
+        type: str
+        description: Path where Docker Compose stacks are stored
+        default: /opt/stacks
+  traefik:
+    vars:
+      traefik_host:
+        default: dockge.home.arpa
+  ports:
+    vars:
+      ports_http:
+        description: Web UI port
+        type: int
+        default: 5001

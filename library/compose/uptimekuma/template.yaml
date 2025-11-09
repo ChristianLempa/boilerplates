@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Uptimekuma
   description: >
@@ -15,13 +16,14 @@ metadata:
   version: 1.23.17
   author: Christian Lempa
   date: '2025-10-31'
-  tags:
-    - monitoring
-    - alerting
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: uptimekuma
+      container_name:
+        default: uptimekuma
       volumes_version:
         type: str
         description: Volumes version

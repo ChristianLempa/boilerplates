@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Homepage
   description: >
@@ -15,9 +16,7 @@ metadata:
   version: v1.6.1
   author: Christian Lempa
   date: '2025-11-05'
-  tags:
-    - dashboard
-  draft: true
+  tags: []
 spec:
   general:
     vars:

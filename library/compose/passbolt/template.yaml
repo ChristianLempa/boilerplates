@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Passbolt
   description: >
@@ -15,12 +16,14 @@ metadata:
   version: 11.3
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - password-manager
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: passbolt
+      container_name:
+        default: passbolt
       volumes_version:
         type: str
         description: Volumes version

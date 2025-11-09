@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Homer
   description: >
@@ -36,7 +37,7 @@ metadata:
     5. Access your dashboard:
        {% if traefik_enabled -%}
        - Via Traefik: https://{{ traefik_host }}
-       {% if ports_enabled %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
+       {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
        {%- else -%}
        - Open http://localhost:{{ ports_http }} in your browser
        {%- endif %}

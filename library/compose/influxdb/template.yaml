@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Influxdb
   description: >
@@ -16,9 +17,7 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - database
-    - time-series
-  draft: true
+    - traefik
 spec:
   ports:
     vars:

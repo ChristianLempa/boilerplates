@@ -6,7 +6,18 @@ services:
     environment:
       - TZ={{ container_timezone | default('UTC') }}
       - BIND9_USER=bind
-    {% if ports_enabled %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name | default('bridge') }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name | default('bridge') }}:
+      {% endif %}
+    {% endif %}
+    {% if network_mode != 'host' %}
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -15,10 +26,6 @@ services:
       - ./config:/etc/bind
       - bind9_zones:/var/lib/bind
       - bind9_cache:/var/cache/bind
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default('bridge') }}
-    {% endif %}
     restart: {{ restart_policy | default('unless-stopped') }}
 
 volumes:
@@ -27,10 +34,23 @@ volumes:
   bind9_cache:
     driver: local
 
-{% if network_enabled %}
+{% if network_mode != 'host' %}
 networks:
   {{ network_name | default('bridge') }}:
     {% if network_external %}
     external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    {% else %}
+    driver: bridge
     {% endif %}
+    {% endif %}
+    name: {{ network_name | default('bridge') }}
 {% endif %}

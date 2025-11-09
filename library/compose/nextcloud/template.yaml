@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Nextcloud
   description: >
@@ -17,10 +18,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-31'
   tags:
-    - cloud
-    - file-sharing
-    - collaboration
-  draft: true
+    - traefik
 spec:
   database:
     required: true
@@ -30,6 +28,13 @@ spec:
         type: enum
         options: ["postgres", "mysql"]
         default: "postgres"
+  network:
+    vars:
+      network_macvlan_ipv4_address_db:
+        description: "Static IP address for database container (macvlan only)"
+        type: str
+        default: "192.168.1.252"
+        needs: "network_mode=macvlan"
   ports:
     vars:
       ports_http:

@@ -1,7 +1,7 @@
 services:
   wazuh.manager:
     image: docker.io/wazuh/wazuh-manager:4.14.0
-    container_name: wazuh-prod-1-manager
+    container_name: {{ container_name }}-manager
     hostname: wazuh.manager
     ulimits:
       memlock:
@@ -55,7 +55,7 @@ services:
 
   wazuh.indexer:
     image: docker.io/wazuh/wazuh-indexer:4.14.0
-    container_name: wazuh-prod-1-indexer
+    container_name: {{ container_name }}-indexer
     hostname: wazuh.indexer
     ports:
       - "9200:9200"
@@ -88,7 +88,7 @@ services:
 
   wazuh.dashboard:
     image: docker.io/wazuh/wazuh-dashboard:4.14.0
-    container_name: wazuh-prod-1-dashboard
+    container_name: {{ container_name }}-dashboard
     hostname: wazuh.dashboard
     # --> (Optional) Remove the port mapping when using traefik
     ports:

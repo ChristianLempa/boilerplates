@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Heimdall
   description: >
@@ -13,12 +14,14 @@ metadata:
   version: 2.7.6
   author: Christian Lempa
   date: '2025-10-31'
-  tags:
-    - dashboard
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: heimdall
+      container_name:
+        default: heimdall
       heimdall_version:
         type: str
         description: Heimdall version

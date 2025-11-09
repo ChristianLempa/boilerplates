@@ -1,7 +1,7 @@
 services:
-  heimdall:
+  {{ service_name }}:
     image: lscr.io/linuxserver/heimdall:2.7.6
-    container_name: heimdall
+    container_name: {{ container_name }}
     environment:
       - PUID=1000
       - PGID=1000

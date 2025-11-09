@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Openwebui
   description: >
@@ -18,13 +19,49 @@ metadata:
   author: Christian Lempa
   date: '2025-11-07'
   tags:
-    - ai
-    - automation
-  draft: true
+    - traefik
 spec:
   general:
     vars:
+      service_name:
+        default: openwebui
+      container_name:
+        default: openwebui
       openwebui_version:
         type: str
         description: Openwebui version
         default: latest
+      ollama_base_url:
+        type: str
+        description: Ollama API base URL
+        default: http://ollama:11434
+  traefik:
+    vars:
+      traefik_host:
+        default: openwebui.home.arpa
+  ports:
+    vars:
+      ports_http:
+        description: Web UI port
+        type: int
+        default: 8080
+  authentik:
+    vars:
+      authentik_enabled:
+        default: false
+      openid_provider_url:
+        type: str
+        description: OpenID provider configuration URL
+        default: https://authentik.example.com/application/o/openwebui/.well-known/openid-configuration
+      openid_redirect_uri:
+        type: str
+        description: OAuth redirect URI
+        default: https://openwebui.example.com/oauth/oidc/callback
+      oauth_scopes:
+        type: str
+        description: OAuth scopes (space-separated)
+        default: openid email profile
+      oauth_merge_accounts:
+        type: bool
+        description: Merge OAuth accounts by email
+        default: false

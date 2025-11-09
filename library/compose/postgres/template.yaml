@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: PostgreSQL
   description: >
@@ -15,10 +16,7 @@ metadata:
   version: 17.6
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - database
-    - sql
-  draft: true
+  tags: []
 spec:
   general:
     vars:

@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Wazuh
   description: >
@@ -16,15 +17,14 @@ metadata:
   version: 4.14.0
   author: Christian Lempa
   date: '2025-11-05'
-  tags:
-    - security
-    - monitoring
-    - xdr
-    - siem
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: wazuh
+      container_name:
+        default: wazuh-prod-1
       wazuh.manager_version:
         type: str
         description: Wazuh.Manager version

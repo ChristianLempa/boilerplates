@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Nginx
   description: >
@@ -16,10 +17,7 @@ metadata:
   date: 2023-10-01
   author: Christian Lempa
   tags:
-    - nginx
-    - webserver
-    - reverse-proxy
-  draft: true
+    - traefik
 spec:
   ports:
     vars:

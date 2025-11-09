@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Nginx Proxy Manager
   description: >
@@ -15,10 +16,7 @@ metadata:
   version: 2.12.6
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - nginx
-    - reverse-proxy
-  draft: true
+  tags: []
 spec:
   general:
     vars:

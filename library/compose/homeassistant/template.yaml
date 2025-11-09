@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Homeassistant
   description: >
@@ -13,13 +14,14 @@ metadata:
   version: 2025.11.1
   author: Christian Lempa
   date: '2025-11-07'
-  tags:
-    - home-automation
-    - iot
-  draft: true
+  tags: []
 spec:
   general:
     vars:
+      service_name:
+        default: homeassistant
+      container_name:
+        default: homeassistant
       homeassistant_version:
         type: str
         description: Homeassistant version

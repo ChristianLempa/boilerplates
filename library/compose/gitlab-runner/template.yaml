@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Gitlab-Runner
   description: >
@@ -15,11 +16,7 @@ metadata:
   version: alpine-v17.9.1
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - gitlab
-    - git
-    - ci-cd
-  draft: true
+  tags: []
 spec:
   general:
     vars:

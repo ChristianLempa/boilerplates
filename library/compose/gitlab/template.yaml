@@ -1,5 +1,6 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: GitLab
   description: >
@@ -25,10 +26,10 @@ metadata:
     3. Access the web interface:
        {% if traefik_enabled -%}
        - Via Traefik: https://{{ traefik_host }}
-       {% if ports_enabled %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
+       {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
        {%- else -%}
        - Open {{ external_url }} in your browser
-       {% if ports_enabled %}- Or: http://localhost:{{ ports_http }}{% endif %}
+       {% if network_mode == 'bridge' %}- Or: http://localhost:{{ ports_http }}{% endif %}
        {%- endif %}
 
     4. Initial login:
