@@ -1,25 +1,9 @@
-{#
-  Archetype: service-environment-v1
-  
-  Description:
-    Environment variables for common container configurations.
-  
-  Approach:
-    - Sets standard environment variables (timezone, UID/GID)
-    - Demonstrates secret handling: file-based for swarm, env var for standalone
-    - Uses user_uid/user_gid from module spec general section
-  
-  Usage:
-    Use for services that need timezone and user/group configuration.
-    Adapt the secret handling pattern for your specific secret variables.
-    Replace SECRET example with actual secret variable names as needed.
-#}
     environment:
       - TZ={{ container_timezone }}
       - UID={{ user_uid }}
       - GID={{ user_gid }}
       {% if swarm_enabled %}
-      - SECRET=/run/secrets/{{ secret_name }}
+      - SECRET=/run/secrets/{{ service_name }}_secret_1
       {% else %}
       - SECRET=${SECRET}
       {% endif %}

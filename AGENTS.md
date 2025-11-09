@@ -513,88 +513,65 @@ To skip the prompt use the `--no-interactive` flag, which will use defaults or e
 - `repo sync` - Sync git-based libraries
 - `repo list` - List configured libraries
 
-## Archetypes Testing Tool
+## Archetypes
 
-The `archetypes` package provides a testing tool for developing and testing individual template snippets (Jinja2 files) without needing a full template directory structure.
+The `archetypes` package provides reusable, standardized template building blocks for creating boilerplates. Archetypes are modular Jinja2 snippets that represent specific configuration sections (e.g., networks, volumes, service labels).
 
 ### Purpose
 
-Archetypes are template "snippets" or "parts" that can be tested in isolation. This is useful for:
-- Developing specific sections of templates (e.g., network configurations, volume mounts)
-- Testing Jinja2 logic with different variable combinations
-- Validating template rendering before integrating into full templates
-
-### Usage
-
-```bash
-# Run the archetypes tool
-python3 -m archetypes
-
-# List all archetypes for a module
-python3 -m archetypes compose list
-
-# Show details of an archetype (displays variables and content)
-python3 -m archetypes compose show network-v1
-
-# Preview generated output (always in preview mode - never writes files)
-python3 -m archetypes compose generate network-v1
-
-# Preview with variable overrides
-python3 -m archetypes compose generate network-v1 \
-  --var network_mode=macvlan \
-  --var network_macvlan_ipv4_address=192.168.1.100
-
-# Preview with reference directory (for context only - no files written)
-python3 -m archetypes compose generate network-v1 /tmp/output --var network_mode=host
-```
+1. **Template Development**: Provide standardized, tested building blocks for creating new templates
+2. **Testing & Validation**: Enable testing of specific configuration sections in isolation with different variable combinations
 
 ### Structure
 
 ```
 archetypes/
-  __init__.py           # Package initialization
-  __main__.py           # CLI tool (auto-discovers modules)
-  compose/              # Module-specific archetypes
-    network-v1.j2       # Archetype snippet (just a .j2 file)
-    volumes-v1.j2       # Another archetype
-  terraform/            # Another module's archetypes
-    vpc.j2
+  __init__.py              # Package initialization
+  __main__.py              # CLI tool (auto-discovers modules)
+  compose/                 # Module-specific archetypes
+    archetypes.yaml        # Configuration: schema version + variable overrides
+    compose.yaml.j2        # Main composition file (includes all components)
+    service-*.j2           # Service-level components (networks, ports, volumes, labels, etc.)
+    networks-*.j2          # Top-level network definitions
+    volumes-*.j2           # Top-level volume definitions
+    configs-*.j2           # Config definitions
+    secrets-*.j2           # Secret definitions
 ```
 
-### Key Features
+**Key Files:**
+- `archetypes.yaml`: Configures schema version and variable overrides for testing
+- `compose.yaml.j2`: Main composition file that includes all archetype components to test complete configurations
+- Individual `*.j2` files: Modular components for specific configuration sections
 
-- **Auto-discovers modules**: Scans `archetypes/` for subdirectories (module names)
-- **Reuses CLI components**: Imports actual CLI classes (Template, VariableCollection, DisplayManager) for identical behavior
-- **Loads module specs**: Pulls variable specifications from `cli/modules/<module>/spec_v*.py` for defaults
-- **Full variable context**: Provides ALL variables with defaults (not just satisfied ones) for complete rendering
-- **Three commands**: `list`, `show`, `generate`
-- **Testing only**: The `generate` command NEVER writes files - it always shows preview output only
+### Usage
+
+```bash
+# List available archetypes
+python3 -m archetypes compose list
+
+# Preview complete composition (all components together)
+python3 -m archetypes compose generate compose.yaml
+
+# Preview individual component
+python3 -m archetypes compose generate networks-v1
+
+# Test with variable overrides
+python3 -m archetypes compose generate compose.yaml \
+  --var traefik_enabled=true \
+  --var swarm_enabled=true
+```
+
+### Template Development Workflow
+
+1. **Start with archetypes**: Copy relevant archetype components to your template directory
+2. **Customize**: Modify components as needed (hardcode image, add custom labels, etc.)
+3. **Test**: Validate using `python3 -m archetypes compose generate`
+4. **Validate**: Use `compose validate` to check Jinja2 syntax and semantic correctness
 
 ### Implementation Details
 
 **How it works:**
-1. Module discovery: Finds subdirectories in `archetypes/` (e.g., `compose`)
-2. For each module, creates a Typer sub-app with list/show/generate commands
-3. Archetype files are simple `.j2` files (no `template.yaml` needed)
-4. Variable defaults come from module spec: `cli/modules/<module>/spec_v*.py`
-5. Rendering uses Jinja2 with full variable context from spec
-
-**ArchetypeTemplate class:**
-- Simplified template wrapper for single .j2 files
-- Loads module spec and converts to VariableCollection
-- Extracts ALL variables (not just satisfied) from spec sections
-- Merges user overrides (`--var`) on top of spec defaults
-- Renders using Jinja2 FileSystemLoader
-
-**Variable defaults source:**
-```python
-# Defaults come from module spec files
-from cli.modules.compose import spec  # OrderedDict with variable definitions
-vc = VariableCollection(spec)         # Convert to VariableCollection
-
-# Extract all variables with their default values
-for section_name, section in vc._sections.items():
-    for var_name, var in section.variables.items():
-        if var.value is not None:  # var.value stores the default
-            render_context[var_name] = var.value
-```
+- Loads module spec based on schema version from `archetypes.yaml`
+- Merges variable sources: module spec → archetypes.yaml → CLI --var
+- Renders using Jinja2 with support for `{% include %}` directives
+- **Testing only**: The `generate` command NEVER writes files - always shows preview output

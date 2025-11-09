@@ -17,18 +17,24 @@ logger = logging.getLogger(__name__)
 
 
 def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str, Any]:
-    """Parse variable inputs from --var options and extra args.
+    """Parse variable inputs from --var options and extra args with type conversion.
 
     Supports formats:
       --var KEY=VALUE
       --var KEY VALUE
+
+    Values are automatically converted to appropriate types:
+      - 'true', 'yes', '1' → True
+      - 'false', 'no', '0' → False
+      - Numeric strings → int or float
+      - Everything else → string
 
     Args:
       var_options: List of variable options from CLI
       extra_args: Additional arguments that may contain values
 
     Returns:
-      Dictionary of parsed variables
+      Dictionary of parsed variables with converted types
     """
     variables = {}
 
@@ -36,14 +42,46 @@ def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str,
     for var_option in var_options:
         if "=" in var_option:
             key, value = var_option.split("=", 1)
-            variables[key] = value
+            variables[key] = _convert_string_to_type(value)
         # --var KEY VALUE format - value should be in extra_args
         elif extra_args:
-            variables[var_option] = extra_args.pop(0)
+            value = extra_args.pop(0)
+            variables[var_option] = _convert_string_to_type(value)
         else:
             logger.warning(f"No value provided for variable '{var_option}'")
 
     return variables
+
+
+def _convert_string_to_type(value: str) -> Any:
+    """Convert string value to appropriate Python type.
+    
+    Args:
+        value: String value to convert
+    
+    Returns:
+        Converted value (bool, int, float, or str)
+    """
+    # Boolean conversion
+    if value.lower() in ('true', 'yes', '1'):
+        return True
+    if value.lower() in ('false', 'no', '0'):
+        return False
+    
+    # Integer conversion
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    
+    # Float conversion
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    
+    # Return as string
+    return value
 
 
 def load_var_file(var_file_path: str) -> dict:

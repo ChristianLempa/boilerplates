@@ -9,6 +9,7 @@ from __future__ import annotations
 import builtins
 import importlib
 import logging
+import os
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -17,8 +18,11 @@ from typing import Any
 import click
 import yaml
 
+# Add parent directory to Python path for CLI imports
+# This allows archetypes to import from cli module when run as `python3 -m archetypes`
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 # Import CLI components
-from cli.core.collection import VariableCollection
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from rich.console import Console
 from rich.panel import Panel
@@ -29,6 +33,8 @@ from cli.core.display import DisplayManager
 from cli.core.exceptions import (
     TemplateRenderError,
 )
+from cli.core.module.helpers import parse_var_inputs
+from cli.core.template.variable_collection import VariableCollection
 
 app = Typer(
     help="Test and develop template snippets (archetypes) without full template structure.",
@@ -82,9 +88,14 @@ class ArchetypeTemplate:
         self.variables = self._load_module_spec()
 
     def _load_module_spec(self) -> VariableCollection | None:
-        """Load variable spec from the module and merge with extension.yaml if present."""
+        """Load variable spec from module and merge with archetypes.yaml if present."""
         try:
-            spec = self._import_module_spec()
+            # Load archetype config to get schema version
+            archetype_config = self._load_archetype_config()
+            schema_version = archetype_config.get("schema", "1.0") if archetype_config else "1.0"
+            
+            # Import module spec with correct schema
+            spec = self._import_module_spec(schema_version)
             if spec is None:
                 return None
 
@@ -92,18 +103,42 @@ class ArchetypeTemplate:
             if spec_dict is None:
                 return None
 
-            self._merge_extension_file(spec_dict)
+            # Merge variables from archetypes.yaml
+            if archetype_config and "vars" in archetype_config:
+                self._merge_archetype_vars(spec_dict, archetype_config["vars"])
+            
             return VariableCollection(spec_dict)
         except Exception as e:
             logging.warning(f"Could not load spec for module {self.module_name}: {e}")
             return None
 
-    def _import_module_spec(self) -> Any | None:
-        """Import module and retrieve spec attribute."""
+    def _load_archetype_config(self) -> dict | None:
+        """Load archetypes.yaml configuration file."""
+        config_file = self.template_dir / "archetypes.yaml"
+        if not config_file.exists():
+            return None
+        
+        try:
+            with config_file.open() as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            logging.warning(f"Failed to load archetypes.yaml: {e}")
+            return None
+
+    def _import_module_spec(self, schema_version: str) -> Any | None:
+        """Import module spec for the specified schema version."""
         module_path = f"cli.modules.{self.module_name}"
         try:
             module = importlib.import_module(module_path)
-            spec = getattr(module, "spec", None)
+            
+            # Try to get schema-specific spec if module supports it
+            if hasattr(module, "SCHEMAS") and schema_version in module.SCHEMAS:
+                spec = module.SCHEMAS[schema_version]
+                logging.debug(f"Using schema {schema_version} for module {self.module_name}")
+            else:
+                # Fall back to default spec
+                spec = getattr(module, "spec", None)
+            
             if spec is None:
                 logging.warning(f"Module {self.module_name} has no 'spec' attribute")
             return spec
@@ -121,42 +156,31 @@ class ArchetypeTemplate:
         logging.warning(f"Spec for {self.module_name} has unexpected type: {type(spec)}")
         return None
 
-    def _merge_extension_file(self, spec_dict: OrderedDict) -> None:
-        """Merge extension.yaml variables into spec_dict."""
-        extension_file = self.template_dir / "extension.yaml"
-        if not extension_file.exists():
-            return
-
+    def _merge_archetype_vars(self, spec_dict: OrderedDict, archetype_vars: dict) -> None:
+        """Merge variables from archetypes.yaml into spec_dict."""
         try:
-            with extension_file.open() as f:
-                extension_vars = yaml.safe_load(f)
-
-            if not extension_vars:
-                return
-
-            applied_count, new_vars = self._apply_extension_vars(spec_dict, extension_vars)
+            applied_count, new_vars = self._apply_archetype_vars(spec_dict, archetype_vars)
             self._add_testing_section(spec_dict, new_vars)
-
+            
             logging.debug(
-                f"Applied {applied_count} extension defaults, "
-                f"added {len(new_vars)} new test variables from {extension_file}"
+                f"Applied {applied_count} archetype var overrides, "
+                f"added {len(new_vars)} new test variables"
             )
         except Exception as e:
-            logging.warning(f"Failed to load extension.yaml: {e}")
+            logging.warning(f"Failed to merge archetype vars: {e}")
 
-    def _apply_extension_vars(self, spec_dict: OrderedDict, extension_vars: dict) -> tuple[int, dict]:
-        """Apply extension variables to existing spec sections."""
+    def _apply_archetype_vars(self, spec_dict: OrderedDict, archetype_vars: dict) -> tuple[int, dict]:
+        """Apply archetype variables to existing spec sections or collect as new variables."""
         applied_count = 0
         new_vars = {}
 
-        for var_name, var_spec in extension_vars.items():
+        for var_name, var_spec in archetype_vars.items():
             if self._update_existing_var(spec_dict, var_name, var_spec):
                 applied_count += 1
             else:
                 new_vars[var_name] = var_spec
 
         return applied_count, new_vars
-
     def _update_existing_var(self, spec_dict: OrderedDict, var_name: str, var_spec: dict) -> bool:
         """Update existing variable with extension default."""
         if "default" not in var_spec:
@@ -304,19 +328,16 @@ def _display_archetype_content(archetype_path: Path) -> None:
     console.print()
 
 
-def _parse_var_overrides(var: list[str] | None) -> dict[str, str]:
-    """Parse --var options into a dictionary."""
-    variables = {}
+def _parse_var_overrides(var: list[str] | None) -> dict[str, Any]:
+    """Parse --var options into a dictionary with type conversion.
+    
+    Uses the CLI's parse_var_inputs function to ensure consistent behavior.
+    """
     if not var:
-        return variables
-
-    for var_option in var:
-        if "=" in var_option:
-            key, value = var_option.split("=", 1)
-            variables[key] = value
-        else:
-            console.print(f"[yellow]Warning: Invalid --var format '{var_option}' (use KEY=VALUE)[/yellow]")
-    return variables
+        return {}
+    
+    # Use CLI's parse_var_inputs function (no extra_args for archetypes)
+    return parse_var_inputs(var, [])
 
 
 def _display_generated_preview(output_dir: Path, rendered_files: dict[str, str]) -> None:
@@ -343,7 +364,7 @@ def create_module_commands(module_name: str) -> Typer:
         archetypes = find_archetypes(module_name)
 
         if not archetypes:
-            display.display_warning(
+            display.warning(
                 f"No archetypes found for module '{module_name}'",
                 context=f"directory: {ARCHETYPES_DIR / module_name}",
             )
@@ -362,25 +383,23 @@ def create_module_commands(module_name: str) -> Typer:
         archetype_path = _find_archetype_by_id(archetypes, id)
 
         if not archetype_path:
-            display.display_error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
+            display.error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
             return
 
-        archetype = ArchetypeTemplate(archetype_path, module_name)
-        _display_archetype_details(archetype, module_name)
         _display_archetype_content(archetype_path)
 
     @module_app.command()
     def generate(
         id: str = Argument(..., help="Archetype ID (filename without .j2)"),
         directory: str | None = Argument(None, help="Output directory (for reference only - no files are written)"),
-        var: builtins.list[str] | None = None,
+        var: builtins.list[str] | None = Option(None, "--var", "-v", help="Set variable (KEY=VALUE format, can be used multiple times)"),
     ) -> None:
         """Generate output from an archetype file (always in preview mode)."""
         archetypes = find_archetypes(module_name)
         archetype_path = _find_archetype_by_id(archetypes, id)
 
         if not archetype_path:
-            display.display_error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
+            display.error(f"Archetype '{id}' not found", context=f"module '{module_name}'")
             return
 
         archetype = ArchetypeTemplate(archetype_path, module_name)
@@ -389,12 +408,12 @@ def create_module_commands(module_name: str) -> Typer:
         try:
             rendered_files = archetype.render(variables)
         except Exception as e:
-            display.display_error(f"Failed to render archetype: {e}", context=f"archetype '{id}'")
+            display.error(f"Failed to render archetype: {e}", context=f"archetype '{id}'")
             return
 
         output_dir = Path(directory) if directory else Path.cwd()
         _display_generated_preview(output_dir, rendered_files)
-        display.display_success("Preview complete - no files were written")
+        display.success("Preview complete - no files were written")
 
     return module_app
 

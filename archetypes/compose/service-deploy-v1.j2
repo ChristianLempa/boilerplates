@@ -1,19 +1,4 @@
-{#
-  Archetype: service-deploy-traefik-v1
-  
-  Description:
-    Swarm deployment with Traefik labels in deploy section.
-  
-  Approach:
-    - Labels must be in deploy section for swarm mode
-    - Includes full HTTP + HTTPS Traefik configuration
-    - Critical: traefik.docker.network label for multi-network containers
-  
-  Usage:
-    Use for swarm services exposed through Traefik.
-    Combines with service-labels-traefik-https-v1 for standalone mode.
-#}
-    {% if swarm_enabled and traefik_enabled %}
+    {% if swarm_enabled %}
     deploy:
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
@@ -21,6 +6,7 @@
       {% endif %}
       restart_policy:
         condition: on-failure
+      {% if traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}
@@ -35,4 +21,5 @@
         - traefik.http.routers.{{ service_name }}-https.tls=true
         - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
         {% endif %}
+      {% endif %}
     {% endif %}

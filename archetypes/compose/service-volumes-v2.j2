@@ -1,22 +1,13 @@
-{#
-  Archetype: service-volumes-v2
-  
-  Description:
-    Service volume mounts using dedicated volume section (schema 1.2+).
-  
-  Approach:
-    - Uses volume_mode instead of swarm_volume_mode
-    - Standalone mode: Uses named volumes
-    - Mount mode: Uses bind mounts from volume_mount_path
-    - NFS mode: Uses named volumes with NFS driver
-  
-  Usage:
-    Use for schema 1.2+ templates that need persistent storage.
-    The volume section works for both standalone and swarm modes.
-#}
     volumes:
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}/data:/data:rw
       {% else %}
-      - {{ volume_name }}:/data
+      - testapp_volume:/data
+      {% endif %}
+      {% if not swarm_enabled %}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/config/testapp.yaml:/etc/app/config.yaml:ro
+      {% else %}
+      - ./config/testapp.yaml:/etc/app/config.yaml:ro
+      {% endif %}
       {% endif %}

@@ -212,6 +212,11 @@ spec = OrderedDict(
             "toggle": "resources_enabled",
             "description": "Set CPU and memory limits for the service.",
             "vars": {
+                "resources_enabled": {
+                    "description": "Enable resource limits",
+                    "type": "bool",
+                    "default": False,
+                },
                 "resources_cpu_limit": {
                     "description": "Maximum CPU cores (e.g., 0.5, 1.0, 2.0)",
                     "type": "str",

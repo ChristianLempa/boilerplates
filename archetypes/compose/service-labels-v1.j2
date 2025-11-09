@@ -1,19 +1,4 @@
-{#
-  Archetype: service-labels-traefik-middleware-v1
-  
-  Description:
-    Traefik labels with middleware support for authentication, headers, etc.
-  
-  Approach:
-    - Extends HTTPS configuration with middleware assignment
-    - Middlewares applied to both HTTP and HTTPS routers
-    - Supports chaining multiple middlewares (comma-separated)
-  
-  Usage:
-    Use when you need authentication, rate limiting, headers, or other
-    Traefik middleware features. Define middlewares in Traefik config or labels.
-#}
-    {% if traefik_enabled %}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}

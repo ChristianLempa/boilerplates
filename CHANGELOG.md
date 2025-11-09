@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved debug logging to capture module discovery and registration during initialization
 - Enhanced debug logging for better troubleshooting
 
+### Fixed
+- CLI --var flag now properly converts boolean and numeric strings to appropriate Python types (#1522)
+
 ## [0.0.7] - 2025-10-28
 
 ### Added
