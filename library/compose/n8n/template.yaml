@@ -14,9 +14,9 @@ metadata:
     Documentation: https://docs.n8n.io/
 
     GitHub: https://github.com/n8n-io/n8n
-  version: 1.119.0
+  version: 1.119.1
   author: Christian Lempa
-  date: '2025-11-05'
+  date: '2025-11-10'
   tags:
     - automation
   draft: true
