@@ -101,7 +101,6 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     {"name": "Library", "no_wrap": True},
                 ],
                 rows=filtered_templates,
-                title=f"{module_instance.name.capitalize()} templates",
                 row_formatter=format_template_row,
             )
     else:
@@ -144,7 +143,6 @@ def search_templates(module_instance, query: str) -> list:
                 {"name": "Library", "no_wrap": True},
             ],
             rows=filtered_templates,
-            title=f"{module_instance.name.capitalize()} templates matching '{query}'",
             row_formatter=format_template_row,
         )
     else:
@@ -210,9 +208,13 @@ def check_output_directory(
     # Warn if directory is not empty
     if dir_not_empty:
         if interactive:
-            display.warning(f"Directory '{output_dir}' is not empty.")
+            display.text("")  # Add newline before warning
+            # Combine directory warning and file count on same line
+            warning_msg = f"Directory '{output_dir}' is not empty."
             if existing_files:
-                display.text(f"  {len(existing_files)} file(s) will be overwritten.")
+                warning_msg += f" {len(existing_files)} file(s) will be overwritten."
+            display.warning(warning_msg)
+            display.text("")  # Add newline after warning
 
             input_mgr = InputManager()
             if not input_mgr.confirm("Continue?", default=False):
@@ -229,23 +231,7 @@ def check_output_directory(
 
 def get_generation_confirmation(ctx: ConfirmationContext) -> bool:
     """Display file generation confirmation and get user approval."""
-    if not ctx.interactive:
-        return True
-
-    # Skip file confirmation display in dry-run mode
-    if not ctx.dry_run:
-        # Use templates.render_file_generation_confirmation directly for now
-        ctx.display.templates.render_file_generation_confirmation(
-            ctx.output_dir, ctx.rendered_files, ctx.existing_files if ctx.existing_files else None
-        )
-
-        # Final confirmation (only if we didn't already ask about overwriting)
-        if not ctx.dir_not_empty:
-            input_mgr = InputManager()
-            if not input_mgr.confirm("Generate these files?", default=True):
-                ctx.display.info("Generation cancelled")
-                return False
-
+    # No confirmation needed - either non-interactive, dry-run, or already confirmed during directory check
     return True
 
 
@@ -300,8 +286,12 @@ def execute_dry_run(
     rendered_files: dict[str, str],
     show_files: bool,
     display: DisplayManager,
-) -> None:
-    """Execute dry run mode - preview files without writing."""
+) -> tuple[int, int, str]:
+    """Execute dry run mode - preview files without writing.
+
+    Returns:
+        Tuple of (total_files, overwrite_files, size_str) for summary display
+    """
     _file_operations, total_size, _new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
     size_str = _format_size(total_size)
 
@@ -315,17 +305,8 @@ def execute_dry_run(
             display.text(content)
         display.text("")
 
-    # Show summary message
-    display.text("")
-    if overwrite_files > 0:
-        display.warning(
-            f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}' "
-            f"({overwrite_files} files would be overwritten)"
-        )
-    else:
-        display.success(f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}'")
-
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
+    return len(rendered_files), overwrite_files, size_str
 
 
 def write_generated_files(
@@ -342,11 +323,7 @@ def write_generated_files(
         full_path.parent.mkdir(parents=True, exist_ok=True)
         with full_path.open("w", encoding="utf-8") as f:
             f.write(content)
-        if not quiet:
-            display.success(f"Generated file: {file_path}")
 
-    if not quiet:
-        display.success(f"Template generated successfully in '{output_dir}'")
     logger.info(f"Template written to directory: {output_dir}")
 
 
@@ -408,6 +385,38 @@ def _determine_output_dir(directory: str | None, id: str) -> Path:
     return output_dir
 
 
+def _display_template_error(display: DisplayManager, template_id: str, error: TemplateRenderError) -> None:
+    """Display template rendering error with clean formatting."""
+    display.text("")
+    display.text("─" * 80, style="dim")
+    display.text("")
+
+    # Build details if available
+    details = None
+    if error.file_path:
+        details = error.file_path
+        if error.line_number:
+            details += f":line {error.line_number}"
+
+    # Display error with details
+    display.error(f"Failed to generate boilerplate from template '{template_id}'", details=details)
+
+
+def _display_generic_error(display: DisplayManager, template_id: str, error: Exception) -> None:
+    """Display generic error with clean formatting."""
+    display.text("")
+    display.text("─" * 80, style="dim")
+    display.text("")
+
+    # Truncate long error messages
+    error_msg = str(error)
+    if len(error_msg) > 100:
+        error_msg = error_msg[:100] + "..."
+
+    # Display error with details
+    display.error(f"Failed to generate boilerplate from template '{template_id}'", details=error_msg)
+
+
 def generate_template(module_instance, config: GenerationConfig) -> None:
     """Generate from template."""
     logger.info(f"Starting generation for template '{config.id}' from module '{module_instance.name}'")
@@ -448,14 +457,15 @@ def generate_template(module_instance, config: GenerationConfig) -> None:
                 return  # User cancelled
 
         # Execute generation (dry run or actual)
+        dry_run_stats = None
         if config.dry_run:
             if not config.quiet:
-                execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
+                dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
         else:
             write_generated_files(output_dir, rendered_files, config.quiet, display)
 
         # Display next steps (not in quiet mode)
-        if template.metadata.next_steps and not config.quiet and not config.dry_run:
+        if template.metadata.next_steps and not config.quiet:
             display.text("")
             display.heading("Next Steps")
             try:
@@ -467,11 +477,31 @@ def generate_template(module_instance, config: GenerationConfig) -> None:
                 # Fallback to plain text if rendering fails
                 display.status.markdown(template.metadata.next_steps)
 
+        # Display final status message at the end
+        if not config.quiet:
+            display.text("")
+            display.text("─" * 80, style="dim")
+
+            if config.dry_run and dry_run_stats:
+                total_files, overwrite_files, size_str = dry_run_stats
+                if overwrite_files > 0:
+                    display.warning(
+                        f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}' "
+                        f"({overwrite_files} would be overwritten)"
+                    )
+                else:
+                    display.success(
+                        f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}'"
+                    )
+            else:
+                # Actual generation completed
+                display.success(f"Boilerplate generated successfully in '{output_dir}'")
+
     except TemplateRenderError as e:
-        display.error(str(e), context=f"template '{config.id}'")
+        _display_template_error(display, config.id, e)
         raise Exit(code=1) from None
     except Exception as e:
-        display.error(str(e), context=f"generating template '{config.id}'")
+        _display_generic_error(display, config.id, e)
         raise Exit(code=1) from None
 
 
@@ -513,7 +543,7 @@ def _load_template_for_validation(module_instance, template_id: str, path: str |
     if template_id:
         try:
             template = module_instance._load_template_by_id(template_id)
-            module_instance.display.info(f"[bold]Validating template:[/bold] [cyan]{template_id}[/cyan]")
+            module_instance.display.info(f"Validating template: {template_id}")
             return template
         except Exception as e:
             module_instance.display.error(f"Failed to load template '{template_id}': {e}")
@@ -553,7 +583,7 @@ def _validate_single_template(module_instance, template, template_id: str, verbo
 def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
     """Run semantic validation on rendered template files."""
     module_instance.display.info("")
-    module_instance.display.info("[bold cyan]Running semantic validation...[/bold cyan]")
+    module_instance.display.info("Running semantic validation...")
 
     registry = get_validator_registry()
     debug_mode = logger.isEnabledFor(logging.DEBUG)
@@ -564,7 +594,7 @@ def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
         result = registry.validate_file(content, file_path)
 
         if result.errors or result.warnings or (verbose and result.info):
-            module_instance.display.info(f"\n[cyan]File:[/cyan] {file_path}")
+            module_instance.display.info(f"\nFile: {file_path}")
             result.display(f"{file_path}")
 
             if result.errors:
@@ -579,17 +609,17 @@ def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
 
 def _display_validation_details(module_instance, template, semantic: bool) -> None:
     """Display verbose validation details."""
-    module_instance.display.info(f"\n[dim]Template path: {template.template_dir}[/dim]")
-    module_instance.display.info(f"[dim]Found {len(template.used_variables)} variables[/dim]")
+    module_instance.display.info(f"\nTemplate path: {template.template_dir}")
+    module_instance.display.info(f"Found {len(template.used_variables)} variables")
     if semantic:
         debug_mode = logger.isEnabledFor(logging.DEBUG)
         rendered_files, _ = template.render(template.variables, debug=debug_mode)
-        module_instance.display.info(f"[dim]Generated {len(rendered_files)} files[/dim]")
+        module_instance.display.info(f"Generated {len(rendered_files)} files")
 
 
 def _validate_all_templates(module_instance, verbose: bool) -> None:
     """Validate all templates in the module."""
-    module_instance.display.info(f"[bold]Validating all {module_instance.name} templates...[/bold]")
+    module_instance.display.info(f"Validating all {module_instance.name} templates...")
 
     valid_count = 0
     invalid_count = 0
@@ -617,25 +647,17 @@ def _validate_all_templates(module_instance, verbose: bool) -> None:
                 module_instance.display.warning(template.id)
 
     # Display summary
-    summary_rows = [
-        ("Total templates:", str(total)),
-        ("[green]Valid:[/green]", str(valid_count)),
-        ("[red]Invalid:[/red]", str(invalid_count)),
-    ]
-    module_instance.display.table(
-        headers=None,
-        rows=summary_rows,
-        title="Validation Summary",
-        show_header=False,
-        borderless=True,
-    )
+    module_instance.display.info("")
+    module_instance.display.info(f"Total templates: {total}")
+    module_instance.display.info(f"Valid: {valid_count}")
+    module_instance.display.info(f"Invalid: {invalid_count}")
 
     if errors:
         module_instance.display.info("")
-        module_instance.display.error("Validation Errors:")
         for template_id, error_msg in errors:
-            module_instance.display.info(f"\n[yellow]Template:[/yellow] [cyan]{template_id}[/cyan]")
-            module_instance.display.info(f"[dim]{error_msg}[/dim]")
+            module_instance.display.error(f"{template_id}: {error_msg}")
         raise Exit(code=1)
 
-    module_instance.display.success("All templates are valid!")
+    if total > 0:
+        module_instance.display.info("")
+        module_instance.display.success("All templates are valid")

@@ -30,7 +30,7 @@ server:
     ingressClassName: traefik
 {% if traefik_tls_enabled and traefik_tls_certmanager %}
     annotations:
-      cert-manager.io/cluster-issuer: {{ traefik_tls_certmanager_issuer }}
+      cert-manager.io/cluster-issuer: {{ certmanager_issuer }}
 {% endif %}
     hosts:
       - {{ traefik_host }}

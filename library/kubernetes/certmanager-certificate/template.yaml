@@ -1,0 +1,37 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Cert-Manager Certificate
+  description: >
+    Cert-manager Certificate resource for requesting TLS certificates from an Issuer or ClusterIssuer.
+
+
+    The certificate will be stored in a Kubernetes secret.
+
+
+    Requires cert-manager to be installed in the cluster.
+
+
+    Project: https://cert-manager.io
+
+    Documentation: https://cert-manager.io/docs/usage/certificate/
+  version: 1.16.2
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: tls-certificate
+      secret_name:
+        type: str
+        description: Name of secret to store the certificate
+  dns:
+    title: DNS Settings
+    vars:
+      dns_names:
+        type: str
+        description: DNS names for certificate (comma-separated, e.g., example.com,*.example.com)
+  certmanager:
+    toggle: []

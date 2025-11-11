@@ -18,6 +18,8 @@ metadata:
   date: '2025-11-07'
   tags:
     - traefik
+    - swarm
+    - authentik
 spec:
   general:
     vars:
@@ -25,7 +27,20 @@ spec:
         default: loki
       container_name:
         default: loki
-      loki_version:
-        type: str
-        description: Loki version
-        default: latest
+      container_hostname:
+        default: loki
+  ports:
+    vars:
+      ports_http:
+        description: "Loki HTTP API port"
+        type: int
+        default: 3100
+        needs: ["traefik_enabled=false", "network_mode=bridge"]
+  network:
+    vars:
+      network_name:
+        default: "loki_network"
+  traefik:
+    vars:
+      traefik_host:
+        default: "loki.home.arpa"

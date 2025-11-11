@@ -15,24 +15,3 @@ vars:
     default: testapp-host
   traefik_host:
     default: testapp.home.arpa
-  
-  # Additional variables not in module spec
-  service_image:
-    type: str
-    default: testapp:latest
-    description: Docker image for the service
-  
-  service_port:
-    type: int
-    default: 80
-    description: Internal container port
-  
-  volume_name:
-    type: str
-    default: testapp-data
-    description: Volume name for persistent storage
-  
-  traefik_middleware:
-    type: str
-    default: none
-    description: Traefik middleware chain (comma-separated)

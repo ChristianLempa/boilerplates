@@ -72,11 +72,32 @@ class TemplateDisplay:
         color = "yellow" if library_type == "static" else "blue"
         library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
-        self.base.text(
-            f"{template_name} ({template_id} - [cyan]{version}[/cyan] - "
-            f"[magenta]schema {schema}[/magenta]) {library_display}",
-            style=settings.STYLE_HEADER,
-        )
+        # Create custom H1-style header with Rich markup support
+        from rich import box
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.text import Text
+
+        # Build header content with Rich formatting
+        header_content = Text()
+        header_content.append(template_name, style="bold white")
+        header_content.append(" (", style="white")
+        header_content.append("id:", style="white")
+        header_content.append(template_id, style="dim")
+        header_content.append(" │ ", style="dim")
+        header_content.append("version:", style="white")
+        header_content.append(version, style="cyan")
+        header_content.append(" │ ", style="dim")
+        header_content.append("schema:", style="white")
+        header_content.append(schema, style="magenta")
+        header_content.append(" │ ", style="dim")
+        header_content.append("library:", style="white")
+        header_content.append(icon + " ", style=color)
+        header_content.append(library_name, style=color)
+        header_content.append(")", style="white")
+
+        panel = Panel(header_content, box=box.HEAVY, style="markdown.h1.border")
+        Console().print(panel)
         self.base.text("")
         self.status.markdown(description)
 
@@ -118,7 +139,7 @@ class TemplateDisplay:
             existing_files: List of existing files that will be overwritten
         """
         self.base.text("")
-        self.base.text("Files to be generated:", style="bold")
+        self.base.heading("Files to be Generated")
 
         def get_file_generation_info(file_path_str):
             file_path = Path(file_path_str)

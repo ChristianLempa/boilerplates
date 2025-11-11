@@ -1,0 +1,25 @@
+---
+- name: {{ playbook_name }}
+  hosts: {{ target_hosts }}
+{% if become %}
+  become: true
+{% endif %}
+{% if options_enabled and not gather_facts %}
+  gather_facts: false
+{% endif %}
+  roles:
+    - checkmk.general.agent
+  vars:
+    checkmk_agent_version: {{ checkmk_version }}
+    checkmk_agent_server: {{ checkmk_server }}
+    checkmk_agent_server_protocol: {{ checkmk_protocol }}
+    checkmk_agent_site: {{ checkmk_site }}
+    checkmk_agent_auto_activate: {{ checkmk_auto_activate | lower }}
+    checkmk_agent_tls: "{{ checkmk_tls | lower }}"
+    checkmk_agent_user: {{ '{{' }} automation_user {{ '}}' }}
+    checkmk_agent_pass: {{ '{{' }} automation_secret {{ '}}' }}
+    checkmk_agent_host_name: {{ '{{' }} ansible_hostname {{ '}}' }}
+{% if secrets_enabled %}
+  vars_files:
+    - {{ secrets_file }}
+{% endif %}

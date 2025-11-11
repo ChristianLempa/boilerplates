@@ -83,14 +83,12 @@ class StatusDisplay:
             return
 
         settings = self.settings
-        icon = IconManager.get_status_icon(level)
         colors = {
             "error": settings.COLOR_ERROR,
             "warning": settings.COLOR_WARNING,
             "success": settings.COLOR_SUCCESS,
-            "info": settings.COLOR_INFO,
         }
-        color = colors.get(level, "white")
+        color = colors.get(level)
 
         # Format message based on context
         if context:
@@ -102,7 +100,14 @@ class StatusDisplay:
         else:
             text = f"{level.capitalize()}: {message}" if level in {"error", "warning"} else message
 
-        formatted_text = f"[{color}]{icon} {text}[/{color}]"
+        # Only use icons and colors for actual status indicators (error, warning, success)
+        # Plain info messages use default terminal color (no markup)
+        if level in {"error", "warning", "success"}:
+            icon = IconManager.get_status_icon(level)
+            formatted_text = f"[{color}]{icon} {text}[/{color}]"
+        else:
+            formatted_text = text
+
         if use_stderr:
             console_err.print(formatted_text)
         else:
@@ -118,14 +123,29 @@ class StatusDisplay:
         }
         log_methods.get(level, logger.info)(log_message)
 
-    def error(self, message: str, context: str | None = None) -> None:
+    def error(self, message: str, context: str | None = None, details: str | None = None) -> None:
         """Display an error message.
 
         Args:
             message: Error message
             context: Optional context
+            details: Optional additional details (shown in dim style on same line)
         """
-        self._display_message("error", message, context)
+        if details:
+            # Combine message and details on same line with different formatting
+            settings = self.settings
+            color = settings.COLOR_ERROR
+            icon = IconManager.get_status_icon("error")
+
+            # Format: Icon Error: Message (details in dim)
+            formatted = f"[{color}]{icon} Error: {message}[/{color}] [dim]({details})[/dim]"
+            console_err.print(formatted)
+
+            # Log at debug level to avoid duplicate console output (already printed to stderr)
+            logger.debug(f"Error displayed: {message} ({details})")
+        else:
+            # No details, use standard display
+            self._display_message("error", message, context)
 
     def warning(self, message: str, context: str | None = None) -> None:
         """Display a warning message.
@@ -161,11 +181,10 @@ class StatusDisplay:
             message: The main message to display
             reason: Optional reason why it was skipped
         """
-        icon = IconManager.get_status_icon("skipped")
         if reason:
-            self.base.text(f"\n{icon} {message} (skipped - {reason})", style="dim")
+            self.base.text(f"\n{message} (skipped - {reason})", style="dim")
         else:
-            self.base.text(f"\n{icon} {message} (skipped)", style="dim")
+            self.base.text(f"\n{message} (skipped)", style="dim")
 
     def markdown(self, content: str) -> None:
         """Render markdown content with left-aligned headings.

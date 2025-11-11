@@ -1,0 +1,33 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Traefik IngressRoute
+  description: >
+    Traefik IngressRoute CRD for HTTP/HTTPS routing with advanced features.
+
+
+    Requires Traefik to be installed as the Ingress controller.
+
+
+    Project: https://traefik.io
+
+    Documentation: https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/
+  version: 3.5.3
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-ingressroute
+  traefik:
+    vars:
+      traefik_enabled:
+        default: true
+      traefik_host:
+        description: Domain name for the IngressRoute
+  traefik_tls:
+    vars:
+      traefik_tls_enabled:
+        default: true

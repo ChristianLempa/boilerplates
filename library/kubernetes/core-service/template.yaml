@@ -1,0 +1,49 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Kubernetes Service
+  description: >
+    Kubernetes Service resource for exposing applications running on a set of Pods.
+
+
+    Services provide stable network endpoints and load balancing.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/services-networking/service/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-service
+      service_type:
+        type: enum
+        description: Service type
+        options:
+          - ClusterIP
+          - NodePort
+          - LoadBalancer
+          - ExternalName
+        default: ClusterIP
+      service_port:
+        type: int
+        description: Service port
+        default: 80
+      target_port:
+        type: int
+        description: Target port on pods
+        default: 8080
+      protocol:
+        type: enum
+        description: Protocol
+        options:
+          - TCP
+          - UDP
+          - SCTP
+        default: TCP
+      app_selector:
+        type: str
+        description: App label selector (e.g., app.kubernetes.io/name value)

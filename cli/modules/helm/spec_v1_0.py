@@ -67,10 +67,17 @@ spec = OrderedDict(
                     "type": "bool",
                     "default": False,
                 },
-                "traefik_tls_certmanager_issuer": {
-                    "description": "Cert-manager ClusterIssuer name",
+                "certmanager_issuer": {
+                    "description": "Cert-manager ClusterIssuer or Issuer name",
                     "type": "str",
-                    "default": "letsencrypt-prod",
+                    "default": "cloudflare",
+                    "needs": "traefik_tls_certmanager=true",
+                },
+                "certmanager_issuer_kind": {
+                    "description": "Issuer kind",
+                    "type": "enum",
+                    "options": ["ClusterIssuer", "Issuer"],
+                    "default": "ClusterIssuer",
                     "needs": "traefik_tls_certmanager=true",
                 },
             },

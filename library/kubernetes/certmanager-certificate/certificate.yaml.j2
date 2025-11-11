@@ -1,0 +1,15 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+spec:
+  secretName: {{ secret_name }}
+  issuerRef:
+    name: {{ certmanager_issuer }}
+    kind: {{ certmanager_issuer_kind }}
+  dnsNames:
+{%- for dns_name in dns_names.split(',') %}
+    - {{ dns_name.strip() }}
+{%- endfor %}

@@ -13,7 +13,7 @@ class InputSettings:
     """
 
     # === Prompt Styles ===
-    PROMPT_STYLE = "cyan"
+    PROMPT_STYLE = "white"
     PROMPT_DEFAULT_STYLE = "dim"
     PROMPT_ERROR_STYLE = "red"
     PROMPT_SUCCESS_STYLE = "green"

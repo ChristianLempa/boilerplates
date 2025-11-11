@@ -7,16 +7,13 @@ metadata:
     Network-wide advertisement and internet tracker blocking application that functions as a DNS blackhole.
     Provides DNS-level content filtering for all network devices, improving browsing performance, privacy, and security.
     Supports custom blocklists, whitelists, and seamless integration with existing network infrastructure.
-
     ##  Swarm Deployment Warning
     Pi-hole uses local storage and configuration files and does NOT support running multiple replicas.
     This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
-
-    Project: https://pi-hole.net/
-
-    Documentation: https://docs.pi-hole.net/
-
-    GitHub: https://github.com/pi-hole/pi-hole
+    ## References
+    * **Project:** https://pi-hole.net/
+    * **Documentation:** https://docs.pi-hole.net/
+    * **GitHub:** https://github.com/pi-hole/pi-hole
   version: 2025.11.0
   author: Christian Lempa
   date: '2025-11-05'
@@ -24,21 +21,25 @@ metadata:
     - traefik
     - swarm
   next_steps: |
+    ### 1. Deploy the Service
     {% if swarm_enabled -%}
-    1. Deploy to Docker Swarm:
-       docker stack deploy -c compose.yaml pihole
-    2. Access the Web Interface:
-       {%- if traefik_enabled == True -%}https://{{ traefik_host }}/admin
-       {%- else -%}https://<your-swarm-node-ip>:{{ ports_https }}/admin{%- endif %}
-    3. Configure devices to use swarm node IP as DNS
+    Deploy to Docker Swarm:
+    ```bash
+    docker stack deploy -c compose.yaml pihole
+    ```
     {% else -%}
-    1. Deploy to Docker:
-       docker compose up -d
-    2. Access the Web Interface:
-       {%- if traefik_enabled == True -%}https://{{ traefik_host }}/admin
-       {%- else -%}https://<your-docker-host-ip>:{{ ports_https }}/admin{%- endif %}
-    3. Configure devices to use docker host IP as DNS
+    Start Pi-hole using Docker Compose:
+    ```bash
+    docker compose up -d
+    ```
     {% endif -%}
+    ### 2. Access the Web Interface
+    {% if traefik_enabled -%}
+    * Navigate to: **https://{{ traefik_host }}/admin**
+    {% else -%}
+    * Navigate to: **http://localhost:{{ ports_http }}/admin**
+    {% endif -%}
+    * Login using the admin password (check `.env.secret` file).
 spec:
   general:
     vars:

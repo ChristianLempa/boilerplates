@@ -7,6 +7,42 @@ services:
     {% endif %}
     environment:
       - TZ={{ container_timezone }}
+      - UID={{ user_uid }}
+      - GID={{ user_gid }}
+      {% if database_type == 'postgres' %}
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST={{ database_host }}
+      - GF_DATABASE_NAME={{ database_name }}
+      - GF_DATABASE_USER={{ database_user }}
+      {% if swarm_enabled %}
+      - GF_DATABASE_PASSWORD__FILE=/run/secrets/{{ service_name }}_db_password
+      {% else %}
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+      {% endif %}
+      - GF_DATABASE_SSL_MODE=disable
+      {% endif %}
+      {% if authentik_enabled %}
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME={{ authentik_slug }}
+      {% if swarm_enabled %}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID__FILE=/run/secrets/{{ service_name }}_oauth_client_id
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET__FILE=/run/secrets/{{ service_name }}_oauth_client_secret
+      {% else %}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OAUTH_CLIENT_ID}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_CLIENT_SECRET}
+      {% endif %}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL={{ authentik_url }}/application/o/authorize/
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL={{ authentik_url }}/application/o/token/
+      - GF_AUTH_GENERIC_OAUTH_API_URL={{ authentik_url }}/application/o/userinfo/
+      - GF_AUTH_SIGNOUT_REDIRECT_URL={{ authentik_url }}/application/o/{{ authentik_slug }}/end-session/
+      - GF_AUTH_OAUTH_AUTO_LOGIN=true
+      {% if traefik_enabled %}
+      - GF_SERVER_ROOT_URL=https://{{ traefik_host }}
+      {% endif %}
+      - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
+      - GF_AUTH_GENERIC_OAUTH_SKIP_ORG_ROLE_SYNC=true
+      {% endif %}
     {% if network_mode == 'host' %}
     network_mode: host
     {% else %}
@@ -33,7 +69,21 @@ services:
       {% endif %}
     {% endif %}
     volumes:
-      - grafana-data:/var/lib/grafana
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/data:/var/lib/grafana:rw
+      {% else %}
+      - {{ service_name }}-data:/var/lib/grafana
+      {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      {% if database_type == 'postgres' %}
+      - {{ service_name }}_db_password
+      {% endif %}
+      {% if authentik_enabled %}
+      - {{ service_name }}_oauth_client_id
+      - {{ service_name }}_oauth_client_secret
+      {% endif %}
+    {% endif %}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -56,6 +106,11 @@ services:
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
       {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
       restart_policy:
         condition: on-failure
       {% if traefik_enabled %}
@@ -76,9 +131,19 @@ services:
       {% endif %}
     {% endif %}
 
+{% if volume_mode == 'local' %}
 volumes:
-  grafana-data:
+  {{ service_name }}-data:
     driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}"
+{% endif %}
 
 {% if network_mode != 'host' %}
 networks:
@@ -105,5 +170,19 @@ networks:
   {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
+  {% endif %}
+{% endif %}
+
+{% if swarm_enabled %}
+secrets:
+  {% if database_type == 'postgres' %}
+  {{ service_name }}_db_password:
+    file: ./.env.secret.grafana_db_password
+  {% endif %}
+  {% if authentik_enabled %}
+  {{ service_name }}_oauth_client_id:
+    file: ./.env.secret.grafana_oauth_client_id
+  {{ service_name }}_oauth_client_secret:
+    file: ./.env.secret.grafana_oauth_client_secret
   {% endif %}
 {% endif %}

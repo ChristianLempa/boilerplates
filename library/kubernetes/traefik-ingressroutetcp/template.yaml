@@ -1,0 +1,40 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Traefik IngressRouteTCP
+  description: >
+    Traefik IngressRouteTCP CRD for TCP routing (non-HTTP protocols).
+
+
+    Use for database connections, SSH, or any TCP-based protocol.
+
+
+    Requires Traefik to be installed as the Ingress controller.
+
+
+    Project: https://traefik.io
+
+    Documentation: https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroutetcp
+  version: 3.5.3
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-tcp-route
+  traefik:
+    vars:
+      traefik_enabled:
+        default: true
+      traefik_entrypoint:
+        default: tcp
+      traefik_service_name:
+        description: Backend service name for TCP routing
+      traefik_service_port:
+        default: 5432
+  traefik_tls:
+    vars:
+      traefik_tls_enabled:
+        default: false

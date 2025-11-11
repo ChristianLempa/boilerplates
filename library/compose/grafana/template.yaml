@@ -18,6 +18,8 @@ metadata:
   date: '2025-09-28'
   tags:
     - traefik
+    - swarm
+    - authentik
 spec:
   general:
     vars:
@@ -31,6 +33,30 @@ spec:
         description: "Host port for HTTP (3000)"
         type: int
         default: 3000
+  database:
+    vars:
+      database_type:
+        description: "Database backend type"
+        options: ["sqlite", "postgres"]
+        default: "sqlite"
+        extra: "sqlite (default) or postgres for external database"
+      database_host:
+        default: "postgres:5432"
+        needs: "database_type=postgres"
+      database_name:
+        default: "grafana"
+        needs: "database_type=postgres"
+      database_user:
+        default: "grafana"
+        needs: "database_type=postgres"
+      database_password:
+        needs: "database_type=postgres"
+  authentik:
+    vars:
+      authentik_url:
+        default: "https://auth.home.arpa"
+      authentik_slug:
+        default: "grafana"
   traefik:
     vars:
       traefik_host:

@@ -1,0 +1,23 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  name: Add SSH Key and Configure Sudoers
+  description: >
+    Ansible playbook to add SSH public key to authorized_keys.
+    Also configures passwordless sudo for sudo group.
+
+
+    Project: https://www.openssh.com
+
+    Documentation: https://www.openssh.com/manual.html
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Add ssh key
+      become:
+        default: true

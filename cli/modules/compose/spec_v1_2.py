@@ -384,6 +384,12 @@ spec = OrderedDict(
                     "type": "str",
                     "sensitive": True,
                 },
+                "authentik_traefik_middleware": {
+                    "description": "Traefik middleware name for Authentik authentication",
+                    "type": "str",
+                    "default": "authentik-middleware@file",
+                    "needs": "traefik_enabled=true",
+                },
             },
         },
     }

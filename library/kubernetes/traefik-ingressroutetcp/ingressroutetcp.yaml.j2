@@ -1,0 +1,18 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+spec:
+  entryPoints:
+    - {{ traefik_entrypoint }}
+  routes:
+    - match: HostSNI(`*`)
+      services:
+        - name: {{ traefik_service_name }}
+          port: {{ traefik_service_port }}
+{% if traefik_tls_enabled %}
+  tls:
+    passthrough: true
+{% endif %}

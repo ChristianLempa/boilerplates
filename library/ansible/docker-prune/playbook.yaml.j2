@@ -1,0 +1,24 @@
+---
+- name: {{ playbook_name }}
+  hosts: {{ target_hosts }}
+{% if become %}
+  become: true
+{% endif %}
+{% if options_enabled and not gather_facts %}
+  gather_facts: false
+{% endif %}
+{% if secrets_enabled %}
+  vars_files:
+    - {{ secrets_file }}
+{% endif %}
+
+  tasks:
+    - name: Prune non-dangling images
+      community.docker.docker_prune:
+        containers: false
+        images: true
+        images_filters:
+          dangling: false
+        networks: false
+        volumes: false
+        builder_cache: false

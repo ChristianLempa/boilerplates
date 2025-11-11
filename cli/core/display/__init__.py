@@ -62,6 +62,18 @@ class DisplayManager:
         """Display a heading."""
         return self.base.heading(text, style)
 
+    def section(self, title: str, description: str | None = None) -> None:
+        """Display a section header with optional description.
+
+        Args:
+            title: Section title
+            description: Optional section description
+        """
+        self.base.text("")
+        self.base.text(f"[bold cyan]{title}[/bold cyan]")
+        if description:
+            self.base.text(f"[dim]{description}[/dim]")
+
     def table(
         self,
         headers: list[str] | None = None,
@@ -115,9 +127,9 @@ class DisplayManager:
         return self.tables.data_table(columns, rows, title, row_formatter)
 
     # ===== Delegate to status display =====
-    def error(self, message: str, context: str | None = None) -> None:
+    def error(self, message: str, context: str | None = None, details: str | None = None) -> None:
         """Display an error message."""
-        return self.status.error(message, context)
+        return self.status.error(message, context, details)
 
     def warning(self, message: str, context: str | None = None) -> None:
         """Display a warning message."""
@@ -139,6 +151,14 @@ class DisplayManager:
     def get_lock_icon(self) -> str:
         """Get lock icon."""
         return self.base.get_lock_icon()
+
+    def print_table(self, table) -> None:
+        """Print a pre-built Rich Table object.
+
+        Args:
+            table: Rich Table object to print
+        """
+        return self.base._print_table(table)
 
 
 # Export public API

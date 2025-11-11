@@ -161,18 +161,11 @@ spec:
     title: "Authentik Middleware"
     description: "Enable Authentik SSO integration for Traefik"
     vars:
-      authentik_enabled:
-        type: "bool"
-        description: "Enable Authentik SSO integration"
-        default: false
       authentik_outpost_url:
         type: "url"
         description: "Authentik outpost URL (e.g., http://authentik-outpost:9000)"
         default: "http://authentik-outpost:9000"
         needs: "authentik_enabled"
-      traefik_authentik_middleware_name:
-        type: "str"
-        description: "Name of the Authentik middleware"
-        default: "authentik"
-        needs: "authentik_enabled"
-        extra: "Reference in router labels as '{name}@file'"
+      authentik_traefik_middleware:
+        default: "authentik-middleware@file"
+        extra: "Use this value in service router labels to enable authentication"

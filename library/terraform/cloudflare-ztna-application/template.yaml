@@ -1,0 +1,72 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  name: Cloudflare Zero Trust Access Application
+  description: >
+    Create Cloudflare Zero Trust Access application with policies.
+
+
+    Supports service token authentication and IP-based access policies.
+
+
+    Project: https://www.cloudflare.com/zero-trust/
+
+    Documentation: https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zero_trust_access_application
+  version: 5.12.0
+  author: Christian Lempa
+  date: '2025-11-11'
+spec:
+  general:
+    title: General
+    required: true
+    vars:
+      resource_name:
+        type: str
+        description: Terraform resource name (alphanumeric and underscores only)
+        default: ztna_app
+      account_id_value:
+        type: str
+        description: Cloudflare Account ID
+      zone_id_value:
+        type: str
+        description: Cloudflare Zone ID
+  application:
+    title: Application
+    required: true
+    vars:
+      app_name:
+        type: str
+        description: Application name
+        default: my_application
+      domain:
+        type: hostname
+        description: Application domain
+        default: app.example.com
+      session_duration:
+        type: str
+        description: Session duration (e.g., 15m, 1h, 24h)
+        default: 15m
+  service_token_policy:
+    title: Service Token Policy
+    toggle: service_token_enabled
+    vars:
+      service_token_policy_name:
+        type: str
+        description: Policy name for service token
+        default: service_token_policy
+      service_token_id:
+        type: str
+        description: Cloudflare service token ID
+  ip_policy:
+    title: IP-Based Policy
+    toggle: ip_policy_enabled
+    vars:
+      ip_policy_name:
+        type: str
+        description: Policy name for IP-based access
+        default: ip_policy
+      ip_ranges:
+        type: str
+        description: Comma-separated list of IP ranges (CIDR notation)
+        default: 192.0.2.0/24

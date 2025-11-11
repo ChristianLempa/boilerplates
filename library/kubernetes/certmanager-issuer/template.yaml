@@ -1,0 +1,45 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Cert-Manager Issuer (Cloudflare)
+  description: >
+    Cert-manager Issuer for automatic TLS certificate management with Let's Encrypt and Cloudflare DNS-01 challenge.
+
+
+    Issuer is namespace-scoped (unlike ClusterIssuer which is cluster-wide).
+
+
+    Requires cert-manager to be installed in the cluster.
+
+
+    Project: https://cert-manager.io
+
+    Documentation: https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/
+  version: 1.16.2
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: cloudflare-issuer
+      acme_email:
+        type: email
+        description: Email address for ACME account registration
+      acme_server:
+        type: url
+        description: ACME server URL
+        default: https://acme-v02.api.letsencrypt.org/directory
+      privatekey_secret_name:
+        type: str
+        description: Name of secret to store ACME account private key
+        default: cloudflare-issuer-account-key
+      api_token_secret_name:
+        type: str
+        description: Name of secret containing Cloudflare API token
+        default: cloudflare-api-token-secret
+      api_token_secret_key:
+        type: str
+        description: Key name in secret containing Cloudflare API token
+        default: api-token

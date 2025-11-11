@@ -1,0 +1,24 @@
+---
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+ping:
+  entryPoint: ping
+
+entryPoints:
+  ping:
+    address: :8082
+  web:
+    address: :80
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: proxy
+  file:
+    directory: /etc/traefik/files
+    watch: true

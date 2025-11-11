@@ -265,8 +265,10 @@ def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
     return library_path
 
 
-def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, bool]:
+def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, str, str]:
     """Extract library information based on type."""
+    from cli.core.display import IconManager
+
     name = lib.get("name", "")
     lib_type = lib.get("type", "git")
     enabled = lib.get("enabled", True)
@@ -277,6 +279,7 @@ def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) ->
         directory = lib.get("directory", "library")
         library_path = _get_library_path_for_git(lib, libraries_path, name)
         exists = library_path.exists()
+        type_icon = IconManager.UI_LIBRARY_GIT
 
     elif lib_type == "static":
         url_or_path = lib.get("path", "")
@@ -284,6 +287,7 @@ def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) ->
         directory = "-"
         library_path = _get_library_path_for_static(lib, config)
         exists = library_path.exists()
+        type_icon = IconManager.UI_LIBRARY_STATIC
 
     else:
         # Unknown type
@@ -291,6 +295,7 @@ def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) ->
         branch = "-"
         directory = "-"
         exists = False
+        type_icon = "?"
 
     # Build status string
     status_parts = []
@@ -302,8 +307,9 @@ def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) ->
         status_parts.append("[yellow]not found[/yellow]")
 
     status = " ".join(status_parts)
+    type_display = f"{type_icon} {lib_type}"
 
-    return url_or_path, branch, directory, lib_type, status
+    return url_or_path, branch, directory, type_display, type_icon, status
 
 
 @app.command()
@@ -333,10 +339,10 @@ def list() -> None:
 
     for lib in libraries:
         name = lib.get("name", "")
-        url_or_path, branch, directory, type_display, status = _get_library_info(lib, config, libraries_path)
+        url_or_path, branch, directory, type_display, type_icon, status = _get_library_info(lib, config, libraries_path)
         table.add_row(name, url_or_path, branch, directory, type_display, status)
 
-    display._print_table(table)
+    display.print_table(table)
 
 
 @app.command()

@@ -1,0 +1,39 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  name: Generate Docker TLS Certificates
+  description: >
+    Ansible playbook to generate TLS certificates for Docker daemon.
+    Creates CA, server, and client certificates for secure Docker remote access.
+
+
+    Project: https://www.docker.com
+
+    Documentation: https://docs.docker.com/engine/security/protect-access/
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Docker Certs
+      become:
+        default: true
+  certificates:
+    title: Certificate Configuration
+    required: true
+    vars:
+      certs_path:
+        type: str
+        description: Path where certificates will be stored
+        default: /root/docker-certs
+      cert_validity_days:
+        type: int
+        description: Certificate validity period in days
+        default: 3650
+      cn_domain:
+        type: hostname
+        description: Common Name (CN) for the CA certificate
+        default: your-domain.tld

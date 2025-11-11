@@ -22,8 +22,8 @@ http:
 {% endif -%}
 {% if authentik_enabled -%}
     # Authentik Forward Auth Middleware
-    # Use in service labels: traefik.http.routers.myservice.middlewares={{ traefik_authentik_middleware_name }}@file
-    {{ traefik_authentik_middleware_name }}:
+    # Use in service labels: traefik.http.routers.myservice.middlewares={{ authentik_traefik_middleware }}
+    {{ authentik_traefik_middleware.split('@')[0] }}:
       forwardAuth:
         address: {{ authentik_outpost_url }}/outpost.goauthentik.io/auth/traefik
         trustForwardHeader: true

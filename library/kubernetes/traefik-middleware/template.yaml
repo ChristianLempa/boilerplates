@@ -1,0 +1,36 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Traefik Middleware
+  description: >
+    Traefik Middleware CRD for modifying requests and responses.
+
+
+    Middlewares can add headers, redirect, rate-limit, authenticate, and more.
+
+
+    Requires Traefik to be installed as the Ingress controller.
+
+
+    Project: https://traefik.io
+
+    Documentation: https://doc.traefik.io/traefik/middlewares/overview/
+  version: 3.5.3
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-middleware
+      middleware_type:
+        type: enum
+        description: Middleware type
+        options:
+          - redirectScheme
+          - stripPrefix
+          - addPrefix
+          - headers
+          - rateLimit
+        default: redirectScheme

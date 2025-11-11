@@ -1,0 +1,38 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Kubernetes PersistentVolumeClaim
+  description: >
+    Kubernetes PersistentVolumeClaim for requesting persistent storage.
+
+
+    PVCs are used by Pods to claim durable storage.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-pvc
+      storage_class:
+        type: str
+        description: Storage class name (leave empty for default)
+        default: ""
+      storage_size:
+        type: str
+        description: Storage size (e.g., 10Gi, 1Ti)
+        default: 10Gi
+      access_mode:
+        type: enum
+        description: Access mode
+        options:
+          - ReadWriteOnce
+          - ReadOnlyMany
+          - ReadWriteMany
+          - ReadWriteOncePod
+        default: ReadWriteOnce

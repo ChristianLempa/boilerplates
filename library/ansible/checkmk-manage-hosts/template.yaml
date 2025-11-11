@@ -1,0 +1,63 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  name: Manage Checkmk Hosts
+  description: >
+    Ansible playbook to manage hosts in Checkmk monitoring.
+    Create or update host configuration in Checkmk.
+
+
+    Project: https://checkmk.com
+
+    Documentation: https://docs.checkmk.com/
+  version: 2.4.0
+  author: Christian Lempa
+  date: '2025-11-11'
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Manage Checkmk hosts
+      target_hosts:
+        default: localhost
+      become:
+        default: false
+  options:
+    vars:
+      options_enabled:
+        default: true
+      gather_facts:
+        default: false
+  secrets:
+    vars:
+      secrets_enabled:
+        default: true
+  checkmk:
+    title: Checkmk Configuration
+    required: true
+    vars:
+      checkmk_server_url:
+        type: hostname
+        description: Checkmk server URL
+        default: checkmk.home.arpa
+      checkmk_site:
+        type: str
+        description: Checkmk site name
+        default: cmk
+  host:
+    title: Host Configuration
+    required: true
+    vars:
+      host_name:
+        type: str
+        description: Hostname to add to Checkmk
+        default: your-host-name
+      host_ip:
+        type: str
+        description: IP address of the host
+        default: host-ip-address
+      host_folder:
+        type: str
+        description: Folder path in Checkmk
+        default: /

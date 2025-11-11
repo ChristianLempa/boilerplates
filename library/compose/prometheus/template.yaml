@@ -23,6 +23,7 @@ metadata:
   tags:
     - traefik
     - swarm
+    - authentik
   next_steps: |
     {% if swarm_enabled -%}
     1. Deploy to Docker Swarm:
@@ -66,6 +67,7 @@ spec:
         type: str
         description: "External URL for generating links (optional)"
         default: ""
+        optional: true
         extra: "Use if behind reverse proxy, e.g., https://prometheus.example.com"
   ports:
     vars:

@@ -1,0 +1,8 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ resource_name }}
+provisioner: {{ provisioner }}
+volumeBindingMode: {{ volume_binding_mode }}
+reclaimPolicy: {{ reclaim_policy }}

@@ -1,0 +1,23 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+spec:
+  entryPoints:
+{% if traefik_tls_enabled %}
+    - {{ traefik_tls_entrypoint }}
+{% else %}
+    - {{ traefik_entrypoint }}
+{% endif %}
+  routes:
+    - match: Host(`{{ traefik_host }}`)
+      kind: Rule
+      services:
+        - name: {{ traefik_service_name }}
+          port: {{ traefik_service_port }}
+{% if traefik_tls_enabled %}
+  tls:
+    certResolver: {{ traefik_tls_certresolver }}
+{% endif %}

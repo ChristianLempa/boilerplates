@@ -1,0 +1,21 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  name: Kubernetes ServiceAccount
+  description: >
+    Kubernetes ServiceAccount for providing an identity for processes that run in Pods.
+
+
+    ServiceAccounts are used to control permissions and access to the Kubernetes API.
+
+
+    Documentation: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-serviceaccount

@@ -45,6 +45,7 @@ class BaseDisplay:
         if style is None:
             style = self.settings.STYLE_HEADER
         console.print(f"[{style}]{text}[/{style}]")
+        console.print("")  # Add newline after heading
 
     def text(self, text: str, style: str | None = None) -> None:
         """Display plain text with optional styling.

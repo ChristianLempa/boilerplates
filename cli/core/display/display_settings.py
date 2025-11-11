@@ -21,11 +21,12 @@ class DisplaySettings:
     COLOR_LIBRARY_STATIC = "yellow"
 
     # === Style Constants ===
-    STYLE_HEADER = "bold blue"
+    STYLE_HEADER = "bold white underline"
     STYLE_HEADER_ALT = "bold cyan"
     STYLE_DISABLED = "bright_black"
     STYLE_SECTION_TITLE = "bold cyan"
     STYLE_SECTION_DESC = "dim"
+    STYLE_TEMPLATE_NAME = "bold white"
 
     # Table styles
     STYLE_TABLE_HEADER = "bold blue"
