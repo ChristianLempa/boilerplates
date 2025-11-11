@@ -276,10 +276,13 @@ class VariableCollection:
         return actual is not None and str(actual) == str(expected)
 
     def _validate_dependencies(self) -> None:
-        """Validate section dependencies for cycles and missing references.
+        """Validate section dependencies for cycles.
+
+        Missing section references are logged as warnings but do not raise errors,
+        allowing templates to be modified without breaking when dependencies are removed.
 
         Raises:
-            ValueError: If circular dependencies or missing section references are found
+            ValueError: If circular dependencies are found
         """
         # Check for missing dependencies in sections
         for section_key, section in self._sections.items():
@@ -289,9 +292,9 @@ class VariableCollection:
                 if expected_value is None:
                     # Old format: validate section exists
                     if var_or_section not in self._sections:
-                        raise ValueError(
+                        logger.warning(
                             f"Section '{section_key}' depends on '{var_or_section}', "
-                            f"but '{var_or_section}' does not exist"
+                            f"but '{var_or_section}' does not exist. Ignoring this dependency."
                         )
                 # New format: validate variable exists
                 # NOTE: We only warn here, not raise an error, because the variable might be
