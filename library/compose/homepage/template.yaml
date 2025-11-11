@@ -12,9 +12,9 @@ metadata:
     Documentation: https://docs.gethomepage.dev/
 
     GitHub: https://github.com/gethomepage/homepage
-  version: v1.6.1
+  version: v1.7.0
   author: Christian Lempa
-  date: '2025-11-05'
+  date: '2025-11-11'
   tags:
     - dashboard
   draft: true
