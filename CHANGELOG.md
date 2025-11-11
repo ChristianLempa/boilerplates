@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alphabetically sorted commands in help output with grouped panels for better organization
 - Separate help panels for "Template Commands" and "Configuration Commands"
 - Compose Schema 1.2: Authentik Traefik middleware integration with `authentik_traefik_middleware` variable
+- Markdown formatting support for template descriptions and next steps (#1471)
 
 ### Changed
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
