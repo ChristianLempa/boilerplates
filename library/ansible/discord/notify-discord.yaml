@@ -1,0 +1,76 @@
+---
+# This Ansible playbook demonstrates how to send Discord notifications
+# using the `community.general.discord` module.
+# https://docs.ansible.com/ansible/latest/collections/community/general/discord_module.html
+#
+# If you need guidance how to create your own Discord server, see
+# https://support.discord.com/hc/en-us/articles/204849977-How-do-I-create-a-server
+#
+# In order to generate a webhook, please see
+# https://support.discord.com/hc/en-us/articles/360045093012-Server-Integrations-Page
+
+- name: Notify discord
+
+  hosts: "{{ my_hosts | d([]) }}"
+
+  vars:
+    # The name that will be shown as sender of the notification. Note
+    # that some usernames are blocked by Discord, for example it must
+    # not contain the word `discord`.
+    notify_discord_username: Ansible
+
+    # Your Discord webhook URL should have following format. Please
+    # extract following segments of the URL path and set it as value of
+    # the following variables:
+    #
+    # https://discord.com/api/webhooks/nnnnnnnnnn/xxxxxxxxxxxxxxxxxxxxxxxxxxx
+    #                                  |        | |                         |
+    #   notify_discord_webhook_id <----'--------' |                         |
+    #                                             |                         |
+    #   notify_discord_webhook_token <------------'-------------------------'
+    #
+    # Security advise: if you commit this data to a repository it is
+    # strongly recommended to encrypt `notify_discord_webhook_token` using
+    # Ansible Vault.
+    notify_discord_webhook_id: ''
+    notify_discord_webhook_token: ''
+
+    # Do not modify following regular expressions unless you know what
+    # you're doing. Those are to ensure that whatever you've set as
+    # `notify_discord_webhook_id` and `notify_discord_webhook_token`
+    # complies with the Discord API Specification (as of 2024-02-25).
+    #
+    # https://github.com/discord/discord-api-spec/blob/fe9917381e47285b56d98cb72ae3cfe7db9ea19c/specs/openapi.json#L7524-L7531
+    # https://github.com/discord/discord-api-spec/blob/fe9917381e47285b56d98cb72ae3cfe7db9ea19c/specs/openapi.json#L24817-L24821
+    notify_discord_webhook_id_regex: '^0|[1-9][0-9]*$'
+    # https://github.com/discord/discord-api-spec/blob/fe9917381e47285b56d98cb72ae3cfe7db9ea19c/specs/openapi.json#L7532-L7541
+    notify_discord_webhook_token_regex: '^[a-zA-Z0-9_-]+$'
+
+    # The content of the notification
+    notify_discord_webhook_content: |-
+      **Message from `{{ inventory_hostname }}` by *Ansible* ** :tada:
+      Just a test, adjust it to your liking.
+
+      You can use any Markdown formatting here [supported by Discord](
+      https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline).
+
+    # Delegate the sending of the Dicord notification to following host
+    # which must be able to access the public internet on destination
+    # port 443/tcp. When `localhost` is specified, this is sent from
+    # the Ansible Controller, but you can pick any host listed in the
+    # Ansible inventory.
+    notify_discord_send_from_host: localhost
+
+  tasks:
+    - name: Send Discord message
+      community.general.discord:
+        username: "{{ notify_discord_username }}"
+        webhook_id: "{{ notify_discord_webhook_id }}"
+        webhook_token: "{{ notify_discord_webhook_token }}"
+        content: "{{ notify_discord_webhook_content }}"
+      delegate_to: "{{ notify_discord_send_from_host }}"
+      when:
+        - notify_discord_webhook_id is match(notify_discord_webhook_id_regex)
+        - notify_discord_webhook_token is match(notify_discord_webhook_token_regex)
+        - notify_discord_webhook_content | length > 0
+        - notify_discord_send_from_host is in (['localhost'] + groups['all'])

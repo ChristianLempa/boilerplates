@@ -233,36 +233,21 @@ def get_generation_confirmation(ctx: ConfirmationContext) -> bool:
     if not ctx.interactive:
         return True
 
-    # Use templates.render_file_generation_confirmation directly for now
-    ctx.display.templates.render_file_generation_confirmation(
-        ctx.output_dir, ctx.rendered_files, ctx.existing_files if ctx.existing_files else None
-    )
+    # Skip file confirmation display in dry-run mode
+    if not ctx.dry_run:
+        # Use templates.render_file_generation_confirmation directly for now
+        ctx.display.templates.render_file_generation_confirmation(
+            ctx.output_dir, ctx.rendered_files, ctx.existing_files if ctx.existing_files else None
+        )
 
-    # Final confirmation (only if we didn't already ask about overwriting)
-    if not ctx.dir_not_empty and not ctx.dry_run:
-        input_mgr = InputManager()
-        if not input_mgr.confirm("Generate these files?", default=True):
-            ctx.display.info("Generation cancelled")
-            return False
+        # Final confirmation (only if we didn't already ask about overwriting)
+        if not ctx.dir_not_empty:
+            input_mgr = InputManager()
+            if not input_mgr.confirm("Generate these files?", default=True):
+                ctx.display.info("Generation cancelled")
+                return False
 
     return True
-
-
-def _check_directory_permissions(output_dir: Path, display: DisplayManager) -> None:
-    """Check directory existence and write permissions."""
-    if output_dir.exists():
-        display.success(f"Output directory exists: [cyan]{output_dir}[/cyan]")
-        if os.access(output_dir, os.W_OK):
-            display.success("Write permission verified")
-        else:
-            display.warning("Write permission may be denied")
-    else:
-        display.info(f"  [dim]→[/dim] Would create output directory: [cyan]{output_dir}[/cyan]")
-        parent = output_dir.parent
-        if parent.exists() and os.access(parent, os.W_OK):
-            display.success("Parent directory writable")
-        else:
-            display.warning("Parent directory may not be writable")
 
 
 def _collect_subdirectories(rendered_files: dict[str, str]) -> set[Path]:
@@ -317,73 +302,29 @@ def execute_dry_run(
     show_files: bool,
     display: DisplayManager,
 ) -> None:
-    """Execute dry run mode with comprehensive simulation."""
-    display.info("")
-    display.info("[bold cyan]Dry Run Mode - Simulating File Generation[/bold cyan]")
-    display.info("")
-
-    # Simulate directory creation
-    display.heading("Directory Operations")
-    _check_directory_permissions(output_dir, display)
-
-    # Collect and display subdirectories
-    subdirs = _collect_subdirectories(rendered_files)
-    if subdirs:
-        display.info(f"  [dim]→[/dim] Would create {len(subdirs)} subdirectory(ies)")
-        for subdir in sorted(subdirs):
-            display.info(f"    [dim]📁[/dim] {subdir}/")
-
-    display.info("")
-
-    # Display file operations in a table
-    display.heading("File Operations")
+    """Execute dry run mode - preview files without writing."""
     file_operations, total_size, new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
-    # Use data_table for file operations
-    display.data_table(
-        columns=[
-            {"name": "File", "no_wrap": False},
-            {"name": "Size", "justify": "right", "style": "dim"},
-            {"name": "Status", "style": "yellow"},
-        ],
-        rows=file_operations,
-        row_formatter=lambda row: (
-            str(row[0]),
-            display.format_file_size(row[1]),
-            row[2],
-        ),
-    )
-    display.info("")
-
-    # Summary statistics
     size_str = _format_size(total_size)
-    summary_rows = [
-        ("Total files:", str(len(rendered_files))),
-        ("New files:", str(new_files)),
-        ("Files to overwrite:", str(overwrite_files)),
-        ("Total size:", size_str),
-    ]
-    display.table(
-        headers=None,
-        rows=summary_rows,
-        title="Summary",
-        show_header=False,
-        borderless=True,
-    )
-    display.info("")
 
     # Show file contents if requested
     if show_files:
-        display.info("[bold cyan]Generated File Contents:[/bold cyan]")
-        display.info("")
+        display.text("")
+        display.heading("File Contents")
         for file_path, content in sorted(rendered_files.items()):
-            display.info(f"[cyan]File:[/cyan] {file_path}")
-            display.info(f"{'─' * 80}")
-            display.info(content)
-            display.info("")  # Add blank line after content
-        display.info("")
+            display.text(f"\n[cyan]{file_path}[/cyan]")
+            display.text(f"{'─' * 80}")
+            display.text(content)
+        display.text("")
 
-    display.success("Dry run complete - no files were written")
-    display.info(f"[dim]Files would have been generated in '{output_dir}'[/dim]")
+    # Show summary message
+    display.text("")
+    if overwrite_files > 0:
+        display.warning(
+            f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}' ({overwrite_files} files would be overwritten)"
+        )
+    else:
+        display.success(f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}'")
+
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
 
 
@@ -481,7 +422,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:
         module_instance.display.templates.render_file_tree(template)
         # Display variables table
         module_instance.display.variables.render_variables_table(template)
-        module_instance.display.info("")
+        module_instance.display.text("")
 
     try:
         rendered_files, variable_values = _render_template(template, config.id, display, config.interactive)

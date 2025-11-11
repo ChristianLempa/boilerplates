@@ -1,0 +1,40 @@
+---
+kind: helm
+schema: "1.0"
+metadata:
+  name: Portainer CE
+  description: >
+    Helm values template for Portainer Community Edition, a container management platform
+    that simplifies Docker and Kubernetes management.
+
+
+    Chart Repository: https://portainer.github.io/k8s/
+
+    Chart Name: portainer
+
+    Chart Version: Compatible with Portainer CE 2.34.0
+
+
+    Project: https://www.portainer.io/
+
+    Documentation: https://docs.portainer.io/
+  version: 2.34.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      release_name:
+        default: portainer
+  networking:
+    vars:
+      network_mode:
+        default: ClusterIP
+  traefik:
+    vars:
+      traefik_host:
+        default: portainer.home.arpa
+  volumes:
+    vars:
+      volumes_pvc_name:
+        default: portainer

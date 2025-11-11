@@ -30,8 +30,10 @@ class PromptHandler:
             Dict of variable names to collected values
         """
         if not Confirm.ask("Customize any settings?", default=False):
+            self.console.print("")  # Add blank line after prompt
             logger.info("User opted to keep all default values")
             return {}
+        self.console.print("")  # Add blank line after prompt
 
         collected: dict[str, Any] = {}
 

@@ -1,0 +1,71 @@
+---
+- name: "Manage Checkmk rules"
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - secrets.yaml
+  vars:
+    server_url: "checkmk.home.arpa"
+    site: "cmk"
+
+  tasks:
+    - name: Create DNS Check Rule
+      checkmk.general.rule:
+        server_url: "{{ server_url }}"
+        site: "{{ site }}"
+        automation_user: "{{ automation_user }}"
+        automation_secret: "{{ automation_secret }}"
+        ruleset: "active_checks:dns"
+        rule:
+          properties: {
+            "comment": "Ansible managed",
+            "description": "DNS DNS Monitoring",
+            "disabled": false,
+          }
+          conditions: {
+            "host_label_groups": [],
+            "host_name": {
+              "match_on": [
+                "your-dns-container-host"
+              ],
+              "operator": "one_of"
+            },
+            "host_tags": [],
+            "service_label_groups": []
+          }
+          "value_raw": {
+            "hostname": "hostname-to-query",
+            "server": "dns-server-ip",
+            "expected_addresses_list": [
+              "expected-ip-address"
+            ]
+          }
+          location:
+            folder: "/"
+            position: "top"
+        state: "present"
+
+    - name: Create NVME Temperature override rule
+      checkmk.general.rule:
+        server_url: "{{ server_url }}"
+        site: "{{ site }}"
+        automation_user: "{{ automation_user }}"
+        automation_secret: "{{ automation_secret }}"
+        ruleset: "checkgroup_parameters:temperature"
+        rule:
+          conditions:
+            host_label_groups: []
+            host_tags: []
+            service_description:
+              match_on:
+                - "DRIVE MODEL NAME*"
+              operator: "one_of"
+            service_label_groups: []
+          location:
+            folder: "/"
+            position: "top"
+          properties:
+            description: "NVME Temperature override"
+            disabled: false
+          value_raw: "{'levels': (60.0, 80.0)}"
+        state: present

@@ -1,0 +1,45 @@
+---
+kind: helm
+schema: "1.0"
+metadata:
+  name: Cert-Manager
+  description: >
+    Helm values template for cert-manager, a Kubernetes add-on to automate the management
+    and issuance of TLS certificates from various sources.
+
+
+    Chart Repository: https://charts.jetstack.io
+
+    Chart Name: cert-manager
+
+    Chart Version: Compatible with cert-manager v1.18.2
+
+
+    Project: https://cert-manager.io/
+
+    Documentation: https://cert-manager.io/docs/
+  version: 1.18.2
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      release_name:
+        default: cert-manager
+      namespace:
+        default: cert-manager
+  dns:
+    title: DNS Configuration
+    vars:
+      dns_recursive_nameservers_only:
+        type: bool
+        description: Use only recursive nameservers for DNS01 challenges
+        default: true
+      dns_nameserver_1:
+        type: str
+        description: Primary DNS nameserver for DNS01 challenges
+        default: 1.1.1.1:53
+      dns_nameserver_2:
+        type: str
+        description: Secondary DNS nameserver for DNS01 challenges
+        default: 1.0.0.1:53

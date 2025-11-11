@@ -17,6 +17,7 @@
 **/*.pyd
 **/.venv
 **/venv/
+**/.ruff_cache/
 
 # Packaging
 *.egg-info/

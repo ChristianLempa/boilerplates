@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored code quality (#1364) for all core modules from single files to package structure with specific submodules
 - Improved debug logging to capture module discovery and registration during initialization
 - Enhanced debug logging for better troubleshooting
+- Simplified dry-run output to show only essential information (files, sizes, status)
 
 ### Fixed
 - CLI --var flag now properly converts boolean and numeric strings to appropriate Python types (#1522)
