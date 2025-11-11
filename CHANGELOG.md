@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packer template support (#1427) - Manage Packer templates with schema 1.0
 - Alphabetically sorted commands in help output with grouped panels for better organization
 - Separate help panels for "Template Commands" and "Configuration Commands"
+- Compose Schema 1.2: Authentik Traefik middleware integration with `authentik_traefik_middleware` variable
 
 ### Changed
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
@@ -24,9 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved debug logging to capture module discovery and registration during initialization
 - Enhanced debug logging for better troubleshooting
 - Simplified dry-run output to show only essential information (files, sizes, status)
+- Traefik template now uses module spec variable `authentik_traefik_middleware` instead of template-specific `traefik_authentik_middleware_name`
 
 ### Fixed
 - CLI --var flag now properly converts boolean and numeric strings to appropriate Python types (#1522)
+- Empty template files are no longer created during generation (#1518)
+- Enhanced user confirmation flow for template generation (#1428)
 
 ## [0.0.7] - 2025-10-28
 
