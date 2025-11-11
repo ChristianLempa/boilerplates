@@ -14,9 +14,9 @@ metadata:
     Documentation: https://docs.twingate.com/docs/architecture/connectors
 
     GitHub: https://github.com/twingate/twingate-connector
-  version: 1.79.0
+  version: 1.80.0
   author: Christian Lempa
-  date: '2025-10-31'
+  date: '2025-11-11'
   tags:
     - zero-trust
     - remote-access
