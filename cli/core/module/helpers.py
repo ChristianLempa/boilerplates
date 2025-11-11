@@ -55,31 +55,31 @@ def parse_var_inputs(var_options: list[str], extra_args: list[str]) -> dict[str,
 
 def _convert_string_to_type(value: str) -> Any:
     """Convert string value to appropriate Python type.
-    
+
     Args:
         value: String value to convert
-    
+
     Returns:
         Converted value (bool, int, float, or str)
     """
     # Boolean conversion
-    if value.lower() in ('true', 'yes', '1'):
+    if value.lower() in ("true", "yes", "1"):
         return True
-    if value.lower() in ('false', 'no', '0'):
+    if value.lower() in ("false", "no", "0"):
         return False
-    
+
     # Integer conversion
     try:
         return int(value)
     except ValueError:
         pass
-    
+
     # Float conversion
     try:
         return float(value)
     except ValueError:
         pass
-    
+
     # Return as string
     return value
 

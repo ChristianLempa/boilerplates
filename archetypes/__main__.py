@@ -9,7 +9,6 @@ from __future__ import annotations
 import builtins
 import importlib
 import logging
-import os
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -20,7 +19,7 @@ import yaml
 
 # Add parent directory to Python path for CLI imports
 # This allows archetypes to import from cli module when run as `python3 -m archetypes`
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 # Import CLI components
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -93,7 +92,7 @@ class ArchetypeTemplate:
             # Load archetype config to get schema version
             archetype_config = self._load_archetype_config()
             schema_version = archetype_config.get("schema", "1.0") if archetype_config else "1.0"
-            
+
             # Import module spec with correct schema
             spec = self._import_module_spec(schema_version)
             if spec is None:
@@ -106,7 +105,7 @@ class ArchetypeTemplate:
             # Merge variables from archetypes.yaml
             if archetype_config and "vars" in archetype_config:
                 self._merge_archetype_vars(spec_dict, archetype_config["vars"])
-            
+
             return VariableCollection(spec_dict)
         except Exception as e:
             logging.warning(f"Could not load spec for module {self.module_name}: {e}")
@@ -117,7 +116,7 @@ class ArchetypeTemplate:
         config_file = self.template_dir / "archetypes.yaml"
         if not config_file.exists():
             return None
-        
+
         try:
             with config_file.open() as f:
                 return yaml.safe_load(f)
@@ -130,7 +129,7 @@ class ArchetypeTemplate:
         module_path = f"cli.modules.{self.module_name}"
         try:
             module = importlib.import_module(module_path)
-            
+
             # Try to get schema-specific spec if module supports it
             if hasattr(module, "SCHEMAS") and schema_version in module.SCHEMAS:
                 spec = module.SCHEMAS[schema_version]
@@ -138,7 +137,7 @@ class ArchetypeTemplate:
             else:
                 # Fall back to default spec
                 spec = getattr(module, "spec", None)
-            
+
             if spec is None:
                 logging.warning(f"Module {self.module_name} has no 'spec' attribute")
             return spec
@@ -161,11 +160,8 @@ class ArchetypeTemplate:
         try:
             applied_count, new_vars = self._apply_archetype_vars(spec_dict, archetype_vars)
             self._add_testing_section(spec_dict, new_vars)
-            
-            logging.debug(
-                f"Applied {applied_count} archetype var overrides, "
-                f"added {len(new_vars)} new test variables"
-            )
+
+            logging.debug(f"Applied {applied_count} archetype var overrides, added {len(new_vars)} new test variables")
         except Exception as e:
             logging.warning(f"Failed to merge archetype vars: {e}")
 
@@ -181,6 +177,7 @@ class ArchetypeTemplate:
                 new_vars[var_name] = var_spec
 
         return applied_count, new_vars
+
     def _update_existing_var(self, spec_dict: OrderedDict, var_name: str, var_spec: dict) -> bool:
         """Update existing variable with extension default."""
         if "default" not in var_spec:
@@ -330,12 +327,12 @@ def _display_archetype_content(archetype_path: Path) -> None:
 
 def _parse_var_overrides(var: list[str] | None) -> dict[str, Any]:
     """Parse --var options into a dictionary with type conversion.
-    
+
     Uses the CLI's parse_var_inputs function to ensure consistent behavior.
     """
     if not var:
         return {}
-    
+
     # Use CLI's parse_var_inputs function (no extra_args for archetypes)
     return parse_var_inputs(var, [])
 
@@ -392,9 +389,12 @@ def create_module_commands(module_name: str) -> Typer:
     def generate(
         id: str = Argument(..., help="Archetype ID (filename without .j2)"),
         directory: str | None = Argument(None, help="Output directory (for reference only - no files are written)"),
-        var: builtins.list[str] | None = Option(None, "--var", "-v", help="Set variable (KEY=VALUE format, can be used multiple times)"),
+        var: builtins.list[str] | None = None,
     ) -> None:
-        """Generate output from an archetype file (always in preview mode)."""
+        """Generate output from an archetype file (always in preview mode).
+
+        Use --var/-v to set variables in KEY=VALUE format.
+        """
         archetypes = find_archetypes(module_name)
         archetype_path = _find_archetype_by_id(archetypes, id)
 

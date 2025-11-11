@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -303,7 +302,7 @@ def execute_dry_run(
     display: DisplayManager,
 ) -> None:
     """Execute dry run mode - preview files without writing."""
-    file_operations, total_size, new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
+    _file_operations, total_size, _new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
     size_str = _format_size(total_size)
 
     # Show file contents if requested
@@ -320,7 +319,8 @@ def execute_dry_run(
     display.text("")
     if overwrite_files > 0:
         display.warning(
-            f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}' ({overwrite_files} files would be overwritten)"
+            f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}' "
+            f"({overwrite_files} files would be overwritten)"
         )
     else:
         display.success(f"Dry run: {len(rendered_files)} files ({size_str}) would be written to '{output_dir}'")
