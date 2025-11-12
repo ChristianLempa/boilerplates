@@ -137,29 +137,32 @@ install_dependencies_linux() {
   if ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
     log "Installing pipx..."
     
+    # Try system package first if available
     if [[ -n "${PIPX_PKG:-}" ]]; then
       if $INSTALL_CMD $PIPX_PKG >/dev/null 2>&1; then
         log "pipx installed from system package"
       else
-        log "System package not available, installing via pip..."
-        if python3 -m pip install --user --break-system-packages pipx >/dev/null 2>&1; then
-          log "pipx installed via pip with --break-system-packages"
-        elif python3 -m pip install --user pipx >/dev/null 2>&1; then
+        # System package failed, try pip with --break-system-packages
+        if python3 -m pip install --user --break-system-packages pipx 2>&1 | grep -q "Successfully installed"; then
+          log "pipx installed via pip"
+        elif python3 -m pip install --user pipx 2>&1 | grep -q "Successfully installed"; then
           log "pipx installed via pip"
         else
-          error "Failed to install pipx"
+          error "Failed to install pipx. Try installing manually: sudo apt install pipx"
         fi
       fi
     else
-      if python3 -m pip install --user --break-system-packages pipx >/dev/null 2>&1; then
-        log "pipx installed via pip with --break-system-packages"
-      elif python3 -m pip install --user pipx >/dev/null 2>&1; then
+      # No system package, use pip
+      if python3 -m pip install --user --break-system-packages pipx 2>&1 | grep -q "Successfully installed"; then
+        log "pipx installed via pip"
+      elif python3 -m pip install --user pipx 2>&1 | grep -q "Successfully installed"; then
         log "pipx installed via pip"
       else
         error "Failed to install pipx"
       fi
     fi
     
+    # Ensure pipx is in PATH
     if command -v pipx >/dev/null 2>&1; then
       pipx ensurepath >/dev/null 2>&1
     elif [[ -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
