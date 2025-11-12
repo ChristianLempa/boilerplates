@@ -6,21 +6,16 @@ metadata:
   description: |
     A **complete DevOps platform** that provides Git repository management, CI/CD pipelines,
     issue tracking, and container registry in a single application.
-    
     ## Important Configuration Notes
-    
     **Performance Presets**:
     - `homelab`: Optimized for low-resource environments (limited workers, reduced PostgreSQL buffers)
     - `default`: Standard server configuration for production use
-    
     **External URL**:
     - Set to your public domain (e.g., `https://gitlab.example.com`) for proper clone URLs
     - Affects SSH clone URLs and web links in emails/notifications
-    
     **Container Registry**:
     - Enable if you need private Docker image hosting
     - Requires separate external URL (e.g., `https://registry.example.com`)
-    
     ## Resources
     - **Project**: https://about.gitlab.com/
     - **Documentation**: https://docs.gitlab.com/
@@ -32,18 +27,15 @@ metadata:
     - traefik
   next_steps: |
     ## Post-Installation Steps
-    
     1. **Start GitLab**:
        ```bash
        docker compose up -d
        ```
-    
     2. **Wait for initialization** (2-5 minutes):
        ```bash
        docker compose logs -f gitlab
        ```
        Wait for message: `gitlab Reconfigured!`
-    
     3. **Access the web interface**:
        {% if traefik_enabled -%}
        - Via Traefik: https://{{ traefik_host }}
@@ -52,18 +44,14 @@ metadata:
        - Open {{ external_url }} in your browser
        {% if network_mode == 'bridge' %}- Or: http://localhost:{{ ports_http }}{% endif %}
        {%- endif %}
-    
     4. **Initial login credentials**:
        - **Username**: `root`
        - **Password**: `{{ root_password }}`
-       
        > **Important**: This password only works on FIRST initialization.
        > Change it immediately after first login via GitLab's web interface!
-    
     5. **Configure SSH** (optional):
        - SSH clone URLs will use port `{{ ports_ssh }}`
        - Update your Git remote if needed
-    
     ## Additional Resources
     - Documentation: https://docs.gitlab.com/
     - GitLab Runner: https://docs.gitlab.com/runner/

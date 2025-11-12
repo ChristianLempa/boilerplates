@@ -1,6 +1,7 @@
+{# @requires services #}
 services:
   {{ service_name }}:
-    image: testapp:latest
+    image: __ANY__
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}

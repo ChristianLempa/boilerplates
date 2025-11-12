@@ -131,9 +131,9 @@ class DisplayManager:
         """Display an error message."""
         return self.status.error(message, context, details)
 
-    def warning(self, message: str, context: str | None = None) -> None:
+    def warning(self, message: str, context: str | None = None, details: str | None = None) -> None:
         """Display a warning message."""
-        return self.status.warning(message, context)
+        return self.status.warning(message, context, details)
 
     def success(self, message: str, context: str | None = None) -> None:
         """Display a success message."""

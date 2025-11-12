@@ -100,6 +100,21 @@ Modules can be either single files or packages:
 - Call `registry.register(YourModule)` at module bottom
 - Auto-discovered and registered at CLI startup
 
+**Module Discovery and Registration:**
+
+The system automatically discovers and registers modules at startup:
+
+1. **Discovery**: CLI `__main__.py` imports all Python files in `cli/modules/` directory
+2. **Registration**: Each module file calls `registry.register(ModuleClass)` at module level
+3. **Storage**: Registry stores module classes in a central dictionary by module name
+4. **Command Generation**: CLI framework auto-generates subcommands for each registered module
+5. **Instantiation**: Modules are instantiated on-demand when commands are invoked
+
+**Benefits:**
+- No manual registration needed - just add a file to `cli/modules/`
+- Modules are self-contained - can be added/removed without modifying core code
+- Type-safe - registry validates module interfaces at registration time
+
 **Module Spec:**
 Module-wide variable specification defining defaults for all templates of that kind.
 
@@ -138,30 +153,32 @@ For modules supporting multiple schema versions, use package structure:
 ```
 cli/modules/compose/
   __init__.py          # Module class, loads appropriate spec
-  spec_v1_0.py         # Schema 1.0 specification
-  spec_v1_1.py         # Schema 1.1 specification
+  spec_v1_0.py         # Schema version specification files
+  spec_v1_1.py
+  spec_v1_2.py
+  ...                  # Additional schema versions as needed
 ```
 
 **Existing Modules:**
-- `cli/modules/compose/` - Docker Compose package with schema 1.0 and 1.1 support
-  - `spec_v1_0.py` - Basic compose spec
-  - `spec_v1_1.py` - Extended with network_mode, swarm support
+- `cli/modules/compose/` - Docker Compose package with multi-schema support
+  - Multiple `spec_v*.py` files for schema versioning
+  - Check module directory for current supported schemas
 
-**Compose Module Schema Differences:**
+**Compose Module Architecture:**
 
-**Schema 1.0:**
-- `network` section: Has `toggle: "network_enabled"` with explicit `network_enabled` boolean variable (default: False)
-- `ports` section: Has `toggle: "ports_enabled"` with explicit `ports_enabled` boolean variable (default: True)
-- Templates check `{% if network_enabled %}` and `{% if ports_enabled %}`
+The compose module uses schema versioning to maintain backward compatibility while introducing new features. Each schema version is defined in a separate spec file (e.g., `spec_v1_0.py`, `spec_v1_1.py`), and templates declare which schema they use.
 
-**Schema 1.1:**
-- `network` section: NO toggle - always available, controlled by `network_mode` enum (bridge/host/macvlan)
-- `ports` section: Has `toggle: "ports_enabled"` but the variable is AUTO-CREATED and NOT available in templates
-- Templates check `{% if network_mode == 'bridge' %}` for networks and `{% if network_mode == 'bridge' and not traefik_enabled %}` for ports
-- **Key changes**:
-  - `network_enabled` doesn't exist - use `network_mode` conditionals instead
-  - `ports_enabled` is not usable in templates - use `network_mode` and `traefik_enabled` conditionals instead
-  - Port visibility is controlled by: network mode (must be bridge) + Traefik (ports not needed when using Traefik)
+**Schema Design Principles:**
+- **Backward compatibility**: Newer module versions can load older template schemas
+- **Auto-created toggle variables**: Sections with `toggle` automatically create boolean variables
+- **Conditional visibility**: Variables use `needs` constraints to show/hide based on other variable values
+- **Mode-based organization**: Related settings grouped by operational mode (e.g., network_mode, volume_mode)
+- **Incremental evolution**: New schemas add features without breaking existing templates
+
+**To understand current schema features:**
+- Check `cli/modules/compose/spec_v*.py` files for available schemas
+- Run `python3 tests/print_schema.py compose` to see latest schema structure
+- Review `archetypes/compose/` for reference implementations
 
 **(Work in Progress):** terraform, docker, ansible, kubernetes, packer modules
 
@@ -265,33 +282,47 @@ display.display_template(template, template_id)
 
 Templates are directory-based. Each template is a directory containing all the necessary files and subdirectories for the boilerplate.
 
+### Template Rendering Flow
+
+**How templates are loaded and rendered:**
+
+1. **Discovery**: LibraryManager finds template directories containing `template.yaml`/`template.yml`
+2. **Parsing**: Template class loads and parses the template metadata and spec
+3. **Schema Resolution**: Module's `get_spec()` loads appropriate spec based on template's `schema` field
+4. **Variable Inheritance**: Template inherits ALL variables from module schema
+5. **Variable Merging**: Template spec overrides are merged with module spec (precedence: module < template < user config < CLI)
+6. **Collection Building**: VariableCollection is constructed with merged variables and sections
+7. **Dependency Resolution**: Sections are topologically sorted based on `needs` constraints
+8. **Variable Resolution**: Variables with `needs` constraints are evaluated for visibility
+9. **Jinja2 Rendering**: Template files (`.j2`) are rendered with final variable values
+10. **Sanitization**: Rendered output is cleaned (whitespace, blank lines, trailing newline)
+11. **Validation**: Optional semantic validation (YAML structure, Docker Compose schema, etc.)
+
+**Key Architecture Points:**
+- Templates don't "call" module specs - they declare a schema version and inherit from it
+- Variable visibility is dynamic based on `needs` constraints (evaluated at prompt/render time)
+- Jinja2 templates support `{% include %}` and `{% import %}` for composition
+
+### Template Structure
+
 Requires `template.yaml` or `template.yml` with metadata and variables:
 
 ```yaml
 ---
 kind: compose
-schema: "1.0"  # Optional: Defaults to 1.0 if not specified
+schema: "X.Y"  # Optional: Defaults to "1.0" if not specified (e.g., "1.0", "1.2")
 metadata:
-  name: My Nginx Template
-  description: >
-    A template for a simple Nginx service.
-
-
-    Project: https://...
-
-    Source: https://
-
-    Documentation: https://
-  version: 0.1.0
-  author: Christian Lempa
-  date: '2024-10-01'
+  name: My Service Template
+  description: A template for a service.
+  version: 1.0.0
+  author: Your Name
+  date: '2024-01-01'
 spec:
   general:
     vars:
-      nginx_version:
-        type: string
-        description: The Nginx version to use.
-        default: latest
+      service_name:
+        type: str
+        description: Service name
 ```
 
 ### Template Metadata Versioning
@@ -314,12 +345,14 @@ The `metadata.version` field in `template.yaml` should reflect the version of th
 
 ### Template Schema Versioning
 
+**Version Format:** Schemas use 2-level versioning in `MAJOR.MINOR` format (e.g., "1.0", "1.2", "2.0").
+
 Templates and modules use schema versioning to ensure compatibility. Each module defines a supported schema version, and templates declare which schema version they use.
 
 ```yaml
 ---
 kind: compose
-schema: "1.0"  # Defaults to 1.0 if not specified
+schema: "X.Y"  # Optional: Defaults to "1.0" if not specified (e.g., "1.0", "1.2")
 metadata:
   name: My Template
   version: 1.0.0
@@ -329,7 +362,7 @@ spec:
 ```
 
 **How It Works:**
-- **Module Schema Version**: Each module defines `schema_version` (e.g., "1.1")
+- **Module Schema Version**: Each module defines `schema_version` (e.g., "1.0", "1.2", "2.0")
 - **Module Spec Loading**: Modules load appropriate spec based on template's schema version
 - **Template Schema Version**: Each template declares `schema` at the top level (defaults to "1.0")
 - **Compatibility Check**: Template schema ≤ Module schema → Compatible
@@ -337,39 +370,39 @@ spec:
 
 **Behavior:**
 - Templates without `schema` field default to "1.0" (backward compatible)
-- Old templates (schema 1.0) work with newer modules (schema 1.1)
-- New templates (schema 1.2) fail on older modules (schema 1.1) with clear error
-- Version comparison uses 2-level versioning (major.minor format)
+- Older templates work with newer module versions (backward compatibility)
+- Templates with newer schema versions fail on older modules with `IncompatibleSchemaVersionError`
+- Version comparison uses MAJOR.MINOR format (e.g., "1.0" < "1.2" < "2.0")
 
 **When to Use:**
 - Increment module schema version when adding new features (new variable types, sections, etc.)
-- Set template schema when using features from a specific schema
-- Example: Template using new variable type added in schema 1.1 should set `schema: "1.1"`
+- Set template schema when using features from a specific schema version
+- Templates using features from newer schemas must declare the appropriate schema version
 
 **Single-File Module Example:**
 ```python
 class SimpleModule(Module):
   name = "simple"
   description = "Simple module"
-  schema_version = "1.0"
+  schema_version = "X.Y"  # e.g., "1.0", "1.2"
   spec = VariableCollection.from_dict({...})  # Single spec
 ```
 
 **Multi-Schema Module Example:**
 ```python
-# cli/modules/compose/__init__.py
-class ComposeModule(Module):
-  name = "compose"
-  description = "Manage Docker Compose configurations"
-  schema_version = "1.1"  # Highest schema version supported
+# cli/modules/modulename/__init__.py
+class ExampleModule(Module):
+  name = "modulename"
+  description = "Module description"
+  schema_version = "X.Y"  # Highest schema version supported (e.g., "1.2", "2.0")
   
   def get_spec(self, template_schema: str) -> VariableCollection:
     """Load spec based on template schema version."""
-    if template_schema == "1.0":
-      from .spec_v1_0 import get_spec
-    elif template_schema == "1.1":
-      from .spec_v1_1 import get_spec
-    return get_spec()
+    # Dynamically load the appropriate spec version
+    # template_schema will be like "1.0", "1.2", etc.
+    version_file = f"spec_v{template_schema.replace('.', '_')}"
+    spec_module = importlib.import_module(f".{version_file}", package=__package__)
+    return spec_module.get_spec()
 ```
 
 **Version Management:**
@@ -390,33 +423,44 @@ class ComposeModule(Module):
 When using Traefik with Docker Compose, the `traefik.docker.network` label is **CRITICAL** for stacks with multiple networks. When containers are connected to multiple networks, Traefik must know which network to use for routing.
 
 **Implementation:**
-- ALL templates using Traefik MUST follow the patterns in `archetypes/compose/traefik-v1.j2` (standard mode) and `archetypes/compose/swarm-v1.j2` (swarm mode)
-- These archetypes are the authoritative reference for correct Traefik label configuration
+- Review `archetypes/compose/` directory for reference implementations of Traefik integration patterns
 - The `traefik.docker.network={{ traefik_network }}` label must be present in both standard `labels:` and `deploy.labels:` sections
+- Standard mode and Swarm mode require different label configurations - check archetypes for examples
 
 ### Variables
 
-**Precedence** (lowest to highest):
+**How Templates Inherit Variables:**
+
+Templates automatically inherit ALL variables from the module schema version they declare. The template's `schema: "X.Y"` field determines which module spec is loaded, and all variables from that schema are available.
+
+**When to Define Template Variables:**
+
+You only need to define variables in your template's `spec` section when:
+1. **Overriding defaults**: Change default values for module variables (e.g., hardcode `service_name` for your specific app)
+2. **Adding custom variables**: Define template-specific variables not present in the module schema
+3. **Upgrading to newer schema**: To use new features, update `schema: "X.Y"` to a higher version - no template spec changes needed
+
+**Variable Precedence** (lowest to highest):
 1. Module `spec` (defaults for all templates of that kind)
 2. Template `spec` (overrides module defaults)
 3. User `config.yaml` (overrides template and module defaults)
 4. CLI `--var` (highest priority)
 
-**Template Variable Overrides:**
-Template `spec` variables can:
+**Template Variable Override Rules:**
 - **Override module defaults**: Only specify properties that differ from module spec (e.g., change `default` value)
 - **Create new variables**: Define template-specific variables not in module spec
 - **Minimize duplication**: Do NOT re-specify `type`, `description`, or other properties if they remain unchanged from module spec
 
 **Example:**
 ```yaml
-# Module spec defines: service_name (type: str, no default)
-# Template spec overrides:
+# Template declares schema: "1.2" → inherits ALL variables from compose schema 1.2
+# Template spec ONLY needs to override specific defaults:
 spec:
   general:
     vars:
       service_name:
         default: whoami  # Only override the default, type already defined in module
+      # All other schema 1.2 variables (network_mode, volume_mode, etc.) are automatically available
 ```
 
 **Variable Types:**
@@ -439,10 +483,30 @@ spec:
 - **Required Sections**: Mark with `required: true` (general is implicit). Users must provide all values.
 - **Toggle Settings**: Conditional sections via `toggle: "bool_var_name"`. If false, section is skipped.
   - **IMPORTANT**: When a section has `toggle: "var_name"`, that boolean variable is AUTO-CREATED by the system
-  - In schema 1.0: Toggle variables are explicitly defined in the section's `vars`
-  - In schema 1.1: Toggle variables are auto-created and don't need explicit definition (unless customizing defaults)
+  - Toggle variable behavior may vary by schema version - check current schema documentation
   - Example: `ports` section with `toggle: "ports_enabled"` automatically provides `ports_enabled` boolean
-- **Dependencies**: Use `needs: "section_name"` or `needs: ["sec1", "sec2"]`. Dependent sections only shown when dependencies are enabled. Auto-validated (detects circular/missing/self dependencies). Topologically sorted.
+- **Dependencies**: Use `needs: "section_name"` or `needs: ["sec1", "sec2"]`. Dependent sections only shown when dependencies are enabled.
+
+**Dependency Resolution Architecture:**
+
+Sections and variables support `needs` constraints to control visibility based on other variables.
+
+**Section-Level Dependencies:**
+- Format: `needs: "section_name"` or `needs: ["sec1", "sec2"]`
+- Section only appears when all required sections are enabled (their toggle variables are true)
+- Automatically validated: detects circular, missing, and self-dependencies
+- Topologically sorted: ensures dependencies are prompted/processed before dependents
+
+**Variable-Level Dependencies:**
+- Format: `needs: "var_name=value"` or `needs: "var1=val1;var2=val2"` (semicolon-separated)
+- Variable only visible when constraint is satisfied (e.g., `needs: "network_mode=bridge"`)
+- Supports multiple values: `needs: "network_mode=bridge,macvlan"` (comma = OR)
+- Evaluated dynamically at prompt and render time
+
+**Validation:**
+- Circular dependencies: Raises error if A needs B and B needs A
+- Missing dependencies: Raises error if referencing non-existent sections/variables
+- Self-dependencies: Raises error if section depends on itself
 
 **Example Section with Dependencies:**
 
@@ -515,63 +579,122 @@ To skip the prompt use the `--no-interactive` flag, which will use defaults or e
 
 ## Archetypes
 
-The `archetypes` package provides reusable, standardized template building blocks for creating boilerplates. Archetypes are modular Jinja2 snippets that represent specific configuration sections (e.g., networks, volumes, service labels).
+The `archetypes` package provides reusable, standardized template building blocks for creating boilerplates. Archetypes are modular Jinja2 snippets that represent specific configuration sections.
 
 ### Purpose
 
 1. **Template Development**: Provide standardized, tested building blocks for creating new templates
 2. **Testing & Validation**: Enable testing of specific configuration sections in isolation with different variable combinations
 
-### Structure
-
-```
-archetypes/
-  __init__.py              # Package initialization
-  __main__.py              # CLI tool (auto-discovers modules)
-  compose/                 # Module-specific archetypes
-    archetypes.yaml        # Configuration: schema version + variable overrides
-    compose.yaml.j2        # Main composition file (includes all components)
-    service-*.j2           # Service-level components (networks, ports, volumes, labels, etc.)
-    networks-*.j2          # Top-level network definitions
-    volumes-*.j2           # Top-level volume definitions
-    configs-*.j2           # Config definitions
-    secrets-*.j2           # Secret definitions
-```
-
-**Key Files:**
-- `archetypes.yaml`: Configures schema version and variable overrides for testing
-- `compose.yaml.j2`: Main composition file that includes all archetype components to test complete configurations
-- Individual `*.j2` files: Modular components for specific configuration sections
-
 ### Usage
 
 ```bash
-# List available archetypes
+# List available archetypes for a module
 python3 -m archetypes compose list
 
-# Preview complete composition (all components together)
-python3 -m archetypes compose generate compose.yaml
-
-# Preview individual component
-python3 -m archetypes compose generate networks-v1
+# Preview an archetype component
+python3 -m archetypes compose generate <archetype-name>
 
 # Test with variable overrides
-python3 -m archetypes compose generate compose.yaml \
+python3 -m archetypes compose generate <archetype-name> \
   --var traefik_enabled=true \
   --var swarm_enabled=true
+
+# Validate templates against archetypes
+python3 -m archetypes compose validate            # All templates
+python3 -m archetypes compose validate <template> # Single template
 ```
+
+### Archetype Validation
+
+The `validate` command compares templates against archetypes to measure coverage and identify which archetype patterns are being used.
+
+**What it does:**
+- Compares each template file against all available archetypes using **structural pattern matching**
+- Abstracts away specific values to focus on:
+  - **Jinja2 control flow**: `{% if %}`, `{% elif %}`, `{% else %}`, `{% for %}` structures
+  - **YAML structure**: Key names, indentation, and nesting patterns
+  - **Variable usage patterns**: Presence of `{{ }}` placeholders (not specific names)
+  - **Wildcard placeholders**: `__ANY__`, `__ANYSTR__`, `__ANYINT__`, `__ANYBOOL__`
+  - **Repeat markers**: `{# @repeat-start #}` / `{# @repeat-end #}`
+  - **Optional markers**: `{# @optional-start #}` / `{# @optional-end #}`
+- This allows detection of archetypes even when specific values differ (e.g., `grafana_data` vs `alloy_data`)
+- Calculates **containment ratio**: what percentage of each archetype structure is found within the template
+- Reports usage status: **exact** (≥95%), **high** (≥70%), **partial** (≥30%), or **none** (<30%)
+- Provides coverage metrics: (exact + high matches) / total archetypes
+
+### Advanced Pattern Matching in Archetypes
+
+Archetypes support special annotations for flexible pattern matching:
+
+**Wildcard Placeholders** (match any value):
+- `__ANY__` - Matches anything
+- `__ANYSTR__` - Matches any string
+- `__ANYINT__` - Matches any integer
+- `__ANYBOOL__` - Matches any boolean
+
+**Repeat Markers** (pattern can appear 1+ times):
+```yaml
+{# @repeat-start #}
+  pattern
+{# @repeat-end #}
+```
+
+**Optional Markers** (section may or may not exist):
+```yaml
+{# @optional-start #}
+  pattern
+{# @optional-end #}
+```
+
+**Example:**
+```yaml
+volumes:
+  {# @repeat-start #}
+  __ANY__:
+    driver: local
+  {# @repeat-end #}
+```
+Matches any number of volumes with `driver: local`
+
+**Usage:**
+```bash
+# Validate all templates in library - shows summary table
+python3 -m archetypes compose validate
+
+# Validate specific template - shows detailed archetype breakdown
+python3 -m archetypes compose validate whoami
+
+# Validate templates in custom location
+python3 -m archetypes compose validate --library /path/to/templates
+```
+
+**Output:**
+- **Summary mode** (all templates): Table showing exact/high/partial/none counts and coverage % per template
+- **Detail mode** (single template): Table showing each archetype's status, similarity %, and matching file
+
+**Use cases:**
+- **Quality assurance**: Ensure templates follow established patterns
+- **Refactoring**: Identify templates that could benefit from archetype alignment
+- **Documentation**: Track which archetypes are most/least used across templates
 
 ### Template Development Workflow
 
-1. **Start with archetypes**: Copy relevant archetype components to your template directory
-2. **Customize**: Modify components as needed (hardcode image, add custom labels, etc.)
-3. **Test**: Validate using `python3 -m archetypes compose generate`
-4. **Validate**: Use `compose validate` to check Jinja2 syntax and semantic correctness
+1. **Discover**: Use `list` command to see available archetype components for your module
+2. **Review**: Preview archetypes to understand implementation patterns
+3. **Copy**: Copy relevant archetype components to your template directory
+4. **Customize**: Modify as needed (hardcode image, add custom labels, etc.)
+5. **Validate**: Use `compose validate` to check Jinja2 syntax and semantic correctness
 
-### Implementation Details
+### Architecture
+
+**Key Concepts:**
+- Each module can have its own `archetypes/<module>/` directory with reusable components
+- `archetypes.yaml` configures schema version and variable overrides for testing
+- Components are modular Jinja2 files that can be tested in isolation or composition
+- **Testing only**: The `generate` command NEVER writes files - always shows preview output
 
 **How it works:**
 - Loads module spec based on schema version from `archetypes.yaml`
 - Merges variable sources: module spec → archetypes.yaml → CLI --var
 - Renders using Jinja2 with support for `{% include %}` directives
-- **Testing only**: The `generate` command NEVER writes files - always shows preview output

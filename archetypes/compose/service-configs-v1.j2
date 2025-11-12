@@ -1,5 +1,8 @@
+{# @requires services.*.configs #}
     {% if swarm_enabled %}
     configs:
-      - source: {{ service_name }}_config_1
-        target: /etc/app/config.yaml
+      {# @repeat-start #}
+      - source: {{ service_name }}__ANYSTR__
+        target: __ANYPATH__
+      {# @repeat-end #}
     {% endif %}

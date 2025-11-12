@@ -147,14 +147,29 @@ class StatusDisplay:
             # No details, use standard display
             self._display_message("error", message, context)
 
-    def warning(self, message: str, context: str | None = None) -> None:
+    def warning(self, message: str, context: str | None = None, details: str | None = None) -> None:
         """Display a warning message.
 
         Args:
             message: Warning message
             context: Optional context
+            details: Optional additional details (shown in dim style on same line)
         """
-        self._display_message("warning", message, context)
+        if details:
+            # Combine message and details on same line with different formatting
+            settings = self.settings
+            color = settings.COLOR_WARNING
+            icon = IconManager.get_status_icon("warning")
+
+            # Format: Icon Warning: Message (details in dim)
+            formatted = f"[{color}]{icon} Warning: {message}[/{color}] [dim]({details})[/dim]"
+            console_err.print(formatted)
+
+            # Log at debug level to avoid duplicate console output (already printed to stderr)
+            logger.debug(f"Warning displayed: {message} ({details})")
+        else:
+            # No details, use standard display
+            self._display_message("warning", message, context)
 
     def success(self, message: str, context: str | None = None) -> None:
         """Display a success message.

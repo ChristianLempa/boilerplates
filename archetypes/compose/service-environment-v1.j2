@@ -1,9 +1,10 @@
+{# @requires services.*.environment #}
     environment:
       - TZ={{ container_timezone }}
-      - UID={{ user_uid }}
-      - GID={{ user_gid }}
+      {# @optional-start #}
       {% if swarm_enabled %}
       - SECRET=/run/secrets/{{ service_name }}_secret_1
       {% else %}
       - SECRET=${SECRET}
       {% endif %}
+      {# @optional-end #}

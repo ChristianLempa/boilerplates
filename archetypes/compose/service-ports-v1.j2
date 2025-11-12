@@ -1,11 +1,16 @@
+{# @requires services.*.ports #}
     {% if not traefik_enabled and network_mode == 'bridge' %}
     ports:
       {% if swarm_enabled %}
-      - target: 80
-        published: {{ ports_http }}
+      {# @repeat-start #}
+      - target: __ANYINT__
+        published: {{ ports__ANYSTR__ }}
         protocol: tcp
         mode: host
+      {# @repeat-end #}
       {% else %}
-      - "{{ ports_http }}:80"
+      {# @repeat-start #}
+      - __ANY__
+      {# @repeat-end #}
       {% endif %}
     {% endif %}

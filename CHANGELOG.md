@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate help panels for "Template Commands" and "Configuration Commands"
 - Compose Schema 1.2: Authentik Traefik middleware integration with `authentik_traefik_middleware` variable
 - Markdown formatting support for template descriptions and next steps (#1471)
+- Output directory flag `--output`/`-o` for `generate` command (#1534) - Replaces positional directory argument
 
 ### Changed
 - Removed Jinja2 `| default()` filter extraction and merging (#1410) - All defaults must now be defined in template/module specs
@@ -27,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced debug logging for better troubleshooting
 - Simplified dry-run output to show only essential information (files, sizes, status)
 - Traefik template now uses module spec variable `authentik_traefik_middleware` instead of template-specific `traefik_authentik_middleware_name`
+
+### Deprecated
+- Positional directory argument for `generate` command (#1534) - Use `--output`/`-o` flag instead (will be removed in v0.2.0)
 
 ### Fixed
 - CLI --var flag now properly converts boolean and numeric strings to appropriate Python types (#1522)

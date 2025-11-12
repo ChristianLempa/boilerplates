@@ -7,8 +7,10 @@ Usage: python3 -m archetypes <module> <command>
 from __future__ import annotations
 
 import builtins
+import difflib
 import importlib
 import logging
+import re
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -45,6 +47,16 @@ display = DisplayManager()
 
 # Base directory for archetypes
 ARCHETYPES_DIR = Path(__file__).parent
+
+# Similarity thresholds for archetype validation
+SIMILARITY_EXACT = 0.95
+SIMILARITY_HIGH = 0.7
+SIMILARITY_PARTIAL = 0.3
+COVERAGE_GOOD = 0.7
+COVERAGE_FAIR = 0.4
+
+# Display limits
+MAX_DIFF_LINES = 10
 
 
 def setup_logging(log_level: str = "WARNING") -> None:
@@ -249,15 +261,19 @@ class ArchetypeTemplate:
 
 
 def find_archetypes(module_name: str) -> list[Path]:
-    """Find all .j2 files in the module's archetype directory."""
+    """Find all .j2 files in the module's archetype directory.
+
+    Excludes files matching the pattern '*-all-v*.j2' as these are
+    typically composite archetypes used for testing/generation only.
+    """
     module_dir = ARCHETYPES_DIR / module_name
 
     if not module_dir.exists():
         console.print(f"[red]Module directory not found: {module_dir}[/red]")
         return []
 
-    # Find all .j2 files
-    j2_files = list(module_dir.glob("*.j2"))
+    # Find all .j2 files, excluding 'all-v*.j2' and '*-all-v*.j2' patterns
+    j2_files = [f for f in module_dir.glob("*.j2") if not re.match(r"(.*-)?all-v.*\.j2$", f.name)]
     return sorted(j2_files)
 
 
@@ -351,6 +367,536 @@ def _display_generated_preview(output_dir: Path, rendered_files: dict[str, str])
         console.print()
 
 
+def _normalize_template_content(content: str) -> list[str]:
+    """Normalize template content for comparison.
+
+    Removes blank lines, comments, and trims whitespace to focus on
+    structural similarity rather than exact formatting.
+    """
+    lines = []
+    for line in content.splitlines():
+        stripped = line.strip()
+        # Skip empty lines and comment-only lines
+        if stripped and not stripped.startswith("#"):
+            lines.append(stripped)
+    return lines
+
+
+def _extract_structural_pattern(content: str, is_archetype: bool = False) -> list[str]:
+    """Extract structural pattern from template content.
+
+    Abstracts away specific values to focus on:
+    - Jinja2 control structures (if/elif/else/endif/for/endfor)
+    - YAML structure (keys, indentation levels)
+    - Variable placeholders (replaced with generic <VAR>)
+    - Literal values (replaced with generic <VALUE>)
+    - Wildcard placeholders (__ANY__, __ANYSTR__, __ANYINT__, __ANYBOOL__)
+    - Pattern markers (@repeat-start/end, @optional-start/end)
+
+    Args:
+        content: The template content to parse
+        is_archetype: If True, preserves special markers and wildcards
+
+    This allows comparing templates based on structure and logic
+    rather than exact string matches.
+    """
+    lines = []
+    for line in content.splitlines():
+        # Skip empty lines
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Check for pattern markers (only in archetypes)
+        if is_archetype and stripped.startswith("{#"):
+            # Preserve pattern markers like @repeat-start, @optional-start, etc.
+            if "@repeat-start" in stripped:
+                lines.append("@REPEAT_START")
+                continue
+            elif "@repeat-end" in stripped:
+                lines.append("@REPEAT_END")
+                continue
+            elif "@optional-start" in stripped:
+                lines.append("@OPTIONAL_START")
+                continue
+            elif "@optional-end" in stripped:
+                lines.append("@OPTIONAL_END")
+                continue
+            elif "@requires" in stripped:
+                # Extract the requirement path (e.g., "services.*.configs")
+                match = re.search(r"@requires\s+([^\s#}]+)", stripped)
+                if match:
+                    lines.append(f"@REQUIRES {match.group(1)}")
+                continue
+            # Skip other comments
+            continue
+
+        # Skip regular comments
+        if stripped.startswith("#"):
+            continue
+
+        # Preserve indentation level (simplified to count of spaces)
+        indent_level = len(line) - len(line.lstrip())
+        indent_marker = "  " * (indent_level // 2)  # Normalize to 2-space indents
+
+        # Keep Jinja2 control structures exactly as-is (no abstraction)
+        if re.match(r"^{%\s*(if|elif|else|endif|for|endfor|block|endblock)\s*.*%}$", stripped):
+            lines.append(indent_marker + stripped)
+            continue
+
+        # Keep Jinja2 variable interpolations as-is (preserve variable names)
+        # We want to match exact variable usage, not abstract it
+        normalized = stripped
+
+        # Handle wildcard placeholders in archetypes
+        if is_archetype:
+            # Preserve wildcard patterns
+            for wildcard in ["__ANY__", "__ANYSTR__", "__ANYINT__", "__ANYBOOL__"]:
+                if wildcard in normalized:
+                    # Keep wildcard as-is for archetype patterns
+                    pass
+
+        # Extract YAML key if present (key: value pattern)
+        yaml_key_match = re.match(r"^-?\s*([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$", normalized)
+        if yaml_key_match:
+            key = yaml_key_match.group(1)
+            value = yaml_key_match.group(2)
+
+            # Preserve key and value as-is (wildcards will be handled during matching)
+            if value:
+                normalized_line = f"{key}: {value}"
+            else:
+                normalized_line = f"{key}:"
+
+            lines.append(indent_marker + normalized_line)
+            continue
+
+        # Handle list items (- value)
+        if normalized.startswith("-"):
+            # Preserve list values as-is
+            lines.append(indent_marker + normalized)
+            continue
+
+        # Fallback: just preserve the abstracted line
+        lines.append(indent_marker + normalized)
+
+    return lines
+
+
+def _pattern_matches_value(pattern: str, value: str) -> bool:
+    """Check if a pattern (with wildcards) matches a value.
+
+    Supports wildcards: __ANY__, __ANYSTR__, __ANYINT__, __ANYBOOL__, __ANYPATH__
+
+    Args:
+        pattern: The pattern string (may contain wildcards)
+        value: The value to match against
+
+    Returns:
+        True if pattern matches value
+    """
+    # If no wildcards, must match exactly
+    if "__ANY" not in pattern:
+        return pattern == value
+
+    # Build regex from pattern by replacing wildcards
+    regex_pattern = re.escape(pattern)
+
+    # Replace wildcards with appropriate regex patterns
+    # Order matters: more specific before more general
+    regex_pattern = regex_pattern.replace(r"__ANYPATH__", r"[^:]+")
+    regex_pattern = regex_pattern.replace(r"__ANYINT__", r"\d+")
+    regex_pattern = regex_pattern.replace(r"__ANYBOOL__", r"(?:true|false|yes|no)")
+    regex_pattern = regex_pattern.replace(r"__ANYSTR__", r"[a-zA-Z0-9_-]+")
+    regex_pattern = regex_pattern.replace(r"__ANY__", r".+")
+
+    # Anchor the pattern
+    regex_pattern = f"^{regex_pattern}$"
+
+    return bool(re.match(regex_pattern, value, re.IGNORECASE))
+
+
+def _normalize_pattern_line(line: str) -> str:
+    """Normalize a pattern line by replacing wildcards with generic markers.
+
+    Wildcards in archetypes get normalized to match any corresponding value.
+    """
+    # Replace wildcard patterns with match-any markers
+    for wildcard in ["__ANY__", "__ANYSTR__", "__ANYINT__", "__ANYBOOL__"]:
+        line = line.replace(wildcard, "<WILDCARD>")
+    return line
+
+
+def _extract_repeat_sections(pattern: list[str]) -> list[tuple[int, int, list[str]]]:
+    """Extract repeat sections from a pattern.
+
+    Returns:
+        List of (start_idx, end_idx, section_content) tuples
+    """
+    sections = []
+    i = 0
+    while i < len(pattern):
+        if pattern[i] == "@REPEAT_START":
+            start = i + 1
+            depth = 1
+            j = i + 1
+            while j < len(pattern) and depth > 0:
+                if pattern[j] == "@REPEAT_START":
+                    depth += 1
+                elif pattern[j] == "@REPEAT_END":
+                    depth -= 1
+                j += 1
+            end = j - 1
+            sections.append((i, j, pattern[start:end]))
+            i = j
+        else:
+            i += 1
+    return sections
+
+
+def _extract_optional_sections(pattern: list[str]) -> set[int]:
+    """Extract indices of optional sections.
+
+    Returns:
+        Set of line indices that are within optional sections
+    """
+    optional_indices = set()
+    i = 0
+    while i < len(pattern):
+        if pattern[i] == "@OPTIONAL_START":
+            start = i + 1
+            depth = 1
+            j = i + 1
+            while j < len(pattern) and depth > 0:
+                if pattern[j] == "@OPTIONAL_START":
+                    depth += 1
+                elif pattern[j] == "@OPTIONAL_END":
+                    depth -= 1
+                j += 1
+            end = j - 1
+            # Mark all lines in this range as optional
+            for idx in range(start, end):
+                optional_indices.add(idx)
+            i = j
+        else:
+            i += 1
+    return optional_indices
+
+
+def _check_requirement(requirement: str, template_pattern: list[str]) -> bool:
+    """Check if a requirement path exists in the template.
+
+    Args:
+        requirement: Path like "services.*.configs" or "configs:"
+        template_pattern: The template's structural pattern
+
+    Returns:
+        True if requirement is satisfied
+    """
+    # Parse requirement path
+    parts = requirement.split(".")
+
+    # Simple case: just check if key exists
+    if len(parts) == 1:
+        # Check for exact match or as YAML key
+        search_term = parts[0].rstrip(":")
+        return any(search_term in line for line in template_pattern)
+
+    # Complex case: services.*.configs means "any service has configs"
+    if len(parts) == 3 and parts[1] == "*":
+        # Look for the nested key within the parent section
+        parent = parts[0]  # e.g., "services"
+        child = parts[2]  # e.g., "configs"
+
+        # Check if we can find parent section followed by child key
+        in_parent = False
+        for line in template_pattern:
+            if parent in line and ":" in line:
+                in_parent = True
+            elif in_parent and child in line:
+                return True
+            # Reset if we hit another top-level key
+            elif in_parent and line and not line.startswith((" ", "\t", "-")):
+                in_parent = False
+
+    return False
+
+
+def _calculate_similarity(archetype_content: str, template_content: str) -> tuple[float, str]:
+    """Calculate similarity between archetype and template content.
+
+    Uses structural pattern matching to compare templates based on:
+    - Jinja2 control flow (if/elif/else/for)
+    - YAML structure (keys and nesting)
+    - Variable usage patterns (not specific values)
+    - Wildcard matching (__ANY__, __ANYSTR__, etc.)
+    - Repeat sections (@repeat-start/end)
+    - Optional sections (@optional-start/end)
+
+    This allows detection of archetypes even when specific names differ
+    (e.g., grafana_data vs alloy_data).
+
+    Returns:
+        Tuple of (similarity_ratio, usage_status)
+        - similarity_ratio: 0.0 to 1.0 (percentage of archetype structure found)
+        - usage_status: "exact", "high", "partial", or "none"
+    """
+    archetype_pattern = _extract_structural_pattern(archetype_content, is_archetype=True)
+    template_pattern = _extract_structural_pattern(template_content, is_archetype=False)
+
+    if not archetype_pattern:
+        return 0.0, "none"
+
+    # Check for @requires marker - if requirement not met, return 0%
+    for line in archetype_pattern:
+        if line.startswith("@REQUIRES "):
+            requirement = line.split(" ", 1)[1]
+            if not _check_requirement(requirement, template_pattern):
+                # Required section/key is missing from template
+                return 0.0, "none"
+
+    # Extract repeat and optional sections from RAW pattern
+    repeat_sections = _extract_repeat_sections(archetype_pattern)
+    raw_optional_indices = _extract_optional_sections(archetype_pattern)
+
+    # Remove marker lines from archetype pattern for comparison
+    # AND build a mapping from raw indices to cleaned indices
+    cleaned_archetype = []
+    raw_to_cleaned_map = {}
+    cleaned_idx = 0
+    
+    for raw_idx, line in enumerate(archetype_pattern):
+        if line not in ("@REPEAT_START", "@REPEAT_END", "@OPTIONAL_START", "@OPTIONAL_END") and not line.startswith("@REQUIRES "):
+            cleaned_archetype.append(line)
+            raw_to_cleaned_map[raw_idx] = cleaned_idx
+            cleaned_idx += 1
+    
+    # Map optional indices from raw to cleaned
+    optional_indices = {raw_to_cleaned_map[i] for i in raw_optional_indices if i in raw_to_cleaned_map}
+
+    if not cleaned_archetype:
+        return 0.0, "none"
+
+    # Count matches using wildcard-aware matching
+    matched_lines = 0
+    used_template_indices = set()
+    matched_archetype_indices = set()
+
+    for arch_idx, arch_line in enumerate(cleaned_archetype):
+        # Try to find a matching line in template (that hasn't been matched yet)
+        for i, temp_line in enumerate(template_pattern):
+            if i in used_template_indices:
+                continue
+
+            # Check if lines match (with wildcard support)
+            if arch_line == temp_line:
+                matched_lines += 1
+                used_template_indices.add(i)
+                matched_archetype_indices.add(arch_idx)
+                break
+            elif "__ANY" in arch_line and _pattern_matches_value(arch_line, temp_line):
+                matched_lines += 1
+                used_template_indices.add(i)
+                matched_archetype_indices.add(arch_idx)
+                break
+
+    # Handle optional sections correctly:
+    # - If optional section is NOT in template: exclude from denominator (don't penalize)
+    # - If optional section IS in template: must fully comply (include in denominator)
+    optional_lines_used = len([i for i in optional_indices if i in matched_archetype_indices])
+    optional_lines_total = len(optional_indices)
+    optional_lines_unused = optional_lines_total - optional_lines_used
+
+    # Total = all lines - unused optional lines
+    total_archetype_lines = len(cleaned_archetype) - optional_lines_unused
+
+    # Ratio represents what percentage of the required archetype structure is found
+    ratio = matched_lines / total_archetype_lines if total_archetype_lines > 0 else 0.0
+    
+    # Cap at 1.0 (100%) to prevent math errors
+    ratio = min(ratio, 1.0)
+
+    # Determine usage status based on structural match
+    if ratio >= SIMILARITY_EXACT:
+        return ratio, "exact"
+    if ratio >= SIMILARITY_HIGH:
+        return ratio, "high"
+    if ratio >= SIMILARITY_PARTIAL:
+        return ratio, "partial"
+    return ratio, "none"
+
+
+def _find_template_files(template_dir: Path) -> dict[str, Path]:
+    """Find all template .j2 files in a template directory.
+
+    Returns:
+        Dict mapping template file stem (without .j2) to file path
+    """
+    template_files = {}
+    if template_dir.exists():
+        for j2_file in template_dir.glob("*.j2"):
+            template_files[j2_file.stem] = j2_file
+    return template_files
+
+
+def _validate_template_against_archetypes(
+    template_dir: Path,
+    archetypes: list[Path],
+) -> dict[str, dict[str, Any]]:
+    """Validate a template directory against all archetypes.
+
+    Returns:
+        Dict mapping archetype ID to validation results:
+        {
+            "archetype_id": {
+                "ratio": 0.85,
+                "status": "high",
+                "template_file": Path(...) or None
+            }
+        }
+    """
+    template_files = _find_template_files(template_dir)
+    results = {}
+
+    for archetype_path in archetypes:
+        archetype_id = archetype_path.stem
+
+        # Load archetype content
+        with archetype_path.open() as f:
+            archetype_content = f.read()
+
+        # Check if template has a matching file
+        best_match = None
+        best_ratio = 0.0
+        best_status = "none"
+
+        for _template_stem, template_path in template_files.items():
+            with template_path.open() as f:
+                template_content = f.read()
+
+            ratio, status = _calculate_similarity(archetype_content, template_content)
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_status = status
+                best_match = template_path
+
+        results[archetype_id] = {"ratio": best_ratio, "status": best_status, "template_file": best_match}
+
+    return results
+
+
+def _get_pattern_diff(archetype_pattern: list[str], template_pattern: list[str]) -> tuple[list[str], list[str]]:
+    """Get the differences between archetype and template patterns.
+
+    Supports wildcard matching in archetype patterns.
+
+    Returns:
+        Tuple of (missing_lines, extra_lines)
+        - missing_lines: Lines in archetype but not in template
+        - extra_lines: Lines in template but not in archetype
+    """
+    matched_archetype_indices = set()
+    matched_template_indices = set()
+
+    # For each archetype line, check if it matches any template line
+    for i, arch_line in enumerate(archetype_pattern):
+        # Check for exact match first (fast path)
+        if arch_line in template_pattern:
+            matched_archetype_indices.add(i)
+            # Mark the first matching template line
+            template_idx = template_pattern.index(arch_line)
+            matched_template_indices.add(template_idx)
+            continue
+
+        # Check for wildcard pattern match
+        if "__ANY" in arch_line:
+            for j, template_line in enumerate(template_pattern):
+                if j in matched_template_indices:
+                    continue
+                if _pattern_matches_value(arch_line, template_line):
+                    matched_archetype_indices.add(i)
+                    matched_template_indices.add(j)
+                    break
+
+    missing_lines = [archetype_pattern[i] for i in range(len(archetype_pattern)) if i not in matched_archetype_indices]
+
+    extra_lines = [template_pattern[i] for i in range(len(template_pattern)) if i not in matched_template_indices]
+
+    return missing_lines, extra_lines
+
+
+def _create_validation_table(template_id: str, validation_results: dict[str, dict[str, Any]]) -> Table:
+    """Create a table showing archetype validation results."""
+    table = Table(
+        title=f"Archetype Validation: {template_id}",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Archetype", style="cyan")
+    table.add_column("Similarity", justify="right")
+    table.add_column("Template File", style="dim")
+
+    # Sort by similarity (highest first)
+    sorted_results = sorted(validation_results.items(), key=lambda x: x[1]["ratio"], reverse=True)
+
+    for archetype_id, result in sorted_results:
+        ratio = result["ratio"]
+        template_file = result["template_file"]
+
+        # Color-code similarity based on thresholds
+        if ratio >= SIMILARITY_EXACT:
+            color = "green"
+        elif ratio >= SIMILARITY_HIGH:
+            color = "green"
+        elif ratio >= SIMILARITY_PARTIAL:
+            color = "yellow"
+        else:
+            color = "red"
+
+        ratio_text = f"[{color}]{ratio:.1%}[/{color}]"
+        file_text = template_file.name if template_file else "--"
+
+        table.add_row(archetype_id, ratio_text, file_text)
+
+    return table
+
+
+def _display_pattern_diff(archetype_id: str, archetype_path: Path, template_path: Path, ratio: float) -> None:
+    """Display the structural differences between archetype and template."""
+    # Load and extract patterns
+    with archetype_path.open() as f:
+        archetype_content = f.read()
+    with template_path.open() as f:
+        template_content = f.read()
+
+    archetype_pattern = _extract_structural_pattern(archetype_content, is_archetype=True)
+    template_pattern = _extract_structural_pattern(template_content, is_archetype=False)
+
+    # Clean up markers from archetype pattern for diff display
+    cleaned_archetype = [
+        line
+        for line in archetype_pattern
+        if line not in ("@REPEAT_START", "@REPEAT_END", "@OPTIONAL_START", "@OPTIONAL_END")
+        and not line.startswith("@REQUIRES ")
+    ]
+
+    missing_lines, extra_lines = _get_pattern_diff(cleaned_archetype, template_pattern)
+
+    if not missing_lines and not extra_lines:
+        console.print(f"\n[green]✓[/green] [bold]{archetype_id}[/bold]: Perfect match!")
+        return
+
+    console.print(f"\n[bold cyan]Differences for {archetype_id}[/bold cyan] ([dim]{ratio:.1%} match[/dim]):")
+
+    if missing_lines:
+        console.print("\n[yellow]  Missing from template:[/yellow]")
+        for line in missing_lines[:MAX_DIFF_LINES]:
+            console.print(f"    [red]-[/red] {line}")
+        if len(missing_lines) > MAX_DIFF_LINES:
+            console.print(f"    [dim]... and {len(missing_lines) - MAX_DIFF_LINES} more lines[/dim]")
+
+
 def create_module_commands(module_name: str) -> Typer:
     """Create a Typer app with commands for a specific module."""
     module_app = Typer(help=f"Manage {module_name} archetypes")
@@ -414,6 +960,95 @@ def create_module_commands(module_name: str) -> Typer:
         output_dir = Path(directory) if directory else Path.cwd()
         _display_generated_preview(output_dir, rendered_files)
         display.success("Preview complete - no files were written")
+
+    @module_app.command()
+    def validate(
+        template_id: str = Argument(..., help="Template ID or path to validate"),
+        library_path: str | None = Option(
+            None, "--library", "-l", help="Path to template library (defaults to library/<module>)"
+        ),
+        show_diff: bool = Option(False, "--diff", "-d", help="Show detailed differences for non-exact matches"),
+    ) -> None:
+        """Validate a template against archetypes to check usage coverage.
+
+        Compares template files with archetype snippets and reports which
+        archetype patterns are used and what differences exist.
+        """
+        archetypes = find_archetypes(module_name)
+
+        if not archetypes:
+            display.error(
+                f"No archetypes found for module '{module_name}'", context=f"directory: {ARCHETYPES_DIR / module_name}"
+            )
+            return
+
+        # Determine library path
+        lib_dir = Path(library_path) if library_path else Path.cwd() / "library" / module_name
+
+        if not lib_dir.exists():
+            display.error(
+                f"Library directory not found: {lib_dir}", context="Use --library to specify a different path"
+            )
+            return
+
+        # Find template to validate
+        template_path = lib_dir / template_id
+        if not template_path.exists():
+            # Try as direct path
+            template_path = Path(template_id)
+            if not template_path.exists():
+                display.error(f"Template not found: {template_id}", context=f"Searched in: {lib_dir}")
+                return
+
+        results = _validate_template_against_archetypes(
+            template_path,
+            archetypes,
+        )
+
+        table = _create_validation_table(template_path.name, results)
+        console.print()
+        console.print(table)
+
+        # Show summary stats
+        counts = {"exact": 0, "high": 0, "partial": 0, "none": 0}
+        for result in results.values():
+            counts[result["status"]] += 1
+
+        total = len(results)
+        coverage = (counts["exact"] + counts["high"]) / total if total > 0 else 0
+
+        console.print()
+        color = "green" if coverage >= COVERAGE_GOOD else "yellow" if coverage >= COVERAGE_FAIR else "red"
+        console.print(
+            f"[bold]Summary:[/bold] {counts['exact']} exact, {counts['high']} high, "
+            f"{counts['partial']} partial, {counts['none']} none | "
+            f"Coverage: [{color}]{coverage:.1%}[/]"
+        )
+
+        # Show diffs if requested
+        if show_diff:
+            console.print("\n" + "=" * 80)
+            console.print("[bold]Detailed Differences:[/bold]")
+            console.print("=" * 80)
+
+            # Show diffs for non-exact matches (sorted by ratio, highest first)
+            sorted_results = sorted(results.items(), key=lambda x: x[1]["ratio"], reverse=True)
+
+            for archetype_id, result in sorted_results:
+                ratio = result["ratio"]
+
+                # Skip perfect matches and archetypes with no template file
+                if ratio >= SIMILARITY_EXACT or not result["template_file"]:
+                    continue
+
+                archetype_path = None
+                for arch_path in archetypes:
+                    if arch_path.stem == archetype_id:
+                        archetype_path = arch_path
+                        break
+
+                if archetype_path:
+                    _display_pattern_diff(archetype_id, archetype_path, result["template_file"], ratio)
 
     return module_app
 

@@ -1,15 +1,18 @@
+---
 services:
   {{ service_name }}:
+    image: docker.io/pihole/pihole:2025.11.0
     {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
-    image: docker.io/pihole/pihole:2025.11.0
+    hostname: {{ container_hostname }}
     environment:
       - TZ={{ container_timezone }}
       - PIHOLE_UID={{ user_uid }}
       - PIHOLE_GID={{ user_gid }}
       {% if swarm_enabled %}
-      - WEBPASSWORD_FILE={{ webpassword_secret_name }}
+      - WEBPASSWORD_FILE={{ service_name }}_webpassword
       {% else %}
       - FTLCONF_webserver_api_password=${WEBPASSWORD}
       {% endif %}
@@ -30,7 +33,7 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {% if network_mode not in ['host', 'macvlan'] %}
+    {% if not traefik_enabled and network_mode == 'bridge' %}
     ports:
       {% if not traefik_enabled %}
       {% if swarm_enabled %}
@@ -67,34 +70,43 @@ services:
       {% endif %}
     {% endif %}
     volumes:
-      {% if not swarm_enabled %}
-      - config_dnsmasq:/etc/dnsmasq.d
-      - config_pihole:/etc/pihole
-      {% else %}
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}/dnsmasq:/etc/dnsmasq.d:rw
       - {{ volume_mount_path }}/pihole:/etc/pihole:rw
-      {% elif volume_mode == 'local' %}
-      - config_dnsmasq:/etc/dnsmasq.d
-      - config_pihole:/etc/pihole
-      {% elif volume_mode == 'nfs' %}
-      - config_dnsmasq:/etc/dnsmasq.d
-      - config_pihole:/etc/pihole
-      {% endif %}
+      {% elif volume_mode in ['local', 'nfs'] %}
+      - {{ service_name }}-dnsmasq:/etc/dnsmasq.d
+      - {{ service_name }}-pihole:/etc/pihole
       {% endif %}
     cap_add:
       - NET_ADMIN
       - SYS_TIME
     {% if swarm_enabled %}
     secrets:
-      - {{ webpassword_secret_name }}
+      - {{ service_name }}_webpassword
+    {% endif %}
+    {% if swarm_enabled or resources_enabled %}
     deploy:
+      {% if swarm_enabled %}
       mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.hostname == {{ swarm_placement_host }}
-      {% if traefik_enabled %}
+      restart_policy:
+        condition: on-failure
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {% if swarm_enabled and traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}
@@ -110,8 +122,8 @@ services:
         - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
         {% endif %}
       {% endif %}
-    {% else %}
-    {% if traefik_enabled %}
+    {% endif %}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
@@ -127,45 +139,42 @@ services:
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy }}
-    {% endif %}
 
 {% if swarm_enabled %}
-{% if volume_mode in ['local', 'nfs'] %}
+secrets:
+  {{ service_name }}_webpassword:
+    file: ./.env.secret.webpassword
+{% endif %}
+
+{% if volume_mode == 'local' %}
 volumes:
-  config_dnsmasq:
-    {% if volume_mode == 'nfs' %}
+  {{ service_name }}-dnsmasq:
+    driver: local
+  {{ service_name }}-pihole:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-dnsmasq:
     driver: local
     driver_opts:
       type: nfs
       o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
       device: ":{{ volume_nfs_path }}/dnsmasq"
-    {% endif %}
-  config_pihole:
-    {% if volume_mode == 'nfs' %}
+  {{ service_name }}-pihole:
     driver: local
     driver_opts:
       type: nfs
       o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
       device: ":{{ volume_nfs_path }}/pihole"
-    {% endif %}
-{% endif %}
-
-secrets:
-  {{ webpassword_secret_name }}:
-    file: ./.env.secret
-{% else %}
-volumes:
-  config_dnsmasq:
-    driver: local
-  config_pihole:
-    driver: local
 {% endif %}
 
 {% if network_mode != 'host' %}
 networks:
-  {% if network_mode == 'macvlan' %}
   {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
     driver: macvlan
     driver_opts:
       parent: {{ network_macvlan_parent_interface }}
@@ -173,18 +182,14 @@ networks:
       config:
         - subnet: {{ network_macvlan_subnet }}
           gateway: {{ network_macvlan_gateway }}
-  {% elif network_mode == 'bridge' and network_external %}
-  {{ network_name }}:
-    external: true
-  {% elif network_mode == 'bridge' and not network_external %}
-  {{ network_name }}:
-    {% if swarm_enabled %}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
     driver: overlay
     attachable: true
     {% else %}
     driver: bridge
     {% endif %}
-  {% endif %}
+    {% endif %}
   {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true

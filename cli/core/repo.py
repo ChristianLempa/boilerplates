@@ -12,7 +12,7 @@ from rich.table import Table
 from typer import Argument, Option, Typer
 
 from ..core.config import ConfigManager, LibraryConfig
-from ..core.display import DisplayManager
+from ..core.display import DisplayManager, IconManager
 from ..core.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
@@ -267,8 +267,6 @@ def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
 
 def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, str, str]:
     """Extract library information based on type."""
-    from cli.core.display import IconManager
-
     name = lib.get("name", "")
     lib_type = lib.get("type", "git")
     enabled = lib.get("enabled", True)
@@ -339,7 +337,9 @@ def list() -> None:
 
     for lib in libraries:
         name = lib.get("name", "")
-        url_or_path, branch, directory, type_display, type_icon, status = _get_library_info(lib, config, libraries_path)
+        url_or_path, branch, directory, type_display, _type_icon, status = _get_library_info(
+            lib, config, libraries_path
+        )
         table.add_row(name, url_or_path, branch, directory, type_display, status)
 
     display.print_table(table)

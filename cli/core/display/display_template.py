@@ -3,6 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+
 from .display_icons import IconManager
 from .display_settings import DisplaySettings
 
@@ -70,13 +75,8 @@ class TemplateDisplay:
         library_type = template.metadata.library_type or "git"
         icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
         color = "yellow" if library_type == "static" else "blue"
-        library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
         # Create custom H1-style header with Rich markup support
-        from rich import box
-        from rich.console import Console
-        from rich.panel import Panel
-        from rich.text import Text
 
         # Build header content with Rich formatting
         header_content = Text()

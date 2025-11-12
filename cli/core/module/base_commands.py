@@ -39,6 +39,7 @@ class GenerationConfig:
 
     id: str
     directory: str | None = None
+    output: str | None = None
     interactive: bool = True
     var: list[str] | None = None
     var_file: str | None = None
@@ -229,7 +230,7 @@ def check_output_directory(
     return existing_files
 
 
-def get_generation_confirmation(ctx: ConfirmationContext) -> bool:
+def get_generation_confirmation(_ctx: ConfirmationContext) -> bool:
     """Display file generation confirmation and get user approval."""
     # No confirmation needed - either non-interactive, dry-run, or already confirmed during directory check
     return True
@@ -309,11 +310,11 @@ def execute_dry_run(
     return len(rendered_files), overwrite_files, size_str
 
 
-def write_generated_files(
+def write_rendered_files(
     output_dir: Path,
     rendered_files: dict[str, str],
-    quiet: bool,
-    display: DisplayManager,
+    _quiet: bool,
+    _display: DisplayManager,
 ) -> None:
     """Write rendered files to the output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -371,18 +372,33 @@ def _render_template(template, id: str, display: DisplayManager, interactive: bo
     return rendered_files, variable_values
 
 
-def _determine_output_dir(directory: str | None, id: str) -> Path:
-    """Determine and normalize output directory path."""
-    if directory:
+def _determine_output_dir(directory: str | None, output: str | None, id: str) -> tuple[Path, bool]:
+    """Determine and normalize output directory path.
+    
+    Returns:
+        Tuple of (output_dir, used_deprecated_arg) where used_deprecated_arg indicates
+        if the deprecated positional directory argument was used.
+    """
+    used_deprecated_arg = False
+    
+    # Priority: --output flag > positional directory argument > template ID
+    if output:
+        output_dir = Path(output)
+    elif directory:
         output_dir = Path(directory)
-        if not output_dir.is_absolute() and str(output_dir).startswith(
-            ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
-        ):
-            output_dir = Path("/") / output_dir
-            logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
+        used_deprecated_arg = True
+        logger.debug(f"Using deprecated positional directory argument: {directory}")
     else:
         output_dir = Path(id)
-    return output_dir
+    
+    # Normalize paths that look like absolute paths but are relative
+    if not output_dir.is_absolute() and str(output_dir).startswith(
+        ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
+    ):
+        output_dir = Path("/") / output_dir
+        logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
+    
+    return output_dir, used_deprecated_arg
 
 
 def _display_template_error(display: DisplayManager, template_id: str, error: TemplateRenderError) -> None:
@@ -409,20 +425,24 @@ def _display_generic_error(display: DisplayManager, template_id: str, error: Exc
     display.text("")
 
     # Truncate long error messages
+    max_error_length = 100
     error_msg = str(error)
-    if len(error_msg) > 100:
-        error_msg = error_msg[:100] + "..."
+    if len(error_msg) > max_error_length:
+        error_msg = f"{error_msg[:max_error_length]}..."
 
     # Display error with details
     display.error(f"Failed to generate boilerplate from template '{template_id}'", details=error_msg)
 
 
-def generate_template(module_instance, config: GenerationConfig) -> None:
+def generate_template(module_instance, config: GenerationConfig) -> None:  # noqa: PLR0912, PLR0915
     """Generate from template."""
     logger.info(f"Starting generation for template '{config.id}' from module '{module_instance.name}'")
 
     display = DisplayManager(quiet=config.quiet) if config.quiet else module_instance.display
     template = _prepare_template(module_instance, config.id, config.var_file, config.var, display)
+    
+    # Determine output directory early to check for deprecated argument usage
+    output_dir, used_deprecated_arg = _determine_output_dir(config.directory, config.output, config.id)
 
     if not config.quiet:
         # Display template header
@@ -432,10 +452,17 @@ def generate_template(module_instance, config: GenerationConfig) -> None:
         # Display variables table
         module_instance.display.variables.render_variables_table(template)
         module_instance.display.text("")
+        
+        # Show deprecation warning BEFORE any user interaction
+        if used_deprecated_arg:
+            module_instance.display.warning(
+                "Using positional argument for output directory is deprecated and will be removed in v0.2.0",
+                details="Use --output/-o flag instead"
+            )
+            module_instance.display.text("")
 
     try:
         rendered_files, variable_values = _render_template(template, config.id, display, config.interactive)
-        output_dir = _determine_output_dir(config.directory, config.id)
 
         # Check for conflicts and get confirmation (skip in quiet mode)
         if not config.quiet:
@@ -462,7 +489,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:
             if not config.quiet:
                 dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
         else:
-            write_generated_files(output_dir, rendered_files, config.quiet, display)
+            write_rendered_files(output_dir, rendered_files, config.quiet, display)
 
         # Display next steps (not in quiet mode)
         if template.metadata.next_steps and not config.quiet:

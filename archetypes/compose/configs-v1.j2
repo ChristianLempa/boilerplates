@@ -1,5 +1,8 @@
+{# @requires configs #}
 {% if swarm_enabled %}
 configs:
-  {{ service_name }}_config_1:
-    file: ./config/testapp.yaml
+  {# @repeat-start #}
+  {{ service_name }}__ANYSTR__:
+    file: __ANYPATH__
+  {# @repeat-end #}
 {% endif %}

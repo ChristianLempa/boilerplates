@@ -166,7 +166,9 @@ class LibraryManager:
     def _warn_missing_library(self, name: str, library_path: Path, lib_type: str) -> None:
         """Log warning about missing library."""
         if lib_type == "git":
-            logger.warning(f"Library '{name}' not found at {library_path}. Run 'boilerplates repo update' to sync libraries.")
+            logger.warning(
+                f"Library '{name}' not found at {library_path}. Run 'boilerplates repo update' to sync libraries."
+            )
         else:
             logger.warning(f"Static library '{name}' not found at {library_path}")
 

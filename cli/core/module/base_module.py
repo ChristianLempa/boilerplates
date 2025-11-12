@@ -167,8 +167,19 @@ class Module(ABC):
     def generate(
         self,
         id: Annotated[str, Argument(help="Template ID")],
-        directory: Annotated[str | None, Argument(help="Output directory (defaults to template ID)")] = None,
+        directory: Annotated[
+            str | None, 
+            Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
+        ] = None,
         *,
+        output: Annotated[
+            str | None,
+            Option(
+                "--output",
+                "-o",
+                help="Output directory (defaults to template ID)",
+            ),
+        ] = None,
         interactive: Annotated[
             bool,
             Option(
@@ -218,6 +229,7 @@ class Module(ABC):
         config = GenerationConfig(
             id=id,
             directory=directory,
+            output=output,
             interactive=interactive,
             var=var,
             var_file=var_file,

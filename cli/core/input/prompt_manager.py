@@ -91,7 +91,7 @@ class PromptHandler:
 
         collected: dict[str, Any] = {}
 
-        for section_key, section in variables.get_sections().items():
+        for _section_key, section in variables.get_sections().items():
             if not section.variables:
                 continue
 
