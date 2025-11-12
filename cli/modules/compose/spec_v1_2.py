@@ -118,6 +118,26 @@ spec = OrderedDict(
                     "type": "int",
                     "default": 8443,
                 },
+                "ports_ssh": {
+                    "description": "SSH port on host",
+                    "type": "int",
+                    "default": 22,
+                },
+                "ports_dns": {
+                    "description": "DNS port on host",
+                    "type": "int",
+                    "default": 53,
+                },
+                "ports_dhcp": {
+                    "description": "DHCP port on host",
+                    "type": "int",
+                    "default": 67,
+                },
+                "ports_smtp": {
+                    "description": "SMTP port on host",
+                    "type": "int",
+                    "default": 25,
+                },
             },
         },
         "traefik": {

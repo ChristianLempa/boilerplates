@@ -168,7 +168,7 @@ class Module(ABC):
         self,
         id: Annotated[str, Argument(help="Template ID")],
         directory: Annotated[
-            str | None, 
+            str | None,
             Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
         ] = None,
         *,

@@ -374,13 +374,13 @@ def _render_template(template, id: str, display: DisplayManager, interactive: bo
 
 def _determine_output_dir(directory: str | None, output: str | None, id: str) -> tuple[Path, bool]:
     """Determine and normalize output directory path.
-    
+
     Returns:
         Tuple of (output_dir, used_deprecated_arg) where used_deprecated_arg indicates
         if the deprecated positional directory argument was used.
     """
     used_deprecated_arg = False
-    
+
     # Priority: --output flag > positional directory argument > template ID
     if output:
         output_dir = Path(output)
@@ -390,14 +390,14 @@ def _determine_output_dir(directory: str | None, output: str | None, id: str) ->
         logger.debug(f"Using deprecated positional directory argument: {directory}")
     else:
         output_dir = Path(id)
-    
+
     # Normalize paths that look like absolute paths but are relative
     if not output_dir.is_absolute() and str(output_dir).startswith(
         ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
     ):
         output_dir = Path("/") / output_dir
         logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
-    
+
     return output_dir, used_deprecated_arg
 
 
@@ -440,7 +440,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
 
     display = DisplayManager(quiet=config.quiet) if config.quiet else module_instance.display
     template = _prepare_template(module_instance, config.id, config.var_file, config.var, display)
-    
+
     # Determine output directory early to check for deprecated argument usage
     output_dir, used_deprecated_arg = _determine_output_dir(config.directory, config.output, config.id)
 
@@ -452,7 +452,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         # Display variables table
         module_instance.display.variables.render_variables_table(template)
         module_instance.display.text("")
-        
+
         # Show deprecation warning BEFORE any user interaction
         if used_deprecated_arg:
             module_instance.display.warning(

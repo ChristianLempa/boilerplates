@@ -7,7 +7,6 @@ Usage: python3 -m archetypes <module> <command>
 from __future__ import annotations
 
 import builtins
-import difflib
 import importlib
 import logging
 import re
@@ -382,7 +381,7 @@ def _normalize_template_content(content: str) -> list[str]:
     return lines
 
 
-def _extract_structural_pattern(content: str, is_archetype: bool = False) -> list[str]:
+def _extract_structural_pattern(content: str, is_archetype: bool = False) -> list[str]:  # noqa: PLR0912
     """Extract structural pattern from template content.
 
     Abstracts away specific values to focus on:
@@ -413,16 +412,16 @@ def _extract_structural_pattern(content: str, is_archetype: bool = False) -> lis
             if "@repeat-start" in stripped:
                 lines.append("@REPEAT_START")
                 continue
-            elif "@repeat-end" in stripped:
+            if "@repeat-end" in stripped:
                 lines.append("@REPEAT_END")
                 continue
-            elif "@optional-start" in stripped:
+            if "@optional-start" in stripped:
                 lines.append("@OPTIONAL_START")
                 continue
-            elif "@optional-end" in stripped:
+            if "@optional-end" in stripped:
                 lines.append("@OPTIONAL_END")
                 continue
-            elif "@requires" in stripped:
+            if "@requires" in stripped:
                 # Extract the requirement path (e.g., "services.*.configs")
                 match = re.search(r"@requires\s+([^\s#}]+)", stripped)
                 if match:
@@ -463,10 +462,7 @@ def _extract_structural_pattern(content: str, is_archetype: bool = False) -> lis
             value = yaml_key_match.group(2)
 
             # Preserve key and value as-is (wildcards will be handled during matching)
-            if value:
-                normalized_line = f"{key}: {value}"
-            else:
-                normalized_line = f"{key}:"
+            normalized_line = f"{key}: {value}" if value else f"{key}:"
 
             lines.append(indent_marker + normalized_line)
             continue
@@ -603,7 +599,8 @@ def _check_requirement(requirement: str, template_pattern: list[str]) -> bool:
         return any(search_term in line for line in template_pattern)
 
     # Complex case: services.*.configs means "any service has configs"
-    if len(parts) == 3 and parts[1] == "*":
+    path_components = 3  # Expected: parent.*.child format
+    if len(parts) == path_components and parts[1] == "*":
         # Look for the nested key within the parent section
         parent = parts[0]  # e.g., "services"
         child = parts[2]  # e.g., "configs"
@@ -622,7 +619,7 @@ def _check_requirement(requirement: str, template_pattern: list[str]) -> bool:
     return False
 
 
-def _calculate_similarity(archetype_content: str, template_content: str) -> tuple[float, str]:
+def _calculate_similarity(archetype_content: str, template_content: str, strict: bool = False) -> tuple[float, str]:  # noqa: PLR0911, PLR0912
     """Calculate similarity between archetype and template content.
 
     Uses structural pattern matching to compare templates based on:
@@ -635,6 +632,11 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
 
     This allows detection of archetypes even when specific names differ
     (e.g., grafana_data vs alloy_data).
+
+    Args:
+        archetype_content: The archetype template content
+        template_content: The template to validate
+        strict: If True, enforce that matches appear in order
 
     Returns:
         Tuple of (similarity_ratio, usage_status)
@@ -655,8 +657,7 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
                 # Required section/key is missing from template
                 return 0.0, "none"
 
-    # Extract repeat and optional sections from RAW pattern
-    repeat_sections = _extract_repeat_sections(archetype_pattern)
+    # Extract optional sections from RAW pattern
     raw_optional_indices = _extract_optional_sections(archetype_pattern)
 
     # Remove marker lines from archetype pattern for comparison
@@ -664,13 +665,14 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
     cleaned_archetype = []
     raw_to_cleaned_map = {}
     cleaned_idx = 0
-    
+
     for raw_idx, line in enumerate(archetype_pattern):
-        if line not in ("@REPEAT_START", "@REPEAT_END", "@OPTIONAL_START", "@OPTIONAL_END") and not line.startswith("@REQUIRES "):
+        excluded_markers = ("@REPEAT_START", "@REPEAT_END", "@OPTIONAL_START", "@OPTIONAL_END")
+        if line not in excluded_markers and not line.startswith("@REQUIRES "):
             cleaned_archetype.append(line)
             raw_to_cleaned_map[raw_idx] = cleaned_idx
             cleaned_idx += 1
-    
+
     # Map optional indices from raw to cleaned
     optional_indices = {raw_to_cleaned_map[i] for i in raw_optional_indices if i in raw_to_cleaned_map}
 
@@ -681,6 +683,7 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
     matched_lines = 0
     used_template_indices = set()
     matched_archetype_indices = set()
+    last_matched_template_idx = -1  # Track last match position for strict mode
 
     for arch_idx, arch_line in enumerate(cleaned_archetype):
         # Try to find a matching line in template (that hasn't been matched yet)
@@ -688,16 +691,16 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
             if i in used_template_indices:
                 continue
 
+            # In strict mode, enforce ordering: matches must appear in increasing order
+            if strict and i <= last_matched_template_idx:
+                continue
+
             # Check if lines match (with wildcard support)
-            if arch_line == temp_line:
+            if arch_line == temp_line or ("__ANY" in arch_line and _pattern_matches_value(arch_line, temp_line)):
                 matched_lines += 1
                 used_template_indices.add(i)
                 matched_archetype_indices.add(arch_idx)
-                break
-            elif "__ANY" in arch_line and _pattern_matches_value(arch_line, temp_line):
-                matched_lines += 1
-                used_template_indices.add(i)
-                matched_archetype_indices.add(arch_idx)
+                last_matched_template_idx = i  # Update last match position
                 break
 
     # Handle optional sections correctly:
@@ -712,7 +715,7 @@ def _calculate_similarity(archetype_content: str, template_content: str) -> tupl
 
     # Ratio represents what percentage of the required archetype structure is found
     ratio = matched_lines / total_archetype_lines if total_archetype_lines > 0 else 0.0
-    
+
     # Cap at 1.0 (100%) to prevent math errors
     ratio = min(ratio, 1.0)
 
@@ -742,8 +745,14 @@ def _find_template_files(template_dir: Path) -> dict[str, Path]:
 def _validate_template_against_archetypes(
     template_dir: Path,
     archetypes: list[Path],
+    strict: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Validate a template directory against all archetypes.
+
+    Args:
+        template_dir: Directory containing the template
+        archetypes: List of archetype file paths
+        strict: If True, enforce ordering of elements
 
     Returns:
         Dict mapping archetype ID to validation results:
@@ -774,7 +783,7 @@ def _validate_template_against_archetypes(
             with template_path.open() as f:
                 template_content = f.read()
 
-            ratio, status = _calculate_similarity(archetype_content, template_content)
+            ratio, status = _calculate_similarity(archetype_content, template_content, strict)
 
             if ratio > best_ratio:
                 best_ratio = ratio
@@ -845,9 +854,7 @@ def _create_validation_table(template_id: str, validation_results: dict[str, dic
         template_file = result["template_file"]
 
         # Color-code similarity based on thresholds
-        if ratio >= SIMILARITY_EXACT:
-            color = "green"
-        elif ratio >= SIMILARITY_HIGH:
+        if ratio >= SIMILARITY_EXACT or ratio >= SIMILARITY_HIGH:
             color = "green"
         elif ratio >= SIMILARITY_PARTIAL:
             color = "yellow"
@@ -897,7 +904,104 @@ def _display_pattern_diff(archetype_id: str, archetype_path: Path, template_path
             console.print(f"    [dim]... and {len(missing_lines) - MAX_DIFF_LINES} more lines[/dim]")
 
 
-def create_module_commands(module_name: str) -> Typer:
+def _calculate_overall_similarity(validation_results: dict[str, dict[str, Any]]) -> float:
+    """Calculate overall similarity score, ignoring 0% matches.
+
+    Args:
+        validation_results: Dict mapping archetype ID to validation results
+
+    Returns:
+        Average similarity ratio (0.0 to 1.0), excluding 0% matches
+    """
+    non_zero_ratios = [result["ratio"] for result in validation_results.values() if result["ratio"] > 0]
+
+    if not non_zero_ratios:
+        return 0.0
+
+    return sum(non_zero_ratios) / len(non_zero_ratios)
+
+
+def _validate_all_templates(lib_dir: Path, archetypes: list[Path], module_name: str, strict: bool) -> None:
+    """Validate all templates in a library against archetypes.
+
+    Shows a summary table with overall similarity scores for each template.
+    Ignores archetypes with 0% similarity when calculating overall score.
+    """
+    # Find all template directories
+    template_dirs = [d for d in lib_dir.iterdir() if d.is_dir() and (d / "template.yaml").exists()]
+
+    if not template_dirs:
+        display.warning(
+            "No templates found in library",
+            context=f"directory: {lib_dir}",
+        )
+        return
+
+    # Validate each template and collect results
+    all_results = {}
+    for template_dir in sorted(template_dirs):
+        validation_results = _validate_template_against_archetypes(template_dir, archetypes, strict)
+        overall_similarity = _calculate_overall_similarity(validation_results)
+        all_results[template_dir.name] = {
+            "overall_similarity": overall_similarity,
+            "validation_results": validation_results,
+        }
+
+    # Create summary table
+    table = Table(
+        title=f"Archetype Validation Summary: {module_name}",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Template", style="cyan")
+    table.add_column("Overall Similarity", justify="right")
+    table.add_column("Archetypes Used", justify="right")
+    table.add_column("Total Archetypes", justify="right")
+
+    # Sort by overall similarity (highest first)
+    sorted_templates = sorted(all_results.items(), key=lambda x: x[1]["overall_similarity"], reverse=True)
+
+    for template_name, result in sorted_templates:
+        overall_sim = result["overall_similarity"]
+        validation_results = result["validation_results"]
+
+        # Count non-zero archetypes
+        used_count = sum(1 for r in validation_results.values() if r["ratio"] > 0)
+        total_count = len(validation_results)
+
+        # Color-code based on similarity
+        if overall_sim >= SIMILARITY_EXACT:
+            color = "green"
+        elif overall_sim >= SIMILARITY_HIGH:
+            color = "yellow"
+        elif overall_sim >= SIMILARITY_PARTIAL:
+            color = "dim yellow"
+        else:
+            color = "red"
+
+        sim_text = f"[{color}]{overall_sim:.1%}[/{color}]"
+        table.add_row(template_name, sim_text, str(used_count), str(total_count))
+
+    console.print()
+    console.print(table)
+
+    # Show overall statistics
+    total_templates = len(all_results)
+    if total_templates > 0:
+        avg_similarity = sum(r["overall_similarity"] for r in all_results.values()) / total_templates
+    else:
+        avg_similarity = 0
+
+    console.print()
+    color = "green" if avg_similarity >= COVERAGE_GOOD else "yellow" if avg_similarity >= COVERAGE_FAIR else "red"
+    console.print(
+        f"[bold]Overall Statistics:[/bold] {total_templates} template(s) | "
+        f"Average similarity: [{color}]{avg_similarity:.1%}[/]"
+    )
+    console.print("[dim]Note: Similarity scores exclude archetypes with 0% match[/dim]")
+
+
+def create_module_commands(module_name: str) -> Typer:  # noqa: PLR0915
     """Create a Typer app with commands for a specific module."""
     module_app = Typer(help=f"Manage {module_name} archetypes")
 
@@ -963,16 +1067,27 @@ def create_module_commands(module_name: str) -> Typer:
 
     @module_app.command()
     def validate(
-        template_id: str = Argument(..., help="Template ID or path to validate"),
+        template_id: str | None = Argument(
+            None, help="Template ID or path to validate (omit to validate all templates)"
+        ),
         library_path: str | None = Option(
             None, "--library", "-l", help="Path to template library (defaults to library/<module>)"
         ),
         show_diff: bool = Option(False, "--diff", "-d", help="Show detailed differences for non-exact matches"),
+        strict: bool = Option(
+            False, "--strict", help="Enforce ordering - elements must appear in same order as archetype"
+        ),
     ) -> None:
-        """Validate a template against archetypes to check usage coverage.
+        """Validate template(s) against archetypes to check usage coverage.
 
         Compares template files with archetype snippets and reports which
         archetype patterns are used and what differences exist.
+
+        If no template_id is provided, validates ALL templates in the library
+        and shows overall similarity scores (ignoring 0% matches).
+
+        Use --strict to enforce that template elements appear in the same order
+        as the archetype (for consistency checking).
         """
         archetypes = find_archetypes(module_name)
 
@@ -991,6 +1106,12 @@ def create_module_commands(module_name: str) -> Typer:
             )
             return
 
+        # If no template_id provided, validate ALL templates
+        if template_id is None:
+            _validate_all_templates(lib_dir, archetypes, module_name, strict)
+            return
+
+        # Single template validation (original behavior)
         # Find template to validate
         template_path = lib_dir / template_id
         if not template_path.exists():
@@ -1003,6 +1124,7 @@ def create_module_commands(module_name: str) -> Typer:
         results = _validate_template_against_archetypes(
             template_path,
             archetypes,
+            strict,
         )
 
         table = _create_validation_table(template_path.name, results)
