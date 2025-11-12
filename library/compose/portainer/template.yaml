@@ -26,6 +26,13 @@ spec:
         default: "portainer"
       container_name:
         default: "portainer"
+      portainer_edition:
+        type: enum
+        description: "Portainer edition (ce = Community Edition, ee = Enterprise Edition)"
+        default: "ce"
+        options:
+          - "ce"
+          - "ee"
   ports:
     vars:
       ports_http:
