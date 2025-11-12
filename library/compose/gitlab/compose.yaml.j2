@@ -5,6 +5,7 @@ services:
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    hostname: {{ container_hostname }}
     shm_size: '256m'
     {% if network_mode == 'host' %}
     network_mode: host
@@ -20,6 +21,13 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
+    env_file:
+      - ./.env
+    {% if swarm_enabled %}
+    configs:
+      - source: gitlab_config
+        target: /etc/gitlab/gitlab.rb
+    {% endif %}
     {% if network_mode == 'bridge' %}
     ports:
       {% if not traefik_enabled %}
@@ -34,14 +42,22 @@ services:
       {% endif %}
       - "{{ ports_ssh }}:22"
       {% if registry_enabled %}
-      - "{{ ports_registry }}:5678"
+      - "{{ ports_registry }}:5000"
       {% endif %}
     {% endif %}
     volumes:
+      {% if not swarm_enabled %}
       - ./config/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      {% endif %}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/config:/etc/gitlab
+      - {{ volume_mount_path }}/logs:/var/log/gitlab
+      - {{ volume_mount_path }}/data:/var/opt/gitlab
+      {% else %}
       - gitlab-config:/etc/gitlab
       - gitlab-logs:/var/log/gitlab
       - gitlab-data:/var/opt/gitlab
+      {% endif %}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -58,7 +74,7 @@ services:
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
       {% if registry_enabled %}
-      - traefik.http.services.{{ service_name }}-registry.loadBalancer.server.port=5678
+      - traefik.http.services.{{ service_name }}-registry.loadBalancer.server.port=5000
       - traefik.http.routers.{{ service_name }}-registry-http.service={{ service_name }}-registry
       - traefik.http.routers.{{ service_name }}-registry-http.rule=Host(`{{ traefik_registry_host }}`)
       - traefik.http.routers.{{ service_name }}-registry-http.entrypoints={{ traefik_entrypoint }}
@@ -72,10 +88,24 @@ services:
       {% endif %}
     {% endif %}
     {% if swarm_enabled %}
+    secrets:
+      - source: {{ gitlab_root_password_secret_name }}
+        target: /run/secrets/gitlab_root_password
+        mode: 0400
+      {% if registry_enabled %}
+      - source: {{ gitlab_registry_secret_name }}
+        target: /run/secrets/gitlab_registry_secret
+        mode: 0400
+      {% endif %}
     deploy:
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
       {% endif %}
       restart_policy:
         condition: on-failure
@@ -95,7 +125,7 @@ services:
         - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
         {% endif %}
         {% if registry_enabled %}
-        - traefik.http.services.{{ service_name }}-registry.loadBalancer.server.port=5678
+        - traefik.http.services.{{ service_name }}-registry.loadBalancer.server.port=5000
         - traefik.http.routers.{{ service_name }}-registry-http.service={{ service_name }}-registry
         - traefik.http.routers.{{ service_name }}-registry-http.rule=Host(`{{ traefik_registry_host }}`)
         - traefik.http.routers.{{ service_name }}-registry-http.entrypoints={{ traefik_entrypoint }}
@@ -110,6 +140,7 @@ services:
       {% endif %}
     {% endif %}
 
+{% if volume_mode == 'local' %}
 volumes:
   gitlab-config:
     driver: local
@@ -117,6 +148,41 @@ volumes:
     driver: local
   gitlab-data:
     driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  gitlab-config:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/config"
+  gitlab-logs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/logs"
+  gitlab-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/data"
+{% endif %}
+
+{% if swarm_enabled %}
+configs:
+  gitlab_config:
+    file: ./config/gitlab.rb
+
+secrets:
+  {{ gitlab_root_password_secret_name }}:
+    file: ./.env.secret
+  {% if registry_enabled %}
+  {{ gitlab_registry_secret_name }}:
+    file: ./.env.registry.secret
+  {% endif %}
+{% endif %}
 
 {% if network_mode != 'host' %}
 networks:
