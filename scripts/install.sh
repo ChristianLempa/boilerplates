@@ -36,7 +36,7 @@ detect_os() {
     OS_TYPE="linux"
     . /etc/os-release
     DISTRO_ID="$ID"
-    DISTRO_VERSION="$VERSION_ID"
+    DISTRO_VERSION="${VERSION_ID:-}"
   else
     OS_TYPE="unknown"
   fi
