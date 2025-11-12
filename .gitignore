@@ -21,6 +21,8 @@
 
 # Packaging
 *.egg-info/
+build/
+dist/
 
 # Installation tracking
 .installed-version
