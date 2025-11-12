@@ -118,11 +118,56 @@ spec:
         default: "cloudflare"
         options:
           - "cloudflare"
+          - "porkbun"
+          - "godaddy"
+          - "gcp"
+          - "digitalocean"
+          - "route53"
+          - "azure"
+          - "namecheap"
         extra: "DNS provider for domain validation"
       traefik_tls_acme_token:
         type: "str"
         description: "DNS provider API token"
         sensitive: true
+        needs: "traefik_tls_acme_provider=cloudflare,digitalocean,godaddy,namecheap,porkbun"
+        extra: "CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY"
+      traefik_tls_acme_secret_key:
+        type: "str"
+        description: "DNS provider secret key"
+        sensitive: true
+        needs: "traefik_tls_acme_provider=azure,godaddy,porkbun,route53"
+        extra: "AZURE_CLIENT_SECRET, GODADDY_API_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY"
+      traefik_tls_acme_access_key:
+        type: "str"
+        description: "AWS Access Key ID or Azure Client ID"
+        sensitive: true
+        needs: "traefik_tls_acme_provider=route53,azure"
+      traefik_tls_acme_region:
+        type: "str"
+        description: "AWS Region"
+        default: "us-east-1"
+        needs: "traefik_tls_acme_provider=route53"
+      traefik_tls_acme_username:
+        type: "str"
+        description: "Namecheap API username"
+        needs: "traefik_tls_acme_provider=namecheap"
+      traefik_tls_acme_tenant_id:
+        type: "str"
+        description: "Azure Tenant ID"
+        needs: "traefik_tls_acme_provider=azure"
+      traefik_tls_acme_subscription_id:
+        type: "str"
+        description: "Azure Subscription ID"
+        needs: "traefik_tls_acme_provider=azure"
+      traefik_tls_acme_resource_group:
+        type: "str"
+        description: "Azure Resource Group"
+        needs: "traefik_tls_acme_provider=azure"
+      traefik_tls_acme_project:
+        type: "str"
+        description: "GCP Project ID"
+        needs: "traefik_tls_acme_provider=gcp"
       traefik_tls_acme_email:
         type: "str"
         description: "Email address for ACME (Let's Encrypt) registration"

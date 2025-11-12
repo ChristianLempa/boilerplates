@@ -36,6 +36,62 @@ services:
       {% else %}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       {% endif %}
+      {% elif traefik_tls_acme_provider == 'porkbun' %}
+      {% if swarm_enabled %}
+      - PORKBUN_API_KEY_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_api_key
+      - PORKBUN_SECRET_API_KEY_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_secret_key
+      {% else %}
+      - PORKBUN_API_KEY=${PORKBUN_API_KEY}
+      - PORKBUN_SECRET_API_KEY=${PORKBUN_SECRET_API_KEY}
+      {% endif %}
+      {% elif traefik_tls_acme_provider == 'route53' %}
+      {% if swarm_enabled %}
+      - AWS_ACCESS_KEY_ID_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_access_key
+      - AWS_SECRET_ACCESS_KEY_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_secret_key
+      {% else %}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      {% endif %}
+      - AWS_REGION=${AWS_REGION}
+      {% elif traefik_tls_acme_provider == 'digitalocean' %}
+      {% if swarm_enabled %}
+      - DO_AUTH_TOKEN_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}
+      {% else %}
+      - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
+      {% endif %}
+      {% elif traefik_tls_acme_provider == 'godaddy' %}
+      {% if swarm_enabled %}
+      - GODADDY_API_KEY_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_api_key
+      - GODADDY_API_SECRET_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_secret
+      {% else %}
+      - GODADDY_API_KEY=${GODADDY_API_KEY}
+      - GODADDY_API_SECRET=${GODADDY_API_SECRET}
+      {% endif %}
+      {% elif traefik_tls_acme_provider == 'gcp' %}
+      - GCE_PROJECT=${GCE_PROJECT}
+      {% if swarm_enabled %}
+      - GCE_SERVICE_ACCOUNT_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}
+      {% else %}
+      - GCE_SERVICE_ACCOUNT_FILE=${GCE_SERVICE_ACCOUNT_FILE}
+      {% endif %}
+      {% elif traefik_tls_acme_provider == 'azure' %}
+      {% if swarm_enabled %}
+      - AZURE_CLIENT_ID_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_client_id
+      - AZURE_CLIENT_SECRET_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}_client_secret
+      {% else %}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      {% endif %}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}
+      - AZURE_RESOURCE_GROUP=${AZURE_RESOURCE_GROUP}
+      {% elif traefik_tls_acme_provider == 'namecheap' %}
+      {% if swarm_enabled %}
+      - NAMECHEAP_API_KEY_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}
+      {% else %}
+      - NAMECHEAP_API_KEY=${NAMECHEAP_API_KEY}
+      {% endif %}
+      - NAMECHEAP_API_USER=${NAMECHEAP_API_USER}
       {% endif %}
       {% endif %}
     {% if swarm_enabled %}
