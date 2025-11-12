@@ -1,0 +1,123 @@
+---
+kind: compose
+schema: "1.1"
+metadata:
+  name: Renovate
+  description: |
+    **Renovate** is an automated dependency update tool that creates pull requests for newer versions of dependencies.
+    Supports GitHub, GitLab, Bitbucket, Gitea, and more platforms with flexible configuration options.
+    ## Use Cases
+    - Automated dependency updates for all your repositories
+    - Security vulnerability patching
+    - Multi-platform support (GitLab, GitHub, Bitbucket, etc.)
+    - Customizable update schedules and rules
+    - Self-hosted or cloud-based deployment
+    ## Resources
+    - **Project**: https://www.mend.io/renovate/
+    - **Documentation**: https://docs.renovatebot.com/
+    - **GitHub**: https://github.com/renovatebot/renovate
+  version: 10.5.0
+  author: Christian Lempa
+  date: '2025-11-05'
+  tags:
+    - traefik
+    - swarm
+  next_steps: |
+    ## Post-Installation Steps
+    {% if swarm_enabled -%}
+    1. **Deploy to Docker Swarm**:
+       ```bash
+       docker stack deploy -c compose.yaml {{ service_name }}
+       ```
+       Secrets are automatically created from the generated `.env.secret.*` files.
+    2. **Access the Web Interface**:
+       - {%- if traefik_enabled %}Visit: https://{{ traefik_host }}
+       {%- else %}Visit: http://<swarm-node-ip>:{{ ports_http }}{% endif %}
+    3. **Configure webhooks** in your Git platform to trigger Renovate on repository events
+    {% else -%}
+    1. **Deploy with Docker Compose**:
+       ```bash
+       docker compose up -d
+       ```
+    2. **Access the Web Interface**:
+       - {%- if traefik_enabled %}Visit: https://{{ traefik_host }}
+       {%- else %}Visit: http://localhost:{{ ports_http }}{% endif %}
+    3. **Configure webhooks** in your Git platform to trigger Renovate on repository events
+    {% endif -%}
+spec:
+  general:
+    vars:
+      service_name:
+        default: "renovate"
+      container_name:
+        default: "renovate"
+      container_hostname:
+        default: "renovate"
+      container_loglevel:
+        default: "info"
+  renovate_settings:
+    title: "Renovate Settings"
+    required: true
+    vars:
+      renovate_platform:
+        type: "enum"
+        description: "Git Platform Type"
+        options:
+          - "gitlab"
+          - "github"
+          - "gitea"
+        default: "gitlab"
+      renovate_endpoint:
+        type: "url"
+        description: "Git Platform Endpoint URL"
+        default: "https://gitlab.com"
+        extra: "e.g., https://gitlab.com, https://github.com, https://selfhosted.home.arpa, ..."
+      renovate_autodiscover:
+        type: "bool"
+        description: "Auto-discover repositories"
+        default: false
+        extra: "Automatically find and process all accessible repositories"
+  authentication:
+    title: "Authentication"
+    required: true
+    vars:
+      git_token:
+        type: "str"
+        description: "Git platform Personal Access Token"
+        sensitive: true
+        extra: "Also used for public package lookups to avoid rate limiting"
+      license_key:
+        type: "str"
+        description: "Mend Renovate CE License Key"
+        sensitive: true
+        extra: "Get a FREE license key at https://www.mend.io/mend-renovate-community/#self-hosted"
+      webhook_secret:
+        type: "str"
+        description: "Webhook secret for platform integration"
+        sensitive: true
+        optional: true
+        default: "renovate"
+  ports:
+    vars:
+      ports_http:
+        type: "int"
+        description: "External HTTP port for web interface"
+        default: 8080
+  traefik:
+    vars:
+      traefik_host:
+        default: "renovate.home.arpa"
+  swarm:
+    vars:
+      license_key_secret_name:
+        type: "str"
+        description: "Docker Swarm secret name for license key"
+        default: "renovate_license_key"
+      git_token_secret_name:
+        type: "str"
+        description: "Docker Swarm secret name for Git platform token"
+        default: "renovate_git_token"
+      webhook_secret_name:
+        type: "str"
+        description: "Docker Swarm secret name for webhook secret"
+        default: "renovate_webhook_secret"
