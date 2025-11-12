@@ -74,6 +74,7 @@ install_dependencies_linux() {
     ubuntu|debian|pop|linuxmint|elementary)
       PKG_MANAGER="apt"
       PYTHON_PKG="python3 python3-pip python3-venv"
+      PIPX_PKG="pipx"
       GIT_PKG="git"
       UPDATE_CMD="sudo apt update"
       INSTALL_CMD="sudo apt install -y"
@@ -81,6 +82,7 @@ install_dependencies_linux() {
     fedora|rhel|centos|rocky|almalinux)
       PKG_MANAGER="dnf"
       PYTHON_PKG="python3 python3-pip"
+      PIPX_PKG="pipx"
       GIT_PKG="git"
       UPDATE_CMD="sudo dnf check-update || true"
       INSTALL_CMD="sudo dnf install -y"
@@ -88,6 +90,7 @@ install_dependencies_linux() {
     opensuse*|sles)
       PKG_MANAGER="zypper"
       PYTHON_PKG="python3 python3-pip"
+      PIPX_PKG="python3-pipx"
       GIT_PKG="git"
       UPDATE_CMD="sudo zypper refresh"
       INSTALL_CMD="sudo zypper install -y"
@@ -95,6 +98,7 @@ install_dependencies_linux() {
     arch|manjaro|endeavouros)
       PKG_MANAGER="pacman"
       PYTHON_PKG="python python-pip"
+      PIPX_PKG="python-pipx"
       GIT_PKG="git"
       UPDATE_CMD="sudo pacman -Sy"
       INSTALL_CMD="sudo pacman -S --noconfirm"
@@ -102,6 +106,7 @@ install_dependencies_linux() {
     alpine)
       PKG_MANAGER="apk"
       PYTHON_PKG="python3 py3-pip"
+      PIPX_PKG="pipx"
       GIT_PKG="git"
       UPDATE_CMD="sudo apk update"
       INSTALL_CMD="sudo apk add"
@@ -131,8 +136,25 @@ install_dependencies_linux() {
   
   if ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
     log "Installing pipx..."
-    python3 -m pip install --user pipx || error "Failed to install pipx"
-    python3 -m pipx ensurepath
+    
+    if [[ -n "${PIPX_PKG:-}" ]]; then
+      if $INSTALL_CMD $PIPX_PKG 2>/dev/null; then
+        log "pipx installed from system package"
+      else
+        log "System package not available, installing via pip..."
+        python3 -m pip install --user --break-system-packages pipx 2>/dev/null || \
+        python3 -m pip install --user pipx || error "Failed to install pipx"
+      fi
+    else
+      python3 -m pip install --user --break-system-packages pipx 2>/dev/null || \
+      python3 -m pip install --user pipx || error "Failed to install pipx"
+    fi
+    
+    if command -v pipx >/dev/null 2>&1; then
+      pipx ensurepath
+    elif [[ -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
+      "$(python3 -m site --user-base)/bin/pipx" ensurepath
+    fi
   fi
 }
 
