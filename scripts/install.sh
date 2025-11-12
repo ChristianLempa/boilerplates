@@ -138,22 +138,32 @@ install_dependencies_linux() {
     log "Installing pipx..."
     
     if [[ -n "${PIPX_PKG:-}" ]]; then
-      if $INSTALL_CMD $PIPX_PKG 2>/dev/null; then
+      if $INSTALL_CMD $PIPX_PKG >/dev/null 2>&1; then
         log "pipx installed from system package"
       else
         log "System package not available, installing via pip..."
-        python3 -m pip install --user --break-system-packages pipx 2>/dev/null || \
-        python3 -m pip install --user pipx || error "Failed to install pipx"
+        if python3 -m pip install --user --break-system-packages pipx >/dev/null 2>&1; then
+          log "pipx installed via pip with --break-system-packages"
+        elif python3 -m pip install --user pipx >/dev/null 2>&1; then
+          log "pipx installed via pip"
+        else
+          error "Failed to install pipx"
+        fi
       fi
     else
-      python3 -m pip install --user --break-system-packages pipx 2>/dev/null || \
-      python3 -m pip install --user pipx || error "Failed to install pipx"
+      if python3 -m pip install --user --break-system-packages pipx >/dev/null 2>&1; then
+        log "pipx installed via pip with --break-system-packages"
+      elif python3 -m pip install --user pipx >/dev/null 2>&1; then
+        log "pipx installed via pip"
+      else
+        error "Failed to install pipx"
+      fi
     fi
     
     if command -v pipx >/dev/null 2>&1; then
-      pipx ensurepath
+      pipx ensurepath >/dev/null 2>&1
     elif [[ -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
-      "$(python3 -m site --user-base)/bin/pipx" ensurepath
+      "$(python3 -m site --user-base)/bin/pipx" ensurepath >/dev/null 2>&1
     fi
   fi
 }
