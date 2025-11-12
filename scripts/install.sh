@@ -95,7 +95,7 @@ install_dependencies_linux() {
       UPDATE_CMD="sudo zypper refresh"
       INSTALL_CMD="sudo zypper install -y"
       ;;
-    arch|manjaro|endeavouros)
+    arch|archarm|manjaro|endeavouros)
       PKG_MANAGER="pacman"
       PYTHON_PKG="python python-pip"
       PIPX_PKG="python-pipx"
