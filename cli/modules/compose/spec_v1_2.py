@@ -137,8 +137,13 @@ spec = OrderedDict(
                     "default": "traefik",
                 },
                 "traefik_host": {
-                    "description": "Domain name for your service (e.g., app.example.com)",
+                    "description": "Service subdomain or full hostname (e.g., 'app' or 'app.example.com')",
                     "type": "str",
+                },
+                "traefik_domain": {
+                    "description": "Base domain (e.g., example.com)",
+                    "type": "str",
+                    "default": "home.arpa",
                 },
                 "traefik_entrypoint": {
                     "description": "HTTP entrypoint (non-TLS)",

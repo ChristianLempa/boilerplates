@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alphabetically sorted commands in help output with grouped panels for better organization
 - Separate help panels for "Template Commands" and "Configuration Commands"
 - Compose Schema 1.2: Authentik Traefik middleware integration with `authentik_traefik_middleware` variable
+- Compose Schema 1.2: `traefik_domain` variable for base domain configuration (#1362) - Set once, use across all services
 - Markdown formatting support for template descriptions and next steps (#1471)
 - Output directory flag `--output`/`-o` for `generate` command (#1534) - Replaces positional directory argument
 
