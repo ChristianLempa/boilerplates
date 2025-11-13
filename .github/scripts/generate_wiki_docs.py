@@ -14,7 +14,12 @@ sys.path.insert(0, str(project_root))
 
 # ruff: noqa: E402
 # Import all modules to register them
+import cli.modules.ansible  # noqa: F401
 import cli.modules.compose  # noqa: F401
+import cli.modules.helm  # noqa: F401
+import cli.modules.kubernetes  # noqa: F401
+import cli.modules.packer  # noqa: F401
+import cli.modules.terraform  # noqa: F401
 from cli.core.registry import registry  # Module import after path manipulation
 
 
