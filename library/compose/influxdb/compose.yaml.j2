@@ -5,6 +5,7 @@ services:
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    hostname: {{ container_hostname }}
     environment:
       - TZ={{ container_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup
@@ -52,31 +53,54 @@ services:
       - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=8086
       - traefik.http.services.{{ service_name }}-web.loadbalancer.server.scheme=http
-      - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
       - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ service_name }}-web-https.tls=true
       - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
       - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
       {% endif %}
     {% endif %}
-    {% if swarm_enabled %}
+    {% if swarm_enabled or resources_enabled %}
     deploy:
+      {% if swarm_enabled %}
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
       {% if traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}
         - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=8086
         - traefik.http.services.{{ service_name }}-web.loadbalancer.server.scheme=http
-        - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
         - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
         - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
         {% if traefik_tls_enabled %}
-        - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
         - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
         - traefik.http.routers.{{ service_name }}-web-https.tls=true
         - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}

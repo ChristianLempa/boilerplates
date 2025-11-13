@@ -132,9 +132,9 @@ services:
       - traefik.docker.network={{ traefik_network }}
       {% endif -%}
       {% if traefik_webhook_host -%}
-      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}`) || Host(`{{ traefik_webhook_host }}`)
+      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`) || Host(`{{ traefik_webhook_host }}`)
       {% else -%}
-      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       {% endif -%}
       {% if traefik_tls_enabled -%}
       - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_tls_entrypoint }}
@@ -162,9 +162,9 @@ services:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}
         {% if traefik_webhook_host -%}
-        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}`) || Host(`{{ traefik_webhook_host }}`)
+        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`) || Host(`{{ traefik_webhook_host }}`)
         {% else -%}
-        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}`)
+        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
         {% endif -%}
         {% if traefik_tls_enabled -%}
         - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_tls_entrypoint }}

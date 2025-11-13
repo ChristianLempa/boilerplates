@@ -5,6 +5,7 @@ services:
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    hostname: {{ container_hostname }}
     environment:
       - POSTGRES_INITDB_ARGS={{ postgres_initdb_args }}
       {% if postgres_host_auth_method %}

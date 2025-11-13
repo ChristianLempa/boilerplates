@@ -1,11 +1,12 @@
 ---
 services:
   {{ service_name }}:
-    {% if not swarm_enabled %}
-    container_name: {{ container_name }}
-    hostname: {{ container_hostname }}
-    {% endif %}
     image: docker.io/prom/prometheus:v3.7.3
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
       - --storage.tsdb.retention.time={{ metrics_retention_time }}
@@ -61,7 +62,10 @@ services:
     configs:
       - source: {{ service_name }}_config
         target: /etc/prometheus/prometheus.yaml
+    {% endif %}
+    {% if swarm_enabled or resources_enabled %}
     deploy:
+      {% if swarm_enabled %}
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
@@ -73,7 +77,19 @@ services:
       {% endif %}
       restart_policy:
         condition: on-failure
-      {% if traefik_enabled %}
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {% if swarm_enabled and traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.docker.network={{ traefik_network }}
@@ -130,7 +146,7 @@ volumes:
     driver_opts:
       type: nfs
       o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
-      device: ":{{ volume_nfs_path }}"
+      device: ":{{ volume_nfs_path }}/data"
 {% endif %}
 
 {% if network_mode != 'host' %}
