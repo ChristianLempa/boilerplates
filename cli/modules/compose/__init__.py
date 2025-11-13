@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from typer import Option
+from typer import Argument, Option
 
 from ...core.module import Module
 from ...core.module.base_commands import validate_templates
@@ -35,8 +35,15 @@ class ComposeModule(Module):
 
     def validate(  # noqa: PLR0913
         self,
-        template_id: str | None = None,
-        path: str | None = None,
+        template_id: Annotated[
+            str | None,
+            Argument(help="Template ID to validate (omit to validate all templates)"),
+        ] = None,
+        *,
+        path: Annotated[
+            str | None,
+            Option("--path", help="Path to template directory for validation"),
+        ] = None,
         verbose: Annotated[bool, Option("--verbose", "-v", help="Show detailed validation information")] = False,
         semantic: Annotated[
             bool,
@@ -64,6 +71,16 @@ class ComposeModule(Module):
 
         Extended for Docker Compose with optional docker compose config validation.
         Use --docker for single config test, --docker-test-all for comprehensive testing.
+        
+        Examples:
+            # Validate specific template
+            compose validate netbox
+            
+            # Validate all templates
+            compose validate
+            
+            # Validate with Docker Compose config check
+            compose validate netbox --docker
         """
         # Run standard validation first
         validate_templates(self, template_id, path, verbose, semantic)

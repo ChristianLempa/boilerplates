@@ -31,4 +31,7 @@ dist/
 tests/
 config.yaml
 
+# Local testing documentation (homelab specific)
+WARP-LOCAL.md
+
 *~

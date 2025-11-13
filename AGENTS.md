@@ -17,6 +17,14 @@ python3 -m cli
 python3 -m cli --log-level DEBUG compose list
 ```
 
+### Production-Ready Testing
+
+For detailed information about testing boilerplates in a production-like environment before release, see **WARP-LOCAL.md** (local file, not in git). This document covers:
+- Test server infrastructure and Docker contexts
+- Step-by-step testing procedures for Docker Compose, Swarm, and Kubernetes
+- Comprehensive testing checklists
+- Production release criteria
+
 ### Linting and Formatting
 
 Should **always** happen before pushing anything to the repository.
@@ -569,8 +577,8 @@ To skip the prompt use the `--no-interactive` flag, which will use defaults or e
 - `list` - List all templates
 - `search <query>` - Search templates by ID
 - `show <id>` - Show template details
-- `generate <id> [directory]` - Generate from template (supports `--dry-run`, `--var`, `--no-interactive`)
-- `validate [id]` - Validate templates (Jinja2 + semantic)
+- `generate <id> -o <directory>` - Generate from template (supports `--dry-run`, `--var`, `--no-interactive`)
+- `validate [template_id]` - Validate template(s) (Jinja2 + semantic). Omit template_id to validate all templates
 - `defaults` - Manage config defaults (`get`, `set`, `rm`, `clear`, `list`)
 
 **Core Commands:**

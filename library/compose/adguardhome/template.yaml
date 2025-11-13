@@ -1,0 +1,92 @@
+---
+kind: compose
+schema: "1.2"
+metadata:
+  name: AdGuard Home
+  description: |
+    Network-wide software for blocking ads and tracking. AdGuard Home operates as a DNS server that
+    re-routes tracking domains to a "black hole", thus preventing your devices from connecting to those servers.
+    It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC support.
+    ## Swarm Deployment Warning
+    AdGuard Home uses local storage and configuration files and does NOT support running multiple replicas.
+    This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
+    ## References
+    * **Project:** https://adguard.com/adguard-home/overview.html
+    * **Documentation:** https://github.com/AdguardTeam/AdGuardHome/wiki
+    * **GitHub:** https://github.com/AdguardTeam/AdGuardHome
+  version: latest
+  author: Christian Lempa
+  date: '2025-11-13'
+  tags:
+    - traefik
+    - swarm
+  next_steps: |
+    ### 1. Deploy the Service
+    {% if swarm_enabled -%}
+    Deploy to Docker Swarm:
+    ```bash
+    docker stack deploy -c compose.yaml adguardhome
+    ```
+    {% else -%}
+    Start AdGuard Home using Docker Compose:
+    ```bash
+    docker compose up -d
+    ```
+    {% endif -%}
+    ### 2. Initial Setup
+    {% if traefik_enabled -%}
+    * Navigate to: **http://{{ traefik_host }}.{{ traefik_domain }}:3000**
+    {% else -%}
+    * Navigate to: **http://localhost:3000**
+    {% endif -%}
+    * Complete the initial setup wizard to configure admin credentials and DNS settings.
+    ### 3. Access the Web Interface
+    {% if traefik_enabled -%}
+    * Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**
+    {% else -%}
+    * Navigate to: **http://localhost:{{ ports_http }}**
+    {% endif -%}
+    * Login using the credentials configured during initial setup.
+spec:
+  general:
+    vars:
+      service_name:
+        default: "adguardhome"
+      container_name:
+        default: "adguardhome"
+      container_hostname:
+        default: "adguardhome"
+  traefik:
+    vars:
+      traefik_enabled:
+        needs: "network_mode=bridge"
+      traefik_host:
+        default: "adguardhome"
+  network:
+    vars:
+      network_mode:
+        extra: >
+          Use 'host' mode if you need DHCP functionality or want AdGuard Home to bind directly to port 53.
+          NOTE: Swarm only supports 'bridge' mode!
+      network_name:
+        default: "adguardhome_network"
+  ports:
+    vars:
+      ports_http:
+        description: "External HTTP port (admin panel)"
+        type: int
+        default: 3080
+        needs: ["traefik_enabled=false", "network_mode=bridge"]
+      ports_https:
+        description: "External HTTPS port"
+        type: int
+        default: 3443
+        needs: ["traefik_enabled=false", "network_mode=bridge"]
+  swarm:
+    vars:
+      swarm_enabled:
+        needs: "network_mode=bridge"
+      swarm_placement_host:
+        required: true
+        optional: false
+        needs: null

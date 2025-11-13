@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced debug logging for better troubleshooting
 - Simplified dry-run output to show only essential information (files, sizes, status)
 - Traefik template now uses module spec variable `authentik_traefik_middleware` instead of template-specific `traefik_authentik_middleware_name`
+- `validate` command now accepts template ID as positional argument (e.g., `compose validate netbox`) - Consistent with archetypes command pattern
 
 ### Deprecated
 - Positional directory argument for `generate` command (#1534) - Use `--output`/`-o` flag instead (will be removed in v0.2.0)

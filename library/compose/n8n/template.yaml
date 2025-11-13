@@ -2,7 +2,7 @@
 kind: compose
 schema: "1.2"
 metadata:
-  name: N8N Server
+  name: N8N
   description: |
     N8n is a free and source-available workflow automation tool. It enables you to connect
     various apps and services to automate repetitive tasks without coding.

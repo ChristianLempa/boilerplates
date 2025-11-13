@@ -241,8 +241,15 @@ class Module(ABC):
 
     def validate(
         self,
-        template_id: str | None = None,
-        path: str | None = None,
+        template_id: Annotated[
+            str | None,
+            Argument(help="Template ID to validate (omit to validate all templates)"),
+        ] = None,
+        *,
+        path: Annotated[
+            str | None,
+            Option("--path", help="Path to template directory for validation"),
+        ] = None,
         verbose: Annotated[bool, Option("--verbose", "-v", help="Show detailed validation information")] = False,
         semantic: Annotated[
             bool,
@@ -252,7 +259,18 @@ class Module(ABC):
             ),
         ] = True,
     ) -> None:
-        """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness."""
+        """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness.
+        
+        Examples:
+            # Validate specific template
+            cli compose validate netbox
+            
+            # Validate all templates
+            cli compose validate
+            
+            # Validate with verbose output
+            cli compose validate netbox --verbose
+        """
         return validate_templates(self, template_id, path, verbose, semantic)
 
     def config_get(

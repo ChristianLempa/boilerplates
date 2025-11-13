@@ -1,0 +1,130 @@
+---
+image:
+  repository: docker.io/netboxcommunity/netbox
+  tag: v4.2.3
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+superuser:
+  name: {{ netbox_superuser_name }}
+  email: {{ netbox_superuser_email }}
+  password: {{ netbox_superuser_password }}
+  apiToken: {{ netbox_superuser_api_token }}
+
+allowedHosts:
+  - "{{ netbox_allowed_hosts }}"
+
+{% if database_enabled %}
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: {{ database_host }}
+  port: {{ database_port }}
+  database: {{ database_name }}
+  username: {{ database_user }}
+  existingSecretPasswordKey: "postgresql-password"
+{% else %}
+postgresql:
+  enabled: true
+  auth:
+    database: {{ database_name }}
+    username: {{ database_user }}
+{% endif %}
+
+{% if redis_enabled %}
+redis:
+  enabled: false
+
+externalRedis:
+  host: {{ redis_host }}
+  port: 6379
+  database: 0
+  existingSecretPasswordKey: "redis-password"
+
+tasksRedis:
+  host: {{ redis_host }}
+  port: 6379
+  database: 0
+  existingSecretPasswordKey: "redis-password"
+
+cachingRedis:
+  host: {{ redis_cache_host }}
+  port: 6379
+  database: 1
+  existingSecretPasswordKey: "redis-password"
+{% else %}
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+{% endif %}
+
+secretKey: {{ netbox_secret_key }}
+
+{% if email_enabled %}
+email:
+  server: {{ email_host }}
+  port: {{ email_port }}
+  username: {{ email_username }}
+  from: {{ email_from }}
+  useSSL: {{ email_use_ssl | lower }}
+  useTLS: {{ email_use_tls | lower }}
+  existingSecretPasswordKey: "email-password"
+{% endif %}
+
+{% if netbox_cors_enabled %}
+cors:
+  originAllowAll: true
+  originWhitelist:
+    - {{ netbox_cors_origins }}
+{% endif %}
+
+{% if netbox_metrics_enabled %}
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+{% endif %}
+
+service:
+  type: {{ network_mode }}
+
+{% if traefik_enabled %}
+ingress:
+  enabled: true
+  className: traefik
+{% if traefik_tls_enabled and traefik_tls_certmanager %}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ certmanager_issuer }}
+{% endif %}
+  hosts:
+    - host: {{ traefik_host }}
+      paths:
+        - path: /
+          pathType: Prefix
+{% if traefik_tls_enabled %}
+  tls:
+    - secretName: {{ traefik_tls_secret }}
+      hosts:
+        - {{ traefik_host }}
+{% endif %}
+{% endif %}
+
+persistence:
+  enabled: true
+  {% if volumes_mode == 'existing-pvc' %}
+  existingClaim: {{ volumes_pvc_name }}
+  {% else %}
+  storageClass: ""
+  size: 10Gi
+  {% endif %}
+
+worker:
+  enabled: true
+  replicaCount: 1
+
+housekeeping:
+  enabled: true
