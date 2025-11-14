@@ -71,7 +71,7 @@ services:
     restart: {{ restart_policy }}
   {% elif database_type == 'postgres' %}
   {{ service_name }}-postgres:
-    image: docker.io/library/postgres:17.6
+    image: docker.io/library/postgres:17.7
     container_name: {{ service_name }}-postgres
     env_file:
       - .env.database
