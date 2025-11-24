@@ -18,6 +18,14 @@
 loki.write "default" {
   endpoint {
     url = "{{ logs_loki_url }}"
+    
+    // Batching configuration to reduce request volume and prevent rate limiting
+    batch_wait = "5s"           // Wait up to 5 seconds before sending
+    batch_size = 1048576         // Send when batch reaches 1MB (1048576 bytes)
+    
+    // Retry configuration for reliability
+    max_backoff = "5m"           // Maximum retry backoff period
+    min_backoff = "500ms"        // Minimum retry backoff period
   }
   external_labels = {}
 }
