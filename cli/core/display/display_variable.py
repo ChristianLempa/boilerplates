@@ -143,11 +143,9 @@ class VariableDisplay:
         disabled_text = settings.LABEL_DISABLED if (section.toggle and not section.is_enabled()) else ""
 
         if is_dimmed:
-            required_part = " (required)" if section.required else ""
             style = settings.STYLE_DISABLED
-            return f"[bold {style}]{section.title}{required_part}{disabled_text}[/bold {style}]"
-        required_text = settings.LABEL_REQUIRED if section.required else ""
-        return f"[bold]{section.title}{required_text}{disabled_text}[/bold]"
+            return f"[bold {style}]{section.title}{disabled_text}[/bold {style}]"
+        return f"[bold]{section.title}{disabled_text}[/bold]"
 
     def _render_variable_row(self, var_name: str, variable, is_dimmed: bool, var_satisfied: bool) -> tuple:
         """Build variable row data for table display.
@@ -171,7 +169,8 @@ class VariableDisplay:
 
         # Build variable display name
         sensitive_icon = f" {IconManager.lock()}" if variable.sensitive else ""
-        required_indicator = settings.LABEL_REQUIRED if variable.required else ""
+        # Only show required indicator if variable is enabled (not dimmed and dependencies satisfied)
+        required_indicator = settings.LABEL_REQUIRED if variable.required and not is_dimmed and var_satisfied else ""
         var_display = f"{settings.VAR_NAME_INDENT}{var_name}{sensitive_icon}{required_indicator}"
 
         return (
@@ -224,10 +223,6 @@ class VariableDisplay:
 
             # Render variables
             for var_name, variable in section.variables.items():
-                # Skip toggle variable in required sections
-                if section.required and section.toggle and var_name == section.toggle:
-                    continue
-
                 # Check if variable's needs are satisfied
                 var_satisfied = template.variables.is_variable_satisfied(var_name)
 

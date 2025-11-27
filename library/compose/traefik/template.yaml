@@ -57,6 +57,7 @@ spec:
         extra: "Only used when dashboard is enabled"
   traefik:
     title: "Settings"
+    toggle: ""  # Explicitly clear module spec toggle
     needs: []
     vars:
       traefik_network:

@@ -64,11 +64,14 @@ networks:
       config:
         - subnet: {{ network_macvlan_subnet }}
           gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
     {% else %}
     driver: bridge
     {% endif %}
     {% endif %}
-    name: {{ network_name }}
   {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true

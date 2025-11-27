@@ -86,7 +86,7 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 - `cli/core/registry.py` - Central registry for module classes (auto-discovers modules)
 - `cli/core/repo.py` - Repository management for syncing git-based template libraries
 - `cli/core/section.py` - VariableSection class (stores section metadata and variables)
-  - **Key Attributes**: `key`, `title`, `toggle`, `required`, `needs`, `variables` (dict of Variable objects)
+  - **Key Attributes**: `key`, `title`, `toggle`, `needs`, `variables` (dict of Variable objects)
 - `cli/core/template.py` - Template Class for parsing, managing and rendering templates
 - `cli/core/variable.py` - Variable class (stores variable metadata and values)
   - **Key Attributes**: `name`, `type`, `value` (stores default or current value), `description`, `sensitive`, `needs`
@@ -488,7 +488,6 @@ spec:
 - `options` - List of valid values (for enum type)
 
 **Section Features:**
-- **Required Sections**: Mark with `required: true` (general is implicit). Users must provide all values.
 - **Toggle Settings**: Conditional sections via `toggle: "bool_var_name"`. If false, section is skipped.
   - **IMPORTANT**: When a section has `toggle: "var_name"`, that boolean variable is AUTO-CREATED by the system
   - Toggle variable behavior may vary by schema version - check current schema documentation

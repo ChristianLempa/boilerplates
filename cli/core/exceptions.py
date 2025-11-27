@@ -198,6 +198,17 @@ class ModuleLoadError(ModuleError):
     pass
 
 
+class SchemaError(BoilerplatesError):
+    """Raised when schema operations fail."""
+
+    def __init__(self, message: str, details: str | None = None):
+        self.details = details
+        msg = message
+        if details:
+            msg += f" ({details})"
+        super().__init__(msg)
+
+
 class FileOperationError(BoilerplatesError):
     """Raised when file operations fail."""
 

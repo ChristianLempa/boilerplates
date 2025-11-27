@@ -6,6 +6,7 @@
 **/secret.*
 **/.env
 **/.envrc
+**/.direnv
 
 # Ignore Ansible
 **/.ansible
@@ -30,8 +31,3 @@ dist/
 # Test outputs
 tests/
 config.yaml
-
-# Local testing documentation (homelab specific)
-WARP-LOCAL.md
-
-*~

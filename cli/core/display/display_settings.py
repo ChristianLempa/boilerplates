@@ -36,7 +36,7 @@ class DisplaySettings:
     STYLE_VAR_COL_DESC = "white"
 
     # === Text Labels ===
-    LABEL_REQUIRED = " [yellow](required)[/yellow]"
+    LABEL_REQUIRED = " [yellow](*)[/yellow]"
     LABEL_DISABLED = " (disabled)"
     TEXT_EMPTY_VALUE = "(none)"
     TEXT_EMPTY_OVERRIDE = "(empty)"

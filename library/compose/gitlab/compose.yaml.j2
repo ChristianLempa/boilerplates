@@ -109,7 +109,6 @@ services:
       {% endif %}
       restart_policy:
         condition: on-failure
-      {% endif %}
       {% if resources_enabled %}
       resources:
         limits:

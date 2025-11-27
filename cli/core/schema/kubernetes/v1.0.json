@@ -1,0 +1,14 @@
+[
+  {
+    "key": "general",
+    "title": "General",
+    "required": true,
+    "vars": [
+      {
+        "name": "playbook_name",
+        "description": "Ansible playbook name",
+        "type": "str"
+      }
+    ]
+  }
+]

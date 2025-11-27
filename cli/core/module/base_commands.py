@@ -392,9 +392,7 @@ def _determine_output_dir(directory: str | None, output: str | None, id: str) ->
         output_dir = Path(id)
 
     # Normalize paths that look like absolute paths but are relative
-    if not output_dir.is_absolute() and str(output_dir).startswith(
-        ("Users/", "home/", "usr/", "opt/", "var/", "tmp/")
-    ):
+    if not output_dir.is_absolute() and str(output_dir).startswith(("Users/", "home/", "usr/", "opt/", "var/", "tmp/")):
         output_dir = Path("/") / output_dir
         logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
 
@@ -457,7 +455,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         if used_deprecated_arg:
             module_instance.display.warning(
                 "Using positional argument for output directory is deprecated and will be removed in v0.2.0",
-                details="Use --output/-o flag instead"
+                details="Use --output/-o flag instead",
             )
             module_instance.display.text("")
 

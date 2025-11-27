@@ -31,6 +31,10 @@ spec:
         type: str
         description: Path where Docker Compose stacks are stored
         default: /opt/stacks
+  network:
+    vars:
+      network_name:
+        default: "dockge_network"
   traefik:
     vars:
       traefik_host:

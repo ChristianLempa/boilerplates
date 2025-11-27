@@ -47,7 +47,9 @@ def run_docker_validation(
             _test_variable_combinations(module_instance, template, verbose)
         else:
             # Single configuration with template defaults
-            success = _validate_compose_files(module_instance, template, template.variables, verbose, "Template defaults")
+            success = _validate_compose_files(
+                module_instance, template, template.variables, verbose, "Template defaults"
+            )
             if success:
                 module_instance.display.success("Docker Compose validation passed")
             else:

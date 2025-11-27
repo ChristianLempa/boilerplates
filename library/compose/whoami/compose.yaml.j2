@@ -33,6 +33,7 @@ services:
         - traefik.http.routers.{{ service_name }}-https.tls=true
         - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
         {% endif %}
+      {% endif %}
     {% else %}
     labels:
       - traefik.enable=true

@@ -1,8 +1,0 @@
-{# @requires services.*.configs #}
-    {% if swarm_enabled %}
-    configs:
-      {# @repeat-start #}
-      - source: {{ service_name }}__ANYSTR__
-        target: __ANYPATH__
-      {# @repeat-end #}
-    {% endif %}

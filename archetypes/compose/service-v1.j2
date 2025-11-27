@@ -1,9 +1,0 @@
-{# @requires services #}
-services:
-  {{ service_name }}:
-    image: __ANY__
-    {% if not swarm_enabled %}
-    restart: {{ restart_policy }}
-    container_name: {{ container_name }}
-    {% endif %}
-    hostname: {{ container_hostname }}

@@ -48,6 +48,90 @@ class VariableCollection:
         # Validate dependencies after all sections are loaded
         self._validate_dependencies()
 
+    @classmethod
+    def from_json(cls, json_spec: list[dict[str, Any]]) -> VariableCollection:
+        """Create VariableCollection from JSON array format.
+
+        Args:
+            json_spec: List of section specifications in JSON format.
+                      Expected format:
+                      [
+                        {
+                          "key": "section_key",
+                          "title": "Section Title",
+                          "description": "Optional description",
+                          "toggle": "optional_toggle_var_name",
+                          "required": true,
+                          "needs": "dependency_section",
+                          "vars": [
+                            {
+                              "name": "var_name",
+                              "description": "Variable description",
+                              "type": "str",
+                              "default": "default_value",
+                              ...
+                            }
+                          ]
+                        }
+                      ]
+
+        Returns:
+            VariableCollection initialized from JSON spec
+
+        Raises:
+            ValueError: If json_spec is not a list or has invalid structure
+        """
+        if not isinstance(json_spec, list):
+            raise ValueError("JSON spec must be a list")
+
+        # Convert JSON array format to dict format expected by __init__
+        dict_spec = {}
+        for section_data in json_spec:
+            if not isinstance(section_data, dict):
+                raise ValueError(f"Section must be a dict, got {type(section_data).__name__}")
+
+            if "key" not in section_data:
+                raise ValueError("Section missing required 'key' field")
+
+            if "vars" not in section_data:
+                raise ValueError(f"Section '{section_data['key']}' missing required 'vars' field")
+
+            section_key = section_data["key"]
+
+            # Build section dict with optional fields
+            section_dict = {}
+            if "title" in section_data:
+                section_dict["title"] = section_data["title"]
+            if "description" in section_data:
+                section_dict["description"] = section_data["description"]
+            if "toggle" in section_data:
+                section_dict["toggle"] = section_data["toggle"]
+            if "needs" in section_data:
+                section_dict["needs"] = section_data["needs"]
+
+            # Convert vars array to dict
+            vars_dict = {}
+            if not isinstance(section_data["vars"], list):
+                raise ValueError(f"Section '{section_key}' vars must be a list")
+
+            for var_data in section_data["vars"]:
+                if not isinstance(var_data, dict):
+                    raise ValueError(f"Variable in section '{section_key}' must be a dict")
+
+                if "name" not in var_data:
+                    raise ValueError(f"Variable in section '{section_key}' missing 'name' field")
+
+                var_name = var_data["name"]
+                # Copy all fields except 'name' to the var dict
+                var_dict = {k: v for k, v in var_data.items() if k != "name"}
+                vars_dict[var_name] = var_dict
+
+            section_dict["vars"] = vars_dict
+            dict_spec[section_key] = section_dict
+
+        # Create and return VariableCollection using standard __init__
+        return cls(dict_spec)
+
     def _initialize_sections(self, spec: dict[str, Any]) -> None:
         """Initialize sections from the spec."""
         for section_key, section_data in spec.items():
@@ -77,10 +161,6 @@ class VariableCollection:
             section_init_data["description"] = data["description"]
         if "toggle" in data:
             section_init_data["toggle"] = data["toggle"]
-        if "required" in data:
-            section_init_data["required"] = data["required"]
-        elif key == "general":
-            section_init_data["required"] = True
         if "needs" in data:
             section_init_data["needs"] = data["needs"]
 
@@ -156,30 +236,48 @@ class VariableCollection:
             )
 
     @staticmethod
-    def _parse_need(need_str: str) -> tuple[str, Any | None]:
-        """Parse a need string into variable name and expected value(s).
+    def _parse_need(need_str: str) -> tuple[str, bool, Any | None]:
+        """Parse a need string into variable name, operator, and expected value(s).
 
-        Supports three formats:
-        1. New format with multiple values: "variable_name=value1,value2" - checks if variable equals any value
-        2. New format with single value: "variable_name=value" - checks if variable equals value
-        3. Old format (backwards compatibility): "section_name" - checks if section is enabled
+        Supports four formats:
+        1. Negation with multiple values: "variable_name!=value1,value2" - checks if variable does NOT equal any value
+        2. Negation with single value: "variable_name!=value" - checks if variable does NOT equal value
+        3. Equality with multiple values: "variable_name=value1,value2" - checks if variable equals any value
+        4. Equality with single value: "variable_name=value" - checks if variable equals value
+        5. Old format (backwards compatibility): "section_name" - checks if section is enabled
 
         Args:
             need_str: Need specification string
 
         Returns:
-            Tuple of (variable_or_section_name, expected_value)
-            For old format, expected_value is None (means check section enabled)
-            For new format, expected_value is the string value(s) after '=' (string or list)
+            Tuple of (variable_or_section_name, is_positive, expected_value)
+            - is_positive: True for '=' (must match), False for '!=' (must NOT match)
+            - For old format, expected_value is None (means check section enabled) and is_positive is True
+            - For new format, expected_value is the string value(s) after operator (string or list)
 
         Examples:
-            "traefik_enabled=true" -> ("traefik_enabled", "true")
-            "storage_mode=nfs" -> ("storage_mode", "nfs")
-            "network_mode=bridge,macvlan" -> ("network_mode", ["bridge", "macvlan"])
-            "traefik" -> ("traefik", None)  # Old format: section name
+            "traefik_enabled=true" -> ("traefik_enabled", True, "true")
+            "storage_mode=nfs" -> ("storage_mode", True, "nfs")
+            "network_mode=bridge,macvlan" -> ("network_mode", True, ["bridge", "macvlan"])
+            "network_mode!=host,macvlan" -> ("network_mode", False, ["host", "macvlan"])
+            "network_mode!=host" -> ("network_mode", False, "host")
+            "traefik" -> ("traefik", True, None)  # Old format: section name
         """
+        # Check for != operator first (must check before = to avoid false positive)
+        if "!=" in need_str:
+            # Negation format: variable!=value or variable!=value1,value2
+            parts = need_str.split("!=", 1)
+            var_name = parts[0].strip()
+            value_part = parts[1].strip()
+
+            # Check if multiple values are provided (comma-separated)
+            if "," in value_part:
+                values = [v.strip() for v in value_part.split(",")]
+                return (var_name, False, values)
+            return (var_name, False, value_part)
+
         if "=" in need_str:
-            # New format: variable=value or variable=value1,value2
+            # Equality format: variable=value or variable=value1,value2
             parts = need_str.split("=", 1)
             var_name = parts[0].strip()
             value_part = parts[1].strip()
@@ -187,21 +285,23 @@ class VariableCollection:
             # Check if multiple values are provided (comma-separated)
             if "," in value_part:
                 values = [v.strip() for v in value_part.split(",")]
-                return (var_name, values)
-            return (var_name, value_part)
+                return (var_name, True, values)
+            return (var_name, True, value_part)
+
         # Old format: section name (backwards compatibility)
-        return (need_str.strip(), None)
+        return (need_str.strip(), True, None)
 
     def _is_need_satisfied(self, need_str: str) -> bool:
         """Check if a single need condition is satisfied.
 
         Args:
-            need_str: Need specification ("variable=value", "variable=value1,value2" or "section_name")
+            need_str: Need specification ("variable=value", "variable!=value",
+                     "variable=value1,value2" or "section_name")
 
         Returns:
             True if need is satisfied, False otherwise
         """
-        var_or_section, expected_value = self._parse_need(need_str)
+        var_or_section, is_positive, expected_value = self._parse_need(need_str)
 
         # Old format: check if section is enabled (backwards compatibility)
         if expected_value is None:
@@ -217,12 +317,13 @@ class VariableCollection:
             return result
 
         # New format: check if variable has expected value(s)
-        result = self._check_variable_need(var_or_section, expected_value, need_str)
+        result = self._check_variable_need(var_or_section, is_positive, expected_value, need_str)
         variable = self._variable_map.get(var_or_section)
         if variable:
+            operator = "=" if is_positive else "!="
             logger.debug(
                 f"Checking variable need '{need_str}': "
-                f"var_value={variable.value}, expected={expected_value}, satisfied={result}"
+                f"var_value={variable.value} {operator} expected={expected_value}, satisfied={result}"
             )
         else:
             logger.debug(f"Checking variable need '{need_str}': variable not found, satisfied={result}")
@@ -236,22 +337,42 @@ class VariableCollection:
             return False
         return section.is_enabled()
 
-    def _check_variable_need(self, var_name: str, expected_value: Any, need_str: str) -> bool:
-        """Check if a variable-based need is satisfied."""
+    def _check_variable_need(self, var_name: str, is_positive: bool, expected_value: Any, need_str: str) -> bool:
+        """Check if a variable-based need is satisfied.
+
+        Args:
+            var_name: Variable name to check
+            is_positive: True for '=' (must match), False for '!=' (must NOT match)
+            expected_value: Expected value(s) to compare against
+            need_str: Original need string for logging
+
+        Returns:
+            True if need is satisfied, False otherwise
+        """
         variable = self._variable_map.get(var_name)
         if not variable:
-            logger.warning(f"Need references missing variable '{var_name}'")
-            return False
+            # Variable doesn't exist (filtered out because its section isn't used)
+            # For negative checks (!=), assume satisfied since the variable isn't present
+            # For positive checks (=), assume not satisfied since we can't verify the value
+            logger.debug(
+                f"Need '{need_str}' references missing variable '{var_name}' - "
+                f"treating as satisfied={not is_positive} (negative check assumes true)"
+            )
+            return not is_positive
 
         try:
             actual_value = variable.convert(variable.value)
 
             # Handle multiple expected values
             if isinstance(expected_value, list):
-                return self._matches_any_value(variable, actual_value, expected_value)
+                matches = self._matches_any_value(variable, actual_value, expected_value)
+            else:
+                # Single expected value
+                matches = self._matches_single_value(variable, actual_value, expected_value)
 
-            # Single expected value
-            return self._matches_single_value(variable, actual_value, expected_value)
+            # For positive checks (=), return match result directly
+            # For negative checks (!=), invert the result
+            return matches if is_positive else not matches
         except Exception as e:
             logger.debug(f"Failed to compare need '{need_str}': {e}")
             return False
@@ -287,7 +408,7 @@ class VariableCollection:
         # Check for missing dependencies in sections
         for section_key, section in self._sections.items():
             for dep in section.needs:
-                var_or_section, expected_value = self._parse_need(dep)
+                var_or_section, _is_positive, expected_value = self._parse_need(dep)
 
                 if expected_value is None:
                     # Old format: validate section exists
@@ -309,7 +430,7 @@ class VariableCollection:
         # Check for missing dependencies in variables
         for var_name, variable in self._variable_map.items():
             for dep in variable.needs:
-                dep_var, expected_value = self._parse_need(dep)
+                dep_var, _is_positive, expected_value = self._parse_need(dep)
                 # Only validate new format and check if variable is missing
                 if expected_value is not None and dep_var not in self._variable_map:
                     # NOTE: We only warn here, not raise an error, because the variable might be
@@ -333,7 +454,7 @@ class VariableCollection:
             section = self._sections[section_key]
             for dep in section.needs:
                 # Only check circular deps for old format (section references)
-                dep_name, expected_value = self._parse_need(dep)
+                dep_name, _is_positive, expected_value = self._parse_need(dep)
                 # Old format section dependency - check for cycles
                 if expected_value is None and dep_name in self._sections:
                     if dep_name not in visited:
@@ -466,9 +587,8 @@ class VariableCollection:
         """Sort sections with the following priority:
 
         1. Dependencies come before dependents (topological sort)
-        2. Required sections first (in their original order)
-        3. Enabled sections with satisfied dependencies next (in their original order)
-        4. Disabled sections or sections with unsatisfied dependencies last (in their original order)
+        2. Enabled sections with satisfied dependencies first (in their original order)
+        3. Disabled sections or sections with unsatisfied dependencies last (in their original order)
 
         This maintains the original ordering within each group while organizing
         sections logically for display and user interaction, and ensures that
@@ -481,15 +601,13 @@ class VariableCollection:
         section_items = [(key, self._sections[key]) for key in sorted_keys]
 
         # Define sort key: (priority, original_index)
-        # Priority: 0 = required, 1 = enabled with satisfied dependencies, 2 = disabled or unsatisfied dependencies
+        # Priority: 0 = enabled with satisfied dependencies, 1 = disabled or unsatisfied dependencies
         def get_sort_key(item_with_index):
             index, (key, section) = item_with_index
-            if section.required:
+            if section.is_enabled() and self.is_section_satisfied(key):
                 priority = 0
-            elif section.is_enabled() and self.is_section_satisfied(key):
-                priority = 1
             else:
-                priority = 2
+                priority = 1
             return (priority, index)
 
         # Sort with original index to maintain order within each priority group
@@ -593,12 +711,8 @@ class VariableCollection:
                 for var_name, variable in section.variables.items():
                     satisfied_values[var_name] = variable.convert(variable.value)
             else:
-                # Section is disabled - only include required variables
-                logger.debug(f"Section '{section_key}' is disabled - including only required variables")
-                for var_name, variable in section.variables.items():
-                    if variable.required:
-                        logger.debug(f"Including required variable '{var_name}' from disabled section '{section_key}'")
-                        satisfied_values[var_name] = variable.convert(variable.value)
+                # Section is disabled - exclude all variables
+                logger.debug(f"Section '{section_key}' is disabled - excluding all variables")
 
         return satisfied_values
 
@@ -628,22 +742,6 @@ class VariableCollection:
                 if not variable:
                     logger.warning(f"Variable '{var_name}' not found in template")
                     continue
-
-                # Check if this is a toggle variable for a required section
-                # If trying to set it to false, warn and skip
-                for section in self._sections.values():
-                    if section.required and section.toggle and section.toggle == var_name:
-                        # Convert value to bool to check if it's false
-                        try:
-                            bool_value = variable.convert(value)
-                            if not bool_value:
-                                logger.warning(
-                                    f"Ignoring attempt to disable toggle '{var_name}' "
-                                    f"for required section '{section.key}' via {origin}"
-                                )
-                                continue
-                        except Exception:
-                            pass  # If conversion fails, let normal validation handle it
 
                 # Check if variable's needs are satisfied
                 # If not, warn that the override will have no effect
@@ -755,13 +853,11 @@ class VariableCollection:
             # Check if section is enabled
             is_enabled = section.is_enabled()
             if not is_enabled:
-                logger.debug(f"Section '{section_key}' is disabled - validating only required variables")
+                logger.debug(f"Section '{section_key}' is disabled - skipping all variables")
+                continue
 
             # Validate variables in the section
             for var_name, variable in section.variables.items():
-                if not is_enabled:
-                    continue
-
                 self._validate_single_variable(section, var_name, variable, errors)
 
     def _validate_single_variable(self, section, var_name: str, variable: Variable, errors: list[str]) -> None:
@@ -773,8 +869,6 @@ class VariableCollection:
 
             # Check required fields
             if variable.value is None:
-                if hasattr(variable, "optional") and variable.optional:
-                    return
                 if variable.is_required():
                     # Enhanced error message with context
                     origin_info = f" from {variable.origin}" if variable.origin else ""
@@ -876,7 +970,6 @@ class VariableCollection:
                 # Set to the other value even if null/empty (enables explicit reset)
                 setattr(merged_section, attr, getattr(other_section, attr))
 
-        merged_section.required = other_section.required
         # Respect explicit clears for dependencies (explicit null/empty clears, missing field preserves)
         if hasattr(other_section, "_explicit_fields") and "needs" in other_section._explicit_fields:
             merged_section.needs = other_section.needs.copy() if other_section.needs else []
@@ -905,7 +998,7 @@ class VariableCollection:
 
                 # For boolean flags, only copy if explicitly provided in other
                 # This prevents False defaults from overriding True values
-                for bool_field in ("optional", "autogenerated", "required"):
+                for bool_field in ("autogenerated", "required"):
                     if bool_field in other_var._explicit_fields:
                         update[bool_field] = getattr(other_var, bool_field)
 
@@ -958,7 +1051,6 @@ class VariableCollection:
                     "title": section.title,
                     "description": section.description,
                     "toggle": section.toggle,
-                    "required": section.required,
                     "needs": section.needs.copy() if section.needs else None,
                 }
             )

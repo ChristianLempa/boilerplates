@@ -32,8 +32,6 @@ class VariableSection:
         self.toggle: str | None = data.get("toggle")
         # Track which fields were explicitly provided (to support explicit clears)
         self._explicit_fields: set[str] = set(data.keys())
-        # Default "general" section to required=True, all others to required=False
-        self.required: bool = data.get("required", data["key"] == "general")
         # Section dependencies - can be string or list of strings
         # Supports semicolon-separated multiple conditions: "var1=value1;var2=value2,value3"
         needs_value = data.get("needs")
@@ -52,7 +50,6 @@ class VariableSection:
     def to_dict(self) -> dict[str, Any]:
         """Serialize VariableSection to a dictionary for storage."""
         section_dict = {
-            "required": self.required,
             "vars": {name: var.to_dict() for name, var in self.variables.items()},
         }
 
@@ -71,12 +68,8 @@ class VariableSection:
         """Check if section is currently enabled based on toggle variable.
 
         Returns:
-            True if section is enabled (required, no toggle, or toggle is True), False otherwise
+            True if section is enabled (no toggle, or toggle is True), False otherwise
         """
-        # Required sections are always enabled, regardless of toggle
-        if self.required:
-            return True
-
         if not self.toggle:
             return True
 
@@ -110,7 +103,6 @@ class VariableSection:
                 "title": self.title,
                 "description": self.description,
                 "toggle": self.toggle,
-                "required": self.required,
                 "needs": self.needs.copy() if self.needs else None,
             }
         )

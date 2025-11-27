@@ -1,27 +1,110 @@
-# (Optional) when using custom network
-# networks:
-#   yournetwork:
-#     external: true
-volumes:
-  mariadb-data:
 services:
-  mariadb:
-    image: docker.io/library/mariadb:12.0.2
-    # (Optional) remove this section when you don't want to expose
-    ports:
-      - 3306:3306
+  {{ service_name }}:
+    image: docker.io/library/mariadb:{{ mariadb_version }}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
     environment:
-      # (Optional) remove this section, when using random, or empty root password
-      - MARIADB_ROOT_PASSWORD=your-root-password
-      # (Optional) when using random, or empty root password
-      # - MARIADB_RANDOM_ROOT_PASSWORD=true
-      # - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=true
-      - MARIADB_DATABASE=your-database
-      - MARIADB_USER=your-user
-      - MARIADB_PASSWORD=your-password
+      - TZ={{ container_timezone }}
+      {% if mariadb_root_password_mode == 'set' %}
+      - MARIADB_ROOT_PASSWORD={{ mariadb_root_password }}
+      {% elif mariadb_root_password_mode == 'random' %}
+      - MARIADB_RANDOM_ROOT_PASSWORD=true
+      {% else %}
+      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=true
+      {% endif %}
+      - MARIADB_DATABASE={{ mariadb_database }}
+      - MARIADB_USER={{ mariadb_user }}
+      {% if swarm_enabled %}
+      - MARIADB_PASSWORD=/run/secrets/mariadb_password
+      {% else %}
+      - MARIADB_PASSWORD={{ mariadb_password }}
+      {% endif %}
+    {% if mariadb_port_enabled %}
+    ports:
+      - {{ mariadb_port }}:3306
+    {% endif %}
     volumes:
-      - mariadb-data:/var/lib/mysql
-    # (Optional) when using custom network
-    # networks:
-    #   - yournetwork
-    restart: unless-stopped
+      {% if volume_mode == 'local' %}
+      - {{ service_name }}_data:/var/lib/mysql
+      {% elif volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/{{ service_name }}:/var/lib/mysql
+      {% elif volume_mode == 'nfs' %}
+      - type: volume
+        source: {{ service_name }}_data
+        target: /var/lib/mysql
+        volume:
+          nocopy: true
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - mariadb_password
+    deploy:
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% else %}
+      mode: global
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+      {% endif %}
+    {% endif %}
+{% if network_mode != 'host' %}
+networks:
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+{% endif %}
+volumes:
+  {{ service_name }}_data:
+    {% if volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: {{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/{{ service_name }}"
+    {% endif %}
+{% if swarm_enabled %}
+secrets:
+  mariadb_password:
+    external: true
+{% endif %}

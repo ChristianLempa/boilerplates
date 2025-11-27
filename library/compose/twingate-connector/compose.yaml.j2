@@ -1,22 +1,88 @@
 services:
-  twingate_connector:
-    container_name: twingate_connector
-    image: docker.io/twingate/connector:1.79.0
+  {{ service_name }}:
+    image: docker.io/twingate/connector:{{ twingate_version }}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
     environment:
-      - TWINGATE_NETWORK=  # FIXME Add your Twingate network name here
+      - TZ={{ container_timezone }}
+      - TWINGATE_NETWORK={{ twingate_network }}
+      {% if swarm_enabled %}
+      - TWINGATE_ACCESS_TOKEN=/run/secrets/twingate_access_token
+      - TWINGATE_REFRESH_TOKEN=/run/secrets/twingate_refresh_token
+      {% else %}
       - TWINGATE_ACCESS_TOKEN=${TWINGATE_ACCESS_TOKEN:?error}
       - TWINGATE_REFRESH_TOKEN=${TWINGATE_REFRESH_TOKEN:?error}
-      - TWINGATE_LOG_LEVEL=1
-      - TWINGATE_DNS=  # FIXME Add your local DNS server here, if needed (e.g. 10.0.0.1), otherwise remove this line
+      {% endif %}
+      - TWINGATE_LOG_LEVEL={{ twingate_log_level }}
+      {% if twingate_dns %}
+      - TWINGATE_DNS={{ twingate_dns }}
+      {% endif %}
     sysctls:
       net.ipv4.ping_group_range: "0 2147483647"
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
     networks:
-      - frontend
-      - backend
-    restart: unless-stopped
-
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - twingate_access_token
+      - twingate_refresh_token
+    deploy:
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% else %}
+      mode: global
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+      {% endif %}
+    {% endif %}
+{% if network_mode != 'host' %}
 networks:
-  frontend:
+  {{ network_name }}:
+    {% if network_external %}
     external: true
-  backend:
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+{% endif %}
+{% if swarm_enabled %}
+secrets:
+  twingate_access_token:
     external: true
+  twingate_refresh_token:
+    external: true
+{% endif %}

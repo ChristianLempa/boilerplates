@@ -133,7 +133,7 @@ services:
     {% endif %}
 
 {% if swarm_enabled %}
-{% if volume_mode in ['local', 'nfs'] %}
+{% if volume_mode == 'local' or volume_mode == 'nfs' %}
 volumes:
   traefik_certs:
     {% if volume_mode == 'nfs' %}

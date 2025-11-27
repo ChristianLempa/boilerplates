@@ -106,7 +106,9 @@ spec:
   traefik:
     vars:
       traefik_host:
-        default: "renovate.home.arpa"
+        default: "renovate"
+      traefik_domain:
+        default: "home.arpa"
   swarm:
     vars:
       license_key_secret_name:

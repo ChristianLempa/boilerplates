@@ -168,8 +168,7 @@ class Module(ABC):
         self,
         id: Annotated[str, Argument(help="Template ID")],
         directory: Annotated[
-            str | None,
-            Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
+            str | None, Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
         ] = None,
         *,
         output: Annotated[
@@ -260,14 +259,14 @@ class Module(ABC):
         ] = True,
     ) -> None:
         """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness.
-        
+
         Examples:
             # Validate specific template
             cli compose validate netbox
-            
+
             # Validate all templates
             cli compose validate
-            
+
             # Validate with verbose output
             cli compose validate netbox --verbose
         """

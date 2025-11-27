@@ -3,24 +3,49 @@ kind: compose
 schema: "1.2"
 metadata:
   name: Nginx Proxy Manager
-  description: >
-    A lightweight Nginx-based reverse proxy container designed to manage and route traffic to various web services.
-    It provides an easy-to-use interface for configuring and managing multiple proxy hosts, SSL certificates, and access control.
-
-
-    Project: https://github.com/nginx-proxy-manager/nginx-proxy-manager
-
-    Documentation: https://nginxproxymanager.com/
-
-    GitHub: https://github.com/nginx-proxy-manager/nginx-proxy-manager
+  description: |
+    Nginx Proxy Manager is a lightweight, easy-to-use reverse proxy management tool with a beautiful web interface.
+    It enables you to easily forward traffic to your websites running at home or in the cloud, complete with
+    free SSL certificates via Let's Encrypt.
+    
+    Project: https://nginxproxymanager.com/
+    Documentation: https://nginxproxymanager.com/guide/
+    GitHub: https://github.com/NginxProxyManager/nginx-proxy-manager
   version: 2.12.6
   author: Christian Lempa
   date: '2025-09-28'
-  tags: []
+  tags:
+    - proxy
+    - nginx
+    - ssl
 spec:
   general:
     vars:
-      volumes_version:
+      service_name:
+        default: npm
+      container_name:
+        default: nginx-proxy-manager
+      container_hostname:
+        default: nginx-proxy-manager
+  database:
+    required: true
+    vars:
+      database_name:
+        default: npm
+      database_user:
+        default: npm
+      database_password:
+        default: changeme
+      database_port:
+        default: 3306
+      database_root_password:
         type: str
-        description: Volumes version
-        default: latest
+        description: Database root password
+        sensitive: true
+        default: changeme
+  ports:
+    vars:
+      ports_http:
+        default: 80
+      ports_https:
+        default: 443

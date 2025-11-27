@@ -3,24 +3,50 @@ kind: compose
 schema: "1.2"
 metadata:
   name: Homepage
-  description: >
-    Docker compose setup for a homepage/dashboard application.
-    This template provides a simple way to deploy a personal or organizational homepage using Docker Compose.
-
-
+  description: |
+    Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations
+    for over 100 services and translations into multiple languages.
+    
     Project: https://gethomepage.dev/
-
-    Documentation: https://docs.gethomepage.dev/
-
+    Documentation: https://gethomepage.dev/latest/
     GitHub: https://github.com/gethomepage/homepage
   version: v1.6.1
   author: Christian Lempa
   date: '2025-11-05'
-  tags: []
+  tags:
+    - dashboard
+    - traefik
 spec:
   general:
     vars:
-      homepage_version:
+      service_name:
+        default: homepage
+      container_name:
+        default: homepage
+      container_hostname:
+        default: homepage
+  homepage:
+    title: Homepage Configuration
+    required: true
+    vars:
+      homepage_allowed_hosts:
         type: str
-        description: Homepage version
-        default: latest
+        description: Allowed hosts (comma-separated, required for security)
+        default: "*"
+        extra: "Set to specific domains in production (e.g., homepage.home.arpa)"
+      homepage_puid:
+        type: int
+        description: User ID (optional, leave 0 to use container default)
+        default: 0
+      homepage_pgid:
+        type: int
+        description: Group ID (optional, leave 0 to use container default)
+        default: 0
+  ports:
+    vars:
+      ports_http:
+        default: 3000
+  traefik:
+    vars:
+      traefik_host:
+        default: homepage

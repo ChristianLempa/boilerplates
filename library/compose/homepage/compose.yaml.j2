@@ -1,34 +1,131 @@
 services:
-  homepage:
+  {{ service_name }}:
     image: ghcr.io/gethomepage/homepage:v1.6.1
-    container_name: homepage
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
     environment:
-      # (Required) See https://gethomepage.dev/installation/#homepage_allowed_hosts
-      - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS:?HOMEPAGE_ALLOWED_HOSTS not set}
-      - LOG_LEVEL=info
-    # (Optional) Run as a specific user
-    #   - PUID=your-user-id
-    #   - PGID=your-group-id
-    # (Optional) For secret variables
-    #   - HOMEPAGE_VAR_YOURSECRET=your-secret-key
+      - TZ={{ container_timezone }}
+      - LOG_LEVEL={{ container_loglevel }}
+      - HOMEPAGE_ALLOWED_HOSTS={{ homepage_allowed_hosts }}
+      {% if homepage_puid %}
+      - PUID={{ homepage_puid }}
+      - PGID={{ homepage_pgid }}
+      {% endif %}
+    {% if not traefik_enabled and network_mode == 'bridge' %}
     ports:
-      - 3000:3000
+      - {{ ports_http }}:3000
+    {% endif %}
     volumes:
-      - ./config:/app/config
-      - ./images:/app/images  # for custom background images
-      - ./icons:/app/icons  # for custom icons
-    restart: unless-stopped
-#   (Optional) For secure docker socket integration
-#   dockerproxy:
-#     image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.1
-#     container_name: homepage-demo-1-dockerproxy
-#     environment:
-#       - CONTAINERS=1 # Allow access to viewing containers
-#       - SERVICES=1 # Allow access to viewing services (necessary when using Docker Swarm)
-#       - TASKS=1 # Allow access to viewing tasks (necessary when using Docker Swarm)
-#       - POST=0 # Disallow any POST operations (effectively read-only)
-#     ports:
-#       - 127.0.0.1:2375:2375
-#     volumes:
-#       - /run/docker.sock:/run/docker.sock:ro # Mounted as read-only
-#     restart: unless-stopped
+      {% if volume_mode == 'local' %}
+      - {{ service_name }}_config:/app/config
+      - {{ service_name }}_images:/app/images
+      - {{ service_name }}_icons:/app/icons
+      {% elif volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/{{ service_name }}/config:/app/config
+      - {{ volume_mount_path }}/{{ service_name }}/images:/app/images
+      - {{ volume_mount_path }}/{{ service_name }}/icons:/app/icons
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if traefik_enabled %}
+    {% if not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=3000
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    {% endif %}
+    {% if swarm_enabled %}
+    deploy:
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% else %}
+      mode: global
+      {% endif %}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=3000
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+      {% endif %}
+    {% endif %}
+{% if network_mode != 'host' %}
+networks:
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}_config:
+  {{ service_name }}_images:
+  {{ service_name }}_icons:
+{% endif %}

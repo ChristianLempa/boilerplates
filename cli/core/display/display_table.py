@@ -192,13 +192,10 @@ class TableDisplay:
     ) -> str:
         """Build section label with metadata."""
         section_desc = section_data.get("description", "")
-        section_required = section_data.get("required", False)
         section_toggle = section_data.get("toggle")
         section_needs = section_data.get("needs")
 
         label = f"[cyan]{section_name}[/cyan]"
-        if section_required:
-            label += " [yellow](required)[/yellow]"
         if section_toggle:
             label += f" [dim](toggle: {section_toggle})[/dim]"
         if section_needs:

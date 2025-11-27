@@ -3,7 +3,7 @@ global:
   checkNewVersion: false
   sendAnonymousUsage: false
 
-{% if container_loglevel is defined %}
+{% if container_loglevel %}
 log:
   level: {{ container_loglevel | upper }}
 {% endif %}

@@ -1,29 +1,188 @@
-volumes:
-  nginxproxymanager-data:
-  nginxproxymanager-ssl:
-  nginxproxymanager-db:
 services:
-  nginxproxymanager:
+  {{ service_name }}:
     image: docker.io/jc21/nginx-proxy-manager:2.12.6
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
+    environment:
+      - TZ={{ container_timezone }}
+      - DB_MYSQL_HOST={{ service_name }}-db
+      - DB_MYSQL_PORT={{ database_port }}
+      - DB_MYSQL_USER={{ database_user }}
+      {% if swarm_enabled %}
+      - DB_MYSQL_PASSWORD=/run/secrets/database_password
+      {% else %}
+      - DB_MYSQL_PASSWORD={{ database_password }}
+      {% endif %}
+      - DB_MYSQL_NAME={{ database_name }}
     ports:
-      - 80:80
+      - {{ ports_http }}:80
       - 81:81
-      - 443:443
-    environment:
-      - DB_MYSQL_HOST=nginxproxymanager-db
-      - DB_MYSQL_PORT=3306
-      - DB_MYSQL_USER=npm
-      - DB_MYSQL_PASSWORD=npm
-      - DB_MYSQL_NAME=npm
+      - {{ ports_https }}:443
     volumes:
-      - nginxproxymanager-data:/data
-      - nginxproxymanager-ssl:/etc/letsencrypt
-  nginxproxymanager-db:
+      {% if volume_mode == 'local' %}
+      - {{ service_name }}_data:/data
+      - {{ service_name }}_ssl:/etc/letsencrypt
+      {% elif volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/{{ service_name }}/data:/data
+      - {{ volume_mount_path }}/{{ service_name }}/ssl:/etc/letsencrypt
+      {% elif volume_mode == 'nfs' %}
+      - type: volume
+        source: {{ service_name }}_data
+        target: /data
+        volume:
+          nocopy: true
+      - type: volume
+        source: {{ service_name }}_ssl
+        target: /etc/letsencrypt
+        volume:
+          nocopy: true
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name }}-db
+    {% if swarm_enabled %}
+    secrets:
+      - database_password
+    deploy:
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% else %}
+      mode: global
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+      {% endif %}
+    {% endif %}
+  {{ service_name }}-db:
     image: docker.io/jc21/mariadb-aria:10.11.5
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}-db
+    {% endif %}
+    hostname: {{ container_hostname }}-db
     environment:
-      - MYSQL_ROOT_PASSWORD=npm
-      - MYSQL_DATABASE=npm
-      - MYSQL_USER=npm
-      - MYSQL_PASSWORD=npm
+      - TZ={{ container_timezone }}
+      {% if swarm_enabled %}
+      - MYSQL_ROOT_PASSWORD=/run/secrets/database_root_password
+      - MYSQL_PASSWORD=/run/secrets/database_password
+      {% else %}
+      - MYSQL_ROOT_PASSWORD={{ database_root_password }}
+      - MYSQL_PASSWORD={{ database_password }}
+      {% endif %}
+      - MYSQL_DATABASE={{ database_name }}
+      - MYSQL_USER={{ database_user }}
     volumes:
-      - nginxproxymanager-db:/var/lib/mysql
+      {% if volume_mode == 'local' %}
+      - {{ service_name }}_db:/var/lib/mysql
+      {% elif volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/{{ service_name }}/db:/var/lib/mysql
+      {% elif volume_mode == 'nfs' %}
+      - type: volume
+        source: {{ service_name }}_db
+        target: /var/lib/mysql
+        volume:
+          nocopy: true
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - database_root_password
+      - database_password
+    deploy:
+      replicas: 1
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+      {% endif %}
+    {% endif %}
+{% if network_mode != 'host' %}
+networks:
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+{% endif %}
+volumes:
+  {{ service_name }}_data:
+    {% if volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: {{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/{{ service_name }}/data"
+    {% endif %}
+  {{ service_name }}_ssl:
+    {% if volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: {{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/{{ service_name }}/ssl"
+    {% endif %}
+  {{ service_name }}_db:
+    {% if volume_mode == 'nfs' %}
+    driver: local
+    driver_opts:
+      type: nfs
+      o: {{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/{{ service_name }}/db"
+    {% endif %}
+{% if swarm_enabled %}
+secrets:
+  database_root_password:
+    external: true
+  database_password:
+    external: true
+{% endif %}
