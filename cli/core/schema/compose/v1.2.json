@@ -396,6 +396,7 @@
         "name": "database_host",
         "description": "Database host",
         "type": "str",
+        "needs": "database_external=true",
         "default": "database",
         "required": true
       },

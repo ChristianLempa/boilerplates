@@ -23,7 +23,11 @@ services:
       {% else %}
       - ALLOWED_HOSTS=*
       {% endif %}
+      {% if database_external %}
+      - DB_HOST={{ database_host }}
+      {% else %}
       - DB_HOST={{ service_name }}-postgres
+      {% endif %}
       - DB_NAME={{ database_name }}
       - DB_USER={{ database_user }}
       - DB_PASSWORD=${DATABASE_PASSWORD}
@@ -105,7 +109,11 @@ services:
       - {{ service_name }}-redis
     environment:
       - TZ={{ container_timezone }}
+      {% if database_external %}
+      - DB_HOST={{ database_host }}
+      {% else %}
       - DB_HOST={{ service_name }}-postgres
+      {% endif %}
       - DB_NAME={{ database_name }}
       - DB_USER={{ database_user }}
       - DB_PASSWORD=${DATABASE_PASSWORD}
