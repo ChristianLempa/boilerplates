@@ -87,50 +87,89 @@ class VariableCollection:
         # Convert JSON array format to dict format expected by __init__
         dict_spec = {}
         for section_data in json_spec:
-            if not isinstance(section_data, dict):
-                raise ValueError(f"Section must be a dict, got {type(section_data).__name__}")
-
-            if "key" not in section_data:
-                raise ValueError("Section missing required 'key' field")
-
-            if "vars" not in section_data:
-                raise ValueError(f"Section '{section_data['key']}' missing required 'vars' field")
-
-            section_key = section_data["key"]
-
-            # Build section dict with optional fields
-            section_dict = {}
-            if "title" in section_data:
-                section_dict["title"] = section_data["title"]
-            if "description" in section_data:
-                section_dict["description"] = section_data["description"]
-            if "toggle" in section_data:
-                section_dict["toggle"] = section_data["toggle"]
-            if "needs" in section_data:
-                section_dict["needs"] = section_data["needs"]
-
-            # Convert vars array to dict
-            vars_dict = {}
-            if not isinstance(section_data["vars"], list):
-                raise ValueError(f"Section '{section_key}' vars must be a list")
-
-            for var_data in section_data["vars"]:
-                if not isinstance(var_data, dict):
-                    raise ValueError(f"Variable in section '{section_key}' must be a dict")
-
-                if "name" not in var_data:
-                    raise ValueError(f"Variable in section '{section_key}' missing 'name' field")
-
-                var_name = var_data["name"]
-                # Copy all fields except 'name' to the var dict
-                var_dict = {k: v for k, v in var_data.items() if k != "name"}
-                vars_dict[var_name] = var_dict
-
+            section_key = cls._validate_and_extract_section_key(section_data)
+            section_dict = cls._build_section_dict(section_data)
+            vars_dict = cls._convert_vars_to_dict(section_data, section_key)
             section_dict["vars"] = vars_dict
             dict_spec[section_key] = section_dict
 
         # Create and return VariableCollection using standard __init__
         return cls(dict_spec)
+
+    @staticmethod
+    def _validate_and_extract_section_key(section_data: Any) -> str:
+        """Validate section data and extract the section key.
+
+        Args:
+            section_data: Section data to validate
+
+        Returns:
+            The section key
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if not isinstance(section_data, dict):
+            raise ValueError(f"Section must be a dict, got {type(section_data).__name__}")
+
+        if "key" not in section_data:
+            raise ValueError("Section missing required 'key' field")
+
+        if "vars" not in section_data:
+            raise ValueError(f"Section '{section_data['key']}' missing required 'vars' field")
+
+        return section_data["key"]
+
+    @staticmethod
+    def _build_section_dict(section_data: dict[str, Any]) -> dict[str, Any]:
+        """Build section dictionary with optional fields.
+
+        Args:
+            section_data: Source section data
+
+        Returns:
+            Dictionary with only present optional fields
+        """
+        section_dict = {}
+        optional_fields = ["title", "description", "toggle", "needs"]
+
+        for field in optional_fields:
+            if field in section_data:
+                section_dict[field] = section_data[field]
+
+        return section_dict
+
+    @staticmethod
+    def _convert_vars_to_dict(section_data: dict[str, Any], section_key: str) -> dict[str, Any]:
+        """Convert vars array to dictionary format.
+
+        Args:
+            section_data: Section data containing vars array
+            section_key: Section key for error messages
+
+        Returns:
+            Dictionary mapping variable names to their specifications
+
+        Raises:
+            ValueError: If vars format is invalid
+        """
+        if not isinstance(section_data["vars"], list):
+            raise ValueError(f"Section '{section_key}' vars must be a list")
+
+        vars_dict = {}
+        for var_data in section_data["vars"]:
+            if not isinstance(var_data, dict):
+                raise ValueError(f"Variable in section '{section_key}' must be a dict")
+
+            if "name" not in var_data:
+                raise ValueError(f"Variable in section '{section_key}' missing 'name' field")
+
+            var_name = var_data["name"]
+            # Copy all fields except 'name' to the var dict
+            var_dict = {k: v for k, v in var_data.items() if k != "name"}
+            vars_dict[var_name] = var_dict
+
+        return vars_dict
 
     def _initialize_sections(self, spec: dict[str, Any]) -> None:
         """Initialize sections from the spec."""
@@ -604,10 +643,7 @@ class VariableCollection:
         # Priority: 0 = enabled with satisfied dependencies, 1 = disabled or unsatisfied dependencies
         def get_sort_key(item_with_index):
             index, (key, section) = item_with_index
-            if section.is_enabled() and self.is_section_satisfied(key):
-                priority = 0
-            else:
-                priority = 1
+            priority = 0 if section.is_enabled() and self.is_section_satisfied(key) else 1
             return (priority, index)
 
         # Sort with original index to maintain order within each priority group

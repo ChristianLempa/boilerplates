@@ -104,9 +104,12 @@ services:
       - /opt/netbox/netbox/manage.py
       - rqworker
     depends_on:
-      - {{ service_name }}
+      {% if not database_external %}
       - {{ service_name }}-postgres
+      {% endif %}
+      - {{ service_name }}
       - {{ service_name }}-redis
+      - {{ service_name }}-redis-cache
     environment:
       - TZ={{ container_timezone }}
       {% if database_external %}
