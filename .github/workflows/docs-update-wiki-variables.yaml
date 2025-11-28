@@ -32,6 +32,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
+      - name: Detect wiki default branch
+        id: wiki_branch
+        run: |
+          cd wiki
+          BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Wiki default branch: $BRANCH"
+
       - name: Initialize wiki if it doesn't exist
         run: |
           if [ ! -d "wiki/.git" ]; then
@@ -73,11 +81,16 @@ jobs:
       - name: Commit and push changes
         if: steps.changes.outputs.has_changes == 'true'
         working-directory: wiki
+        env:
+          WIKI_BRANCH: ${{ steps.wiki_branch.outputs.branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "Auto-update variable documentation from schema changes"
-          git push
+          
+          # Pull with rebase to handle any remote changes, then push
+          git pull --rebase origin "$WIKI_BRANCH"
+          git push origin "$WIKI_BRANCH"
 
       - name: Summary
         run: |
