@@ -45,8 +45,11 @@ services:
       - EMAIL_FROM={{ email_from }}
       - EMAIL_USERNAME={{ email_username }}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-      - EMAIL_USE_SSL={{ email_use_ssl }}
-      - EMAIL_USE_TLS={{ email_use_tls }}
+      {% if email_encryption == "ssl" %}
+      - EMAIL_USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - EMAIL_USE_TLS=True
+      {% endif %}
       {% endif %}
     networks:
       {% if traefik_enabled %}

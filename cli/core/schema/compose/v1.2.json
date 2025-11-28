@@ -451,7 +451,7 @@
         "name": "email_port",
         "description": "SMTP server port",
         "type": "int",
-        "default": 587,
+        "default": 25,
         "required": true
       },
       {
@@ -474,18 +474,10 @@
         "required": true
       },
       {
-        "name": "email_use_tls",
-        "description": "Use TLS encryption",
-        "type": "bool",
-        "default": true,
-        "required": true
-      },
-      {
-        "name": "email_use_ssl",
-        "description": "Use SSL encryption",
-        "type": "bool",
-        "default": false,
-        "required": true
+        "name": "email_encryption",
+        "description": "Email encryption method to use",
+        "type": "enum",
+        "options": ["none", "starttls", "ssl"]
       }
     ]
   },
