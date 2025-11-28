@@ -1,5 +1,5 @@
 ---
-name: Docs - Update Wiki Variables
+name: Docs - Update Wiki
 
 'on':
   push:
@@ -8,8 +8,9 @@ name: Docs - Update Wiki Variables
     paths:
       - 'cli/modules/*/spec_*.py'
       - 'cli/modules/*/__init__.py'
+      - '.wiki/**'
       - '.github/scripts/generate_wiki_docs.py'
-      - '.github/workflows/docs-update-wiki-variables.yaml'
+      - '.github/workflows/docs-update-wiki.yaml'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
@@ -44,6 +45,23 @@ jobs:
       - name: Generate variable documentation
         run: |
           python3 .github/scripts/generate_wiki_docs.py wiki/
+
+      - name: Sync wiki pages from .wiki directory
+        run: |
+          # Copy all markdown files from .wiki/ to wiki/ (except Variables-*.md which are auto-generated)
+          if [ -d ".wiki" ]; then
+            echo "Syncing wiki pages from .wiki/ directory..."
+            for file in .wiki/*.md; do
+              filename=$(basename "$file")
+              # Skip auto-generated variable documentation files
+              if [[ ! "$filename" =~ ^Variables- ]]; then
+                echo "  Copying $filename"
+                cp "$file" "wiki/$filename"
+              fi
+            done
+          else
+            echo "No .wiki directory found, skipping static wiki pages sync"
+          fi
 
       - name: Check for changes
         id: changes
