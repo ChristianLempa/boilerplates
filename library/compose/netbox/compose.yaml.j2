@@ -71,7 +71,6 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}-web.name={{ service_name }}-web
       - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=8080
       - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
@@ -84,11 +83,6 @@ services:
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   {{ service_name }}-worker:
     image: docker.io/netboxcommunity/netbox:v4.2.3

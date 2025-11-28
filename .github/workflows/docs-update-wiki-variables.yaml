@@ -30,6 +30,18 @@ jobs:
           repository: ${{ github.repository }}.wiki
           path: wiki
           token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Initialize wiki if it doesn't exist
+        run: |
+          if [ ! -d "wiki/.git" ]; then
+            echo "Wiki repository not found. Please enable the wiki in repository settings:"
+            echo "1. Go to https://github.com/${{ github.repository }}/settings"
+            echo "2. Enable 'Wikis' under Features"
+            echo "3. Create the first page at https://github.com/${{ github.repository }}/wiki"
+            echo "4. Re-run this workflow"
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -39,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install typer rich pyyaml jinja2
+          pip install -e .
 
       - name: Generate variable documentation
         run: |
