@@ -31,27 +31,6 @@ jobs:
           repository: ${{ github.repository }}.wiki
           path: wiki
           token: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      - name: Detect wiki default branch
-        id: wiki_branch
-        run: |
-          cd wiki
-          # Try to get default branch from symbolic ref, fallback to current branch
-          BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || git rev-parse --abbrev-ref HEAD)
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-          echo "Wiki default branch: $BRANCH"
-
-      - name: Initialize wiki if it doesn't exist
-        run: |
-          if [ ! -d "wiki/.git" ]; then
-            echo "Wiki repository not found. Please enable the wiki in repository settings:"
-            echo "1. Go to https://github.com/${{ github.repository }}/settings"
-            echo "2. Enable 'Wikis' under Features"
-            echo "3. Create the first page at https://github.com/${{ github.repository }}/wiki"
-            echo "4. Re-run this workflow"
-            exit 1
-          fi
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -100,16 +79,15 @@ jobs:
       - name: Commit and push changes
         if: steps.changes.outputs.has_changes == 'true'
         working-directory: wiki
-        env:
-          WIKI_BRANCH: ${{ steps.wiki_branch.outputs.branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "Auto-update variable documentation from schema changes"
+          git commit -m "Auto-update wiki pages"
           
           # Pull with rebase to handle any remote changes, then push
-          git pull --rebase origin "$WIKI_BRANCH"
-          git push origin "$WIKI_BRANCH"
+          # GitHub wikis use master as default branch
+          git pull --rebase origin master
+          git push origin master
 
       - name: Summary
         run: |
