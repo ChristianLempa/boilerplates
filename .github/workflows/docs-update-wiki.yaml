@@ -6,11 +6,10 @@ name: Docs - Update Wiki
     branches:
       - release/v0.1.0  # TODO: Switch to 'main' after v0.1.0 release
     paths:
-      - 'cli/modules/*/spec_*.py'
-      - 'cli/modules/*/__init__.py'
-      - '.wiki/**'
-      - '.github/scripts/generate_wiki_docs.py'
-      - '.github/workflows/docs-update-wiki.yaml'
+      - 'cli/core/schema/**/*.json'  # JSON schema files
+      - '.wiki/**'  # Static wiki pages
+      - '.github/scripts/generate_wiki_docs.py'  # Wiki generation script
+      - '.github/workflows/docs-update-wiki.yaml'  # This workflow
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
