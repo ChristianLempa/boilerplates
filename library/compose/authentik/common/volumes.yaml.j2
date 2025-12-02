@@ -1,0 +1,55 @@
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {% if not database_external %}
+  {{ service_name }}-postgres:
+    driver: local
+  {% endif %}
+  {{ service_name }}-redis:
+    driver: local
+  {{ service_name }}-media:
+    driver: local
+  {{ service_name }}-certs:
+    driver: local
+  {{ service_name }}-templates:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {% if not database_external %}
+  {{ service_name }}-postgres:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/postgres"
+  {% endif %}
+  {{ service_name }}-redis:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/redis"
+  {{ service_name }}-media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/media"
+  {{ service_name }}-certs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/certs"
+  {{ service_name }}-templates:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/templates"
+{% endif %}

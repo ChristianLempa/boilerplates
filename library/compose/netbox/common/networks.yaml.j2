@@ -1,0 +1,18 @@
+{#
+  Network definitions:
+  - Backend network: Internal communication between NetBox services
+  - Traefik network: External access via reverse proxy (always external)
+  Note: In Swarm mode, backend network uses overlay driver for multi-host communication
+#}
+networks:
+  {{ service_name }}_backend:
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}

@@ -20,6 +20,8 @@ metadata:
   date: '2025-10-13'
   tags:
     - traefik
+    - swarm
+    - authentik
 spec:
   general:
     vars:
@@ -34,10 +36,6 @@ spec:
         type: int
         description: Main port for Alloy HTTP server
         default: 12345
-  traefik:
-    vars:
-      traefik_host:
-        default: alloy.home.arpa
   logs:
     name: Log Collection
     description: Configure log collection for Docker containers and system logs

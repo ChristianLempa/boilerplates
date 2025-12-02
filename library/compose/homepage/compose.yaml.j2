@@ -1,11 +1,23 @@
 services:
   {{ service_name }}:
     image: ghcr.io/gethomepage/homepage:v1.6.1
+    {#
+      If not in swarm mode, check whether container_name is set and apply restart policy,
+      else swarm mode handles restarts via deploy.restart_policy
+    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    {#
+      Set container hostname for identification
+    #}
     hostname: {{ container_hostname }}
+    {#
+      Environment variables for Homepage configuration:
+      - Timezone, log level, and allowed hosts
+      - Optional user/group IDs for file permissions
+    #}
     environment:
       - TZ={{ container_timezone }}
       - LOG_LEVEL={{ container_loglevel }}
@@ -14,10 +26,26 @@ services:
       - PUID={{ homepage_puid }}
       - PGID={{ homepage_pgid }}
       {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+    #}
+    {% if not traefik_enabled %}
     ports:
       - {{ ports_http }}:3000
     {% endif %}
+    {#
+      Volume configuration for persistent data:
+      - config: Dashboard configuration files
+      - images: Custom images for dashboard
+      - icons: Custom icons for services
+    #}
     volumes:
       {% if volume_mode == 'local' %}
       - {{ service_name }}_config:/app/config
@@ -28,22 +56,11 @@ services:
       - {{ volume_mount_path }}/{{ service_name }}/images:/app/images
       - {{ volume_mount_path }}/{{ service_name }}/icons:/app/icons
       {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if traefik_enabled %}
-      {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
-    {% endif %}
-    {% if traefik_enabled %}
-    {% if not swarm_enabled %}
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
@@ -54,12 +71,17 @@ services:
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint %}
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    {% endif %}
+    {#
+      Deploy configuration for Swarm mode:
+      - Configure replicas or global mode, placement constraints, and restart policy
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+      - Resources: Set CPU/memory limits and reservations
+    #}
     {% if swarm_enabled %}
     deploy:
       {% if swarm_placement_mode == 'replicated' %}
@@ -70,6 +92,10 @@ services:
       {% else %}
       mode: global
       {% endif %}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set)
+      #}
       {% if traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -96,33 +122,23 @@ services:
           memory: {{ resources_memory_reservation }}
       {% endif %}
     {% endif %}
-{% if network_mode != 'host' %}
+
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    name: {{ network_name }}
-    {% elif swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}
+
+{#
+  Volume definitions (only when volume_mode is 'local'):
+  - config: Dashboard configuration files
+  - images: Custom images for dashboard
+  - icons: Custom icons for services
+#}
 {% if volume_mode == 'local' %}
 volumes:
   {{ service_name }}_config:

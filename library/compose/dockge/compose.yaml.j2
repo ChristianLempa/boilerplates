@@ -2,32 +2,46 @@ services:
   {{ service_name }}:
     image: docker.io/louislam/dockge:{{ dockge_version }}
     container_name: {{ container_name }}
+    {#
+      Set container hostname for Dockge identification
+    #}
     hostname: {{ container_hostname }}
+    {#
+      Environment variables for Dockge configuration:
+      - TZ: Timezone for proper log timestamps
+      - DOCKGE_STACKS_DIR: Directory where Docker Compose stacks are stored
+    #}
     environment:
       - TZ={{ container_timezone }}
       - DOCKGE_STACKS_DIR={{ stacks_path }}
+    {#
+      Volume configuration:
+      - Docker socket: Required for managing Docker containers (read-only)
+      - dockge-data: Persistent storage for Dockge configuration
+      - stacks_path: Directory for Docker Compose stacks management
+    #}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - dockge-data:/app/data
       - {{ stacks_path }}:{{ stacks_path }}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      {% if traefik_enabled %}
       {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+    #}
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:5001"
     {% endif %}
+    {#
+      When traefik_enabled is set, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -46,34 +60,20 @@ services:
     {% endif %}
     restart: {{ restart_policy }}
 
+{#
+  Volume definitions:
+  - dockge-data: Persistent storage for Dockge configuration and data
+#}
 volumes:
   dockge-data:
     driver: local
 
-{% if network_mode != 'host' %}
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    name: {{ network_name }}
-    {% elif swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}

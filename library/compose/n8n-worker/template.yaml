@@ -27,9 +27,9 @@ metadata:
   next_steps: |
     {% if swarm_enabled -%}
     1. Ensure secrets are created (shared with n8n-server):
-       echo "your-encryption-key" | docker secret create {{ encryption_key_secret_name }} -
+       echo "your-encryption-key" | docker secret create {{ service_name }}_encryption_key -
        {% if database_enabled and database_type == 'postgres' -%}
-       echo "your-db-password" | docker secret create {{ database_password_secret_name }} -
+       echo "your-db-password" | docker secret create {{ service_name }}_database_password -
        {%- endif %}
     2. Deploy to Docker Swarm:
        docker stack deploy -c compose.yaml {{ service_name }}
@@ -141,13 +141,3 @@ spec:
         default: 1
         needs: "swarm_enabled"
         extra: "Scale workers based on workload (typically 1-5)"
-      encryption_key_secret_name:
-        type: str
-        description: "Docker Swarm secret name for encryption key"
-        default: "n8n_encryption_key"
-        needs: "swarm_enabled"
-      database_password_secret_name:
-        type: str
-        description: "Docker Swarm secret name for database password"
-        default: "n8n_database_password"
-        needs: ["swarm_enabled", "database_enabled"]

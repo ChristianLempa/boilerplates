@@ -2,36 +2,56 @@ services:
   {{ service_name }}:
     image: checkmk/check-mk-raw:2.4.0-{{ monitoring_version }}
     container_name: {{ container_name }}
+    {#
+      Set container hostname for Checkmk identification
+    #}
     hostname: {{ container_hostname }}
+    {#
+      Environment variables for Checkmk configuration:
+      - TZ: Timezone for proper log timestamps
+      - CMK_PASSWORD: Admin password for web interface
+      - CMK_SITE_ID: Site identifier for Checkmk instance
+    #}
     environment:
       - TZ={{ container_timezone }}
       - CMK_PASSWORD={{ cmk_password }}
       - CMK_SITE_ID={{ cmk_site_id }}
+    {#
+      Temporary filesystem for Checkmk runtime files
+    #}
     tmpfs:
       - /opt/omd/sites/{{ cmk_site_id }}/tmp:uid={{ user_uid }},gid={{ user_gid }}
+    {#
+      Volume configuration:
+      - /etc/localtime: System time synchronization
+      - data: Persistent storage for Checkmk sites and configuration
+    #}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - data:/omd/sites:rw
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      {% if traefik_enabled %}
       {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      Port mappings (only when Traefik is disabled):
+      - HTTP: Web interface
+      - Agent: Checkmk agent communication
+      - SNMP: SNMP trap receiver
+    #}
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:8000"
       - "{{ ports_agent }}:5000"
       - "{{ ports_snmp }}:162/udp"
     {% endif %}
+    {#
+      When traefik_enabled is set, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -51,31 +71,20 @@ services:
     {% endif %}
     restart: {{ restart_policy }}
 
+{#
+  Volume definitions:
+  - data: Persistent storage for Checkmk sites and configuration
+#}
 volumes:
   data:
     driver: local
 
-{% if network_mode != 'host' %}
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-    name: {{ network_name }}
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}

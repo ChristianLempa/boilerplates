@@ -1,0 +1,9 @@
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
+networks:
+  {{ traefik_network }}:
+    external: true
+{% endif %}

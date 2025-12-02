@@ -1,0 +1,41 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  name: NetBox Device Role
+  description: >
+    Create NetBox device role for categorizing physical devices.
+
+
+    Defines device roles like Firewall, Hypervisor, Switch, Server, etc.
+
+
+    Project: https://netboxlabs.com/
+
+    Documentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/device_role
+  version: 5.0.0
+  author: Christian Lempa
+  date: '2025-12-02'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: device_role
+  role:
+    title: Device Role Configuration
+    vars:
+      role_name:
+        type: str
+        description: Device role name (e.g., Firewall, Hypervisor, Switch)
+        required: true
+        default: Server
+      role_slug:
+        type: str
+        description: Device role slug (lowercase, hyphens)
+        required: true
+        default: server
+      role_color:
+        type: str
+        description: Role color hex (without #)
+        required: true
+        default: 2196f3

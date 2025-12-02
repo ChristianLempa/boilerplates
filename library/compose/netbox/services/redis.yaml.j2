@@ -1,0 +1,88 @@
+{#
+  Redis services for NetBox
+  - redis: Task queue and caching backend
+  - redis-cache: Session caching
+  Both must be pinned to specific node in Swarm mode (persistent data)
+#}
+services:
+  {{ service_name }}-redis:
+    image: docker.io/library/redis:8.4.0-alpine
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}-redis
+    {% endif %}
+    {% endif %}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}-redis
+    {% endif %}
+    command:
+      - sh
+      - -c
+      - {% if swarm_enabled %}redis-server --appendonly yes --requirepass $$(cat /run/secrets/{{ service_name }}_redis_password){% else %}redis-server --appendonly yes --requirepass $$REDIS_PASSWORD{% endif %}
+
+    {% if not swarm_enabled %}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    {% endif %}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/redis:/data
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}-redis:/data
+      {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - {{ service_name }}_redis_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      restart_policy:
+        condition: on-failure
+    {% endif %}
+
+  {{ service_name }}-redis-cache:
+    image: docker.io/library/redis:8.4.0-alpine
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}-redis-cache
+    {% endif %}
+    {% endif %}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}-redis-cache
+    {% endif %}
+    command:
+      - sh
+      - -c
+      - {% if swarm_enabled %}redis-server --requirepass $$(cat /run/secrets/{{ service_name }}_redis_password){% else %}redis-server --requirepass $$REDIS_PASSWORD{% endif %}
+
+    {% if not swarm_enabled %}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    {% endif %}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/redis-cache:/data
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}-redis-cache:/data
+      {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - {{ service_name }}_redis_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      restart_policy:
+        condition: on-failure
+    {% endif %}

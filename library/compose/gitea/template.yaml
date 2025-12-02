@@ -19,6 +19,8 @@ metadata:
   date: '2025-11-05'
   tags:
     - traefik
+    - swarm
+    - authentik
 spec:
   general:
     vars:

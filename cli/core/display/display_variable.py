@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from rich.table import Table
 
 from .display_icons import IconManager
 from .display_settings import DisplaySettings
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..template import Template
@@ -74,7 +77,7 @@ class VariableDisplay:
                 curr = str(variable.value) if variable.value else settings.TEXT_EMPTY_OVERRIDE
             arrow = IconManager.arrow_right()
             color = settings.COLOR_WARNING
-            return f"{orig} [bold {color}]{arrow} {curr}[/bold {color}]"
+            return f"[dim]{orig}[/dim] [bold {color}]{arrow} {curr}[/bold {color}]"
 
         # Default formatting
         settings = self.settings

@@ -1,0 +1,22 @@
+resource "netbox_device_type" "{{ resource_name }}" {
+  model           = "{{ device_type_model }}"
+  slug            = "{{ device_type_slug }}"
+  manufacturer_id = netbox_manufacturer.{{ manufacturer_ref }}.id
+{% if depends_on_enabled %}
+  depends_on      = [{{ dependencies }}]
+{% endif %}
+{% if lifecycle_enabled %}
+
+  lifecycle {
+{% if prevent_destroy %}
+    prevent_destroy = true
+{% endif %}
+{% if create_before_destroy %}
+    create_before_destroy = true
+{% endif %}
+{% if ignore_changes %}
+    ignore_changes = [{{ ignore_changes }}]
+{% endif %}
+  }
+{% endif %}
+}

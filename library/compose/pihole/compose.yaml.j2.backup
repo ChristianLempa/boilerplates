@@ -1,0 +1,266 @@
+---
+services:
+  {{ service_name }}:
+    image: docker.io/pihole/pihole:2025.11.0
+    {#
+      If not in swarm mode, check whether container_name is set and apply restart policy,
+      else swarm mode handles restarts via deploy.restart_policy
+    #}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}
+    {% endif %}
+    {% endif %}
+    {#
+      Set container hostname (Pi-hole requires this for proper operation)
+    #}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}
+    {% endif %}
+    {#
+      Environment variables for Pi-hole configuration
+      - TZ: Timezone for proper log rotation
+      - PIHOLE_UID/GID: User/group for file permissions
+      - WEBPASSWORD: Admin password (from env file in compose mode, from secret in swarm mode)
+      - FTLCONF_dns_listeningMode: In bridge mode, listen on all interfaces
+    #}
+    environment:
+      - TZ={{ container_timezone }}
+      - PIHOLE_UID={{ user_uid }}
+      - PIHOLE_GID={{ user_gid }}
+      {% if swarm_enabled %}
+      - WEBPASSWORD_FILE={{ service_name }}_webpassword
+      {% else %}
+      - FTLCONF_webserver_api_password=${WEBPASSWORD}
+      {% endif %}
+      {% if network_mode == 'bridge' %}
+      - FTLCONF_dns_listeningMode=all
+      {% endif %}
+    {#
+      Network configuration based on network_mode:
+      - 'host': Use host networking (direct access to host network stack, not supported in Swarm)
+      - 'bridge': Custom bridge network (default Docker networking)
+      - 'macvlan': Container gets its own MAC/IP on physical network (requires external macvlan network setup in Swarm)
+      - '' (empty): Uses Docker's default bridge network
+      When traefik is enabled, always add traefik network
+    #}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% elif network_mode == 'bridge' or network_mode == 'macvlan' or traefik_enabled %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {#
+      Port mappings when in bridge mode (or empty, which defaults to bridge)
+      - HTTP/HTTPS: Web interface (only if Traefik is disabled)
+      - DNS: Port 53 TCP/UDP (always exposed, even with Traefik, since DNS can't be proxied)
+      - NTP: Port 123 UDP (network time protocol, always exposed)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+      Note: Host and macvlan modes don't need port mappings (direct network access)
+    #}
+    {% if network_mode == '' or network_mode == 'bridge' or traefik_enabled %}
+    ports:
+      {% if not traefik_enabled %}
+      {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: {{ ports_https }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:80/tcp"
+      - "{{ ports_https }}:443/tcp"
+      {% endif %}
+      {% endif %}
+      {% if swarm_enabled %}
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: udp
+        mode: host
+      - target: 123
+        published: {{ ports_ntp }}
+        protocol: udp
+        mode: host
+      {% else %}
+      - "{{ ports_dns }}:53/tcp"
+      - "{{ ports_dns }}:53/udp"
+      - "{{ ports_ntp }}:123/udp"
+      {% endif %}
+    {% endif %}
+    {#
+      Volume configuration for persistent data
+      - When volume_mode is 'mount': bind mount from host path
+      - When volume_mode is 'local', 'nfs', or empty: use docker-managed volumes
+    #}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/dnsmasq:/etc/dnsmasq.d:rw
+      - {{ volume_mount_path }}/pihole:/etc/pihole:rw
+      {% else %}
+      - {{ service_name }}-dnsmasq:/etc/dnsmasq.d
+      - {{ service_name }}-pihole:/etc/pihole
+      {% endif %}
+    {#
+      Required capabilities:
+      - NET_ADMIN: For DHCP and routing table operations
+      - SYS_TIME: For NTP functionality
+    #}
+    cap_add:
+      - NET_ADMIN
+      - SYS_TIME
+    {#
+      When swarm_enabled is set, use Docker secrets for admin password
+    #}
+    {% if swarm_enabled %}
+    secrets:
+      - {{ service_name }}_webpassword
+    {% endif %}
+    {#
+      Deploy configuration for Swarm mode:
+      - Single replica with node placement constraint (Pi-hole doesn't support multi-replica)
+      - Multiple instances would conflict with DNS/DHCP services
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+      Note: For macvlan in Swarm, create config-only networks on each node first, then use --scope swarm
+    #}
+    {% if swarm_enabled %}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      restart_policy:
+        condition: on-failure
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set)
+      #}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
+    {% if traefik_enabled and not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+
+{#
+  When swarm_enabled is set, define Docker secret for admin password
+#}
+{% if swarm_enabled %}
+secrets:
+  {{ service_name }}_webpassword:
+    file: ./.env.secret.webpassword
+{% endif %}
+
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}-dnsmasq:
+    driver: local
+  {{ service_name }}-pihole:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-dnsmasq:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/dnsmasq"
+  {{ service_name }}-pihole:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/pihole"
+{% endif %}
+
+{#
+  Network definitions (only when needed):
+  - When network_mode is empty: no definition needed (uses Docker's default bridge)
+  - When network_mode is 'bridge': define custom bridge network
+  - When network_mode is 'macvlan': configure macvlan with static IP (for Compose mode)
+    Note: In Swarm mode, macvlan networks must be created manually with config-only networks on each node
+  - When swarm_enabled: use overlay network for multi-host communication
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if network_mode == 'bridge' or network_mode == 'macvlan' or traefik_enabled %}
+networks:
+  {% if network_mode == 'bridge' or network_mode == 'macvlan' %}
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}

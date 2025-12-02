@@ -1,28 +1,35 @@
 services:
   {{ service_name }}:
     image: docker.io/b4bz/homer:v25.10.1
+    {#
+      If not in swarm mode, check whether container_name is set and apply restart policy,
+      else swarm mode handles restarts via deploy.restart_policy
+    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    {#
+      Set container hostname for identification
+    #}
     hostname: {{ container_hostname }}
+    {#
+      Environment variables for Homer configuration
+    #}
     environment:
       - TZ={{ container_timezone }}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      {% if traefik_enabled %}
       {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
+    {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
       - target: 8080
@@ -33,8 +40,16 @@ services:
       - "{{ ports_http }}:8080"
       {% endif %}
     {% endif %}
+    {#
+      Volume configuration:
+      - assets: Homer dashboard configuration and assets
+    #}
     volumes:
       - ./assets:/www/assets
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -51,6 +66,12 @@ services:
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
+    {#
+      Deploy configuration for Swarm mode and/or resource limits:
+      - Swarm: Configure replicas, placement constraints, and restart policy
+      - Resources: Set CPU/memory limits (and reservations in Swarm mode)
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+    #}
     {% if swarm_enabled or resources_enabled %}
     deploy:
       {% if swarm_enabled %}
@@ -77,6 +98,10 @@ services:
           memory: {{ resources_memory_reservation }}
         {% endif %}
       {% endif %}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set, and authentik middleware if enabled)
+      #}
       {% if swarm_enabled and traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -101,30 +126,12 @@ services:
       {% endif %}
     {% endif %}
 
-{% if network_mode != 'host' %}
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    name: {{ network_name }}
-    {% elif swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}

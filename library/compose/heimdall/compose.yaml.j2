@@ -1,12 +1,25 @@
+{#
+  Heimdall: Application dashboard
+  Organizes and provides quick access to web applications
+#}
 services:
   {{ service_name }}:
     image: lscr.io/linuxserver/heimdall:2.7.6
     container_name: {{ container_name }}
+    {#
+      Environment variables for user/group permissions
+    #}
     environment:
       - PUID=1000
       - PGID=1000
+    {#
+      Volume configuration for persistent data
+    #}
     volumes:
       - ./heimdall/config:/config
+    {#
+      Port mappings for HTTP and HTTPS access
+    #}
     ports:
       - 80:80
       - 443:443

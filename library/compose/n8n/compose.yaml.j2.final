@@ -1,0 +1,302 @@
+{% if queue_enabled and not queue_redis_external -%}
+services:
+  redis:
+    image: redis:7-alpine
+    {% if not swarm_enabled -%}
+    container_name: {{ service_name }}-redis
+    {% endif -%}
+    volumes:
+      - redis_data:/data
+    {% if network_mode == 'bridge' -%}
+    networks:
+      - {{ network_name }}
+    {% else -%}
+    {% endif -%}
+    {% if not swarm_enabled -%}
+    restart: {{ restart_policy }}
+    {% endif -%}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    {% if swarm_enabled -%}
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    {% endif -%}
+
+  {% endif -%}
+  {{ service_name }}:
+    image: n8nio/n8n:1.118.1
+    {% if not swarm_enabled -%}
+    container_name: {{ container_name }}
+    hostname: {{ container_hostname }}
+    {% endif -%}
+    environment:
+      - N8N_LOG_LEVEL={{ container_loglevel }}
+      - GENERIC_TIMEZONE={{ container_timezone }}
+      - TZ={{ container_timezone }}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      {% if traefik_enabled -%}
+      - N8N_HOST={{ traefik_host }}
+      {% if traefik_tls_enabled -%}
+      - N8N_PROTOCOL=https
+      - N8N_EDITOR_BASE_URL=https://{{ traefik_host }}
+      {% else -%}
+      - N8N_PROTOCOL=http
+      - N8N_EDITOR_BASE_URL=http://{{ traefik_host }}
+      {% endif -%}
+      {% endif -%}
+      - NODE_ENV=production
+      {% if database_enabled -%}
+      {% if database_type == 'postgres' -%}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST={{ database_host }}
+      - DB_POSTGRESDB_PORT={{ database_port }}
+      - DB_POSTGRESDB_DATABASE={{ database_name }}
+      - DB_POSTGRESDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_POSTGRESDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_POSTGRESDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% elif database_type == 'mysql' -%}
+      - DB_TYPE=mysqldb
+      - DB_MYSQLDB_HOST={{ database_host }}
+      - DB_MYSQLDB_PORT={{ database_port }}
+      - DB_MYSQLDB_DATABASE={{ database_name }}
+      - DB_MYSQLDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_MYSQLDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_MYSQLDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% endif -%}
+      {% endif -%}
+      {% if swarm_enabled -%}
+      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/{{ encryption_key_secret_name }}
+      {% else -%}
+      - N8N_ENCRYPTION_KEY={{ encryption_key }}
+      {% endif -%}
+      {% if webhook_url -%}
+      - WEBHOOK_URL={{ webhook_url }}
+      {% endif -%}
+      - N8N_PROXY_HOPS={{ proxy_hops }}
+      {% if metrics_enabled -%}
+      - N8N_METRICS=true
+      {% if metrics_detailed -%}
+      - N8N_METRICS_INCLUDE_WORKFLOW_ID_LABELS=true
+      - N8N_METRICS_INCLUDE_NODE_TYPE_LABEL=true
+      - N8N_METRICS_INCLUDE_API_ENDPOINTS=true
+      - N8N_METRICS_INCLUDE_API_STATUS_CODE_LABELS=true
+      - N8N_METRICS_INCLUDE_CREDENTIAL_TYPE_LABEL=true
+      {% endif -%}
+      {% endif -%}
+      - EXECUTIONS_DATA_SAVE_ON_ERROR={{ execution_save_on_error }}
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS={{ execution_save_on_success }}
+      {% if queue_enabled -%}
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST={{ queue_redis_host }}
+      - QUEUE_BULL_REDIS_PORT={{ queue_redis_port }}
+      - QUEUE_HEALTH_CHECK_ACTIVE=true
+      {% if metrics_enabled -%}
+      - N8N_METRICS_INCLUDE_QUEUE_METRICS=true
+      {% endif -%}
+      {% endif -%}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/home/node/.n8n
+    {% if network_mode == 'bridge' -%}
+    networks:
+      {% if traefik_enabled -%}
+      - {{ traefik_network }}
+      {% endif -%}
+      - {{ network_name }}
+    {% else -%}
+    {% endif -%}
+    {% if queue_enabled and not queue_redis_external -%}
+    depends_on:
+      redis:
+        condition: service_healthy
+    {% endif -%}
+    {% if traefik_enabled -%}
+    labels:
+      - traefik.enable=true
+      {% if network_mode == 'bridge' -%}
+      - traefik.docker.network={{ traefik_network }}
+      {% endif -%}
+      {% if traefik_webhook_host -%}
+      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`) || Host(`{{ traefik_webhook_host }}`)
+      {% else -%}
+      - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      {% endif -%}
+      {% if traefik_tls_enabled -%}
+      - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}.tls=true
+      - traefik.http.routers.{{ service_name }}.tls.certresolver={{ traefik_tls_certresolver }}
+      {% else -%}
+      - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_entrypoint }}
+      {% endif -%}
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=5678
+      - traefik.http.routers.{{ service_name }}.service={{ service_name }}-web
+    {% endif -%}
+    {% if not swarm_enabled -%}
+    restart: {{ restart_policy }}
+    {% endif -%}
+    {% if swarm_enabled -%}
+    deploy:
+      replicas: {{ swarm_replicas }}
+      {% if swarm_placement_host -%}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif -%}
+      {% if traefik_enabled -%}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        {% if traefik_webhook_host -%}
+        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`) || Host(`{{ traefik_webhook_host }}`)
+        {% else -%}
+        - traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        {% endif -%}
+        {% if traefik_tls_enabled -%}
+        - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}.tls=true
+        - traefik.http.routers.{{ service_name }}.tls.certresolver={{ traefik_tls_certresolver }}
+        {% else -%}
+        - traefik.http.routers.{{ service_name }}.entrypoints={{ traefik_entrypoint }}
+        {% endif -%}
+        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=5678
+        - traefik.http.routers.{{ service_name }}.service={{ service_name }}-web
+      {% endif -%}
+    secrets:
+      - {{ encryption_key_secret_name }}
+      {% if database_enabled -%}
+      - {{ database_password_secret_name }}
+      {% endif -%}
+    {% endif -%}
+{% if queue_enabled and queue_embedded_worker -%}
+
+  {{ service_name }}-worker:
+    image: n8nio/n8n:1.118.1
+    command: worker
+    {% if not swarm_enabled -%}
+    container_name: {{ container_name }}-worker
+    {% endif -%}
+    environment:
+      - N8N_LOG_LEVEL={{ container_loglevel }}
+      - GENERIC_TIMEZONE={{ container_timezone }}
+      - TZ={{ container_timezone }}
+      {% if database_enabled -%}
+      {% if database_type == 'postgres' -%}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST={{ database_host }}
+      - DB_POSTGRESDB_PORT={{ database_port }}
+      - DB_POSTGRESDB_DATABASE={{ database_name }}
+      - DB_POSTGRESDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_POSTGRESDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_POSTGRESDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% elif database_type == 'mysql' -%}
+      - DB_TYPE=mysqldb
+      - DB_MYSQLDB_HOST={{ database_host }}
+      - DB_MYSQLDB_PORT={{ database_port }}
+      - DB_MYSQLDB_DATABASE={{ database_name }}
+      - DB_MYSQLDB_USER={{ database_user }}
+      {% if swarm_enabled -%}
+      - DB_MYSQLDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      {% else -%}
+      - DB_MYSQLDB_PASSWORD={{ database_password }}
+      {% endif -%}
+      {% endif -%}
+      {% endif -%}
+      {% if swarm_enabled -%}
+      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/{{ encryption_key_secret_name }}
+      {% else -%}
+      - N8N_ENCRYPTION_KEY={{ encryption_key }}
+      {% endif -%}
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST={{ queue_redis_host }}
+      - QUEUE_BULL_REDIS_PORT={{ queue_redis_port }}
+      - QUEUE_HEALTH_CHECK_ACTIVE=true
+      {% if metrics_enabled -%}
+      - N8N_METRICS=true
+      {% if metrics_detailed -%}
+      - N8N_METRICS_INCLUDE_WORKFLOW_ID_LABELS=true
+      - N8N_METRICS_INCLUDE_NODE_TYPE_LABEL=true
+      {% endif -%}
+      {% endif -%}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - data:/home/node/.n8n
+    {% if network_mode == 'bridge' -%}
+    networks:
+      - {{ network_name }}
+    {% else -%}
+    {% endif -%}
+    {% if not queue_redis_external -%}
+    depends_on:
+      redis:
+        condition: service_healthy
+    {% endif -%}
+    {% if not swarm_enabled -%}
+    restart: {{ restart_policy }}
+    {% endif -%}
+    {% if swarm_enabled -%}
+    deploy:
+      replicas: 1
+      {% if swarm_placement_host -%}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif -%}
+    secrets:
+      - {{ encryption_key_secret_name }}
+      {% if database_enabled -%}
+      - {{ database_password_secret_name }}
+      {% endif -%}
+    {% endif -%}
+{% endif -%}
+
+volumes:
+  data:
+    driver: local
+{% if queue_enabled and not queue_redis_external -%}
+  redis_data:
+    driver: local
+{% endif -%}
+
+{% if network_mode == 'bridge' -%}
+networks:
+  {{ network_name }}:
+  {% if network_external -%}
+    external: true
+  {% else -%}
+    driver: bridge
+  {% endif -%}
+  {% if traefik_enabled -%}
+  {{ traefik_network }}:
+  {% if traefik_network_external -%}
+    external: true
+  {% else -%}
+    driver: bridge
+  {% endif -%}
+  {% endif -%}
+{% endif -%}
+
+{% if swarm_enabled -%}
+secrets:
+  {{ encryption_key_secret_name }}:
+    external: true
+  {% if database_enabled -%}
+  {{ database_password_secret_name }}:
+    external: true
+  {% endif -%}
+{% endif -%}

@@ -14,8 +14,9 @@ metadata:
   author: Christian Lempa
   date: '2025-11-05'
   tags:
-    - dashboard
     - traefik
+    - swarm
+    - volume_modes
 spec:
   general:
     vars:

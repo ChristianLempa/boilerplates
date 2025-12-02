@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 
 class IconManager:
@@ -45,6 +46,32 @@ class IconManager:
     UI_BULLET = "\uf111"  #  (circle)
     UI_LIBRARY_GIT = "\uf418"  #  (git icon)
     UI_LIBRARY_STATIC = "\uf07c"  #  (folder icon)
+
+    # Shortcode Mappings (emoji-style codes to Nerd Font icons)
+    # Format: ":code:" -> "\uf000"
+    # To add new shortcodes:
+    # 1. Add entry to this dict: ":mycode:": "\uf000"
+    # 2. Use in template descriptions: ":mycode: Some text"
+    # 3. Shortcode will be automatically replaced when markdown is rendered
+    # Find Nerd Font codes at: https://www.nerdfonts.com/cheat-sheet
+    SHORTCODES: ClassVar[dict[str, str]] = {
+        ":warning:": "\uf071",  #  (exclamation-triangle)
+        ":info:": "\uf05a",  #  (info-circle)
+        ":check:": "\uf00c",  #  (check)
+        ":error:": "\uf00d",  #  (times/x)
+        ":lock:": "\uf084",  #  (lock)
+        ":folder:": "\uf07b",  #  (folder)
+        ":file:": "\uf15b",  #  (file)
+        ":gear:": "\uf013",  #  (settings/gear)
+        ":rocket:": "\uf135",  #  (rocket)
+        ":star:": "\uf005",  #  (star)
+        ":lightning:": "\uf0e7",  #  (bolt/lightning)
+        ":cloud:": "\uf0c2",  #  (cloud)
+        ":database:": "\uf1c0",  #  (database)
+        ":network:": "\uf6ff",  #  (network)
+        ":docker:": "\uf308",  #  (docker)
+        ":kubernetes:": "\ue287",  #  (kubernetes/helm)
+    }
 
     @classmethod
     def get_file_icon(cls, file_path: str | Path) -> str:
@@ -136,3 +163,24 @@ class IconManager:
     def arrow_right(cls) -> str:
         """Get the right arrow icon (for showing transitions/changes)."""
         return cls.UI_ARROW_RIGHT
+
+    @classmethod
+    def replace_shortcodes(cls, text: str) -> str:
+        """Replace emoji-style shortcodes with Nerd Font icons.
+
+        Args:
+            text: Text containing shortcodes like :warning:, :info:, etc.
+
+        Returns:
+            Text with shortcodes replaced by Nerd Font icons
+
+        Examples:
+            >>> IconManager.replace_shortcodes(":warning: This is a warning")
+            ' This is a warning'
+            >>> IconManager.replace_shortcodes(":docker: :kubernetes: Stack")
+            '  Stack'
+        """
+        result = text
+        for shortcode, icon in cls.SHORTCODES.items():
+            result = result.replace(shortcode, icon)
+        return result

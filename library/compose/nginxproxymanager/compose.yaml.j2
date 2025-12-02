@@ -40,16 +40,6 @@ services:
         volume:
           nocopy: true
       {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
     depends_on:
       - {{ service_name }}-db
@@ -105,15 +95,6 @@ services:
         volume:
           nocopy: true
       {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
     {% if swarm_enabled %}
     secrets:
@@ -130,27 +111,6 @@ services:
           cpus: '{{ resources_cpu_reservation }}'
           memory: {{ resources_memory_reservation }}
       {% endif %}
-    {% endif %}
-{% if network_mode != 'host' %}
-networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    name: {{ network_name }}
-    {% elif swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
     {% endif %}
     {% endif %}
 {% endif %}

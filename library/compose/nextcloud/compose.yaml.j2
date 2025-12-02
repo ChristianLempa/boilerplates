@@ -18,21 +18,8 @@ services:
       - POSTGRES_USER={{ database_user }}
       - POSTGRES_HOST={{ service_name }}-db
       {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if traefik_enabled %}
-      {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
       - target: 80
@@ -100,16 +87,6 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE={{ database_name }}
       - MYSQL_USER={{ database_user }}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address_db }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
     volumes:
       - nextcloud-db:/var/lib/mysql
@@ -124,16 +101,6 @@ services:
       - POSTGRES_USER={{ database_user }}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB={{ database_name }}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address_db }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
     volumes:
       - nextcloud-db:/var/lib/postgresql/data
@@ -154,16 +121,4 @@ networks:
   {{ traefik_network }}:
     external: true
   {% endif %}
-  {% if network_mode == 'macvlan' %}
-  {{ network_name }}:
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-  {% elif network_mode == 'bridge' %}
-  {{ network_name }}:
-    driver: {% if swarm_enabled %}overlay{% else %}bridge{% endif %}
   {% endif %}

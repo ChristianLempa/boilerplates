@@ -2,30 +2,57 @@
 services:
   {{ service_name }}:
     image: ghcr.io/mend/renovate-ce:10.5.0-full
+    {#
+      If not in swarm mode, apply container name and restart policy
+    #}
     {% if not swarm_enabled %}
     container_name: {{ container_name }}
     restart: {{ restart_policy }}
     {% endif %}
+    {#
+      Set container hostname for identification
+    #}
     hostname: {{ container_hostname }}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+    #}
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:8080"
     {% endif %}
+    {#
+      Environment file containing Renovate configuration
+    #}
     env_file:
       - ./.env
+    {#
+      When swarm_enabled is set, use Docker secrets for sensitive data
+    #}
     {% if swarm_enabled %}
     secrets:
-      - source: {{ license_key_secret_name }}
-        target: /run/secrets/{{ license_key_secret_name }}
+      - source: {{ service_name }}_license_key
+        target: /run/secrets/{{ service_name }}_license_key
         mode: 0400
-      - source: {{ git_token_secret_name }}
-        target: /run/secrets/{{ git_token_secret_name }}
+      - source: {{ service_name }}_git_token
+        target: /run/secrets/{{ service_name }}_git_token
         mode: 0400
       {% if webhook_secret %}
-      - source: {{ webhook_secret_name }}
-        target: /run/secrets/{{ webhook_secret_name }}
+      - source: {{ service_name }}_webhook_secret
+        target: /run/secrets/{{ service_name }}_webhook_secret
         mode: 0400
       {% endif %}
+    {#
+      Deploy configuration for Swarm mode:
+      - Configure replicas, placement constraints
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+    #}
     deploy:
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
@@ -36,6 +63,10 @@ services:
         constraints:
           - node.hostname == {{ swarm_placement_host }}
       {% endif %}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set)
+      #}
       {% if traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -50,6 +81,10 @@ services:
         {% endif %}
       {% endif %}
     {% else %}
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -64,20 +99,9 @@ services:
       {% endif %}
     {% endif %}
     {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if traefik_enabled %}
-      {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
-    {% endif %}
+    {#
+      Health check: Verify Renovate service is responding
+    #}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -85,48 +109,28 @@ services:
       retries: 3
       start_period: 40s
 
+{#
+  Docker Swarm secrets (only when swarm_enabled is set):
+  - License key, Git token, and webhook secret
+#}
 {% if swarm_enabled %}
 secrets:
-  {{ license_key_secret_name }}:
+  {{ service_name }}_license_key:
     file: ./.env.secret.license
-  {{ git_token_secret_name }}:
+  {{ service_name }}_git_token:
     file: ./.env.secret.token
   {% if webhook_secret %}
-  {{ webhook_secret_name }}:
+  {{ service_name }}_webhook_secret:
     file: ./.env.secret.webhook
   {% endif %}
 {% endif %}
 
-{% if network_mode != 'host' %}
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {% if network_mode == 'macvlan' %}
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    name: {{ network_name }}
-    {% endif %}
-  {% elif network_mode == 'bridge' and network_external %}
-  {{ network_name }}:
-    external: true
-  {% elif network_mode == 'bridge' and not network_external %}
-  {{ network_name }}:
-    {% if swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
-    {% endif %}
-  {% endif %}
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}

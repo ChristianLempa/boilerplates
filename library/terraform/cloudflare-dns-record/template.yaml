@@ -62,6 +62,10 @@ spec:
     title: MX Record Settings
     toggle: mx_enabled
     vars:
+      mx_enabled:
+        type: bool
+        description: Configure MX record priority
+        default: false
       priority:
         type: int
         description: MX record priority (lower = higher priority)
@@ -70,6 +74,10 @@ spec:
     title: Comment
     toggle: comment_enabled
     vars:
+      comment_enabled:
+        type: bool
+        description: Add comment to DNS record
+        default: false
       comment_text:
         type: str
         description: Comment for the DNS record

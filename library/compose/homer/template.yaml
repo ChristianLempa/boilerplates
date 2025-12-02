@@ -15,6 +15,8 @@ metadata:
   date: '2025-10-31'
   tags:
     - traefik
+    - swarm
+    - authentik
   next_steps: |
     1. Start the Homer dashboard:
        docker compose up -d

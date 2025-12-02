@@ -2,10 +2,20 @@ services:
   {{ service_name }}:
     image: n8nio/n8n:1.118.1
     command: worker
+    {#
+      If not in swarm mode, apply container name and hostname
+    #}
     {% if not swarm_enabled -%}
     container_name: {{ container_name }}
     hostname: {{ container_hostname }}
     {% endif -%}
+    {#
+      Environment variables for n8n worker configuration:
+      - Database connection (must match n8n-server)
+      - Encryption key (must match n8n-server)
+      - Redis queue configuration
+      - Optional metrics
+    #}
     environment:
       - N8N_LOG_LEVEL={{ container_loglevel }}
       - GENERIC_TIMEZONE={{ container_timezone }}
@@ -18,7 +28,7 @@ services:
       - DB_POSTGRESDB_DATABASE={{ database_name }}
       - DB_POSTGRESDB_USER={{ database_user }}
       {% if swarm_enabled -%}
-      - DB_POSTGRESDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      - DB_POSTGRESDB_PASSWORD_FILE=/run/secrets/{{ service_name }}_database_password
       {% else -%}
       - DB_POSTGRESDB_PASSWORD={{ database_password }}
       {% endif -%}
@@ -29,14 +39,14 @@ services:
       - DB_MYSQLDB_DATABASE={{ database_name }}
       - DB_MYSQLDB_USER={{ database_user }}
       {% if swarm_enabled -%}
-      - DB_MYSQLDB_PASSWORD_FILE=/run/secrets/{{ database_password_secret_name }}
+      - DB_MYSQLDB_PASSWORD_FILE=/run/secrets/{{ service_name }}_database_password
       {% else -%}
       - DB_MYSQLDB_PASSWORD={{ database_password }}
       {% endif -%}
       {% endif -%}
       {% endif -%}
       {% if swarm_enabled -%}
-      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/{{ encryption_key_secret_name }}
+      - N8N_ENCRYPTION_KEY_FILE=/run/secrets/{{ service_name }}_encryption_key
       {% else -%}
       - N8N_ENCRYPTION_KEY={{ encryption_key }}
       {% endif -%}
@@ -51,18 +61,23 @@ services:
       - N8N_METRICS_INCLUDE_NODE_TYPE_LABEL=true
       {% endif -%}
       {% endif -%}
+    {#
+      Volume configuration for persistent data
+    #}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - data:/home/node/.n8n
-    {% if network_mode == 'bridge' -%}
-    networks:
-      - {{ network_name }}
-    {% else -%}
-    network_mode: {{ network_mode }}
-    {% endif -%}
+    {#
+      If not in swarm mode, apply restart policy
+    #}
     {% if not swarm_enabled -%}
     restart: {{ restart_policy }}
     {% endif -%}
+    {#
+      Deploy configuration for Swarm mode:
+      - Multiple worker replicas for scaling
+      - Uses Docker secrets for sensitive data
+    #}
     {% if swarm_enabled -%}
     deploy:
       replicas: {{ swarm_replicas }}
@@ -72,32 +87,30 @@ services:
           - node.hostname == {{ swarm_placement_host }}
       {% endif -%}
     secrets:
-      - {{ encryption_key_secret_name }}
+      - {{ service_name }}_encryption_key
       {% if database_enabled -%}
-      - {{ database_password_secret_name }}
+      - {{ service_name }}_database_password
       {% endif -%}
     {% endif -%}
 
+{#
+  Volume definitions:
+  - data: Persistent storage for n8n worker data
+#}
 volumes:
   data:
     driver: local
 
-{% if network_mode == 'bridge' -%}
-networks:
-  {{ network_name }}:
-  {% if network_external -%}
-    external: true
-  {% else -%}
-    driver: bridge
-  {% endif -%}
-{% endif -%}
-
+{#
+  Docker Swarm secrets (only when swarm_enabled is set):
+  - Encryption key and database password (external secrets)
+#}
 {% if swarm_enabled -%}
 secrets:
-  {{ encryption_key_secret_name }}:
+  {{ service_name }}_encryption_key:
     external: true
   {% if database_enabled -%}
-  {{ database_password_secret_name }}:
+  {{ service_name }}_database_password:
     external: true
   {% endif -%}
 {% endif -%}

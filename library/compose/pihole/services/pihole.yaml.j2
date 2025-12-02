@@ -1,0 +1,133 @@
+{#
+  Pi-hole: Network-wide ad blocking and DNS privacy
+  Provides DNS, DHCP, and ad blocking services
+#}
+services:
+  {{ service_name }}:
+    image: docker.io/pihole/pihole:2025.11.0
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}
+    {% endif %}
+    {% endif %}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      - PIHOLE_UID={{ user_uid }}
+      - PIHOLE_GID={{ user_gid }}
+      {% if swarm_enabled %}
+      - WEBPASSWORD_FILE={{ service_name }}_webpassword
+      {% else %}
+      - FTLCONF_webserver_api_password=${WEBPASSWORD}
+      {% endif %}
+      {% if network_mode == 'bridge' %}
+      - FTLCONF_dns_listeningMode=all
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% elif network_mode == 'bridge' or network_mode == 'macvlan' or traefik_enabled %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if network_mode == '' or network_mode == 'bridge' or traefik_enabled %}
+    ports:
+      {% if not traefik_enabled %}
+      {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: {{ ports_https }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:80/tcp"
+      - "{{ ports_https }}:443/tcp"
+      {% endif %}
+      {% endif %}
+      {% if swarm_enabled %}
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: {{ ports_dns }}
+        protocol: udp
+        mode: host
+      - target: 123
+        published: {{ ports_ntp }}
+        protocol: udp
+        mode: host
+      {% else %}
+      - "{{ ports_dns }}:53/tcp"
+      - "{{ ports_dns }}:53/udp"
+      - "{{ ports_ntp }}:123/udp"
+      {% endif %}
+    {% endif %}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/dnsmasq:/etc/dnsmasq.d:rw
+      - {{ volume_mount_path }}/pihole:/etc/pihole:rw
+      {% else %}
+      - {{ service_name }}-dnsmasq:/etc/dnsmasq.d
+      - {{ service_name }}-pihole:/etc/pihole
+      {% endif %}
+    cap_add:
+      - NET_ADMIN
+      - SYS_TIME
+    {% if swarm_enabled %}
+    secrets:
+      - {{ service_name }}_webpassword
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      restart_policy:
+        condition: on-failure
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    {% if traefik_enabled and not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}

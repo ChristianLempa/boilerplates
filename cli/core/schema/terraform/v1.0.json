@@ -5,9 +5,82 @@
     "required": true,
     "vars": [
       {
-        "name": "playbook_name",
-        "description": "Ansible playbook name",
-        "type": "str"
+        "name": "resource_name",
+        "description": "Terraform resource name (alphanumeric and underscores only)",
+        "type": "str",
+        "default": "resource"
+      }
+    ]
+  },
+  {
+    "key": "depends_on",
+    "title": "Dependencies",
+    "toggle": "depends_on_enabled",
+    "required": false,
+    "vars": [
+      {
+        "name": "depends_on_enabled",
+        "description": "Enable resource dependencies",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "dependencies",
+        "description": "Comma-separated list of resource dependencies",
+        "type": "str",
+        "default": ""
+      }
+    ]
+  },
+  {
+    "key": "lifecycle",
+    "title": "Lifecycle",
+    "toggle": "lifecycle_enabled",
+    "required": false,
+    "vars": [
+      {
+        "name": "lifecycle_enabled",
+        "description": "Enable lifecycle rules",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "prevent_destroy",
+        "description": "Prevent resource destruction",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "create_before_destroy",
+        "description": "Create replacement before destroying",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "ignore_changes",
+        "description": "Comma-separated list of attributes to ignore changes for",
+        "type": "str",
+        "default": ""
+      }
+    ]
+  },
+  {
+    "key": "tags",
+    "title": "Tags",
+    "toggle": "tags_enabled",
+    "required": false,
+    "vars": [
+      {
+        "name": "tags_enabled",
+        "description": "Enable resource tags",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "tags_json",
+        "description": "Resource tags in JSON format (e.g., {\"Environment\": \"Production\"})",
+        "type": "str",
+        "default": "{}"
       }
     ]
   }

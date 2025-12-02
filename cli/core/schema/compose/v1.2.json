@@ -115,14 +115,14 @@
   {
     "key": "ports",
     "title": "Ports",
-    "needs": "network_mode!=host,macvlan",
+    "needs": ["network_mode!=host,macvlan"],
     "description": "Expose service ports to the host.",
     "vars": [
       {
         "name": "ports_http",
         "description": "HTTP port on host",
         "type": "int",
-        "needs": "traefik_enabled=false",
+        "needs": ["traefik_enabled=false"],
         "default": 8080,
         "required": true
       },
@@ -130,7 +130,7 @@
         "name": "ports_https",
         "description": "HTTPS port on host",
         "type": "int",
-        "needs": "traefik_enabled=false",
+        "needs": ["traefik_enabled=false"],
         "default": 8443,
         "required": true
       },
@@ -168,7 +168,7 @@
     "key": "traefik",
     "title": "Traefik",
     "toggle": "traefik_enabled",
-    "needs": "network_mode!=host,macvlan",
+    "needs": ["network_mode!=host,macvlan"],
     "description": "Traefik routes external traffic to your service.",
     "vars": [
       {
@@ -196,13 +196,6 @@
         "type": "str",
         "default": "home.arpa",
         "required": true
-      },
-      {
-        "name": "traefik_entrypoint",
-        "description": "HTTP entrypoint (non-TLS)",
-        "type": "str",
-        "default": "web",
-        "required": true
       }
     ]
   },
@@ -210,7 +203,7 @@
     "key": "traefik_tls",
     "title": "Traefik TLS/SSL",
     "toggle": "traefik_tls_enabled",
-    "needs": "traefik_enabled=true;network_mode!=host,macvlan",
+    "needs": ["traefik_enabled=true", "network_mode!=host,macvlan"],
     "description": "Enable HTTPS/TLS for Traefik with certificate management.",
     "vars": [
       {
@@ -218,13 +211,6 @@
         "description": "Enable HTTPS/TLS",
         "type": "bool",
         "default": true
-      },
-      {
-        "name": "traefik_tls_entrypoint",
-        "description": "TLS entrypoint",
-        "type": "str",
-        "default": "websecure",
-        "required": true
       },
       {
         "name": "traefik_tls_certresolver",
@@ -246,14 +232,14 @@
         "type": "enum",
         "options": ["local", "mount", "nfs"],
         "default": "local",
-        "extra": "local: Docker-managed volumes | mount: Bind mount from host | nfs: Network filesystem"
+        "required": true
       },
       {
         "name": "volume_mount_path",
         "description": "Host path for bind mounts",
         "type": "str",
         "default": "/mnt/storage",
-        "needs": "volume_mode=mount",
+        "needs": ["volume_mode=mount"],
         "required": true
       },
       {
@@ -261,7 +247,7 @@
         "description": "NFS server address",
         "type": "str",
         "default": "192.168.1.1",
-        "needs": "volume_mode=nfs",
+        "needs": ["volume_mode=nfs"],
         "required": true
       },
       {
@@ -269,7 +255,7 @@
         "description": "NFS export path",
         "type": "str",
         "default": "/export",
-        "needs": "volume_mode=nfs",
+        "needs": ["volume_mode=nfs"],
         "required": true
       },
       {
@@ -277,7 +263,7 @@
         "description": "NFS mount options (comma-separated)",
         "type": "str",
         "default": "rw,nolock,soft",
-        "needs": "volume_mode=nfs",
+        "needs": ["volume_mode=nfs"],
         "required": true
       }
     ]
@@ -306,7 +292,7 @@
         "description": "Reserved CPU cores",
         "type": "str",
         "default": "0.25",
-        "needs": "swarm_enabled=true",
+        "needs": ["swarm_enabled=true"],
         "required": true
       },
       {
@@ -321,7 +307,7 @@
         "description": "Reserved memory",
         "type": "str",
         "default": "512M",
-        "needs": "swarm_enabled=true",
+        "needs": ["swarm_enabled=true"],
         "required": true
       }
     ]
@@ -330,7 +316,7 @@
     "key": "swarm",
     "title": "Docker Swarm",
     "toggle": "swarm_enabled",
-    "needs": "network_mode!=host,macvlan",
+    "needs": ["network_mode!=host,macvlan"],
     "description": "Deploy service in Docker Swarm mode.",
     "vars": [
       {

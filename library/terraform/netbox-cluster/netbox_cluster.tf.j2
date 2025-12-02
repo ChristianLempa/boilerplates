@@ -1,0 +1,27 @@
+resource "netbox_cluster" "{{ resource_name }}" {
+  name             = "{{ cluster_name }}"
+  cluster_type_id  = netbox_cluster_type.{{ cluster_type_ref }}.id
+{% if site_ref %}
+  site_id          = data.netbox_site.{{ site_ref }}.id
+{% endif %}
+{% if description_enabled %}
+  description      = "{{ description_text }}"
+{% endif %}
+{% if depends_on_enabled %}
+  depends_on = [{{ dependencies }}]
+{% endif %}
+{% if lifecycle_enabled %}
+
+  lifecycle {
+{% if prevent_destroy %}
+    prevent_destroy = true
+{% endif %}
+{% if create_before_destroy %}
+    create_before_destroy = true
+{% endif %}
+{% if ignore_changes %}
+    ignore_changes = [{{ ignore_changes }}]
+{% endif %}
+  }
+{% endif %}
+}

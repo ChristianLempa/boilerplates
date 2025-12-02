@@ -35,17 +35,17 @@ entryPoints:
   metrics:
     address: :9090
   {% endif %}
-  {{ traefik_entrypoint }}:
+  web:
     address: :80
     {% if traefik_tls_enabled and traefik_tls_redirect %}
     http:
       redirections:
         entryPoint:
-          to: {{ traefik_tls_entrypoint }}
+          to: websecure
           scheme: https
     {% endif %}
   {% if traefik_tls_enabled %}
-  {{ traefik_tls_entrypoint }}:
+  websecure:
     address: :443
   {% endif %}
 
@@ -57,15 +57,18 @@ certificatesResolvers:
       storage: /var/traefik/certs/acme.json
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
-        provider: {{ traefik_tls_acme_provider }}
+        provider: {{ traefik_tls_certresolver }}
         resolvers:
           - 1.1.1.1:53
           - 8.8.8.8:53
 
+{% if traefik_tls_min_version or traefik_tls_secure_ciphers %}
 tls:
   options:
     default:
+      {% if traefik_tls_min_version %}
       minVersion: {{ traefik_tls_min_version }}
+      {% endif %}
       {% if traefik_tls_secure_ciphers %}
       cipherSuites:
         - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
@@ -76,14 +79,49 @@ tls:
         - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
       {% endif %}
 {% endif %}
+{% endif %}
 
-{% if traefik_tls_skipverify %}
+{% if traefik_tls_skipverify or security_enabled or authentik_enabled %}
 http:
+{% if traefik_tls_skipverify %}
   serversTransports:
     insecure:
       insecureSkipVerify: true
 {% endif %}
-
+{% if security_enabled or authentik_enabled %}
+middlewares:
+    {% if security_enabled %}
+    security-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        sslRedirect: true
+        forceSTSHeader: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+    {% endif %}
+    {% if authentik_enabled %}
+    authentik-headers:
+      forwardAuth:
+        address: {{ authentik_outpost_url }}/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+    {% endif %}
+{% endif %}
+{% endif %}
 
 providers:
   {% if swarm_enabled %}
@@ -96,6 +134,3 @@ providers:
     exposedByDefault: false
     network: {{ traefik_network }}
   {% endif %}
-  file:
-    directory: /etc/traefik/files
-    watch: true

@@ -1,0 +1,17 @@
+---
+{#
+  Always define the traefik network, but if it's not external, set it up according to swarm mode or bridge mode.
+#}
+networks:
+  {{ traefik_network }}:
+    {% if traefik_network_external %}
+    external: true
+    {% else %}
+    {% if swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    name: {{ traefik_network }}
+    {% endif %}

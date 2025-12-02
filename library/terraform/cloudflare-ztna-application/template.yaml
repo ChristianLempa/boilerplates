@@ -51,6 +51,10 @@ spec:
     title: Service Token Policy
     toggle: service_token_enabled
     vars:
+      service_token_enabled:
+        type: bool
+        description: Enable service token policy
+        default: false
       service_token_policy_name:
         type: str
         description: Policy name for service token
@@ -62,6 +66,10 @@ spec:
     title: IP-Based Policy
     toggle: ip_policy_enabled
     vars:
+      ip_policy_enabled:
+        type: bool
+        description: Enable IP-based policy
+        default: false
       ip_policy_name:
         type: str
         description: Policy name for IP-based access

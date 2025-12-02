@@ -1,0 +1,28 @@
+---
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}-work:
+    driver: local
+  {{ service_name }}-conf:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-work:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/work"
+  {{ service_name }}-conf:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/conf"
+{% endif %}

@@ -18,6 +18,7 @@ metadata:
   date: '2025-09-28'
   tags:
     - traefik
+    - swarm
 spec:
   ports:
     vars:

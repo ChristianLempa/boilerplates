@@ -1,11 +1,22 @@
 services:
   {{ service_name }}:
     image: docker.io/library/influxdb:2.7.12-alpine
+    {#
+      If not in swarm mode, apply restart policy and container name
+    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
+    {#
+      Set container hostname for identification
+    #}
     hostname: {{ container_hostname }}
+    {#
+      Environment variables for InfluxDB initialization:
+      - Initial admin credentials, organization, and bucket
+      - Optional retention period and admin token
+    #}
     environment:
       - TZ={{ container_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup
@@ -19,21 +30,18 @@ services:
       {% if influxdb_init_token %}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_INIT_TOKEN}
       {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      {% if traefik_enabled %}
       {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      Port mappings for HTTP API (only when Traefik is disabled)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
+    {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
       - target: 8086
@@ -44,6 +52,9 @@ services:
       - "{{ ports_http }}:8086"
       {% endif %}
     {% endif %}
+    {#
+      Volume configuration for persistent data
+    #}
     volumes:
       - influxdb-data:/var/lib/influxdb2
       - /etc/influxdb2:/etc/influxdb2
@@ -109,25 +120,20 @@ services:
       {% endif %}
     {% endif %}
 
+{#
+  Volume definitions:
+  - influxdb-data: Persistent storage for InfluxDB time series data
+#}
 volumes:
   influxdb-data:
     driver: local
 
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
-  {% if network_mode == 'macvlan' %}
-  {{ network_name }}:
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-  {% elif network_mode == 'bridge' %}
-  {{ network_name }}:
-    driver: {% if swarm_enabled %}overlay{% else %}bridge{% endif %}
-  {% endif %}
+{% endif %}

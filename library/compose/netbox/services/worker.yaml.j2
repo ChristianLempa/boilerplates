@@ -1,0 +1,101 @@
+{#
+  NetBox worker service
+  Processes background tasks from Redis queue
+  Can scale horizontally in Swarm mode for better queue processing
+#}
+services:
+  {{ service_name }}-worker:
+    image: docker.io/netboxcommunity/netbox:v4.2.3
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}-worker
+    {% endif %}
+    {% endif %}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}-worker
+    {% endif %}
+    command:
+      - /opt/netbox/venv/bin/python
+      - /opt/netbox/netbox/manage.py
+      - rqworker
+    {% if not swarm_enabled %}
+    depends_on:
+      - {{ service_name }}
+      - {{ service_name }}-redis
+      - {{ service_name }}-redis-cache
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      - DB_HOST={{ database_host }}
+      - DB_NAME={{ database_name }}
+      - DB_USER={{ database_user }}
+      {% if swarm_enabled %}
+      - DB_PASSWORD_FILE=/run/secrets/{{ service_name }}_database_password
+      {% else %}
+      - DB_PASSWORD=${DATABASE_PASSWORD}
+      {% endif %}
+      - REDIS_HOST={{ service_name }}-redis
+      {% if swarm_enabled %}
+      - REDIS_PASSWORD_FILE=/run/secrets/{{ service_name }}_redis_password
+      {% else %}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      {% endif %}
+      - REDIS_CACHE_HOST={{ service_name }}-redis-cache
+      {% if swarm_enabled %}
+      - REDIS_CACHE_PASSWORD_FILE=/run/secrets/{{ service_name }}_redis_password
+      {% else %}
+      - REDIS_CACHE_PASSWORD=${REDIS_PASSWORD}
+      {% endif %}
+      {% if swarm_enabled %}
+      - SECRET_KEY_FILE=/run/secrets/{{ service_name }}_secret_key
+      {% else %}
+      - SECRET_KEY=${NETBOX_SECRET_KEY}
+      {% endif %}
+      {% if email_enabled %}
+      - EMAIL_SERVER={{ email_server }}
+      - EMAIL_PORT={{ email_port }}
+      - EMAIL_FROM={{ email_from }}
+      - EMAIL_USERNAME={{ email_username }}
+      {% if swarm_enabled %}
+      - EMAIL_PASSWORD_FILE=/run/secrets/{{ service_name }}_email_password
+      {% else %}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      {% endif %}
+      {% if email_encryption == "ssl" %}
+      - EMAIL_USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - EMAIL_USE_TLS=True
+      {% endif %}
+      {% endif %}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/media:/opt/netbox/netbox/media
+      - {{ volume_mount_path }}/reports:/opt/netbox/netbox/reports
+      - {{ volume_mount_path }}/scripts:/opt/netbox/netbox/scripts
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}-media:/opt/netbox/netbox/media
+      - {{ service_name }}-reports:/opt/netbox/netbox/reports
+      - {{ service_name }}-scripts:/opt/netbox/netbox/scripts
+      {% endif %}
+    {% if swarm_enabled %}
+    secrets:
+      - {{ service_name }}_database_password
+      - {{ service_name }}_redis_password
+      - {{ service_name }}_secret_key
+      {% if email_enabled %}
+      - {{ service_name }}_email_password
+      {% endif %}
+    deploy:
+      mode: {{ swarm_worker_placement_mode }}
+      {% if swarm_worker_placement_mode == 'replicated' %}
+      replicas: {{ swarm_worker_replicas }}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_worker_placement_host }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+    {% endif %}

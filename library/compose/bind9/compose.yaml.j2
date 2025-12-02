@@ -1,56 +1,113 @@
 services:
   {{ service_name }}:
     image: docker.io/ubuntu/bind9:{{ bind9_version }}
+    {#
+      If not in swarm mode, check whether container_name is set and apply restart policy,
+      else swarm mode handles restarts via deploy.restart_policy
+    #}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% if container_name %}
     container_name: {{ container_name }}
+    {% endif %}
+    {% endif %}
+    {#
+      Set container hostname (BIND9 uses this for identification)
+    #}
+    {% if container_hostname %}
     hostname: {{ container_hostname }}
+    {% endif %}
+    {#
+      Environment variables for BIND9 configuration
+      - TZ: Timezone for proper log rotation
+      - BIND9_USER: User to run BIND9 as
+    #}
     environment:
       - TZ={{ container_timezone }}
       - BIND9_USER=bind
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
-    networks:
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
-    {% endif %}
-    {% if network_mode != 'host' %}
+    {#
+      Port mappings for DNS queries:
+      - DNS ports: Port 53 TCP/UDP (always exposed for DNS queries)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
     ports:
+      {% if swarm_enabled %}
+      - target: 53
+        published: 53
+        protocol: tcp
+        mode: host
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: host
+      {% else %}
       - "53:53/tcp"
       - "53:53/udp"
-    {% endif %}
+      {% endif %}
+    {#
+      Volume configuration for persistent data
+      - When volume_mode is 'mount': bind mount from host path
+      - When volume_mode is 'local', 'nfs', or empty: use docker-managed volumes
+    #}
     volumes:
-      - ./config:/etc/bind
-      - bind9_zones:/var/lib/bind
-      - bind9_cache:/var/cache/bind
-    restart: {{ restart_policy }}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/config:/etc/bind:rw
+      - {{ volume_mount_path }}/zones:/var/lib/bind:rw
+      - {{ volume_mount_path }}/cache:/var/cache/bind:rw
+      {% else %}
+      - {{ service_name }}-config:/etc/bind
+      - {{ service_name }}-zones:/var/lib/bind
+      - {{ service_name }}-cache:/var/cache/bind
+      {% endif %}
+    {#
+      Deploy configuration for Swarm mode:
+      - Single replica with node placement constraint (BIND9 doesn't support multi-replica)
+      - Multiple instances would conflict with DNS services
+    #}
+    {% if swarm_enabled %}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      restart_policy:
+        condition: on-failure
+    {% endif %}
 
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
 volumes:
-  bind9_zones:
+  {{ service_name }}-config:
     driver: local
-  bind9_cache:
+  {{ service_name }}-zones:
     driver: local
-
-{% if network_mode != 'host' %}
-networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if network_mode == 'macvlan' %}
-    driver: macvlan
+  {{ service_name }}-cache:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-config:
+    driver: local
     driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-    name: {{ network_name }}
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/config"
+  {{ service_name }}-zones:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/zones"
+  {{ service_name }}-cache:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/cache"
 {% endif %}
+

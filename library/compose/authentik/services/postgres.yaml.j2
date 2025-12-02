@@ -1,0 +1,28 @@
+{#
+  PostgreSQL: Main database for Authentik
+  Stores all user data, configurations, and authentication flows
+#}
+services:
+  {{ service_name }}-postgres:
+    image: docker.io/library/postgres:17.6
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ service_name }}-db
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/postgres:/var/lib/postgresql/data
+      {% elif volume_mode in ['local', 'nfs'] %}
+      - {{ service_name }}-postgres:/var/lib/postgresql/data
+      {% endif %}

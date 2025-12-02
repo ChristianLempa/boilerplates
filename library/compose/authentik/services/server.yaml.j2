@@ -1,0 +1,124 @@
+{#
+  Authentik Server: Main web application and API
+  Handles authentication, authorization, and user interface
+#}
+services:
+  {{ service_name }}:
+    image: ghcr.io/goauthentik/server:2025.10.1
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
+    command: server
+    environment:
+      - TZ={{ container_timezone }}
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting }}
+      - AUTHENTIK_REDIS__HOST={{ service_name }}-redis
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name }}-postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${DATABASE_PASSWORD}
+      {% if email_enabled %}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD}
+      {% if email_encryption == "starttls" %}
+      - AUTHENTIK_EMAIL__USE_TLS=true
+      {% elif email_encryption == "ssl" %}
+      - AUTHENTIK_EMAIL__USE_SSL=true
+      {% endif %}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      {% endif %}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {% if not traefik_enabled %}
+    ports:
+      {% if swarm_enabled %}
+      - target: 9000
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      - target: 9443
+        published: {{ ports_https }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:9000"
+      - "{{ ports_https }}:9443"
+      {% endif %}
+    {% endif %}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/media:/media
+      - {{ volume_mount_path }}/templates:/templates
+      {% elif volume_mode in ['local', 'nfs'] %}
+      - {{ service_name }}-media:/media
+      - {{ service_name }}-templates:/templates
+      {% endif %}
+    {% if traefik_enabled and not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=9000
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name }}-postgres
+      - {{ service_name }}-redis
+    {% if swarm_enabled or resources_enabled %}
+    deploy:
+      {% if swarm_enabled %}
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {% if swarm_enabled and traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=9000
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% endif %}

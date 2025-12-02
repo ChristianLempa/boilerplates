@@ -1,0 +1,28 @@
+{#
+  PostgreSQL database service
+  Only deployed in Compose mode with internal database
+  Swarm mode requires external PostgreSQL database
+#}
+services:
+  {{ service_name }}-postgres:
+    image: docker.io/library/postgres:17.2-alpine
+    restart: {{ restart_policy }}
+    {% if container_name %}
+    container_name: {{ container_name }}-postgres
+    {% endif %}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}-postgres
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    networks:
+      - {{ service_name }}_backend
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/postgres:/var/lib/postgresql/data
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}-postgres:/var/lib/postgresql/data
+      {% endif %}

@@ -20,6 +20,7 @@ metadata:
   date: '2025-11-07'
   tags:
     - traefik
+    - authentik
 spec:
   general:
     vars:

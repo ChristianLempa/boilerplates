@@ -1,0 +1,102 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  name: NetBox Device
+  description: >
+    Register a physical device in NetBox with automatic role, type, and manufacturer creation.
+
+
+    Includes device interface, IP address assignment, and automatic primary IP configuration.
+
+
+    Project: https://netboxlabs.com/
+
+    Documentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/device
+  version: 5.0.0
+  author: Christian Lempa
+  date: '2025-12-02'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: device
+  device:
+    title: Device Configuration
+    vars:
+      device_name:
+        type: str
+        description: Device hostname
+        required: true
+        default: fw-prod-1
+      site_ref:
+        type: str
+        description: Site data source name
+        required: true
+        default: homelab
+      status:
+        type: enum
+        description: Device status
+        options:
+          - active
+          - planned
+          - staged
+          - offline
+          - decommissioning
+        default: active
+  references:
+    title: Resource References
+    vars:
+      device_type_ref:
+        type: str
+        description: Device type resource name
+        required: true
+        default: generic_server
+      role_ref:
+        type: str
+        description: Device role resource name
+        required: true
+        default: server
+  interface:
+    title: Network Interface
+    vars:
+      interface_name:
+        type: str
+        description: Interface name (e.g., eth0, LAN, vmbr0)
+        required: true
+        default: eth0
+      interface_type:
+        type: enum
+        description: Interface type
+        required: true
+        options:
+          - virtual
+          - 1000base-t
+          - 10gbase-x-sfpp
+          - 25gbase-x-sfp28
+          - 40gbase-x-qsfpp
+          - 100gbase-x-qsfp28
+        default: virtual
+  ip:
+    title: IP Address
+    vars:
+      ip_address:
+        type: str
+        description: IP address with CIDR (e.g., 10.20.0.1/16)
+        required: true
+        default: 10.20.0.10/24
+      dns_name:
+        type: hostname
+        description: Fully qualified domain name
+        required: true
+        default: device.home.example.com
+      ip_description:
+        type: str
+        description: IP address description
+        default: Management Interface
+  cluster:
+    title: Cluster Assignment
+    vars:
+      cluster_ref:
+        type: str
+        description: Cluster resource name (leave empty to skip)

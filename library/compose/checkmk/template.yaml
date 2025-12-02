@@ -18,7 +18,8 @@ metadata:
   version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-09-28'
-  tags: []
+  tags:
+    - traefik
 spec:
   general:
     vars:

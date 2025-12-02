@@ -15,7 +15,8 @@ metadata:
   version: 1.5.0
   author: Christian Lempa
   date: '2025-09-28'
-  tags: []
+  tags:
+    - traefik
 spec:
   general:
     vars:

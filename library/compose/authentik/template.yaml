@@ -20,7 +20,8 @@ metadata:
   date: '2025-11-05'
   tags:
     - traefik
-    - authentik
+    - swarm
+    - volume_modes
   next_steps: |
     1. Start Authentik:
        docker compose up -d

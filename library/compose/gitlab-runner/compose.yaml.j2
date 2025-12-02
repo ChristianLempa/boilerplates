@@ -1,7 +1,16 @@
+{#
+  GitLab Runner: CI/CD job executor for GitLab
+  Executes pipeline jobs using Docker executor
+#}
 services:
   gitlab-runner:
     image: docker.io/gitlab/gitlab-runner:alpine-v17.9.1
     container_name: gitlab-runner-1
+    {#
+      Volume configuration:
+      - config.toml: Runner configuration (read-only)
+      - Docker socket: Required for Docker executor to spawn job containers
+    #}
     volumes:
       - ./config/config.toml:/etc/gitlab-runner/config.toml:ro
       - /var/run/docker.sock:/var/run/docker.sock

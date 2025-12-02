@@ -155,6 +155,14 @@ class BaseDisplay:
         table.header_style = self.settings.STYLE_TABLE_HEADER
         console.print(table)
 
+    def _print_markdown(self, markdown) -> None:
+        """Print a pre-built Rich Markdown object.
+
+        Args:
+            markdown: Rich Markdown object to print
+        """
+        console.print(markdown)
+
     def code(self, code_text: str, language: str | None = None) -> None:
         """Display code with optional syntax highlighting.
 

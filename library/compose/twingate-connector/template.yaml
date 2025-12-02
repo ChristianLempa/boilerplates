@@ -18,7 +18,8 @@ metadata:
   version: 1.79.0
   author: Christian Lempa
   date: '2025-10-31'
-  tags: []
+  tags:
+    - swarm
 spec:
   general:
     vars:

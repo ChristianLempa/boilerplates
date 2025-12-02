@@ -109,17 +109,3 @@ spec:
         default: "renovate"
       traefik_domain:
         default: "home.arpa"
-  swarm:
-    vars:
-      license_key_secret_name:
-        type: "str"
-        description: "Docker Swarm secret name for license key"
-        default: "renovate_license_key"
-      git_token_secret_name:
-        type: "str"
-        description: "Docker Swarm secret name for Git platform token"
-        default: "renovate_git_token"
-      webhook_secret_name:
-        type: "str"
-        description: "Docker Swarm secret name for webhook secret"
-        default: "renovate_webhook_secret"

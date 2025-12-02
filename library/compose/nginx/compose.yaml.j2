@@ -1,25 +1,25 @@
 services:
   {{ service_name }}:
     image: docker.io/library/nginx:1.28.0-alpine
+    {#
+      If not in swarm mode, apply restart policy and container name
+    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
-    {% if network_mode == 'host' %}
-    network_mode: host
-    {% else %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      {% if traefik_enabled %}
       {{ traefik_network }}:
-      {% endif %}
-      {% if network_mode == 'macvlan' %}
-      {{ network_name }}:
-        ipv4_address: {{ network_macvlan_ipv4_address }}
-      {% elif network_mode == 'bridge' %}
-      {{ network_name }}:
-      {% endif %}
     {% endif %}
-    {% if not traefik_enabled and network_mode == 'bridge' %}
+    {#
+      Port mappings for HTTP and HTTPS (only when Traefik is disabled)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
+    {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
       - target: 80
@@ -35,9 +35,18 @@ services:
       - "{{ ports_https }}:443"
       {% endif %}
     {% endif %}
+    {#
+      Volume configuration (commented out - uncomment and customize as needed):
+      - config: Nginx configuration files
+      - data: Static content to serve
+    #}
     # volumes:
     #   - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
     #   - ./data:/usr/share/nginx/html:ro
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -54,9 +63,18 @@ services:
       - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
       {% endif %}
     {% endif %}
+    {#
+      Deploy configuration for Swarm mode:
+      - Configure replicas
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+    #}
     {% if swarm_enabled %}
     deploy:
       replicas: {{ swarm_replicas }}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set)
+      #}
       {% if traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -75,21 +93,12 @@ services:
       {% endif %}
     {% endif %}
 
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
-  {% endif %}
-  {% if network_mode == 'macvlan' %}
-  {{ network_name }}:
-    driver: macvlan
-    driver_opts:
-      parent: {{ network_macvlan_parent_interface }}
-    ipam:
-      config:
-        - subnet: {{ network_macvlan_subnet }}
-          gateway: {{ network_macvlan_gateway }}
-  {% elif network_mode == 'bridge' %}
-  {{ network_name }}:
-    driver: {% if swarm_enabled %}overlay{% else %}bridge{% endif %}
-  {% endif %}
+{% endif %}

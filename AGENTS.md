@@ -460,6 +460,7 @@ class ExampleModule(Module):
 - **Jinja2 Templates (`.j2`)**: Rendered by Jinja2, `.j2` extension removed in output. Support `{% include %}` and `{% import %}`.
 - **Static Files**: Non-`.j2` files copied as-is.
 - **Sanitization**: Auto-sanitized (single blank lines, no leading blanks, trimmed whitespace, single trailing newline).
+- **Shortcodes**: Template descriptions support emoji-style shortcodes (e.g., `:warning:`, `:info:`, `:docker:`) which are automatically replaced with Nerd Font icons during display. Add new shortcodes to `IconManager.SHORTCODES` dict.
 
 ### Docker Compose Best Practices
 

@@ -20,6 +20,7 @@ metadata:
     - traefik
     - swarm
     - authentik
+    - volume_modes
 spec:
   general:
     vars:

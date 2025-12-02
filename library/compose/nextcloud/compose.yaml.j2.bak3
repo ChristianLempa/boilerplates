@@ -1,0 +1,169 @@
+services:
+  {{ service_name }}-app:
+    image: docker.io/library/nextcloud:31.0.10-apache
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}-app
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      {% if database_type == 'mysql' %}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE={{ database_name }}
+      - MYSQL_USER={{ database_user }}
+      - MYSQL_HOST={{ service_name }}-db
+      {% elif database_type == 'postgres' %}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_HOST={{ service_name }}-db
+      {% endif %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if not traefik_enabled and network_mode == 'bridge' %}
+    ports:
+      {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:80"
+      {% endif %}
+    {% endif %}
+    volumes:
+      - nextcloud-data:/var/www/html
+    {% if traefik_enabled and not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-https.tls=true
+      - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
+      {% endif %}
+    {% endif %}
+    depends_on:
+      - {{ service_name }}-db
+    {% if swarm_enabled %}
+    deploy:
+      replicas: {{ swarm_replicas }}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-web-https.tls=true
+        - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
+        - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+  {{ service_name }}-db:
+    {% if database_type == 'mysql' %}
+    # See compatibility matrix for Nextcloud 31
+    # https://docs.nextcloud.com/server/31/admin_manual/installation/system_requirements.html
+    image: docker.io/library/mariadb:10.11.14
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ service_name }}-db
+    {% endif %}
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      - TZ={{ container_timezone }}
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE={{ database_name }}
+      - MYSQL_USER={{ database_user }}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address_db }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    volumes:
+      - nextcloud-db:/var/lib/mysql
+    {% elif database_type == 'postgres' %}
+    image: docker.io/library/postgres:17.6
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ service_name }}-db
+    {% endif %}
+    environment:
+      - TZ={{ container_timezone }}
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address_db }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    {% endif %}
+    {% if swarm_enabled %}
+    deploy:
+      replicas: 1
+    {% endif %}
+
+volumes:
+  nextcloud-data:
+    driver: local
+  nextcloud-db:
+    driver: local
+
+networks:
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+  {% if network_mode == 'macvlan' %}
+  {{ network_name }}:
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+  {% elif network_mode == 'bridge' %}
+  {{ network_name }}:
+    driver: {% if swarm_enabled %}overlay{% else %}bridge{% endif %}
+  {% endif %}

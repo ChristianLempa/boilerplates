@@ -1,0 +1,48 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  name: NetBox Cluster Type
+  description: >
+    Create NetBox cluster type for categorizing virtualization clusters.
+
+
+    Defines cluster types like Proxmox, VMware, KVM, etc.
+
+
+    Project: https://netboxlabs.com/
+
+    Documentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/cluster_type
+  version: 5.0.0
+  author: Christian Lempa
+  date: '2025-12-02'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: cluster_type
+  cluster_type:
+    title: Cluster Type Configuration
+    vars:
+      type_name:
+        type: str
+        description: Cluster type name (e.g., Proxmox, VMware, KVM)
+        required: true
+        default: Proxmox
+      type_slug:
+        type: str
+        description: Cluster type slug (lowercase, hyphens)
+        required: true
+        default: proxmox
+  description:
+    title: Description
+    toggle: description_enabled
+    vars:
+      description_enabled:
+        type: bool
+        description: Add cluster type description
+        default: false
+      description_text:
+        type: str
+        description: Cluster type description
+        default: Managed by Terraform

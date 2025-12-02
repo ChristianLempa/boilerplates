@@ -204,9 +204,13 @@ class StatusDisplay:
     def markdown(self, content: str) -> None:
         """Render markdown content with left-aligned headings.
 
+        Replaces emoji-style shortcodes (e.g., :warning:, :info:) with Nerd Font icons
+        before rendering.
+
         Args:
-            content: Markdown-formatted text to render
+            content: Markdown-formatted text to render (may contain shortcodes)
         """
         if not self.quiet:
-            console = Console()
-            console.print(LeftAlignedMarkdown(content))
+            # Replace shortcodes with Nerd Font icons before rendering
+            processed_content = IconManager.replace_shortcodes(content)
+            self.base._print_markdown(LeftAlignedMarkdown(processed_content))

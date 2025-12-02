@@ -14,8 +14,8 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - database
-    - mysql
+    - swarm
+    - volume_mode
 spec:
   general:
     vars:

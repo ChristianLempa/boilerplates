@@ -3,23 +3,25 @@ kind: compose
 schema: "1.2"
 metadata:
   name: AdGuard Home
-  description: |
+  description: |-
     Network-wide software for blocking ads and tracking. AdGuard Home operates as a DNS server that
     re-routes tracking domains to a "black hole", thus preventing your devices from connecting to those servers.
     It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC support.
-    ## Swarm Deployment Warning
-    AdGuard Home uses local storage and configuration files and does NOT support running multiple replicas.
+    
+    :warning: In Docker Swarm, AdGuard Home does NOT support running multiple replicas.
     This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
     ## References
-    * **Project:** https://adguard.com/adguard-home/overview.html
-    * **Documentation:** https://github.com/AdguardTeam/AdGuardHome/wiki
-    * **GitHub:** https://github.com/AdguardTeam/AdGuardHome
-  version: latest
+    - **Project:** https://adguard.com/adguard-home/overview.html
+    - **Documentation:** https://github.com/AdguardTeam/AdGuardHome/wiki
+    - **GitHub:** https://github.com/AdguardTeam/AdGuardHome
+  version: v0.107.69
   author: Christian Lempa
   date: '2025-11-13'
   tags:
     - traefik
     - swarm
+    - network_modes
+    - volume_modes
   next_steps: |
     ### 1. Deploy the Service
     {% if swarm_enabled -%}
@@ -33,14 +35,25 @@ metadata:
     docker compose up -d
     ```
     {% endif -%}
+    {% if initial_setup -%}
     ### 2. Initial Setup
+    **NOTE:** Port {{ ports_initial }} is only used for the initial setup wizard. After completing the setup, AdGuard Home will automatically switch to port {{ ports_http }} for the web interface, and port {{ ports_initial }} will become inactive. Make sure to switch the `initial_setup` variable to `false` after the initial configuration to avoid exposing the setup wizard.
     {% if traefik_enabled -%}
-    * Navigate to: **http://{{ traefik_host }}.{{ traefik_domain }}:3000**
+    * Navigate to: **http://{{ traefik_host }}.{{ traefik_domain }}/setup**
     {% else -%}
-    * Navigate to: **http://localhost:3000**
+    * Navigate to: **http://localhost:{{ ports_initial }}**
     {% endif -%}
-    * Complete the initial setup wizard to configure admin credentials and DNS settings.
+    * Complete the initial setup wizard to configure:
+      - Admin credentials (username and password)
+      - DNS server settings and upstream DNS providers
+      - Network interface bindings
+      - Optional features (DHCP, DNS-over-HTTPS, etc.)
+    * **IMPORTANT:** During setup, configure the web interface to use port {{ ports_http }}.
     ### 3. Access the Web Interface
+    After completing the initial setup:
+    {% else -%}
+    ### 2. Access the Web Interface
+    {% endif -%}
     {% if traefik_enabled -%}
     * Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**
     {% else -%}
@@ -52,14 +65,16 @@ spec:
     vars:
       service_name:
         default: "adguardhome"
-      container_name:
-        default: "adguardhome"
-      container_hostname:
-        default: "adguardhome"
+      initial_setup:
+        description: "Enable initial setup wizard on port 3000"
+        type: bool
+        default: true
+        extra: >
+          Port 3000 is only used during the initial setup wizard.
+          After completing setup, AdGuard Home switches to the configured HTTP port and port 3000 becomes inactive.
+          Set to false if you've already completed the initial setup.
   traefik:
     vars:
-      traefik_enabled:
-        needs: "network_mode=bridge"
       traefik_host:
         default: "adguardhome"
   network:
@@ -73,20 +88,21 @@ spec:
   ports:
     vars:
       ports_http:
-        description: "External HTTP port (admin panel)"
-        type: int
-        default: 3080
-        needs: ["traefik_enabled=false", "network_mode=bridge"]
+        default: 80
       ports_https:
-        description: "External HTTPS port"
+        default: 443
+      ports_initial:
+        description: "Initial setup wizard port"
         type: int
-        default: 3443
-        needs: ["traefik_enabled=false", "network_mode=bridge"]
-  swarm:
-    vars:
-      swarm_enabled:
-        needs: "network_mode=bridge"
-      swarm_placement_host:
-        required: true
-        optional: false
-        needs: null
+        default: 3000
+        needs: ["traefik_enabled=false", "initial_setup=true"]
+        extra: >
+          Only used during first-time setup. After configuration, port becomes inactive.
+      ports_tls:
+        description: "DNS over TLS Port"
+        type: "int"
+        default: 853
+      ports_dnscrypt:
+        description: "DNSCrypt Port"
+        type: "int"
+        default: 5443

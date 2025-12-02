@@ -501,6 +501,8 @@ class Template:
         """
         used_variables: set[str] = set()
         syntax_errors = []
+        # Track which file uses which variable (for debugging)
+        self._variable_usage_map: dict[str, list[str]] = {}
 
         for template_file in self.template_files:  # Iterate over TemplateFile objects
             if template_file.file_type == "j2":
@@ -509,7 +511,13 @@ class Template:
                     with file_path.open(encoding="utf-8") as f:
                         content = f.read()
                         ast = self.jinja_env.parse(content)  # Use lazy-loaded jinja_env
-                        used_variables.update(meta.find_undeclared_variables(ast))
+                        file_vars = meta.find_undeclared_variables(ast)
+                        used_variables.update(file_vars)
+                        # Track which file uses each variable
+                        for var in file_vars:
+                            if var not in self._variable_usage_map:
+                                self._variable_usage_map[var] = []
+                            self._variable_usage_map[var].append(str(template_file.relative_path))
                 except OSError as e:
                     relative_path = file_path.relative_to(self.template_dir)
                     syntax_errors.append(f"  - {relative_path}: File I/O error: {e}")
@@ -613,10 +621,25 @@ class Template:
         undefined_variables = used_variables - defined_variables
         if undefined_variables:
             undefined_list = sorted(undefined_variables)
+            
+            # Build file location info for each undefined variable
+            file_locations = []
+            for var_name in undefined_list:
+                if hasattr(self, '_variable_usage_map') and var_name in self._variable_usage_map:
+                    files = self._variable_usage_map[var_name]
+                    file_locations.append(f"  • {var_name}: {', '.join(files)}")
+            
             error_msg = (
                 f"Template validation error in '{self.id}': "
-                f"Variables used in template content but not defined in spec: {undefined_list}\n\n"
-                f"Please add these variables to your template's template.yaml spec. "
+                f"Variables used in template content but not defined in spec:\n"
+            )
+            if file_locations:
+                error_msg += "\n".join(file_locations) + "\n"
+            else:
+                error_msg += f"{undefined_list}\n"
+            
+            error_msg += (
+                f"\nPlease add these variables to your template's template.yaml spec. "
                 f"Each variable must have a default value.\n\n"
                 f"Example:\n"
                 f"spec:\n"
@@ -630,7 +653,8 @@ class Template:
                     f"        description: Description for {var_name}\n"
                     f"        default: <your_default_value_here>\n"
                 )
-            logger.error(error_msg)
+            # Only log at DEBUG level - the exception will be displayed to user
+            logger.debug(error_msg)
             raise TemplateValidationError(error_msg)
 
     @staticmethod
@@ -755,8 +779,9 @@ class Template:
             if template_file.file_type == "j2":
                 try:
                     content = self._render_jinja2_file(template_file, variable_values, available_vars, debug)
-                    # Skip empty files (only whitespace or empty string)
-                    if content.strip():
+                    # Skip empty files (only whitespace, empty string, or just YAML document separator)
+                    stripped = content.strip()
+                    if stripped and stripped != "---":
                         rendered_files[str(template_file.output_path)] = content
                     else:
                         skipped_files.append(str(template_file.output_path))

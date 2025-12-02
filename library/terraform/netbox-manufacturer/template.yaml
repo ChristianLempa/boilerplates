@@ -1,0 +1,36 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  name: NetBox Manufacturer
+  description: >
+    Create NetBox manufacturer for device hardware vendors.
+
+
+    Defines manufacturers like Dell, HP, Cisco, Proxmox, etc.
+
+
+    Project: https://netboxlabs.com/
+
+    Documentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/manufacturer
+  version: 5.0.0
+  author: Christian Lempa
+  date: '2025-12-02'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: manufacturer
+  manufacturer:
+    title: Manufacturer Configuration
+    vars:
+      manufacturer_name:
+        type: str
+        description: Manufacturer name
+        required: true
+        default: Generic
+      manufacturer_slug:
+        type: str
+        description: Manufacturer slug (lowercase, hyphens)
+        required: true
+        default: generic

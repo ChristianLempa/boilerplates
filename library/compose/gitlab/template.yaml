@@ -25,6 +25,8 @@ metadata:
   date: '2025-10-31'
   tags:
     - traefik
+    - swarm
+    - volume_modes
   next_steps: |
     ## Post-Installation Steps
     1. **Start GitLab**:
@@ -135,17 +137,6 @@ spec:
         type: str
         description: External URL for Container Registry
         default: http://localhost:5000
-  swarm:
-    needs: []
-    vars:
-      gitlab_root_password_secret_name:
-        type: str
-        description: Docker Swarm secret name for root password
-        default: gitlab_root_password
-      gitlab_registry_secret_name:
-        type: str
-        description: Docker Swarm secret name for registry
-        default: gitlab_registry_secret
   advanced:
     title: Advanced Settings
     description: Performance tuning and advanced configuration options
