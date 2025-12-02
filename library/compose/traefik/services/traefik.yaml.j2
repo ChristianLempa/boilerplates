@@ -30,7 +30,7 @@ services:
       {% if volume_mode == 'mount' and volume_mount_path%}
       - {{ volume_mount_path }}/config/:/etc/traefik/:ro
       {% else %}
-      - ./config/:/etc/traefik/:ro
+      - ../config/:/etc/traefik/:ro
       {% endif %}
       {% endif %}
       {% if volume_mode == 'mount' %}

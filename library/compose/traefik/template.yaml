@@ -17,16 +17,13 @@ metadata:
     - authentik
     - swarm
     - volume_mode
-  next_steps: |
+  next_steps: |-
+    Start the `{{ service_name }}` project
     {% if swarm_enabled %}
     1. Deploy Traefik to Docker Swarm:
       `docker stack deploy -c docker-compose.yaml traefik
     {% else %}
-    {% if volume_mount_path %}
-    1. Ensure the volume mount path `{{ volume_mount_path }}` exists on the host, and copy the `config/traefik.yaml` there.
-    {% else %}
-    1. Copy the `config/traefik.yaml` to the host project directory.
-    {% endif %}
+    1. Copy the project directory for `{{ service_name }}` to the host.
     2. Start Traefik with Docker Compose from the project directory:
       `docker compose up -d`
     {% endif %}
