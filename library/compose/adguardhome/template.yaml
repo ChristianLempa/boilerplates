@@ -1,15 +1,18 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: AdGuard Home
   description: |-
     Network-wide software for blocking ads and tracking. AdGuard Home operates as a DNS server that
     re-routes tracking domains to a "black hole", thus preventing your devices from connecting to those servers.
     It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC support.
-    
-    :warning: In Docker Swarm, AdGuard Home does NOT support running multiple replicas.
-    This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
+    ## Prerequisites
+    - :info: During the initial setup, AdGuard Home runs an HTTP server on port 3000 to guide you through configuration.
+    After completing the setup, AdGuard Home switches to the configured HTTP port, and port, consider re-deploying the
+    service with `initial_setup=false`.
+    - :warning: If you require DHCP functionality or want AdGuard Home to bind directly to port 53,
+    you must set `network_mode` to `host` or `macvlan`. Note this exposes all container ports directly on the host.
+    You can't use `traefik_enabled` in this case!
     ## References
     - **Project:** https://adguard.com/adguard-home/overview.html
     - **Documentation:** https://github.com/AdguardTeam/AdGuardHome/wiki
@@ -19,47 +22,10 @@ metadata:
   date: '2025-11-13'
   tags:
     - traefik
-    - swarm
-    - network_modes
-    - volume_modes
-  next_steps: |
-    ### 1. Deploy the Service
-    {% if swarm_enabled -%}
-    Deploy to Docker Swarm:
-    ```bash
-    docker stack deploy -c compose.yaml adguardhome
-    ```
-    {% else -%}
-    Start AdGuard Home using Docker Compose:
-    ```bash
-    docker compose up -d
-    ```
-    {% endif -%}
-    {% if initial_setup -%}
-    ### 2. Initial Setup
-    **NOTE:** Port {{ ports_initial }} is only used for the initial setup wizard. After completing the setup, AdGuard Home will automatically switch to port {{ ports_http }} for the web interface, and port {{ ports_initial }} will become inactive. Make sure to switch the `initial_setup` variable to `false` after the initial configuration to avoid exposing the setup wizard.
-    {% if traefik_enabled -%}
-    * Navigate to: **http://{{ traefik_host }}.{{ traefik_domain }}/setup**
-    {% else -%}
-    * Navigate to: **http://localhost:{{ ports_initial }}**
-    {% endif -%}
-    * Complete the initial setup wizard to configure:
-      - Admin credentials (username and password)
-      - DNS server settings and upstream DNS providers
-      - Network interface bindings
-      - Optional features (DHCP, DNS-over-HTTPS, etc.)
-    * **IMPORTANT:** During setup, configure the web interface to use port {{ ports_http }}.
-    ### 3. Access the Web Interface
-    After completing the initial setup:
-    {% else -%}
-    ### 2. Access the Web Interface
-    {% endif -%}
-    {% if traefik_enabled -%}
-    * Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**
-    {% else -%}
-    * Navigate to: **http://localhost:{{ ports_http }}**
-    {% endif -%}
-    * Login using the credentials configured during initial setup.
+    - network
+    - volume
+  next_steps:
+schema: "1.2"
 spec:
   general:
     vars:

@@ -3,72 +3,32 @@ kind: compose
 schema: "1.2"
 metadata:
   name: MariaDB
-  description: |
+  description: |-
     MariaDB is a community-developed, commercially supported fork of the MySQL relational database management system.
     It's designed to remain free and open-source software under the GNU General Public License.
-    
-    Project: https://mariadb.org/
-    Documentation: https://mariadb.com/kb/en/documentation/
-    GitHub: https://github.com/MariaDB/server
+    ## References
+    * **Project:** https://mariadb.org/
+    * **Documentation:** https://mariadb.com/kb/en/documentation/
+    * **GitHub:** https://github.com/MariaDB/server
+  next_steps: |-
+    Log in with your initial admin user:
+    ```bash
+    Username: `root` or `{{ database_user }}`
+    Password: {{ database_password }}
+    ```
   version: 12.0.2
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - swarm
-    - volume_mode
+  tags: []
 spec:
   general:
     vars:
       service_name:
         default: mariadb
-      container_name:
-        default: mariadb
-      container_hostname:
-        default: mariadb
-      mariadb_version:
-        type: str
-        description: MariaDB version
-        default: "12.0.2"
-  mariadb:
-    title: MariaDB Configuration
-    required: true
+  ports:
     vars:
-      mariadb_root_password_mode:
-        type: enum
-        description: Root password mode
-        default: set
-        options:
-          - set
-          - random
-          - empty
-      mariadb_root_password:
-        type: str
-        description: Root password (only used if mode is 'set')
-        sensitive: true
-        default: changeme
-        needs: "mariadb_root_password_mode=set"
-      mariadb_database:
-        type: str
-        description: Default database name
-        default: mydb
-      mariadb_user:
-        type: str
-        description: Default user name
-        default: myuser
-      mariadb_password:
-        type: str
-        description: Default user password
-        sensitive: true
-        default: changeme
-  mariadb_port:
-    title: MariaDB Port
-    toggle: mariadb_port_enabled
-    vars:
-      mariadb_port_enabled:
-        type: bool
-        description: Enable external port exposure
-        default: false
-      mariadb_port:
+      ports_mariadb:
+        description: "Host port for MariaDB"
         type: int
-        description: External port for MariaDB
         default: 3306
+        required: true

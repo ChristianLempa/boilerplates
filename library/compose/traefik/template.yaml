@@ -21,7 +21,7 @@ metadata:
     Start the `{{ service_name }}` project
     {% if swarm_enabled %}
     1. Deploy Traefik to Docker Swarm:
-      `docker stack deploy -c docker-compose.yaml traefik
+      `docker stack deploy -c docker-compose.yaml {{ service_name }}`
     {% else %}
     1. Copy the project directory for `{{ service_name }}` to the host.
     2. Start Traefik with Docker Compose from the project directory:
@@ -145,10 +145,8 @@ spec:
         needs: ["traefik_tls_certresolver=azure"]
       traefik_tls_acme_email:
         type: "str"
-        description: "Email address for ACME (Let's Encrypt) registration"
-        default: "admin@example.com"
+        description: "Email address for ACME"
         required: true
-        extra: "Required for Let's Encrypt certificate requests"
       traefik_tls_redirect:
         type: "bool"
         description: "Redirect all HTTP traffic to HTTPS"

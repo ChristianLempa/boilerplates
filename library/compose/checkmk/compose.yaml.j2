@@ -1,57 +1,27 @@
+---
 services:
   {{ service_name }}:
-    image: checkmk/check-mk-raw:2.4.0-{{ monitoring_version }}
-    container_name: {{ container_name }}
-    {#
-      Set container hostname for Checkmk identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Checkmk configuration:
-      - TZ: Timezone for proper log timestamps
-      - CMK_PASSWORD: Admin password for web interface
-      - CMK_SITE_ID: Site identifier for Checkmk instance
-    #}
+    image: checkmk/check-mk-raw:2.4.0-p1
+    restart: {{ restart_policy }}
     environment:
       - TZ={{ container_timezone }}
-      - CMK_PASSWORD={{ cmk_password }}
+      - CMK_PASSWORD=${CMK_PASSWORD}
       - CMK_SITE_ID={{ cmk_site_id }}
-    {#
-      Temporary filesystem for Checkmk runtime files
-    #}
     tmpfs:
       - /opt/omd/sites/{{ cmk_site_id }}/tmp:uid={{ user_uid }},gid={{ user_gid }}
-    {#
-      Volume configuration:
-      - /etc/localtime: System time synchronization
-      - data: Persistent storage for Checkmk sites and configuration
-    #}
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - data:/omd/sites:rw
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
+      - {{ service_name }}_data:/omd/sites:rw
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings (only when Traefik is disabled):
-      - HTTP: Web interface
-      - Agent: Checkmk agent communication
-      - SNMP: SNMP trap receiver
-    #}
-    {% if not traefik_enabled %}
     ports:
+    {% if not traefik_enabled %}
       - "{{ ports_http }}:8000"
+    {% endif %}
       - "{{ ports_agent }}:5000"
       - "{{ ports_snmp }}:162/udp"
-    {% endif %}
-    {#
-      When traefik_enabled is set, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -60,29 +30,20 @@ services:
       - traefik.http.services.{{ service_name }}-web.loadBalancer.server.scheme=http
       - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-http.entrypoints=web
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.entrypoints=websecure
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy }}
 
-{#
-  Volume definitions:
-  - data: Persistent storage for Checkmk sites and configuration
-#}
 volumes:
-  data:
+  {{ service_name }}_data:
     driver: local
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

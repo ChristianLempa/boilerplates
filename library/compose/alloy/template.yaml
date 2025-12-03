@@ -1,41 +1,39 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: Grafana Alloy
-  description: >
+  description: |-
     Grafana Alloy is an open telemetry collector distribution that gathers
     and processes logs, metrics, traces and profiles. It combines features
     from the OpenTelemetry Collector and Prometheus and provides programmable
     pipelines and high-performance, vendor-neutral observability.
-
-
-    Project: https://grafana.com/docs/alloy/
-
-    Source: https://github.com/grafana/alloy
-
-    Documentation: https://grafana.com/docs/alloy/latest/
+    ## Prerequisites
+    - :info: Set the `container_hostname` to your desired hostname. (This is
+    useful for identification in logs and metrics systems.)
+    ## References
+    * **Project:** https://grafana.com/docs/alloy/
+    * **Source:** https://github.com/grafana/alloy
+    * **Documentation:** https://grafana.com/docs/alloy/latest/
   version: v1.11.2
   author: Christian Lempa
   date: '2025-10-13'
   tags:
     - traefik
-    - swarm
-    - authentik
+schema: "1.2"
 spec:
   general:
     vars:
-      container_hostname:
-        type: str
-        description: Docker host hostname for container identification
-        default: hostname
-        extra: This is needed because when alloy runs in a container, it doesn't know the hostname of the docker host.
+      general_webui_enabled:
+        type: bool
+        description: Enable Alloy web user interface
   ports:
     vars:
-      ports_main:
+      ports_webui:
         type: int
         description: Main port for Alloy HTTP server
         default: 12345
+        needs: ["general_webui_enabled=true"]
+        required: true
   logs:
     name: Log Collection
     description: Configure log collection for Docker containers and system logs
@@ -49,14 +47,13 @@ spec:
         type: url
         description: Loki endpoint URL for sending logs
         default: http://loki:3100/loki/api/v1/push
+        required: true
       logs_docker:
         type: bool
         description: Enable Docker container log collection
-        default: true
       logs_system:
         type: bool
         description: Enable system and journalctl log collection
-        default: true
   metrics:
     name: Metrics Collection
     description: Configure metrics collection for Docker containers and system metrics
@@ -70,11 +67,10 @@ spec:
         type: url
         description: Prometheus remote write endpoint
         default: http://prometheus:9090/api/v1/write
+        required: true
       metrics_docker:
         type: bool
         description: Enable Docker container metrics collection (cAdvisor)
-        default: true
       metrics_system:
         type: bool
         description: Enable system (node) metrics collection
-        default: true

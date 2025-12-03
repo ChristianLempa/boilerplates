@@ -27,9 +27,7 @@ schema_config:
         period: 24h
 
 limits_config:
-  # NOTE: Data Retention is set to 7 days.
-  #       This is the default value and can be changed
-  retention_period: 168h
+  retention_period: {{ data_retention_days + 'd'}}
   ingestion_rate_mb: 4
   ingestion_burst_size_mb: 6
   max_streams_per_user: 10000

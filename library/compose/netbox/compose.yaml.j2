@@ -1,25 +1,204 @@
-{#
-  NetBox Docker Compose Configuration
-  
-  This is the main orchestration file that includes all service definitions.
-  Services are split into separate files for better maintainability:
-  - services/netbox.yaml: Main NetBox web application
-  - services/worker.yaml: Background task worker
-  - services/redis.yaml: Redis cache and queue services
-  - services/postgres.yaml: PostgreSQL database (Compose mode only)
-  - common/networks.yaml: Network definitions
-  - common/volumes.yaml: Volume definitions
-  - common/secrets.yaml: Secrets (Swarm mode only)
-#}
-include:
-  - services/netbox.yaml
-  - services/worker.yaml
-  - services/redis.yaml
-  {% if not database_external and not swarm_enabled %}
-  - services/postgres.yaml
+---
+services:
+  {{ service_name }}:
+    image: docker.io/netboxcommunity/netbox:v4.2.3
+    restart: {{ restart_policy }}
+    environment:
+      {% if traefik_enabled %}
+      - ALLOWED_HOSTS={{ traefik_host }}.{{ traefik_domain }}
+      {% else %}
+      - ALLOWED_HOSTS=*
+      {% endif %}
+      {% if database_external %}
+      - DB_HOST={{ database_host }}
+      {% else %}
+      - DB_HOST={{ service_name }}_postgres
+      {% endif %}
+      - DB_NAME={{ database_name }}
+      - DB_USER={{ database_user }}
+      - DB_PASSWORD=${DATABASE_PASSWORD}
+      - REDIS_HOST={{ service_name }}_redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_CACHE_HOST={{ service_name }}_redis-cache
+      - REDIS_CACHE_PASSWORD=${REDIS_PASSWORD}
+      - SECRET_KEY=${NETBOX_SECRET_KEY}
+      {% if netbox_metrics_enabled %}
+      - METRICS_ENABLED=true
+      {% endif %}
+      {% if email_enabled %}
+      - EMAIL_SERVER={{ email_server }}
+      - EMAIL_PORT={{ email_port }}
+      - EMAIL_FROM={{ email_from }}
+      - EMAIL_USERNAME={{ email_username }}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      {% if email_encryption == "ssl" %}
+      - EMAIL_USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - EMAIL_USE_TLS=True
+      {% endif %}
+      {% endif %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {{ service_name }}_backend:
+    {% if not traefik_enabled %}
+    ports:
+      - "{{ ports_http }}:8080"
+    {% endif %}
+    volumes:
+      - {{ service_name }}_media:/opt/netbox/netbox/media
+      - {{ service_name }}_reports:/opt/netbox/netbox/reports
+      - {{ service_name }}_scripts:/opt/netbox/netbox/scripts
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=8080
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    depends_on:
+      {% if not database_external %}
+      - {{ service_name }}_postgres
+      {% endif %}
+      - {{ service_name }}_redis
+      - {{ service_name }}_redis-cache
+
+  {{ service_name }}_worker:
+    image: docker.io/netboxcommunity/netbox:v4.2.3
+    restart: {{ restart_policy }}
+    command:
+      - /opt/netbox/venv/bin/python
+      - /opt/netbox/netbox/manage.py
+      - rqworker
+    environment:
+      {% if database_external %}
+      - DB_HOST={{ database_host }}
+      {% else %}
+      - DB_HOST={{ service_name }}_postgres
+      {% endif %}
+      - DB_NAME={{ database_name }}
+      - DB_USER={{ database_user }}
+      - DB_PASSWORD=${DATABASE_PASSWORD}
+      - REDIS_HOST={{ service_name }}_redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_CACHE_HOST={{ service_name }}_redis-cache
+      - REDIS_CACHE_PASSWORD=${REDIS_PASSWORD}
+      - SECRET_KEY=${NETBOX_SECRET_KEY}
+      {% if netbox_metrics_enabled %}
+      - METRICS_ENABLED=true
+      {% endif %}
+      {% if email_enabled %}
+      - EMAIL_SERVER={{ email_server }}
+      - EMAIL_PORT={{ email_port }}
+      - EMAIL_FROM={{ email_from }}
+      - EMAIL_USERNAME={{ email_username }}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      {% if email_encryption == "ssl" %}
+      - EMAIL_USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - EMAIL_USE_TLS=True
+      {% endif %}
+      {% endif %}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      - {{ service_name }}_media:/opt/netbox/netbox/media
+      - {{ service_name }}_reports:/opt/netbox/netbox/reports
+      - {{ service_name }}_scripts:/opt/netbox/netbox/scripts
+    depends_on:
+      {% if not database_external %}
+      - {{ service_name }}_postgres
+      {% endif %}
+      - {{ service_name }}
+      - {{ service_name }}_redis
+      - {{ service_name }}_redis-cache
+
+  {{ service_name }}_redis:
+    image: docker.io/library/redis:8.4.0-alpine
+    restart: {{ restart_policy }}
+    command:
+      - sh
+      - -c
+      - # FIXME: NEED TO REPAIR
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      - {{ service_name }}_redis:/data
+
+  {{ service_name }}_redis-cache:
+    image: docker.io/library/redis:8.4.0-alpine
+    restart: {{ restart_policy }}
+    command:
+      - sh
+      - -c
+      - # FIXME: NEED TO REPAIR
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      {{ service_name }}_backend:
+    volumes:
+      - {{ service_name }}_redis-cache:/data
+
+  {% if not database_external %}
+  {{ service_name }}_postgres:
+    image: docker.io/library/postgres:17.6
+    restart: {{ restart_policy }}
+    environment:
+      {% if container_timezone %}
+      - TZ={{ container_timezone }}
+      {% endif %}
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - {{ service_name }}_backend
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/postgres:/var/lib/postgresql/data
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}_postgres:/var/lib/postgresql/data
+      {% endif %}
   {% endif %}
-  - common/networks.yaml
-  - common/volumes.yaml
-  {% if swarm_enabled %}
-  - common/secrets.yaml
+
+
+networks:
+  {{ service_name }}_backend:
+    driver: bridge
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
   {% endif %}
+
+volumes:
+  {% if not database_external %}
+  {{ service_name }}_postgres:
+    driver: local
+  {% endif %}
+  {{ service_name }}_redis:
+    driver: local
+  {{ service_name }}_redis-cache:
+    driver: local
+  {{ service_name }}_media:
+    driver: local
+  {{ service_name }}_reports:
+    driver: local
+  {{ service_name }}_scripts:
+    driver: local

@@ -1,47 +1,23 @@
+---
 services:
   {{ service_name }}:
-    image: docker.io/louislam/dockge:{{ dockge_version }}
-    container_name: {{ container_name }}
-    {#
-      Set container hostname for Dockge identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Dockge configuration:
-      - TZ: Timezone for proper log timestamps
-      - DOCKGE_STACKS_DIR: Directory where Docker Compose stacks are stored
-    #}
+    image: docker.io/louislam/dockge:1.5.0
+    restart: {{ restart_policy }}
     environment:
       - TZ={{ container_timezone }}
       - DOCKGE_STACKS_DIR={{ stacks_path }}
-    {#
-      Volume configuration:
-      - Docker socket: Required for managing Docker containers (read-only)
-      - dockge-data: Persistent storage for Dockge configuration
-      - stacks_path: Directory for Docker Compose stacks management
-    #}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - dockge-data:/app/data
+      - {{ service_name }}_data:/app/data
       - {{ stacks_path }}:{{ stacks_path }}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
     {% if traefik_enabled %}
     networks:
-      {{ traefik_network }}:
+      - {{ traefik_network }}
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-    #}
     {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:5001"
     {% endif %}
-    {#
-      When traefik_enabled is set, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
@@ -49,29 +25,21 @@ services:
       - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=5001
       - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-http.entrypoints=web
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.entrypoints=websecure
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy }}
 
-{#
-  Volume definitions:
-  - dockge-data: Persistent storage for Dockge configuration and data
-#}
+
 volumes:
-  dockge-data:
+  {{ service_name }}_data:
     driver: local
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

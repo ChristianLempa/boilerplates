@@ -1,151 +1,19 @@
+
+---
 services:
   {{ service_name }}:
-    image: docker.io/library/mariadb:{{ mariadb_version }}
-    {#
-      If not in swarm mode, apply restart policy and container_name,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
-    {% if not swarm_enabled %}
+    image: docker.io/library/mariadb:12.0.2
     restart: {{ restart_policy }}
-    container_name: {{ container_name }}
-    {% endif %}
-    {#
-      Set container hostname
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for MariaDB configuration
-      - TZ: Timezone
-      - MARIADB_ROOT_PASSWORD: Root password (set, random, or empty)
-      - MARIADB_DATABASE: Default database name
-      - MARIADB_USER: Default user name
-      - MARIADB_PASSWORD: Default user password (from env or secret)
-    #}
     environment:
-      - TZ={{ container_timezone }}
-      {% if mariadb_root_password_mode == 'set' %}
-      - MARIADB_ROOT_PASSWORD={{ mariadb_root_password }}
-      {% elif mariadb_root_password_mode == 'random' %}
-      - MARIADB_RANDOM_ROOT_PASSWORD=true
-      {% else %}
-      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=true
-      {% endif %}
-      - MARIADB_DATABASE={{ mariadb_database }}
-      - MARIADB_USER={{ mariadb_user }}
-      {% if swarm_enabled %}
-      - MARIADB_PASSWORD=/run/secrets/mariadb_password
-      {% else %}
-      - MARIADB_PASSWORD={{ mariadb_password }}
-      {% endif %}
-    {#
-      Network configuration:
-      - Databases typically use bridge networking for internal communication
-      - Default to bridge network if not specified
-    #}
-    networks:
-      {{ network_name }}:
-    {#
-      Port mappings (only expose if enabled):
-      - MariaDB default port 3306
-      Note: Swarm mode uses 'host' mode for port publishing
-    #}
-    {% if mariadb_port_enabled %}
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_DATABASE={{ database_name }}
+      - MARIADB_USER={{ database_user }}
+      - MARIADB_PASSWORD=${MARIADB_ROOT_PASSWORD}
     ports:
-      {% if swarm_enabled %}
-      - target: 3306
-        published: {{ mariadb_port }}
-        protocol: tcp
-        mode: host
-      {% else %}
-      - "{{ mariadb_port }}:3306"
-      {% endif %}
-    {% endif %}
-    {#
-      Volume configuration for persistent data
-      - When volume_mode is 'mount': bind mount from host path
-      - When volume_mode is 'local', 'nfs', or empty: use docker-managed volumes
-    #}
+      - "{{ ports_mariadb }}:3306"
     volumes:
-      {% if volume_mode == 'mount' %}
-      - {{ volume_mount_path }}/{{ service_name }}:/var/lib/mysql:rw
-      {% else %}
-      - {{ service_name }}-data:/var/lib/mysql
-      {% endif %}
-    {#
-      Deploy configuration for Swarm mode:
-      - Single replica (MariaDB doesn't support multi-replica without replication setup)
-      - For HA, use Galera Cluster or MariaDB replication
-      - Uses Docker secrets for password management
-      - Optional resource limits and reservations
-    #}
-    {% if swarm_enabled %}
-    secrets:
-      - mariadb_password
-    deploy:
-      {% if swarm_placement_mode == 'replicated' %}
-      mode: replicated
-      replicas: {{ swarm_replicas }}
-      placement:
-        constraints:
-          - node.hostname == {{ swarm_placement_host }}
-      {% else %}
-      mode: global
-      {% endif %}
-      restart_policy:
-        condition: on-failure
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-      {% endif %}
-    {% endif %}
-{#
-  Volume definitions:
-  - When volume_mode is 'local' (default): use docker-managed local volumes
-  - When volume_mode is 'nfs': configure NFS-backed volumes
-  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
-#}
-{% if volume_mode == 'local' %}
-volumes:
-  {{ service_name }}-data:
-    driver: local
-{% elif volume_mode == 'nfs' %}
-volumes:
-  {{ service_name }}-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
-      device: ":{{ volume_nfs_path }}/{{ service_name }}"
-{% endif %}
+      - {{ service_name }}_data:/var/lib/mysql
 
-{#
-  Network definitions:
-  - Bridge network for service communication
-  - Use overlay network in Swarm mode for multi-host communication
-#}
-networks:
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% else %}
-    {% if swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
-    driver: bridge
-    {% endif %}
-    {% endif %}
-
-{#
-  Docker Swarm secrets (external secrets managed via docker secret create)
-#}
-{% if swarm_enabled %}
-secrets:
-  mariadb_password:
-    external: true
-{% endif %}
+volumes:
+  {{ service_name }}_data:
+    driver: local

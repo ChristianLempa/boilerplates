@@ -1,137 +1,46 @@
+---
 services:
   {{ service_name }}:
     image: docker.io/library/influxdb:2.7.12-alpine
-    {#
-      If not in swarm mode, apply restart policy and container name
-    #}
-    {% if not swarm_enabled %}
     restart: {{ restart_policy }}
-    container_name: {{ container_name }}
-    {% endif %}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for InfluxDB initialization:
-      - Initial admin credentials, organization, and bucket
-      - Optional retention period and admin token
-    #}
     environment:
       - TZ={{ container_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME={{ influxdb_init_username }}
       - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_INIT_PASSWORD}
-      - DOCKER_INFLUXDB_INIT_ORG={{ influxdb_init_org }}
-      - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_init_bucket }}
-      {% if influxdb_init_retention %}
-      - DOCKER_INFLUXDB_INIT_RETENTION={{ influxdb_init_retention }}
-      {% endif %}
-      {% if influxdb_init_token %}
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_INIT_TOKEN}
-      {% endif %}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for HTTP API (only when Traefik is disabled)
-      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
-    #}
     {% if not traefik_enabled %}
     ports:
-      {% if swarm_enabled %}
-      - target: 8086
-        published: {{ ports_http }}
-        protocol: tcp
-        mode: host
-      {% else %}
       - "{{ ports_http }}:8086"
-      {% endif %}
     {% endif %}
-    {#
-      Volume configuration for persistent data
-    #}
     volumes:
-      - influxdb-data:/var/lib/influxdb2
-      - /etc/influxdb2:/etc/influxdb2
-    {% if traefik_enabled and not swarm_enabled %}
+      - {{ service_name }}_data:/var/lib/influxdb2
+      - /etc/influxdb2:/etc/influxdb2  # FIXME: WHAT IS THAT?
+    {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=8086
       - traefik.http.services.{{ service_name }}-web.loadbalancer.server.scheme=http
       - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-http.entrypoints=web
       - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-https.entrypoints=websecure
       - traefik.http.routers.{{ service_name }}-web-https.tls=true
       - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
       - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
       {% endif %}
     {% endif %}
-    {% if swarm_enabled or resources_enabled %}
-    deploy:
-      {% if swarm_enabled %}
-      mode: {{ swarm_placement_mode }}
-      {% if swarm_placement_mode == 'replicated' %}
-      replicas: {{ swarm_replicas }}
-      {% endif %}
-      {% if swarm_placement_host %}
-      placement:
-        constraints:
-          - node.hostname == {{ swarm_placement_host }}
-      {% endif %}
-      restart_policy:
-        condition: on-failure
-      {% endif %}
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        {% if swarm_enabled %}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-        {% endif %}
-      {% endif %}
-      {% if traefik_enabled %}
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network={{ traefik_network }}
-        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=8086
-        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.scheme=http
-        - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
-        - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
-        {% if traefik_tls_enabled %}
-        - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
-        - traefik.http.routers.{{ service_name }}-web-https.tls=true
-        - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
-        - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
-        {% endif %}
-      {% endif %}
-    {% endif %}
-
-{#
-  Volume definitions:
-  - influxdb-data: Persistent storage for InfluxDB time series data
-#}
+    
 volumes:
-  influxdb-data:
+  {{ service_name }}_data:
     driver: local
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

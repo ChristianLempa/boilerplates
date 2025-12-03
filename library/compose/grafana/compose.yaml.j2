@@ -1,50 +1,28 @@
 services:
-  {{ service_name }}:
+  {{ service_name }}_
     image: docker.io/grafana/grafana-oss:12.1.1
-    {#
-      If not in swarm mode, check whether container_name is set and apply restart policy,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
-    {% if not swarm_enabled %}
     restart: {{ restart_policy }}
-    container_name: {{ container_name }}
-    {% endif %}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Grafana configuration:
-      - User/group IDs for file permissions
-      - PostgreSQL database connection (if enabled)
-      - Authentik OAuth integration (if enabled)
-    #}
     environment:
       - TZ={{ container_timezone }}
       - UID={{ user_uid }}
       - GID={{ user_gid }}
       {% if database_type == 'postgres' %}
       - GF_DATABASE_TYPE=postgres
+      {% if database_external %}
       - GF_DATABASE_HOST={{ database_host }}
+      {% else %}
+      - GF_DATABASE_HOST={{ service_name }}_postgres:5432
+      {% endif %}
       - GF_DATABASE_NAME={{ database_name }}
       - GF_DATABASE_USER={{ database_user }}
-      {% if swarm_enabled %}
-      - GF_DATABASE_PASSWORD__FILE=/run/secrets/{{ service_name }}_db_password
-      {% else %}
       - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
-      {% endif %}
       - GF_DATABASE_SSL_MODE=disable
       {% endif %}
       {% if authentik_enabled %}
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME={{ authentik_slug }}
-      {% if swarm_enabled %}
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID__FILE=/run/secrets/{{ service_name }}_oauth_client_id
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET__FILE=/run/secrets/{{ service_name }}_oauth_client_secret
-      {% else %}
       - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OAUTH_CLIENT_ID}
       - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_CLIENT_SECRET}
-      {% endif %}
       - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
       - GF_AUTH_GENERIC_OAUTH_AUTH_URL={{ authentik_url }}/application/o/authorize/
       - GF_AUTH_GENERIC_OAUTH_TOKEN_URL={{ authentik_url }}/application/o/token/
@@ -52,174 +30,44 @@ services:
       - GF_AUTH_SIGNOUT_REDIRECT_URL={{ authentik_url }}/application/o/{{ authentik_slug }}/end-session/
       - GF_AUTH_OAUTH_AUTO_LOGIN=true
       {% if traefik_enabled %}
-      - GF_SERVER_ROOT_URL=https://{{ traefik_host }}
+      - GF_SERVER_ROOT_URL=https://{{ traefik_host }}.{{ traefik_domain }}
       {% endif %}
       - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
       - GF_AUTH_GENERIC_OAUTH_SKIP_ORG_ROLE_SYNC=true
       {% endif %}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
-    #}
     {% if not traefik_enabled %}
     ports:
-      {% if swarm_enabled %}
-      - target: 3000
-        published: {{ ports_http }}
-        protocol: tcp
-        mode: host
-      {% else %}
       - "{{ ports_http }}:3000"
-      {% endif %}
     {% endif %}
-    {#
-      Volume configuration for persistent data
-    #}
     volumes:
-      {% if volume_mode == 'mount' %}
-      - {{ volume_mount_path }}/data:/var/lib/grafana:rw
-      {% else %}
-      - {{ service_name }}-data:/var/lib/grafana
-      {% endif %}
-    {#
-      When swarm_enabled is set, use Docker secrets for sensitive data
-    #}
-    {% if swarm_enabled %}
-    secrets:
-      {% if database_type == 'postgres' %}
-      - {{ service_name }}_db_password
-      {% endif %}
-      {% if authentik_enabled %}
-      - {{ service_name }}_oauth_client_id
-      - {{ service_name }}_oauth_client_secret
-      {% endif %}
-    {% endif %}
-    {#
-      When traefik_enabled is set, and not running in swarm mode, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
+      - {{ service_name }}_data:/var/lib/grafana
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=3000
-      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
-      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=3000
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
-      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-      - traefik.http.routers.{{ service_name }}-https.tls=true
-      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
-      {% endif %}
-    {% endif %}
-    {#
-      Deploy configuration for Swarm mode and/or resource limits:
-      - Swarm: Configure replicas, placement constraints, and restart policy
-      - Resources: Set CPU/memory limits (and reservations in Swarm mode)
-      - Traefik: Labels for reverse proxy integration (Swarm mode)
-    #}
-    {% if swarm_enabled or resources_enabled %}
-    deploy:
-      {% if swarm_enabled %}
-      mode: {{ swarm_placement_mode }}
-      {% if swarm_placement_mode == 'replicated' %}
-      replicas: {{ swarm_replicas }}
-      {% endif %}
-      {% if swarm_placement_host %}
-      placement:
-        constraints:
-          - node.hostname == {{ swarm_placement_host }}
-      {% endif %}
-      restart_policy:
-        condition: on-failure
-      {% endif %}
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        {% if swarm_enabled %}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-        {% endif %}
-      {% endif %}
-      {#
-        When traefik_enabled is set in swarm mode, add traefik labels
-        (optionally enable TLS if traefik_tls_enabled is set)
-      #}
-      {% if swarm_enabled and traefik_enabled %}
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network={{ traefik_network }}
-        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=3000
-        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
-        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
-        {% if traefik_tls_enabled %}
-        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
-        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-        - traefik.http.routers.{{ service_name }}-https.tls=true
-        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
-        {% endif %}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
 
-{#
-  Volume definitions:
-  - When volume_mode is 'local' (default): use docker-managed local volumes
-  - When volume_mode is 'nfs': configure NFS-backed volumes
-  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
-#}
-{% if volume_mode == 'local' %}
-volumes:
-  {{ service_name }}-data:
-    driver: local
-{% elif volume_mode == 'nfs' %}
-volumes:
-  {{ service_name }}-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
-      device: ":{{ volume_nfs_path }}/data"
-{% endif %}
-
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:
     external: true
 {% endif %}
 
-{#
-  Docker Swarm secrets (only when swarm_enabled is set):
-  - Database password for PostgreSQL (if using external database)
-  - OAuth credentials for Authentik integration (if enabled)
-#}
-{% if swarm_enabled %}
-secrets:
-  {% if database_type == 'postgres' %}
-  {{ service_name }}_db_password:
-    file: ./.env.secret.grafana_db_password
-  {% endif %}
-  {% if authentik_enabled %}
-  {{ service_name }}_oauth_client_id:
-    file: ./.env.secret.grafana_oauth_client_id
-  {{ service_name }}_oauth_client_secret:
-    file: ./.env.secret.grafana_oauth_client_secret
-  {% endif %}
-{% endif %}
+volumes:
+  {{ service_name }}_data:
+    driver: local

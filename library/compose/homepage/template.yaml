@@ -17,6 +17,7 @@ metadata:
     - traefik
     - swarm
     - volume_modes
+  draft: true
 spec:
   general:
     vars:

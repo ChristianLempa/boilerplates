@@ -16,6 +16,7 @@ metadata:
     * **Project:** https://github.com/moghtech/komodo
     * **Documentation:** https://github.com/moghtech/komodo/tree/main/docsite/docs
     * **Docker Hub:** https://hub.docker.com/r/moghtech/komodo
+  draft: true
   version: latest
   author: Christian Lempa
   date: '2025-11-13'

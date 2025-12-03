@@ -161,6 +161,13 @@
         "type": "int",
         "default": 25,
         "required": true
+      },
+      {
+        "name": "ports_snmp",
+        "description": "SNMP trap port",
+        "type": "int",
+        "default": 162,
+        "required": true
       }
     ]
   },
@@ -367,8 +374,8 @@
         "name": "database_type",
         "description": "Database type",
         "type": "enum",
-        "options": ["default", "sqlite", "postgres", "mysql"],
-        "default": "default",
+        "options": ["sqlite", "postgres", "mysql"],
+        "default": "sqlite",
         "required": true
       },
       {
@@ -376,6 +383,7 @@
         "description": "Use an external database server?",
         "extra": "skips creation of internal database container",
         "type": "bool",
+        "needs": ["database_type=postgres,mysql"],
         "default": false
       },
       {

@@ -1,60 +1,26 @@
 services:
   {{ service_name }}:
     image: grafana/alloy:v1.11.3
-    {#
-      If not in swarm mode, check whether container_name is set and apply restart policy,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
-    {% if not swarm_enabled %}
     restart: {{ restart_policy }}
-    container_name: {{ container_name }}
-    {% endif %}
-    {#
-      Set container hostname for identification in metrics/logs
-    #}
+    {% if container_hostname %}
     hostname: {{ container_hostname }}
-    {#
-      Alloy command configuration:
-      - HTTP server listens on 0.0.0.0:12345
-      - Data storage in /var/lib/alloy/data
-      - Configuration file at /etc/alloy/config.alloy
-    #}
+    {% endif %}
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for HTTP server (only when Traefik is disabled)
-      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
-    #}
-    {% if not traefik_enabled %}
+    {% if not traefik_enabled and general_webui_enabled %}
     ports:
-      {% if swarm_enabled %}
-      - target: 12345
-        published: {{ ports_main }}
-        protocol: tcp
-        mode: host
-      {% else %}
-      - "{{ ports_main }}:12345"
-      {% endif %}
+      - "{{ ports_webui }}:12345"
     {% endif %}
-    {#
-      Volume configuration:
-      - Config file: Alloy configuration (mounted from local directory)
-      - Data: Persistent storage for Alloy data
-      - System mounts: Required for log/metric collection from host
-    #}
     volumes:
       - ./config/config.alloy:/etc/alloy/config.alloy
-      - alloy_data:/var/lib/alloy/data
+      - {{ service_name }}_data:/var/lib/alloy/data
       {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
       - /sys:/sys:ro
@@ -69,100 +35,29 @@ services:
       {% if metrics_enabled and metrics_system %}
       - /run/udev/data:/run/udev/data:ro
       {% endif %}
-    {#
-      When traefik_enabled is set, and not running in swarm mode, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
-    {% if traefik_enabled and not swarm_enabled %}
+    {% if traefik_enabled and general_webui_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=12345
       - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-http.entrypoints=web
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.entrypoints=websecure
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    {#
-      Deploy configuration for Swarm mode and/or resource limits:
-      - Swarm: Configure replicas, placement constraints, and restart policy
-      - Resources: Set CPU/memory limits (and reservations in Swarm mode)
-      - Traefik: Labels for reverse proxy integration (Swarm mode)
-    #}
-    {% if swarm_enabled or resources_enabled %}
-    deploy:
-      {% if swarm_enabled %}
-      mode: {{ swarm_placement_mode }}
-      {% if swarm_placement_mode == 'replicated' %}
-      replicas: {{ swarm_replicas }}
-      {% endif %}
-      {% if swarm_placement_host %}
-      placement:
-        constraints:
-          - node.hostname == {{ swarm_placement_host }}
-      {% endif %}
-      restart_policy:
-        condition: on-failure
-      {% endif %}
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        {% if swarm_enabled %}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-        {% endif %}
-      {% endif %}
-      {#
-        When traefik_enabled is set in swarm mode, add traefik labels
-        (optionally enable TLS if traefik_tls_enabled is set, and authentik middleware if enabled)
-      #}
-      {% if swarm_enabled and traefik_enabled %}
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network={{ traefik_network }}
-        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=12345
-        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
-        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
-        {% if authentik_enabled %}
-        - traefik.http.routers.{{ service_name }}-http.middlewares={{ authentik_traefik_middleware }}
-        {% endif %}
-        {% if traefik_tls_enabled %}
-        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
-        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-        - traefik.http.routers.{{ service_name }}-https.tls=true
-        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
-        {% if authentik_enabled %}
-        - traefik.http.routers.{{ service_name }}-https.middlewares={{ authentik_traefik_middleware }}
-        {% endif %}
-        {% endif %}
-      {% endif %}
-    {% endif %}
 
-{#
-  Volume definitions:
-  - alloy_data: Persistent storage for Alloy data
-#}
-volumes:
-  alloy_data:
-    driver: local
-
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:
     external: true
 {% endif %}
+
+volumes:
+  {{ service_name }}_data:
+    driver: local

@@ -17,6 +17,7 @@ metadata:
     - traefik
     - swarm
     - authentik
+  draft: true
   next_steps: |
     1. Start the Homer dashboard:
        docker compose up -d

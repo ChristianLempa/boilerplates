@@ -1,48 +1,35 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: Dockge
-  description: >
+  description: |-
     Dockge is a powerful Docker management platform that simplifies container orchestration and monitoring.
     It provides an intuitive web interface to manage Docker containers, images, networks, and volumes with ease.
-
-    Project: https://dockge.com/
-
-    Documentation: https://docs.dockge.com/
-
-    GitHub: https://github.com/dockge/dockge
+    ## Prerequisites
+    * **Project:** https://dockge.com/
+    * **Documentation:** https://docs.dockge.com/
+    * **GitHub:** https://github.com/dockge/dockge
   version: 1.5.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - traefik
+schema: "1.2"
 spec:
   general:
     vars:
       service_name:
         default: dockge
-      container_name:
-        default: dockge
-      dockge_version:
-        type: str
-        description: Dockge version
-        default: latest
       stacks_path:
         type: str
-        description: Path where Docker Compose stacks are stored
+        description: Docker Compose Path
         default: /opt/stacks
-  network:
-    vars:
-      network_name:
-        default: "dockge_network"
+        required: true
   traefik:
     vars:
       traefik_host:
-        default: dockge.home.arpa
+        default: dockge
   ports:
     vars:
       ports_http:
-        description: Web UI port
-        type: int
         default: 5001

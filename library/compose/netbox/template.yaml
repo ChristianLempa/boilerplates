@@ -3,8 +3,6 @@ metadata:
     name: NetBox
     description: |-
         Network infrastructure management (IPAM/DCIM) and network automation source of truth. Provides comprehensive API for managing IP addresses, circuits, devices, racks, cables, and other network infrastructure components with powerful automation capabilities.
-        ## :warning: Swarm Deployment
-        NetBox in Swarm mode requires an external PostgreSQL database (`database_external=true`).
         ## References
         * **Project:** https://netbox.dev/
         * **Documentation:** https://docs.netbox.dev/
@@ -14,8 +12,6 @@ metadata:
     date: "2025-11-13"
     tags:
         - traefik
-        - swarm
-        - volume_modes
     draft: false
 schema: "1.2"
 spec:

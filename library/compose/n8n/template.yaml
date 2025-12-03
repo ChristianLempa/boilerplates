@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: N8N
   description: |
@@ -8,17 +7,12 @@ metadata:
     various apps and services to automate repetitive tasks without coding.
     With its user-friendly interface, you can create complex workflows by simply dragging
     and dropping nodes that represent different actions and triggers.
-
-    This template provides the n8n server component with optional queue mode support.
-    For scaled deployments, combine with the n8n-worker template.
-
-    ## Database Backend
-    By default, n8n uses SQLite as its database, which is suitable for small-scale or
+    ## Prerequisites
+    - :info: By default, n8n uses SQLite as its database, which is suitable for small-scale or
     personal use. For production environments, it is recommended to use an external
     database like PostgreSQL or MySQL for better performance and reliability. This is also
     required when using Queue Mode.
-    ## Queue Mode
-    Queue mode allows n8n to handle a large number of workflows and tasks efficiently, by using
+    - :info: Queue mode allows n8n to handle a large number of workflows and tasks efficiently, by using
     multiple Workers, and Redis as the queue backend. This is essential for high-availability
     setups where multiple n8n instances work together. It also supports Queue Monitoring
     (when Prometheus metrics are enabled).
@@ -31,23 +25,9 @@ metadata:
   date: '2025-11-02'
   tags:
     - traefik
-    - swarm
-  next_steps: |
-    {% if swarm_enabled -%}
-    1. Create required secrets:
-       echo "your-encryption-key" | docker secret create {{ service_name }}_encryption_key -
-       {% if database_enabled and database_type == 'postgres' -%}
-       echo "your-db-password" | docker secret create {{ service_name }}_database_password -
-       {%- endif %}
-    2. Deploy to Docker Swarm:
-       docker stack deploy -c compose.yaml {{ service_name }}
-    {% else -%}
-    1. Start n8n with Docker Compose:
-       docker compose up -d
-    {% endif -%}
-    2. Access the Web Interface:
-       {%- if traefik_enabled %} https://{{ traefik_host }}
-       {%- else %} http://localhost:{{ ports_http }}{%- endif %}
+    - database
+  next_steps:
+schema: "1.2"
 spec:
   general:
     vars:

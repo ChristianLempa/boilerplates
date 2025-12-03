@@ -20,6 +20,7 @@ metadata:
     - swarm
     - proxy
     - wireguard
+  draft: true
   next_steps: |
     ### 1. Configure Database
     {% if postgres_enabled -%}
