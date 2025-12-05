@@ -3,23 +3,34 @@ kind: compose
 schema: "1.2"
 metadata:
   name: Nginx
-  description: >
+  description: |-
     Nginx is a high-performance web server, reverse proxy, and load balancer known for its stability, rich feature set, simple configuration, and low resource
     consumption. It is widely used to serve static content, handle HTTP requests, and distribute traffic across multiple servers.
 
+    ## Prerequisites
+    * **Project:** https://nginx.org/
+    * **Documentation:** https://nginx.org/en/docs/
+    * **GitHub:** https://github.com/nginx/nginx
 
-    Project: https://nginx.org/
-
-    Documentation: https://nginx.org/en/docs/
-
-    GitHub: https://github.com/nginx/nginx
   version: 1.28.0-alpine
-  date: 2023-10-01
   author: Christian Lempa
+  date: '2023-10-01'
   tags:
     - traefik
     - swarm
 spec:
+  general:
+    vars:
+      service_name:
+        default: "nginx"
+      restart_policy:
+        type: enum
+        options: ["unless-stopped", "always", "on-failure", "no"]
+        default: "unless-stopped"
+      container_name:
+        default: "nginx"
+      container_timezone:
+        default: "UTC"
   ports:
     vars:
       ports_http:
@@ -30,9 +41,40 @@ spec:
         description: HTTPS port for nginx service
         type: int
         default: 8443
-  nginx:
+  traefik:
     vars:
-      nginx_version:
-        description: Nginx version
-        type: str
-        default: latest
+      traefik_enabled:
+        type: bool
+        default: false
+      traefik_network:
+        default: "traefik"
+      traefik_host:
+        default: "nginx"
+      traefik_domain:
+        default: "home.arpa"
+      traefik_entrypoint:
+        default: "web"
+      traefik_tls_entrypoint:
+        default: "websecure"
+      traefik_tls_enabled:
+        type: bool
+        default: true
+      traefik_tls_certresolver:
+        default: "cloudflare"
+  network:
+    vars:
+      network_mode:
+        type: enum
+        options: ["bridge", "host", "macvlan"]
+        default: "bridge"
+      network_name:
+        default: "bridge"
+  swarm:
+    vars:
+      swarm_enabled:
+        type: bool
+        default: false
+      swarm_replicas:
+        description: Number of replicas for Swarm mode
+        type: int
+        default: 1

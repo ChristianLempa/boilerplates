@@ -1,42 +1,52 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
   name: Grafana Alloy
-  description: |-
-    Grafana Alloy is an open telemetry collector distribution that gathers
-    and processes logs, metrics, traces and profiles. It combines features
-    from the OpenTelemetry Collector and Prometheus and provides programmable
-    pipelines and high-performance, vendor-neutral observability.
-    ## Prerequisites
-    - :info: Set the `container_hostname` to your desired hostname. (This is
-    useful for identification in logs and metrics systems.)
-    ## References
-    * **Project:** https://grafana.com/docs/alloy/
-    * **Source:** https://github.com/grafana/alloy
-    * **Documentation:** https://grafana.com/docs/alloy/latest/
+  description: |
+    Grafana Alloy is an open telemetry collector that collects, processes, and exports metrics to various backends.
+    
+    ## Resources
+    - **Project**: https://grafana.com/oss/alloy/
+    - **Documentation**: https://grafana.com/docs/alloy/latest/
+    - **GitHub**: https://github.com/grafana/alloy
   version: v1.11.2
   author: Christian Lempa
   date: '2025-10-13'
   tags:
     - traefik
-schema: "1.2"
 spec:
   general:
     vars:
-      general_webui_enabled:
-        type: bool
-        description: Enable Alloy web user interface
+      service_name:
+        default: alloy
+      container_name:
+        default: alloy
+      alloy_version:
+        type: str
+        description: Grafana Alloy version to use
+        default: v1.11.2
+      restart_policy:
+        type: str
+        description: Restart policy for the container
+        default: unless-stopped
   ports:
     vars:
       ports_webui:
         type: int
-        description: Main port for Alloy HTTP server
+        description: Port for Alloy web UI
         default: 12345
-        needs: ["general_webui_enabled=true"]
-        required: true
+  traefik:
+    required: false
+    vars:
+      traefik_enabled:
+        type: bool
+        default: false
+      traefik_host:
+        type: str
+        default: alloy.localhost
   logs:
-    name: Log Collection
-    description: Configure log collection for Docker containers and system logs
+    title: Log Collection
     toggle: logs_enabled
     vars:
       logs_enabled:
@@ -51,12 +61,13 @@ spec:
       logs_docker:
         type: bool
         description: Enable Docker container log collection
+        default: true
       logs_system:
         type: bool
         description: Enable system and journalctl log collection
+        default: true
   metrics:
-    name: Metrics Collection
-    description: Configure metrics collection for Docker containers and system metrics
+    title: Metrics Collection
     toggle: metrics_enabled
     vars:
       metrics_enabled:
@@ -71,6 +82,8 @@ spec:
       metrics_docker:
         type: bool
         description: Enable Docker container metrics collection (cAdvisor)
+        default: true
       metrics_system:
         type: bool
         description: Enable system (node) metrics collection
+        default: true

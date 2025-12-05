@@ -1,26 +1,27 @@
 services:
   {{ service_name }}:
-    image: grafana/alloy:v1.11.3
+    image: docker.io/grafana/alloy:{{ alloy_version }}
     restart: {{ restart_policy }}
     {% if container_hostname %}
     hostname: {{ container_hostname }}
     {% endif %}
-    command:
-      - run
-      - --server.http.listen-addr=0.0.0.0:12345
-      - --storage.path=/var/lib/alloy/data
-      - /etc/alloy/config.alloy
+    {% if resources_enabled %}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    {% endif %}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {% if not traefik_enabled and general_webui_enabled %}
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_webui }}:12345"
     {% endif %}
     volumes:
-      - ./config/config.alloy:/etc/alloy/config.alloy
-      - {{ service_name }}_data:/var/lib/alloy/data
+      - {{ service_name }}_data:/alloy/data
       {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
       - /sys:/sys:ro
@@ -35,7 +36,7 @@ services:
       {% if metrics_enabled and metrics_system %}
       - /run/udev/data:/run/udev/data:ro
       {% endif %}
-    {% if traefik_enabled and general_webui_enabled %}
+    {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}

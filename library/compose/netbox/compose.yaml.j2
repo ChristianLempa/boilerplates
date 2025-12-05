@@ -4,6 +4,9 @@ services:
     image: docker.io/netboxcommunity/netbox:v4.2.3
     restart: {{ restart_policy }}
     environment:
+      {% if container_timezone %}
+      - TIME_ZONE={{ container_timezone }}
+      {% endif %}
       {% if traefik_enabled %}
       - ALLOWED_HOSTS={{ traefik_host }}.{{ traefik_domain }}
       {% else %}
@@ -26,7 +29,7 @@ services:
       - METRICS_ENABLED=true
       {% endif %}
       {% if email_enabled %}
-      - EMAIL_SERVER={{ email_server }}
+      - EMAIL_SERVER={{ email_host }}
       - EMAIL_PORT={{ email_port }}
       - EMAIL_FROM={{ email_from }}
       - EMAIL_USERNAME={{ email_username }}
@@ -81,6 +84,9 @@ services:
       - /opt/netbox/netbox/manage.py
       - rqworker
     environment:
+      {% if container_timezone %}
+      - TIME_ZONE={{ container_timezone }}
+      {% endif %}
       {% if database_external %}
       - DB_HOST={{ database_host }}
       {% else %}
@@ -98,7 +104,7 @@ services:
       - METRICS_ENABLED=true
       {% endif %}
       {% if email_enabled %}
-      - EMAIL_SERVER={{ email_server }}
+      - EMAIL_SERVER={{ email_host }}
       - EMAIL_PORT={{ email_port }}
       - EMAIL_FROM={{ email_from }}
       - EMAIL_USERNAME={{ email_username }}
@@ -126,10 +132,7 @@ services:
   {{ service_name }}_redis:
     image: docker.io/library/redis:8.4.0-alpine
     restart: {{ restart_policy }}
-    command:
-      - sh
-      - -c
-      - # FIXME: NEED TO REPAIR
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
@@ -140,10 +143,7 @@ services:
   {{ service_name }}_redis-cache:
     image: docker.io/library/redis:8.4.0-alpine
     restart: {{ restart_policy }}
-    command:
-      - sh
-      - -c
-      - # FIXME: NEED TO REPAIR
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
@@ -171,13 +171,8 @@ services:
     networks:
       - {{ service_name }}_backend
     volumes:
-      {% if volume_mode == 'mount' %}
-      - {{ volume_mount_path }}/postgres:/var/lib/postgresql/data
-      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
       - {{ service_name }}_postgres:/var/lib/postgresql/data
-      {% endif %}
   {% endif %}
-
 
 networks:
   {{ service_name }}_backend:

@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: Whoami
   description: |
@@ -14,45 +13,21 @@ metadata:
     - **Project**: https://github.com/traefik/whoami
     - **Documentation**: https://traefik.io/docs/
     - **GitHub**: https://github.com/traefik/whoami
-  next_steps: |
-    ## Post-Installation Steps
-    1. **Start the service**:
-       ```bash
-       docker compose up -d
-       ```
-    2. **Verify the service is running**:
-       ```bash
-       docker compose ps
-       ```
-    3. **Test the endpoint**:
-       - Visit the configured host in your browser
-       - Or use curl: `curl http://{{ traefik_host }}`
-    4. **Check Traefik dashboard** (if enabled):
-       - Verify the route is registered correctly
-       - Check middleware configuration
   version: 1.11.0
   author: Christian Lempa
   date: '2025-10-30'
   tags:
     - traefik
     - swarm
-  draft: false
+schema: "1.2"
 spec:
   general:
     vars:
       service_name:
         default: whoami
-      container_name:
-        default: whoami
-      container_hostname:
-        default: whoami
   traefik:
-    required: true
-    needs: []
     vars:
+      traefik_enabled:
+        default: true
       traefik_host:
-        default: whoami.localhost
-  traefik_tls:
-    needs: []
-  swarm:
-    needs: []
+        default: whoami

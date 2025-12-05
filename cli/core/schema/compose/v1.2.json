@@ -68,7 +68,7 @@
         "description": "Docker network name",
         "type": "str",
         "default": "bridge",
-        "needs": "network_mode=bridge,macvlan",
+        "needs": ["network_mode=bridge,macvlan"],
         "required": true
       },
       {
@@ -76,14 +76,14 @@
         "description": "Use existing Docker network (external)",
         "type": "bool",
         "default": false,
-        "needs": "network_mode=bridge,macvlan"
+        "needs": ["network_mode=bridge,macvlan"]
       },
       {
         "name": "network_macvlan_ipv4_address",
         "description": "Static IP address for container",
         "type": "str",
         "default": "192.168.1.253",
-        "needs": "network_mode=macvlan",
+        "needs": ["network_mode=macvlan"],
         "required": true
       },
       {
@@ -91,7 +91,7 @@
         "description": "Host network interface name",
         "type": "str",
         "default": "eth0",
-        "needs": "network_mode=macvlan",
+        "needs": ["network_mode=macvlan"],
         "required": true
       },
       {
@@ -99,7 +99,7 @@
         "description": "Network subnet in CIDR notation",
         "type": "str",
         "default": "192.168.1.0/24",
-        "needs": "network_mode=macvlan",
+        "needs": ["network_mode=macvlan"],
         "required": true
       },
       {
@@ -107,7 +107,7 @@
         "description": "Network gateway IP address",
         "type": "str",
         "default": "192.168.1.1",
-        "needs": "network_mode=macvlan",
+        "needs": ["network_mode=macvlan"],
         "required": true
       }
     ]
@@ -345,7 +345,7 @@
         "description": "Number of replicas",
         "type": "int",
         "default": 1,
-        "needs": "swarm_placement_mode=replicated",
+        "needs": ["swarm_placement_mode=replicated"],
         "required": true
       },
       {
@@ -353,7 +353,7 @@
         "description": "Target hostname for placement constraint",
         "type": "str",
         "default": "",
-        "needs": "swarm_placement_mode=replicated",
+        "needs": ["swarm_placement_mode=replicated"],
         "extra": "Constrains service to run on specific node by hostname"
       }
     ]
@@ -390,7 +390,7 @@
         "name": "database_host",
         "description": "Database host",
         "type": "str",
-        "needs": "database_external=true",
+        "needs": ["database_external=true"],
         "default": "database",
         "required": true
       },
@@ -464,7 +464,7 @@
       {
         "name": "email_from",
         "description": "From email address",
-        "type": "email",
+        "type": "str",
         "required": true
       },
       {
@@ -504,7 +504,7 @@
         "description": "Traefik middleware name for Authentik authentication",
         "type": "str",
         "default": "authentik-middleware@file",
-        "needs": "traefik_enabled=true",
+        "needs": ["traefik_enabled=true"],
         "required": true
       }
     ]

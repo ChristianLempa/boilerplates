@@ -64,11 +64,15 @@ spec:
         needs: ["traefik_enabled=false", "initial_setup=true"]
         extra: >
           Only used during first-time setup. After configuration, port becomes inactive.
+      ports_dns:
+        description: "DNS port"
+        type: int
+        default: 53
       ports_tls:
         description: "DNS over TLS Port"
-        type: "int"
+        type: int
         default: 853
       ports_dnscrypt:
         description: "DNSCrypt Port"
-        type: "int"
+        type: int
         default: 5443

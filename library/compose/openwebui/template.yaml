@@ -28,10 +28,6 @@ spec:
         default: openwebui
       container_name:
         default: openwebui
-      openwebui_version:
-        type: str
-        description: Openwebui version
-        default: latest
       ollama_base_url:
         type: str
         description: Ollama API base URL

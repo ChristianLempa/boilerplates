@@ -1,21 +1,24 @@
 ---
 kind: compose
-schema: "1.1"
+schema: "1.2"
 metadata:
   name: Renovate
-  description: |
+  description: |-
     **Renovate** is an automated dependency update tool that creates pull requests for newer versions of dependencies.
     Supports GitHub, GitLab, Bitbucket, Gitea, and more platforms with flexible configuration options.
+
     ## Use Cases
     - Automated dependency updates for all your repositories
     - Security vulnerability patching
     - Multi-platform support (GitLab, GitHub, Bitbucket, etc.)
     - Customizable update schedules and rules
     - Self-hosted or cloud-based deployment
+
     ## Resources
     - **Project**: https://www.mend.io/renovate/
     - **Documentation**: https://docs.renovatebot.com/
     - **GitHub**: https://github.com/renovatebot/renovate
+
   version: 10.5.0
   author: Christian Lempa
   date: '2025-11-05'
@@ -49,12 +52,16 @@ spec:
     vars:
       service_name:
         default: "renovate"
+      restart_policy:
+        type: enum
+        options: ["unless-stopped", "always", "on-failure", "no"]
+        default: "unless-stopped"
       container_name:
         default: "renovate"
       container_hostname:
         default: "renovate"
-      container_loglevel:
-        default: "info"
+      container_timezone:
+        default: "UTC"
   renovate_settings:
     title: "Renovate Settings"
     required: true
@@ -105,7 +112,45 @@ spec:
         default: 8080
   traefik:
     vars:
+      traefik_enabled:
+        type: bool
+        default: false
+      traefik_network:
+        default: "traefik"
       traefik_host:
         default: "renovate"
       traefik_domain:
         default: "home.arpa"
+      traefik_entrypoint:
+        default: "web"
+      traefik_tls_entrypoint:
+        default: "websecure"
+      traefik_tls_enabled:
+        type: bool
+        default: true
+      traefik_tls_certresolver:
+        default: "cloudflare"
+  network:
+    vars:
+      network_mode:
+        type: enum
+        options: ["bridge", "host", "macvlan"]
+        default: "bridge"
+      network_name:
+        default: "bridge"
+  swarm:
+    vars:
+      swarm_enabled:
+        type: bool
+        default: false
+      swarm_placement_mode:
+        type: enum
+        options: ["replicated", "global"]
+        default: "replicated"
+      swarm_replicas:
+        type: int
+        default: 1
+        needs: "swarm_placement_mode=replicated"
+      swarm_placement_host:
+        default: ""
+        needs: "swarm_placement_mode=replicated"

@@ -56,6 +56,26 @@ spec:
       device_ref:
         type: str
         description: Device resource name for host assignment (leave empty to skip)
+  ipam:
+    title: IP Address Management
+    toggle: ipam_enabled
+    vars:
+      ipam_enabled:
+        type: bool
+        description: Enable IP address assignment
+        default: false
+      interface_name:
+        type: str
+        description: Network interface name
+        default: eth0
+        required: true
+      primary_ip4:
+        type: str
+        description: Primary IPv4 address resource name
+        required: true
+      dns_name:
+        type: str
+        description: DNS name for the IP address (leave empty to skip)
   resources:
     title: Resource Allocation
     toggle: resources_enabled
