@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: komodo
   name: Komodo
   description: |
     Build and deployment automation tool for managing software across multiple servers. Komodo provides

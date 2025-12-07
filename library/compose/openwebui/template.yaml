@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: openwebui
   name: Openwebui
   description: >
     OpenWebUI is an open-source web-based user interface for managing and interacting with AI models.

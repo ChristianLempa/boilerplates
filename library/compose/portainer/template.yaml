@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: portainer
   name: Portainer
   description: >
     Portainer is a powerful and user-friendly management tool for Docker and Kubernetes environments.

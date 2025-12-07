@@ -2,6 +2,9 @@
 kind: ansible
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: ansible
   name: Add SSH Key and Configure Sudoers
   description: >
     Ansible playbook to add SSH public key to authorized_keys.

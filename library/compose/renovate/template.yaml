@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: renovate
   name: Renovate
   description: |-
     **Renovate** is an automated dependency update tool that creates pull requests for newer versions of dependencies.

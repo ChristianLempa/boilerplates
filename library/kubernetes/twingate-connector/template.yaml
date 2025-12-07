@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: twingate-connector
   name: Twingate Connector
   description: >
     Twingate Connector for secure zero-trust network access.

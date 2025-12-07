@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: homepage
   name: Homepage
   description: |
     Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations

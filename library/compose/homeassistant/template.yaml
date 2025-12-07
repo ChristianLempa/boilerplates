@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: homeassistant
   name: Homeassistant
   description: >
     Home Assistant is an open-source platform for smart home automation that puts local control and privacy first.

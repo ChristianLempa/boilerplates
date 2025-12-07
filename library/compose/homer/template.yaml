@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: homer
   name: Homer
   description: >
     A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration file.

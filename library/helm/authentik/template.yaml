@@ -2,6 +2,9 @@
 kind: helm
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: authentik
   name: Authentik
   description: >
     Helm values template for Authentik, an open-source Identity Provider focused

@@ -9,6 +9,9 @@ metadata:
     * **Project:** https://grafana.com/
     * **Documentation:** https://grafana.com/docs/grafana/latest/
     * **GitHub:** https://github.com/grafana/grafana
+  icon:
+    provider: selfh
+    id: grafana
   version: 12.1.1
   author: Christian Lempa
   date: '2025-09-28'

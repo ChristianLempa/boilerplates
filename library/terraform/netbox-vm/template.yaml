@@ -2,6 +2,9 @@
 kind: terraform
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: terraform
   name: NetBox Virtual Machine
   description: >
     Register a virtual machine in NetBox with cluster and site association.

@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: mariadb
   name: MariaDB
   description: |-
     MariaDB is a community-developed, commercially supported fork of the MySQL relational database management system.

@@ -17,6 +17,9 @@ metadata:
     - **Project:** https://adguard.com/adguard-home/overview.html
     - **Documentation:** https://github.com/AdguardTeam/AdGuardHome/wiki
     - **GitHub:** https://github.com/AdguardTeam/AdGuardHome
+  icon:
+    provider: selfh
+    id: adguard-home
   version: v0.107.69
   author: Christian Lempa
   date: '2025-11-13'

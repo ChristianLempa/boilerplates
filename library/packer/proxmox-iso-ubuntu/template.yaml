@@ -2,6 +2,9 @@
 kind: packer
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: proxmox
   name: Proxmox Ubuntu Server Template (ISO)
   description: >
     Packer template to create an Ubuntu Server VM template on Proxmox using ISO installation.

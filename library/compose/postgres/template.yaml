@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: postgres
   name: PostgreSQL
   description: >
     PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development

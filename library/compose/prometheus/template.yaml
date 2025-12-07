@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: prometheus
   name: Prometheus
   description: |
     Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud.

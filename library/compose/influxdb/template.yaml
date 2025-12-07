@@ -1,6 +1,9 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: influxdb
   name: Influxdb
   description: |-
     InfluxDB is a powerful, open-source time series database designed for high-performance handling of time-stamped data.

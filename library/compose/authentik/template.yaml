@@ -17,6 +17,9 @@ metadata:
     * **Project:** https://goauthentik.io/
     * **Documentation:** https://goauthentik.io/docs/
     * **GitHub:** https://github.com/goauthentik/authentik
+  icon:
+    provider: selfh
+    id: authentik
   next_steps: |-
     Log in with your initial admin user:
     ```bash

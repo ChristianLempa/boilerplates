@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: pihole
   name: Pihole
   description: |
     Network-wide advertisement and internet tracker blocking application that functions as a DNS blackhole.

@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes Service
   description: >
     Kubernetes Service resource for exposing applications running on a set of Pods.

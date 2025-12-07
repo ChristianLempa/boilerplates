@@ -2,6 +2,9 @@
 kind: terraform
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: terraform
   name: NetBox Manufacturer
   description: >
     Create NetBox manufacturer for device hardware vendors.

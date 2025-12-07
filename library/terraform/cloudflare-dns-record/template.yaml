@@ -1,84 +1,80 @@
 ---
 kind: terraform
-schema: "1.0"
 metadata:
   name: Cloudflare DNS Record
-  description: >
+  description: |-
     Create Cloudflare DNS records (A, AAAA, CNAME, TXT, MX) with configurable settings.
-
 
     Supports all common DNS record types with proxy status and TTL configuration.
 
-
     Project: https://www.cloudflare.com/
-
     Documentation: https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/dns_record
   version: 5.12.0
   author: Christian Lempa
-  date: '2025-11-11'
+  date: "2025-11-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: cloudflare
+  draft: false
+  next_steps: ""
+schema: "1.0"
 spec:
-  general:
-    title: General
-    required: true
-    vars:
-      resource_name:
-        type: str
-        description: Terraform resource name (alphanumeric and underscores only)
-        default: dns_record
-      zone_id_value:
-        type: str
-        description: Cloudflare Zone ID
-  record:
-    title: DNS Record
-    required: true
-    vars:
-      record_type:
-        type: enum
-        description: DNS record type
-        options:
-          - A
-          - AAAA
-          - CNAME
-          - TXT
-          - MX
-        default: A
-      name:
-        type: str
-        description: DNS record name (use @ for root domain)
-        default: www
-      content:
-        type: str
-        description: DNS record content (IP, hostname, or text)
-        default: 192.0.2.1
-      ttl:
-        type: int
-        description: Time to live (1 = automatic, or 60-86400 seconds)
-        default: 1
-      proxied:
-        type: bool
-        description: Enable Cloudflare proxy (orange cloud)
-        default: true
-  mx:
-    title: MX Record Settings
-    toggle: mx_enabled
-    vars:
-      mx_enabled:
-        type: bool
-        description: Configure MX record priority
-        default: false
-      priority:
-        type: int
-        description: MX record priority (lower = higher priority)
-        default: 10
   comment:
     title: Comment
     toggle: comment_enabled
     vars:
       comment_enabled:
-        type: bool
         description: Add comment to DNS record
+        type: bool
         default: false
       comment_text:
-        type: str
         description: Comment for the DNS record
+        type: str
         default: Managed by Terraform
+  general:
+    vars:
+      resource_name:
+        description: Terraform resource name (alphanumeric and underscores only)
+        type: str
+        default: dns_record
+      zone_id_value:
+        description: Cloudflare Zone ID
+        type: str
+  mx:
+    title: MX Record Settings
+    toggle: mx_enabled
+    vars:
+      mx_enabled:
+        description: Configure MX record priority
+        type: bool
+        default: false
+      priority:
+        description: MX record priority (lower = higher priority)
+        type: int
+        default: 10
+  record:
+    title: DNS Record
+    required: true
+    vars:
+      content:
+        description: DNS record content (IP, hostname, or text)
+        type: str
+        default: 192.0.2.1
+      name:
+        description: DNS record name (use @ for root domain)
+        type: str
+        default: www
+      proxied:
+        description: Enable Cloudflare proxy (orange cloud)
+        type: bool
+        default: true
+      record_type:
+        description: DNS record type
+        type: enum
+        default: A
+        options: [A, AAAA, CNAME, TXT, MX]
+      ttl:
+        description: Time to live (1 = automatic, or 60-86400 seconds)
+        type: int
+        default: 1

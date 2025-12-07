@@ -1,6 +1,9 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: n8n
   name: N8N
   description: |
     N8n is a free and source-available workflow automation tool. It enables you to connect

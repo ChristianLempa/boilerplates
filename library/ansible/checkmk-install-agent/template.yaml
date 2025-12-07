@@ -1,58 +1,62 @@
 ---
 kind: ansible
-schema: "1.0"
 metadata:
   name: Install Checkmk Agent
-  description: >
-    Ansible playbook to install Checkmk monitoring agent on hosts.
-    Uses the checkmk.general.agent role with automatic registration.
-
+  description: |-
+    Ansible playbook to install Checkmk monitoring agent on hosts. Uses the checkmk.general.agent role with automatic registration.
 
     Project: https://checkmk.com
-
     Documentation: https://docs.checkmk.com/
   version: 2.4.0
   author: Christian Lempa
-  date: '2025-11-11'
+  date: "2025-11-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: checkmk
+  draft: false
+  next_steps: ""
+schema: "1.0"
 spec:
-  general:
-    vars:
-      playbook_name:
-        default: Install Checkmk agent on all hosts
-      become:
-        default: false
-  secrets:
-    vars:
-      secrets_enabled:
-        default: true
   checkmk:
     title: Checkmk Configuration
     required: true
     vars:
-      checkmk_version:
-        type: str
-        description: Checkmk agent version
-        default: 2.4.0p4
-      checkmk_server:
-        type: hostname
-        description: Checkmk server hostname
-        default: checkmk.home.arpa
-      checkmk_protocol:
-        type: enum
-        description: Server protocol
-        options:
-          - https
-          - http
-        default: https
-      checkmk_site:
-        type: str
-        description: Checkmk site name
-        default: cmk
       checkmk_auto_activate:
-        type: bool
         description: Auto-activate changes
-        default: true
-      checkmk_tls:
         type: bool
+        default: true
+      checkmk_protocol:
+        description: Server protocol
+        type: enum
+        default: https
+        options: [https, http]
+      checkmk_server:
+        description: Checkmk server hostname
+        type: hostname
+        default: checkmk.home.arpa
+      checkmk_site:
+        description: Checkmk site name
+        type: str
+        default: cmk
+      checkmk_tls:
         description: Enable TLS for agent
+        type: bool
+        default: true
+      checkmk_version:
+        description: Checkmk agent version
+        type: str
+        default: 2.4.0p4
+  general:
+    vars:
+      become:
+        type: str
+        default: false
+      playbook_name:
+        default: Install Checkmk agent on all hosts
+  secrets:
+    title: secrets
+    vars:
+      secrets_enabled:
+        type: str
         default: true

@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes StorageClass
   description: >
     Kubernetes StorageClass for defining different types of storage that can be dynamically provisioned.

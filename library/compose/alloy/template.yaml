@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: alloy
   name: Grafana Alloy
   description: |
     Grafana Alloy is an open telemetry collector that collects, processes, and exports metrics to various backends.

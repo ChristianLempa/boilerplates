@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: semaphoreui
   name: Semaphore UI
   description: >
     Modern UI for Ansible automation with task scheduling and web-based management.

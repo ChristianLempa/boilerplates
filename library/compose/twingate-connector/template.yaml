@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: twingate-connector
   name: Twingate_Connector
   description: >
     The Twingate Connector is a lightweight software component that establishes secure connections between your private network and the

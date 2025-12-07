@@ -1,6 +1,9 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: whoami
   name: Whoami
   description: |
     A **simple web application** that displays information about the HTTP request it receives.

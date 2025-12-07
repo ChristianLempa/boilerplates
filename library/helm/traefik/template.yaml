@@ -1,76 +1,76 @@
 ---
 kind: helm
-schema: "1.0"
 metadata:
   name: Traefik Ingress Controller
-  description: >
-    Helm values template for Traefik v3, a modern HTTP reverse proxy and load balancer
-    designed for microservices.
-
+  description: |-
+    Helm values template for Traefik v3, a modern HTTP reverse proxy and load balancer designed for microservices.
 
     Chart Repository: https://traefik.github.io/charts
-
     Chart Name: traefik
-
     Chart Version: Compatible with Traefik v3.5.3
 
-
     Project: https://traefik.io/
-
     Documentation: https://doc.traefik.io/traefik/
   version: 3.5.3
   author: Christian Lempa
-  date: '2025-01-11'
+  date: "2025-01-11"
+  tags: []
+  icon:
+    provider: simpleicons
+    id: traefikproxy
+  draft: false
+  next_steps: ""
+schema: "1.0"
 spec:
+  dashboard:
+    title: Dashboard IngressRoute
+    toggle: dashboard_ingressroute_enabled
+    vars:
+      dashboard_host:
+        description: FQDN for the Traefik dashboard
+        type: hostname
+      dashboard_ingressroute_enabled:
+        description: Create IngressRoute for Traefik dashboard
+        type: bool
+        default: false
+      dashboard_middleware:
+        description: Authentication middleware name for dashboard protection
+        type: str
+        default: traefik-dashboard-auth
+      dashboard_tls_secret:
+        description: TLS secret name for dashboard
+        type: str
+        default: traefik-dashboard-tls
   general:
     vars:
       release_name:
+        type: str
         default: traefik
-  traefik_config:
-    title: Traefik Settings
-    vars:
-      dashboard_enabled:
-        type: bool
-        description: Enable Traefik dashboard
-        default: false
-        extra: "WARNING: Don't use in production!"
-      accesslog_enabled:
-        type: bool
-        description: Enable Traefik access log
-        default: false
-      prometheus_enabled:
-        type: bool
-        description: Enable Prometheus metrics
-        default: false
   http_redirect:
     title: HTTP to HTTPS Redirect
     toggle: http_redirect_enabled
     vars:
       http_redirect_enabled:
-        type: bool
-        default: true
         description: Automatically redirect HTTP traffic to HTTPS
-      http_redirect_permanent:
         type: bool
         default: true
+      http_redirect_permanent:
         description: Use permanent redirect (301) instead of temporary (302)
-  dashboard:
-    title: Dashboard IngressRoute
-    toggle: dashboard_ingressroute_enabled
+        type: bool
+        default: true
+  traefik_config:
+    title: Traefik Settings
     vars:
-      dashboard_ingressroute_enabled:
+      accesslog_enabled:
+        description: Enable Traefik access log
         type: bool
         default: false
-        description: Create IngressRoute for Traefik dashboard
-      dashboard_host:
-        type: hostname
-        description: FQDN for the Traefik dashboard
-        prompt: Dashboard hostname (e.g., traefik.example.com)
-      dashboard_middleware:
-        type: str
-        description: Authentication middleware name for dashboard protection
-        default: traefik-dashboard-auth
-      dashboard_tls_secret:
-        type: str
-        description: TLS secret name for dashboard
-        default: traefik-dashboard-tls
+      dashboard_enabled:
+        description: Enable Traefik dashboard
+        type: bool
+        default: false
+        extra: 'WARNING: Don''t use in production!'
+      prometheus_enabled:
+        description: Enable Prometheus metrics
+        type: bool
+        default: false

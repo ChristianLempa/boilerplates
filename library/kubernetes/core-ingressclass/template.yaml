@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes IngressClass
   description: >
     Kubernetes IngressClass for specifying which Ingress controller should handle Ingress resources.

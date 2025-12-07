@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes Ingress
   description: >
     Kubernetes Ingress resource for HTTP/HTTPS routing to services.

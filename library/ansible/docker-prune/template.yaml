@@ -2,6 +2,9 @@
 kind: ansible
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: docker
   name: Docker Prune
   description: >
     Ansible playbook to clean up Docker resources.

@@ -2,6 +2,9 @@
 kind: helm
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: netbox
   name: NetBox
   description: |
     Helm values template for NetBox, an open-source network infrastructure management (IPAM/DCIM)

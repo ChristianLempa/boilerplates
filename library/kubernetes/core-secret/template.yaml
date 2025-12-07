@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes Secret (Opaque)
   description: >
     Basic Kubernetes Secret with Opaque type for storing sensitive data like API tokens, passwords, or keys.

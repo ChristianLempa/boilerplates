@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: traefik-ingressroute
   name: Traefik IngressRoute
   description: >
     Traefik IngressRoute CRD for HTTP/HTTPS routing with advanced features.

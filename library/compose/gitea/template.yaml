@@ -10,6 +10,9 @@ metadata:
     * **Project:** https://gitea.io/
     * **Documentation:** https://docs.gitea.io/
     * **GitHub:** https://github.com/go-gitea/gitea
+  icon:
+    provider: selfh
+    id: gitea
   version: 1.25.1
   author: Christian Lempa
   date: '2025-11-05'

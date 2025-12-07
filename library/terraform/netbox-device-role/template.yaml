@@ -2,6 +2,9 @@
 kind: terraform
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: terraform
   name: NetBox Device Role
   description: >
     Create NetBox device role for categorizing physical devices.

@@ -1,49 +1,50 @@
 ---
 kind: helm
-schema: "1.0"
 metadata:
   name: Longhorn
-  description: >
-    Helm values template for Longhorn, a distributed block storage system for Kubernetes
-    that provides persistent storage with built-in backup and disaster recovery.
-
+  description: |-
+    Helm values template for Longhorn, a distributed block storage system for Kubernetes that provides persistent storage with built-in backup and disaster recovery.
 
     Chart Repository: https://charts.longhorn.io
-
     Chart Name: longhorn
-
     Chart Version: Compatible with Longhorn v1.9.1
 
-
     Project: https://longhorn.io/
-
     Documentation: https://longhorn.io/docs/
   version: 1.9.1
   author: Christian Lempa
-  date: '2025-01-11'
+  date: "2025-01-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: rancher-longhorn
+  draft: false
+  next_steps: ""
+schema: "1.0"
 spec:
-  general:
-    vars:
-      release_name:
-        default: longhorn
-      namespace:
-        default: longhorn-system
-  ui:
-    title: Longhorn UI
-    vars:
-      ui_replicas:
-        type: int
-        description: Number of Longhorn UI replicas
-        default: 1
   backup:
     title: Backup Configuration
     toggle: backup_enabled
     vars:
       backup_enabled:
-        type: bool
         description: Enable backup target configuration
+        type: bool
         default: false
       backup_target:
-        type: str
         description: Backup target URL (e.g., s3://bucket or nfs://server/path)
-        prompt: Backup target URL
+        type: str
+  general:
+    vars:
+      namespace:
+        type: str
+        default: longhorn-system
+      release_name:
+        type: str
+        default: longhorn
+  ui:
+    title: Longhorn UI
+    vars:
+      ui_replicas:
+        description: Number of Longhorn UI replicas
+        type: int
+        default: 1

@@ -1,6 +1,9 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: loki
   name: Loki
   description: |-
     Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.

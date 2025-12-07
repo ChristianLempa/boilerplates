@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: pangolin
   name: Pangolin
   description: |
     Self-hosted reverse proxy server that securely exposes private resources on distributed networks through

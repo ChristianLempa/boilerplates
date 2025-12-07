@@ -2,6 +2,9 @@
 kind: helm
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: portainer
   name: Portainer CE
   description: >
     Helm values template for Portainer Community Edition, a container management platform

@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes ConfigMap
   description: >
     Kubernetes ConfigMap resource for storing non-sensitive configuration data as key-value pairs.

@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: certmanager-certificate
   name: Cert-Manager Certificate
   description: >
     Cert-manager Certificate resource for requesting TLS certificates from an Issuer or ClusterIssuer.

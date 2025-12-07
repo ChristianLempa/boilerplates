@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   name: Traefik
   description: |-
@@ -11,12 +10,16 @@ metadata:
     - **Documentation:** https://doc.traefik.io/traefik/
     - **GitHub:** https://github.com/traefik/traefik
   version: v3.5.4
-  author: "Christian Lempa"
-  date: '2025-11-05'
+  author: Christian Lempa
+  date: "2025-11-05"
   tags:
     - authentik
     - swarm
     - volume_mode
+  icon:
+    provider: simpleicons
+    id: traefikproxy
+  draft: false
   next_steps: |-
     Start the `{{ service_name }}` project
     {% if swarm_enabled %}
@@ -27,151 +30,131 @@ metadata:
     2. Start Traefik with Docker Compose from the project directory:
       `docker compose up -d`
     {% endif %}
+schema: "1.2"
 spec:
+  authentik:
+    title: Authentik Middleware
+    description: Enable Authentik SSO integration for Traefik
+    vars:
+      authentik_outpost_url:
+        description: Authentik outpost URL (e.g., http://authentik-outpost:9000)
+        type: url
+        default: http://authentik-outpost:9000
+        needs: [authentik_enabled]
   general:
     vars:
       service_name:
-        default: "traefik"
+        default: traefik
   ports:
     vars:
+      ports_dashboard:
+        description: Dashboard port (external)
+        type: int
+        default: 8080
+        required: true
+        needs: [dashboard_enabled=true]
+        extra: Only used when dashboard is enabled
       ports_http:
         default: 80
-        needs: []  # need to reset, otherwise disabled when traefik_enabled=true
-        extra: "Maps to entrypoint 'web'"
+        extra: Maps to entrypoint 'web'
       ports_https:
         default: 443
-        needs: []  # need to reset, otherwise disabled when traefik_enabled=true
-        extra: "Maps to entrypoint 'websecure'"
-      ports_dashboard:
-        type: "int"
-        description: "Dashboard port (external)"
-        needs: "dashboard_enabled=true"
-        required: true
-        default: 8080
-        extra: "Only used when dashboard is enabled"
+        extra: Maps to entrypoint 'websecure'
   traefik:
-    title: "Settings"
-    toggle: ""  # need to reset, since traefik_enabled is not used here
-    needs: []  # need to reset, since traefik_enabled is not used here
+    title: Settings
     vars:
-      traefik_network:
-        type: "str"
-        description: "Traefik network name"
-        default: "traefik"
-        required: true
-        extra: "Network that Traefik uses to connect to services"
-      traefik_network_external:
-        type: "bool"
-        description: "Use existing Docker network (external)"
+      accesslog_enabled:
+        description: Enable Traefik access log
+        type: bool
         default: false
       dashboard_enabled:
-        type: "bool"
-        description: "Enable Traefik dashboard"
+        description: Enable Traefik dashboard
+        type: bool
         default: false
-        extra: "WARNING: Don't use in production!"
-      accesslog_enabled:
-        type: "bool"
-        description: "Enable Traefik access log"
-        default: false
+        extra: 'WARNING: Don''t use in production!'
       prometheus_enabled:
-        type: "bool"
-        description: "Enable Prometheus metrics"
+        description: Enable Prometheus metrics
+        type: bool
         default: false
       security_enabled:
-        type: "bool"
-        description: "Create production-ready security headers middleware"
+        description: Create production-ready security headers middleware
+        type: bool
         default: true
-        extra: "Enables HSTS, XSS protection, frame denial, etc."
-  traefik_tls:
-    title: "TLS Settings"
-    needs: []
-    vars:
-      traefik_tls_enabled:
-        type: "bool"
-        description: "Enable HTTPS/TLS with ACME"
+        extra: Enables HSTS, XSS protection, frame denial, etc.
+      traefik_network:
+        extra: Network that Traefik uses to connect to services
+      traefik_network_external:
+        description: Use existing Docker network (external)
+        type: bool
         default: false
-      traefik_tls_certresolver:
-        type: "enum"
-        description: "ACME DNS challenge provider"
-        default: "cloudflare"
-        options:
-          - "cloudflare"
-          - "porkbun"
-          - "godaddy"
-          - "digitalocean"
-          - "route53"
-          - "azure"
-          - "namecheap"
-        extra: "DNS provider for domain validation"
-      traefik_tls_acme_token:
-        type: "str"
-        description: "DNS provider API token"
-        sensitive: true
-        required: true
-        needs: ["traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun"]
-        extra: "CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY"
-      traefik_tls_acme_secret_key:
-        type: "str"
-        description: "DNS provider secret key"
-        sensitive: true
-        required: true
-        needs: ["traefik_tls_certresolver=azure,godaddy,porkbun,route53"]
-        extra: "AZURE_CLIENT_SECRET, GODADDY_API_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY"
-      traefik_tls_acme_region:
-        type: "str"
-        description: "AWS Region"
-        default: "us-east-1"
-        required: true
-        needs: ["traefik_tls_certresolver=route53"]
-      traefik_tls_acme_username:
-        type: "str"
-        description: "Namecheap API username"
-        required: true
-        needs: ["traefik_tls_certresolver=namecheap"]
-      traefik_tls_acme_tenant_id:
-        type: "str"
-        description: "Azure Tenant ID"
-        required: true
-        needs: ["traefik_tls_certresolver=azure"]
-      traefik_tls_acme_subscription_id:
-        type: "str"
-        description: "Azure Subscription ID"
-        required: true
-        needs: ["traefik_tls_certresolver=azure"]
-      traefik_tls_acme_resource_group:
-        type: "str"
-        description: "Azure Resource Group"
-        required: true
-        needs: ["traefik_tls_certresolver=azure"]
-      traefik_tls_acme_email:
-        type: "str"
-        description: "Email address for ACME"
-        required: true
-      traefik_tls_redirect:
-        type: "bool"
-        description: "Redirect all HTTP traffic to HTTPS"
-        default: true
-      traefik_tls_min_version:
-        type: "enum"
-        description: "Minimum TLS version"
-        options:
-          - "VersionTLS12"
-          - "VersionTLS13"
-        extra: "TLS 1.2 is recommended for compatibility, TLS 1.3 for maximum security"
-      traefik_tls_secure_ciphers:
-        type: "bool"
-        description: "Enable strict cipher suites (recommended)"
-        extra: "Enforces modern, secure cipher suites"
-      traefik_tls_skipverify:
-        type: "bool"
-        description: "Skip TLS verification for backend servers"
-        extra: "WARNING: Only enable for self-signed certificates in trusted environments"
-  authentik:
-    title: "Authentik Middleware"
-    description: "Enable Authentik SSO integration for Traefik"
+  traefik_tls:
+    title: TLS Settings
     vars:
-      authentik_outpost_url:
-        type: "url"
-        description: "Authentik outpost URL (e.g., http://authentik-outpost:9000)"
-        default: "http://authentik-outpost:9000"
-        needs: "authentik_enabled"
+      traefik_tls_acme_email:
+        description: Email address for ACME
+        type: str
+        required: true
+      traefik_tls_acme_region:
+        description: AWS Region
+        type: str
+        default: us-east-1
+        required: true
+        needs: [traefik_tls_certresolver=route53]
+      traefik_tls_acme_resource_group:
+        description: Azure Resource Group
+        type: str
+        required: true
+        needs: [traefik_tls_certresolver=azure]
+      traefik_tls_acme_secret_key:
+        description: DNS provider secret key
+        type: str
+        sensitive: true
+        required: true
+        needs: ['traefik_tls_certresolver=azure,godaddy,porkbun,route53']
+        extra: AZURE_CLIENT_SECRET, GODADDY_API_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY
+      traefik_tls_acme_subscription_id:
+        description: Azure Subscription ID
+        type: str
+        required: true
+        needs: [traefik_tls_certresolver=azure]
+      traefik_tls_acme_tenant_id:
+        description: Azure Tenant ID
+        type: str
+        required: true
+        needs: [traefik_tls_certresolver=azure]
+      traefik_tls_acme_token:
+        description: DNS provider API token
+        type: str
+        sensitive: true
+        required: true
+        needs: ['traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun']
+        extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY
+      traefik_tls_acme_username:
+        description: Namecheap API username
+        type: str
+        required: true
+        needs: [traefik_tls_certresolver=namecheap]
+      traefik_tls_certresolver:
+        description: ACME DNS challenge provider
+        options: [cloudflare, porkbun, godaddy, digitalocean, route53, azure, namecheap]
+        extra: DNS provider for domain validation
+      traefik_tls_enabled:
+        description: Enable HTTPS/TLS with ACME
+        default: false
+      traefik_tls_min_version:
+        description: Minimum TLS version
+        type: enum
+        options: [VersionTLS12, VersionTLS13]
+        extra: TLS 1.2 is recommended for compatibility, TLS 1.3 for maximum security
+      traefik_tls_redirect:
+        description: Redirect all HTTP traffic to HTTPS
+        type: bool
+        default: true
+      traefik_tls_secure_ciphers:
+        description: Enable strict cipher suites (recommended)
+        type: bool
+        extra: Enforces modern, secure cipher suites
+      traefik_tls_skipverify:
+        description: Skip TLS verification for backend servers
+        type: bool
+        extra: 'WARNING: Only enable for self-signed certificates in trusted environments'

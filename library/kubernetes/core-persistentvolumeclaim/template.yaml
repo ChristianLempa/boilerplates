@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes PersistentVolumeClaim
   description: >
     Kubernetes PersistentVolumeClaim for requesting persistent storage.

@@ -2,6 +2,9 @@
 kind: compose
 schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: nginx
   name: Nginx
   description: |-
     Nginx is a high-performance web server, reverse proxy, and load balancer known for its stability, rich feature set, simple configuration, and low resource

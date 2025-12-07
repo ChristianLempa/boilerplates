@@ -2,6 +2,9 @@
 kind: ansible
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: ansible
   name: Update and Upgrade Ubuntu Packages
   description: >
     Ansible playbook to update and upgrade APT packages on Ubuntu systems.

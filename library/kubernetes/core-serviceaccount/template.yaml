@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
   name: Kubernetes ServiceAccount
   description: >
     Kubernetes ServiceAccount for providing an identity for processes that run in Pods.

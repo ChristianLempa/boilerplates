@@ -14,6 +14,9 @@ metadata:
     Documentation: https://docs.nextcloud.com/
 
     GitHub: https://github.com/nextcloud/server
+  icon:
+    provider: selfh
+    id: nextcloud
   version: 31.0.10-apache
   author: Christian Lempa
   date: '2025-10-31'

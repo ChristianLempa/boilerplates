@@ -2,6 +2,9 @@
 kind: kubernetes
 schema: "1.0"
 metadata:
+  icon:
+    provider: selfh
+    id: certmanager-issuer
   name: Cert-Manager Issuer (Cloudflare)
   description: >
     Cert-manager Issuer for automatic TLS certificate management with Let's Encrypt and Cloudflare DNS-01 challenge.
