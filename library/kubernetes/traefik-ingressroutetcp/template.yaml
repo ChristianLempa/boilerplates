@@ -27,6 +27,8 @@ spec:
     vars:
       resource_name:
         default: app-tcp-route
+      namespace:
+        default: default
   traefik:
     vars:
       traefik_enabled:

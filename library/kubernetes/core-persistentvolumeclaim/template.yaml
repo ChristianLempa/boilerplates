@@ -22,6 +22,8 @@ spec:
     vars:
       resource_name:
         default: app-pvc
+      namespace:
+        default: default
       storage_class:
         type: str
         description: Storage class name (leave empty for default)

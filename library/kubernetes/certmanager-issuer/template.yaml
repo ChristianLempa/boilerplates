@@ -27,6 +27,8 @@ spec:
     vars:
       resource_name:
         default: cloudflare-issuer
+      namespace:
+        default: default
       acme_email:
         type: email
         description: Email address for ACME account registration

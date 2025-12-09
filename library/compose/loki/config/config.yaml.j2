@@ -27,7 +27,7 @@ schema_config:
         period: 24h
 
 limits_config:
-  retention_period: {{ data_retention_days + 'd'}}
+  retention_period: "{{ data_retention_days }}d"
   ingestion_rate_mb: 4
   ingestion_burst_size_mb: 6
   max_streams_per_user: 10000

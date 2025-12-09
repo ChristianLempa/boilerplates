@@ -2,10 +2,8 @@ services:
   {{ service_name }}:
     image: docker.io/grafana/grafana-oss:12.1.1
     restart: {{ restart_policy }}
+    {% if database_type == 'postgres' or authentik_enabled%}
     environment:
-      - TZ={{ container_timezone }}
-      - UID={{ user_uid }}
-      - GID={{ user_gid }}
       {% if database_type == 'postgres' %}
       - GF_DATABASE_TYPE=postgres
       {% if database_external %}
@@ -35,6 +33,7 @@ services:
       - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
       - GF_AUTH_GENERIC_OAUTH_SKIP_ORG_ROLE_SYNC=true
       {% endif %}
+    {% endif %}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:

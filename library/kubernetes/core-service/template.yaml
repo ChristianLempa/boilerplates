@@ -22,6 +22,8 @@ spec:
     vars:
       resource_name:
         default: app-service
+      namespace:
+        default: default
       service_type:
         type: enum
         description: Service type

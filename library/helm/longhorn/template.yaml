@@ -18,7 +18,7 @@ metadata:
   icon:
     provider: selfh
     id: rancher-longhorn
-  draft: false
+  draft: true
   next_steps: ""
 schema: "1.0"
 spec:

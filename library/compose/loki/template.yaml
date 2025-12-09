@@ -18,7 +18,7 @@ metadata:
   tags:
     - traefik
     - authentik
-schema: "1.2"
+schema: 1.2
 spec:
   general:
     vars:
@@ -35,4 +35,4 @@ spec:
   traefik:
     vars:
       traefik_host:
-        default: "loki"
+        default: loki

@@ -15,10 +15,12 @@ ingress:
       paths:
         - path: /
           port: "9000"
+{% if traefik_tls_enabled %}
   tls:
     - secretName: {{ traefik_tls_secret }}
       hosts:
         - {{ traefik_host }}
+{% endif %}
 {% endif %}
 {% if volumes_mode == 'existing-pvc' %}
 

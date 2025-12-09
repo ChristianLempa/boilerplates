@@ -126,6 +126,15 @@ class DisplayManager:
         """Display a data table with configurable columns."""
         return self.tables.data_table(columns, rows, title, row_formatter)
 
+    def display_status_table(
+        self,
+        title: str,
+        rows: list[tuple[str, str, bool]],
+        columns: tuple[str, str] = ("Item", "Status"),
+    ) -> None:
+        """Display a status table with success/error indicators."""
+        return self.tables.render_status_table(title, rows, columns)
+
     # ===== Delegate to status display =====
     def error(self, message: str, context: str | None = None, details: str | None = None) -> None:
         """Display an error message."""

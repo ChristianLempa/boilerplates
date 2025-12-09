@@ -106,6 +106,10 @@ def list_templates(module_instance, raw: bool = False) -> list:
             )
     else:
         logger.info(f"No templates found for module '{module_instance.name}'")
+        module_instance.display.info(
+            f"No templates found for module '{module_instance.name}'",
+            context="Use 'bp repo update' to update libraries or check library configuration",
+        )
 
     return filtered_templates
 

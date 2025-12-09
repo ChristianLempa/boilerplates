@@ -22,6 +22,8 @@ spec:
     vars:
       resource_name:
         default: app-ingress
+      namespace:
+        default: default
       ingress_class:
         type: str
         description: Ingress class name

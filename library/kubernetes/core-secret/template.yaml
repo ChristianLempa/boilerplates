@@ -22,6 +22,8 @@ spec:
     vars:
       resource_name:
         default: api-token-secret
+      namespace:
+        default: default
       secret_type:
         type: str
         description: Secret type

@@ -18,7 +18,7 @@ metadata:
   icon:
     provider: simpleicons
     id: traefikproxy
-  draft: false
+  draft: true
   next_steps: ""
 schema: "1.0"
 spec:

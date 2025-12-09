@@ -1,40 +1,37 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
-  icon:
-    provider: selfh
-    id: twingate-connector
   name: Twingate Connector
-  description: >
+  description: |-
     Twingate Connector for secure zero-trust network access.
-
 
     Requires the Twingate Kubernetes Operator to be installed in the cluster.
 
-
     Project: https://www.twingate.com
-
     Documentation: https://docs.twingate.com/docs/connector-kubernetes-operator
   version: 1.74.0
   author: Christian Lempa
-  date: '2025-01-11'
+  date: "2025-01-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: twingate
+  draft: false
+  next_steps: ""
+schema: "1.0"
 spec:
   general:
     vars:
       resource_name:
         default: twingate-connector
-      namespace:
-        default: twingate
       image_tag:
         type: str
         description: Twingate connector image tag
         default: "1.74.0"
       connector_name:
         type: str
-        description: Connector name in Twingate
-        default: twingate-connector
+        description: Twingate connector name
       status_notifications:
         type: bool
         description: Enable status notifications
-        default: false
+        default: true

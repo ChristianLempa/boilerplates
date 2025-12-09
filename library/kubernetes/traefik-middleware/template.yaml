@@ -24,6 +24,10 @@ schema: "1.0"
 spec:
   general:
     vars:
+      resource_name:
+        default: app-middleware
+      namespace:
+        default: default
       middleware_type:
         description: Middleware type
         type: enum

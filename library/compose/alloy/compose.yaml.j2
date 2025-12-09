@@ -1,16 +1,9 @@
 services:
   {{ service_name }}:
-    image: docker.io/grafana/alloy:{{ alloy_version }}
+    image: docker.io/grafana/alloy:v1.12.0
     restart: {{ restart_policy }}
     {% if container_hostname %}
     hostname: {{ container_hostname }}
-    {% endif %}
-    {% if resources_enabled %}
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
     {% endif %}
     {% if traefik_enabled %}
     networks:
@@ -22,6 +15,7 @@ services:
     {% endif %}
     volumes:
       - {{ service_name }}_data:/alloy/data
+      - ./config.alloy:/etc/alloy/config.alloy:ro
       {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
       - /sys:/sys:ro

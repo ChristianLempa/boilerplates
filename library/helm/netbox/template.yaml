@@ -10,7 +10,7 @@ metadata:
     Helm values template for NetBox, an open-source network infrastructure management (IPAM/DCIM)
     solution and network automation source of truth.
     ## Chart Information
-    * **Chart Repository:** https://charts.boot source.github.io/charts
+    * **Chart Repository:** https://charts.bootsource.github.io/charts
     * **Chart Name:** netbox
     * **Chart Version:** Compatible with NetBox 4.2.3
     ## References
@@ -19,7 +19,8 @@ metadata:
     * **GitHub:** https://github.com/netbox-community/netbox
   version: 4.2.3
   author: Christian Lempa
-  date: '2025-11-13'
+  date: '2025-01-13'
+  draft: true
 spec:
   general:
     vars:

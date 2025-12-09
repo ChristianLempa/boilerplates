@@ -464,7 +464,7 @@
       {
         "name": "email_from",
         "description": "From email address",
-        "type": "str",
+        "type": "email",
         "required": true
       },
       {
@@ -505,20 +505,6 @@
         "type": "str",
         "default": "authentik-middleware@file",
         "needs": ["traefik_enabled=true"],
-        "required": true
-      },
-      {
-        "name": "authentik_client_id",
-        "description": "Authentik OAuth2 client ID",
-        "type": "str",
-        "sensitive": true,
-        "required": true
-      },
-      {
-        "name": "authentik_client_secret",
-        "description": "Authentik OAuth2 client secret",
-        "type": "str",
-        "sensitive": true,
         "required": true
       }
     ]

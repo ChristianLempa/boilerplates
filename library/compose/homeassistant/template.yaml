@@ -1,32 +1,26 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
-  icon:
-    provider: selfh
-    id: homeassistant
   name: Homeassistant
-  description: >
-    Home Assistant is an open-source platform for smart home automation that puts local control and privacy first.
-    This template sets up Home Assistant in a Docker container using Docker Compose.
-
+  description: |-
+    Home Assistant is an open-source platform for smart home automation that puts local control and privacy first. This template sets up Home Assistant in a Docker container using Docker Compose.
 
     Project: https://www.home-assistant.io/
-
     Documentation: https://www.home-assistant.io/docs/
   version: 2025.11.1
   author: Christian Lempa
-  date: '2025-11-07'
+  date: "2025-11-07"
   tags: []
+  icon:
+    provider: selfh
+    id: home-assistant
   draft: true
+  next_steps: ""
+schema: "1.2"
 spec:
   general:
     vars:
-      service_name:
-        default: homeassistant
       container_name:
         default: homeassistant
-      homeassistant_version:
-        type: str
-        description: Homeassistant version
-        default: latest
+      service_name:
+        default: homeassistant

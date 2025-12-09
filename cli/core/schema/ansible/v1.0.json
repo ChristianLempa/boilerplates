@@ -5,9 +5,10 @@
     "required": true,
     "vars": [
       {
-        "name": "playbook_name",
-        "description": "Ansible playbook name",
-        "type": "str"
+        "name": "target_hosts",
+        "description": "Target hosts",
+        "type": "str",
+        "required": true
       }
     ]
   }

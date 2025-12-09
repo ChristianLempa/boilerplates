@@ -390,14 +390,13 @@ class VariableCollection:
         """
         variable = self._variable_map.get(var_name)
         if not variable:
-            # Variable doesn't exist (filtered out because its section isn't used)
-            # For negative checks (!=), assume satisfied since the variable isn't present
-            # For positive checks (=), assume not satisfied since we can't verify the value
+            # Variable doesn't exist - ignore the constraint and treat as satisfied
+            # This allows templates to override sections without breaking needs constraints
             logger.debug(
                 f"Need '{need_str}' references missing variable '{var_name}' - "
-                f"treating as satisfied={not is_positive} (negative check assumes true)"
+                f"ignoring constraint and treating as satisfied"
             )
-            return not is_positive
+            return True
 
         try:
             actual_value = variable.convert(variable.value)

@@ -8,6 +8,16 @@
  * For more details, visit https://github.com/grafana/alloy-scenarios
  */
 
+// Disable internal traces that are trying to export to Tempo by default
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "localhost:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
 {% if logs_enabled or metrics_enabled %}
 // ============================================================================
 // REMOTE ENDPOINTS

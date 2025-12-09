@@ -24,6 +24,23 @@ spec:
     vars:
       resource_name:
         default: app-ingressroute
+      namespace:
+        default: default
+      traefik_entrypoint:
+        type: str
+        description: Traefik entrypoint for HTTP (e.g., web)
+        default: web
+      traefik_tls_entrypoint:
+        type: str
+        description: Traefik entrypoint for HTTPS (e.g., websecure)
+        default: websecure
+      traefik_service_name:
+        type: str
+        description: Kubernetes service name to route traffic to
+      traefik_service_port:
+        type: int
+        description: Kubernetes service port
+        default: 80
   traefik:
     vars:
       traefik_enabled:

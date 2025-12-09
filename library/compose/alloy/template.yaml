@@ -1,92 +1,77 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
-  icon:
-    provider: selfh
-    id: alloy
   name: Grafana Alloy
-  description: |
+  description: |-
     Grafana Alloy is an open telemetry collector that collects, processes, and exports metrics to various backends.
-    
     ## Resources
     - **Project**: https://grafana.com/oss/alloy/
     - **Documentation**: https://grafana.com/docs/alloy/latest/
     - **GitHub**: https://github.com/grafana/alloy
   version: v1.11.2
   author: Christian Lempa
-  date: '2025-10-13'
+  date: "2025-10-13"
   tags:
     - traefik
+  icon:
+    provider: selfh
+    id: grafana
+  next_steps:
+schema: 1.2
 spec:
   general:
     vars:
       service_name:
         default: alloy
-      container_name:
-        default: alloy
-      alloy_version:
-        type: str
-        description: Grafana Alloy version to use
-        default: v1.11.2
-      restart_policy:
-        type: str
-        description: Restart policy for the container
-        default: unless-stopped
-  ports:
-    vars:
-      ports_webui:
-        type: int
-        description: Port for Alloy web UI
-        default: 12345
-  traefik:
-    required: false
-    vars:
-      traefik_enabled:
-        type: bool
-        default: false
-      traefik_host:
-        type: str
-        default: alloy.localhost
   logs:
     title: Log Collection
     toggle: logs_enabled
     vars:
-      logs_enabled:
+      logs_docker:
+        description: Enable Docker container log collection
         type: bool
+        default: true
+      logs_enabled:
         description: Enable log collection
+        type: bool
         default: false
       logs_loki_url:
-        type: url
         description: Loki endpoint URL for sending logs
+        type: url
         default: http://loki:3100/loki/api/v1/push
         required: true
-      logs_docker:
-        type: bool
-        description: Enable Docker container log collection
-        default: true
       logs_system:
-        type: bool
         description: Enable system and journalctl log collection
+        type: bool
         default: true
   metrics:
     title: Metrics Collection
     toggle: metrics_enabled
     vars:
-      metrics_enabled:
+      metrics_docker:
+        description: Enable Docker container metrics collection (cAdvisor)
         type: bool
+        default: true
+      metrics_enabled:
         description: Enable metrics collection
+        type: bool
         default: false
       metrics_prometheus_url:
-        type: url
         description: Prometheus remote write endpoint
+        type: url
         default: http://prometheus:9090/api/v1/write
         required: true
-      metrics_docker:
-        type: bool
-        description: Enable Docker container metrics collection (cAdvisor)
-        default: true
       metrics_system:
-        type: bool
         description: Enable system (node) metrics collection
+        type: bool
         default: true
+  ports:
+    vars:
+      ports_webui:
+        description: Port for Alloy web UI
+        type: int
+        default: 12345
+  traefik:
+    vars:
+      traefik_host:
+        default: alloy

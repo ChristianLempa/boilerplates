@@ -24,6 +24,7 @@ metadata:
   version: 2025.6.3
   author: Christian Lempa
   date: '2025-01-11'
+  draft: true
 spec:
   general:
     vars:
@@ -70,6 +71,9 @@ spec:
         default: authentik
       database_port:
         default: 5432
+      database_password:
+        description: PostgreSQL database password
+        sensitive: true
   traefik:
     vars:
       traefik_host:

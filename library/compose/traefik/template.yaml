@@ -32,15 +32,6 @@ metadata:
     {% endif %}
 schema: "1.2"
 spec:
-  authentik:
-    title: Authentik Middleware
-    description: Enable Authentik SSO integration for Traefik
-    vars:
-      authentik_outpost_url:
-        description: Authentik outpost URL (e.g., http://authentik-outpost:9000)
-        type: url
-        default: http://authentik-outpost:9000
-        needs: [authentik_enabled]
   general:
     vars:
       service_name:

@@ -17,6 +17,7 @@ metadata:
   version: 27.5.1
   author: Christian Lempa
   date: '2025-11-11'
+  draft: true
 spec:
   general:
     vars:

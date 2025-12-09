@@ -22,3 +22,5 @@ spec:
     vars:
       resource_name:
         default: app-serviceaccount
+      namespace:
+        default: default

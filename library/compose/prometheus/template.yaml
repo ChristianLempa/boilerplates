@@ -10,7 +10,6 @@ metadata:
     Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud.
     It is designed for reliability and scalability, making it suitable for monitoring dynamic cloud environments.
     Prometheus collects and stores metrics as time series data, providing powerful querying capabilities and integration with various visualization tools.
-
     ##  Swarm Deployment Warning
     Prometheus uses local TSDB storage and does NOT support running multiple replicas.
     This template enforces a single replica with node placement constraints. For true HA, consider remote storage solutions (Thanos, Cortex, VictoriaMetrics).
@@ -47,14 +46,10 @@ spec:
   general:
     vars:
       service_name:
-        default: "prometheus"
-      container_name:
-        default: "prometheus"
-      container_hostname:
-        default: "prometheus"
+        default: prometheus
   metrics:
-    title: "Metrics & Storage"
-    description: "Configure data retention and storage settings"
+    title: Metrics & Storage
+    description: Configure data retention and storage settings
     vars:
       metrics_retention_time:
         type: str
@@ -66,48 +61,17 @@ spec:
         description: "Maximum storage size (e.g., 5GB, 10GB, 1TB)"
         default: "0"
         extra: "Set to 0 for unlimited. Triggers deletion when exceeded."
-      metrics_web_external_url:
-        type: str
-        description: "External URL for generating links (optional)"
-        default: ""
-        optional: true
-        extra: "Use if behind reverse proxy, e.g., https://prometheus.example.com"
+      metrics_enable_remote_write:
+        type: bool
+        description: "Enable remote write receiver (allows pushing metrics via /api/v1/write)"
+        default: false
+        extra: "Caution: Intended for low-volume use cases only. Not efficient for general ingestion."
   ports:
     vars:
       ports_http:
-        description: "External HTTP port for web UI and API"
-        type: int
         default: 9090
-        needs: ["traefik_enabled=false", "network_mode=bridge"]
-  network:
-    vars:
-      network_mode:
-        extra: "For Swarm, only 'bridge' is supported. Use bridge for Traefik integration."
-      network_name:
-        default: "prometheus_network"
+
   traefik:
     vars:
-      traefik_enabled:
-        needs: "network_mode=bridge"
       traefik_host:
-        default: "prometheus.home.arpa"
-      traefik_network:
-        type: str
-        description: "Traefik network name"
-        default: "traefik"
-        needs: "traefik_enabled"
-      traefik_network_external:
-        type: bool
-        description: "Use external Traefik network"
-        default: true
-        needs: "traefik_enabled"
-  swarm:
-    vars:
-      swarm_enabled:
-        needs: "network_mode=bridge"
-      swarm_placement_host:
-        description: "Hostname of the node to deploy Prometheus on"
-        required: true
-        optional: false
-        needs: null
-        extra: "REQUIRED: Prometheus requires persistent storage on a single node"
+        default: prometheus

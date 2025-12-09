@@ -14,14 +14,8 @@ metadata:
   tags: []
   icon:
     provider: selfh
-    id: gitlab-runner
+    id: gitlab
   draft: false
   next_steps: ""
 schema: "1.2"
-spec:
-  general:
-    vars:
-      gitlab-runner_version:
-        description: Gitlab-Runner version
-        type: str
-        default: latest
+spec: {}

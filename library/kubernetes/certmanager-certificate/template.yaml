@@ -27,9 +27,12 @@ spec:
     vars:
       resource_name:
         default: tls-certificate
+      namespace:
+        default: default
       secret_name:
         type: str
         description: Name of secret to store the certificate
+        default: tls-secret
   dns:
     title: DNS Settings
     vars:
@@ -37,4 +40,14 @@ spec:
         type: str
         description: DNS names for certificate (comma-separated, e.g., example.com,*.example.com)
   certmanager:
-    toggle: []
+    title: Cert-Manager Settings
+    vars:
+      certmanager_issuer:
+        type: str
+        description: Cert-manager Issuer or ClusterIssuer name
+        default: letsencrypt-prod
+      certmanager_issuer_kind:
+        type: enum
+        description: Issuer type
+        options: [Issuer, ClusterIssuer]
+        default: ClusterIssuer

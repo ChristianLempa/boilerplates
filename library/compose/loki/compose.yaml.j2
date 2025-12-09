@@ -23,18 +23,12 @@ services:
       - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
       - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}_http.entrypoints=web
-      {% if authentik_enabled %}
-      - traefik.http.routers.{{ service_name }}_http.middlewares=authentik-headers@file
-      {% endif %}
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
       - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
       - traefik.http.routers.{{ service_name }}_https.tls=true
       - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
-      {% if authentik_enabled %}
-      - traefik.http.routers.{{ service_name }}_https.middlewares=authentik-headers@file
-      {% endif %}
       {% endif %}
     {% endif %}
 
