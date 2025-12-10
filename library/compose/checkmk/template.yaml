@@ -20,7 +20,7 @@ metadata:
     Username: cmkadmin
     Password: {{ cmk_password }}
     ```
-  version: 2.4.0
+  version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-12-10'
   tags:
