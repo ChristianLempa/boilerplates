@@ -4,7 +4,7 @@ schema: "1.2"
 metadata:
   icon:
     provider: selfh
-    id: postgres
+    id: postgresql
   name: PostgreSQL
   description: >
     PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
@@ -21,7 +21,7 @@ metadata:
   date: '2025-09-28'
   tags:
     - swarm
-    - volume_mode
+  draft: true
 spec:
   general:
     vars:

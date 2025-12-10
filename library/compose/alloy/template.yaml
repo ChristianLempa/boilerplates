@@ -4,6 +4,9 @@ metadata:
   name: Grafana Alloy
   description: |-
     Grafana Alloy is an open telemetry collector that collects, processes, and exports metrics to various backends.
+    ## Prerequisites
+    - :warning: When alloy runs in a container, you should set the `container_hostname` to a unique value to identify
+    the instance in your monitoring backend. Otherwise it defaults to the container ID.
     ## Resources
     - **Project**: https://grafana.com/oss/alloy/
     - **Documentation**: https://grafana.com/docs/alloy/latest/

@@ -49,10 +49,17 @@ class IconManager:
 
     # Shortcode Mappings (emoji-style codes to Nerd Font icons)
     # Format: ":code:" -> "\uf000"
+    #
+    # Usage:
+    # 1. In regular text: ":mycode: Some text" - icon replaces shortcode inline
+    # 2. In markdown lists: "- :mycode: List item" - icon replaces bullet with color
+    #
     # To add new shortcodes:
     # 1. Add entry to this dict: ":mycode:": "\uf000"
-    # 2. Use in template descriptions: ":mycode: Some text"
-    # 3. Shortcode will be automatically replaced when markdown is rendered
+    # 2. Use in template descriptions or markdown content
+    # 3. Shortcodes are automatically replaced when markdown is rendered
+    # 4. List items starting with shortcodes get colored icons instead of bullets
+    #
     # Find Nerd Font codes at: https://www.nerdfonts.com/cheat-sheet
     SHORTCODES: ClassVar[dict[str, str]] = {
         ":warning:": "\uf071",  #  (exclamation-triangle)

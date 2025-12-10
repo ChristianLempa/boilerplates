@@ -1,49 +1,43 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
     id: portainer
   name: Portainer
-  description: >
+  description: |-
     Portainer is a powerful and user-friendly management tool for Docker and Kubernetes environments.
     It provides a simple web-based interface to manage containers, images, networks, and volumes,
     making it easier to deploy and monitor applications.
-
-
-    Project: https://www.portainer.io/
-
-    Documentation: https://docs.portainer.io/
-
-    GitHub: https://github.com/portainer/portainer
+    ## References
+    - **Project:** https://www.portainer.io/
+    - **Documentation:** https://docs.portainer.io/
+    - **GitHub:** https://github.com/portainer/portainer
   version: 2.35.0-alpine
   author: Christian Lempa
   date: '2025-10-31'
   tags:
     - traefik
+    - swarm
+    - volumes
+schema: 1.2
 spec:
   general:
     vars:
       service_name:
-        default: "portainer"
-      container_name:
-        default: "portainer"
+        default: portainer
   ports:
     vars:
       ports_http:
-        description: "Host port for HTTP (9000)"
-        type: int
         default: 9000
       ports_https:
-        description: "Host port for HTTPS (9443)"
-        type: int
         default: 9443
       ports_edge:
         description: "Host port for Edge agent (8000)"
         type: int
         default: 8000
+        required: true
   traefik:
     vars:
       traefik_host:
-        default: portainer.home.arpa
+        default: portainer

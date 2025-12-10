@@ -4,7 +4,7 @@ schema: "1.2"
 metadata:
   icon:
     provider: selfh
-    id: twingate-connector
+    id: twingate
   name: Twingate_Connector
   description: >
     The Twingate Connector is a lightweight software component that establishes secure connections between your private network and the
@@ -23,6 +23,7 @@ metadata:
   date: '2025-10-31'
   tags:
     - swarm
+  draft: true
 spec:
   general:
     vars:

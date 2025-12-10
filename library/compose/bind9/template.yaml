@@ -18,8 +18,7 @@ metadata:
   icon:
     provider: selfh
     id: bind-9
-  draft: false
-  next_steps: ""
+  draft: true
 schema: "1.2"
 spec:
   dns_security:

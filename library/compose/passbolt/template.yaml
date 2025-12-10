@@ -1,141 +1,37 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
     id: passbolt
   name: Passbolt
   description: |-
-    Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store, share, and manage passwords and sensitive
-    information collaboratively.
-
-    ## Prerequisites
-    * **Project:** https://www.passbolt.com/
-    * **Documentation:** https://help.passbolt.com/
-    * **GitHub:** https://github.com/passbolt/passbolt
-
+    Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store,
+    share, and manage passwords and sensitive information collaboratively.
+    ## References
+    - **Project:** https://www.passbolt.com/
+    - **Documentation:** https://help.passbolt.com/
+    - **GitHub:** https://github.com/passbolt/passbolt
   version: 11.3
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - traefik
     - database
+  draft: true
+schema: 1.2
 spec:
   general:
     vars:
       service_name:
-        default: "passbolt"
-      container_name:
-        default: "passbolt"
-      container_timezone:
-        default: "UTC"
-  ports:
-    vars:
-      ports_http:
-        description: HTTP port for Passbolt
-        type: int
-        default: 80
-      ports_https:
-        description: HTTPS port for Passbolt
-        type: int
-        default: 443
+        default: passbolt
   traefik:
     vars:
-      traefik_enabled:
-        type: bool
-        default: false
-      traefik_network:
-        default: "traefik"
       traefik_host:
-        default: "passbolt"
-      traefik_domain:
-        default: "home.arpa"
-      traefik_entrypoint:
-        default: "web"
-      traefik_tls_entrypoint:
-        default: "websecure"
-      traefik_tls_enabled:
-        type: bool
-        default: true
-      traefik_tls_certresolver:
-        default: "cloudflare"
+        default: passbolt
   database:
     vars:
-      database_type:
-        options: ["sqlite", "postgres", "mysql"]
-        default: "mysql"
-      database_external:
-        description: Use an external database server?
-        extra: skips creation of internal database container
-        type: bool
-        needs: "database_type=mysql,postgres"
-        default: false
-      database_host:
-        description: Database host
-        type: str
-        needs: "database_external=true"
-        default: "passbolt-db"
-        required: true
-      database_port:
-        description: Database port
-        type: int
-        required: true
       database_name:
-        description: Database name
-        type: str
-        required: true
+        default: passbolt
       database_user:
-        description: Database user
-        type: str
-        required: true
-      database_password:
-        description: Database password
-        type: str
-        sensitive: true
-        required: true
-  volume:
-    vars:
-      volume_mode:
-        type: enum
-        options: ["local", "mount", "nfs"]
-        default: "local"
-      volume_mount_path:
-        description: Host path for bind mounts
-        type: str
-        default: "/mnt/storage"
-        needs: "volume_mode=mount"
-        required: true
-      volume_nfs_server:
-        description: NFS server address
-        type: str
-        default: "192.168.1.1"
-        needs: "volume_mode=nfs"
-        required: true
-      volume_nfs_path:
-        description: NFS export path
-        type: str
-        default: "/export"
-        needs: "volume_mode=nfs"
-        required: true
-      volume_nfs_options:
-        description: NFS mount options (comma-separated)
-        type: str
-        default: "rw,nolock,soft"
-        needs: "volume_mode=nfs"
-        required: true
-  resources:
-    vars:
-      resources_enabled:
-        type: bool
-        default: false
-      resources_cpu_limit:
-        description: Maximum CPU cores (e.g., 0.5, 1.0, 2.0)
-        type: str
-        default: "1.0"
-        required: true
-      resources_memory_limit:
-        description: Maximum memory (e.g., 512M, 1G, 2G)
-        type: str
-        default: "1G"
-        required: true
+        default: passbolt

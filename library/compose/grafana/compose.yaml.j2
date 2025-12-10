@@ -2,14 +2,14 @@ services:
   {{ service_name }}:
     image: docker.io/grafana/grafana-oss:12.1.1
     restart: {{ restart_policy }}
-    {% if database_type == 'postgres' or authentik_enabled%}
+    {% if database_type != 'sqlite' or authentik_enabled %}
     environment:
       {% if database_type == 'postgres' %}
       - GF_DATABASE_TYPE=postgres
       {% if database_external %}
       - GF_DATABASE_HOST={{ database_host }}
       {% else %}
-      - GF_DATABASE_HOST={{ service_name }}_postgres:5432
+      - GF_DATABASE_HOST={{ service_name }}_db
       {% endif %}
       - GF_DATABASE_NAME={{ database_name }}
       - GF_DATABASE_USER={{ database_user }}
@@ -34,9 +34,14 @@ services:
       - GF_AUTH_GENERIC_OAUTH_SKIP_ORG_ROLE_SYNC=true
       {% endif %}
     {% endif %}
-    {% if traefik_enabled %}
+    {% if not database_external and (database_type == "postgres") or traefik_enabled %}
     networks:
-      {{ traefik_network }}:
+    {% if not database_external and database_type != 'sqlite' %}
+      - {{ service_name }}_backend
+    {% endif %}
+    {% if traefik_enabled %}
+      - {{ traefik_network }}
+    {% endif %}
     {% endif %}
     {% if not traefik_enabled %}
     ports:
@@ -61,12 +66,43 @@ services:
       {% endif %}
     {% endif %}
 
-{% if traefik_enabled %}
+  {% if not database_external and database_type == "postgres" %}
+  {{ service_name }}_db:
+    image: docker.io/library/postgres:17.6
+    restart: {{ restart_policy }}
+    environment:
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    networks:
+      - {{ service_name }}_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - {{ service_name }}_db:/var/lib/postgresql/data
+  {% endif %}
+
+{% if not database_external and (database_type == "postgres") or traefik_enabled %}
 networks:
+  {% if not database_external %}
+  {{ service_name }}_backend:
+    driver: bridge
+  {% endif %}
+  {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
+  {% endif %}
 {% endif %}
+
 
 volumes:
   {{ service_name }}_data:
     driver: local
+  {% if not database_external and database_type == 'postgres' %}
+  {{ service_name }}_db:
+    driver: local
+  {% endif %}

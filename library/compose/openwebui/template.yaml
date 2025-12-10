@@ -4,7 +4,7 @@ schema: "1.2"
 metadata:
   icon:
     provider: selfh
-    id: openwebui
+    id: open-webui
   name: Openwebui
   description: >
     OpenWebUI is an open-source web-based user interface for managing and interacting with AI models.
@@ -24,6 +24,7 @@ metadata:
   tags:
     - traefik
     - authentik
+  draft: true
 spec:
   general:
     vars:

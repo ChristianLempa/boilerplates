@@ -9,13 +9,12 @@ metadata:
     - **Project:** https://traefik.io/
     - **Documentation:** https://doc.traefik.io/traefik/
     - **GitHub:** https://github.com/traefik/traefik
-  version: v3.5.4
+  version: v3.6.4
   author: Christian Lempa
   date: "2025-11-05"
   tags:
-    - authentik
     - swarm
-    - volume_mode
+    - volume
   icon:
     provider: simpleicons
     id: traefikproxy

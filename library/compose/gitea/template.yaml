@@ -7,9 +7,13 @@ metadata:
     written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository
     hosting, code review, team collaboration, and more.
     ## Prerequisites
-    * **Project:** https://gitea.io/
-    * **Documentation:** https://docs.gitea.io/
-    * **GitHub:** https://github.com/go-gitea/gitea
+    - :info: Gitea supports multiple database backends. You can choose between SQLite (default),
+    PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL and MySQL
+    are recommended for larger installations.
+    ## References
+    - **Project:** https://gitea.io/
+    - **Documentation:** https://docs.gitea.io/
+    - **GitHub:** https://github.com/go-gitea/gitea
   icon:
     provider: selfh
     id: gitea
@@ -18,12 +22,12 @@ metadata:
   date: '2025-11-05'
   tags:
     - traefik
-schema: "1.2"
+schema: 1.2
 spec:
   general:
     vars:
       service_name:
-        default: "gitea"
+        default: gitea
       gitea_url:
         description: "Public URL"
         type: str
@@ -31,12 +35,10 @@ spec:
         default: "https://git.example.com"
   database:
     vars:
-      database_type:
-        default: "postgres"
       database_name:
-        default: "gitea"
+        default: gitea
       database_user:
-        default: "gitea"
+        default: gitea
   ports:
     vars:
       ports_http:

@@ -4,7 +4,7 @@ schema: "1.0"
 metadata:
   icon:
     provider: selfh
-    id: traefik-ingressroutetcp
+    id: traefik
   name: Traefik IngressRouteTCP
   description: >
     Traefik IngressRouteTCP CRD for TCP routing (non-HTTP protocols).

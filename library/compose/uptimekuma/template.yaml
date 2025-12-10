@@ -4,7 +4,7 @@ schema: "1.2"
 metadata:
   icon:
     provider: selfh
-    id: uptimekuma
+    id: uptime-kuma
   name: Uptimekuma
   description: >
     Uptimekuma is a self-hosted monitoring tool that allows you to keep track of the uptime and performance of your websites and services.
@@ -20,6 +20,7 @@ metadata:
   author: Christian Lempa
   date: '2025-10-31'
   tags: []
+  draft: true
 spec:
   general:
     vars:

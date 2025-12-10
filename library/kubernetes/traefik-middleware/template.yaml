@@ -16,8 +16,8 @@ metadata:
   date: "2025-01-11"
   tags: []
   icon:
-    provider: simpleicons
-    id: traefikproxy
+    provider: selfh
+    id: traefik
   draft: false
   next_steps: ""
 schema: "1.0"

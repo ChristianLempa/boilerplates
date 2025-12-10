@@ -3,11 +3,13 @@ kind: compose
 metadata:
   name: NetBox
   description: |-
-    Network infrastructure management (IPAM/DCIM) and network automation source of truth. Provides comprehensive API for managing IP addresses, circuits, devices, racks, cables, and other network infrastructure components with powerful automation capabilities.
+    Network infrastructure management (IPAM/DCIM) and network automation source of truth. Provides comprehensive API
+    for managing IP addresses, circuits, devices, racks, cables, and other network infrastructure components with powerful
+    automation capabilities.
     ## References
-    * **Project:** https://netbox.dev/
-    * **Documentation:** https://docs.netbox.dev/
-    * **GitHub:** https://github.com/netbox-community/netbox
+    - **Project:** https://netbox.dev/
+    - **Documentation:** https://docs.netbox.dev/
+    - **GitHub:** https://github.com/netbox-community/netbox
   version: 4.2.3
   author: Christian Lempa
   date: "2025-11-13"
@@ -25,7 +27,7 @@ metadata:
     Username: admin
     Password: admin
     ```
-schema: "1.2"
+schema: 1.2
 spec:
   database:
     vars:

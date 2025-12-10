@@ -4,7 +4,7 @@ schema: "1.0"
 metadata:
   icon:
     provider: selfh
-    id: terraform
+    id: netbox
   name: NetBox Cluster Type
   description: >
     Create NetBox cluster type for categorizing virtualization clusters.

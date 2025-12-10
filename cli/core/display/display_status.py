@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from rich import box
+from rich._loop import loop_first
 from rich.console import Console, ConsoleOptions, RenderResult
-from rich.markdown import Heading, Markdown
+from rich.markdown import Heading, ListItem, Markdown
 from rich.panel import Panel
+from rich.segment import Segment
+from rich.text import Text
 
 from .display_icons import IconManager
 from .display_settings import DisplaySettings
@@ -36,15 +40,84 @@ class LeftAlignedHeading(Heading):
             yield text
 
 
+class IconListItem(ListItem):
+    """Custom list item that replaces bullets with colored icons from shortcodes."""
+
+    def render_bullet(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        """Render list item with icon replacement if text starts with :shortcode:."""
+        # Get the text content from elements
+        text_content = ""
+        for element in self.elements:
+            if hasattr(element, "text"):
+                text_content = element.text.plain
+                break
+
+        icon_used = None
+        icon_color = "cyan"  # Default color for icons
+        shortcode_found = None
+
+        # Scan for shortcode at the beginning
+        for shortcode, icon in IconManager.SHORTCODES.items():
+            if text_content.strip().startswith(shortcode):
+                icon_used = icon
+                shortcode_found = shortcode
+
+                # Map shortcodes to colors
+                shortcode_colors = {
+                    ":warning:": "yellow",
+                    ":error:": "red",
+                    ":check:": "green",
+                    ":success:": "green",
+                    ":info:": "blue",
+                    ":docker:": "blue",
+                    ":kubernetes:": "blue",
+                    ":rocket:": "magenta",
+                    ":star:": "yellow",
+                    ":lightning:": "yellow",
+                }
+                icon_color = shortcode_colors.get(shortcode, "cyan")
+                break
+
+        if icon_used and shortcode_found:
+            # Remove the shortcode from the text in all elements
+            for element in self.elements:
+                if hasattr(element, "text"):
+                    # Replace the shortcode in the Text object
+                    plain_text = element.text.plain
+                    new_text = plain_text.replace(shortcode_found, "", 1).lstrip()
+                    # Reconstruct the Text object with the same style
+                    element.text = Text(new_text, style=element.text.style)
+
+            # Render with custom colored icon instead of bullet
+            render_options = options.update(width=options.max_width - 3)
+            lines = console.render_lines(self.elements, render_options, style=self.style)
+            bullet_style = console.get_style(icon_color, default="none")
+
+            bullet = Segment(f" {icon_used} ", bullet_style)
+            padding = Segment(" " * 3)
+            new_line = Segment("\n")
+
+            for first, line in loop_first(lines):
+                yield bullet if first else padding
+                yield from line
+                yield new_line
+        else:
+            # No icon found, use default list item rendering
+            yield from super().render_bullet(console, options)
+
+
 class LeftAlignedMarkdown(Markdown):
-    """Custom Markdown renderer with left-aligned headings."""
+    """Custom Markdown renderer with left-aligned headings and icon list items."""
 
     def __init__(self, markup: str, **kwargs):
-        """Initialize with custom heading element."""
+        """Initialize with custom heading and list item elements."""
         super().__init__(markup, **kwargs)
 
         # Replace heading element to use left alignment
         self.elements["heading_open"] = LeftAlignedHeading
+
+        # Replace list item element to use icon replacement
+        self.elements["list_item_open"] = IconListItem
 
 
 class StatusDisplay:
@@ -205,12 +278,26 @@ class StatusDisplay:
         """Render markdown content with left-aligned headings.
 
         Replaces emoji-style shortcodes (e.g., :warning:, :info:) with Nerd Font icons
-        before rendering.
+        before rendering, EXCEPT for shortcodes at the start of list items which are
+        handled by IconListItem to replace the bullet.
 
         Args:
             content: Markdown-formatted text to render (may contain shortcodes)
         """
         if not self.quiet:
-            # Replace shortcodes with Nerd Font icons before rendering
-            processed_content = IconManager.replace_shortcodes(content)
+            # Replace shortcodes with Nerd Font icons, but preserve list item shortcodes
+            # Pattern: "- :shortcode:" at start of line should NOT be replaced
+            lines = content.split("\n")
+            processed_lines = []
+
+            for line in lines:
+                # Check if line is a list item starting with a shortcode
+                if re.match(r"^\s*-\s+:[a-z]+:", line):
+                    # Keep the line as-is, IconListItem will handle it
+                    processed_lines.append(line)
+                else:
+                    # Replace shortcodes normally
+                    processed_lines.append(IconManager.replace_shortcodes(line))
+
+            processed_content = "\n".join(processed_lines)
             self.base._print_markdown(LeftAlignedMarkdown(processed_content))

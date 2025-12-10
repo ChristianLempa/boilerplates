@@ -4,7 +4,7 @@ schema: "1.0"
 metadata:
   icon:
     provider: selfh
-    id: certmanager-clusterissuer
+    id: lets-encrypt
   name: Cert-Manager ClusterIssuer (Cloudflare)
   description: >
     Cert-manager ClusterIssuer for automatic TLS certificate management with Let's Encrypt and Cloudflare DNS-01 challenge.

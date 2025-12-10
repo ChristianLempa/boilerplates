@@ -4,7 +4,7 @@ schema: "1.2"
 metadata:
   icon:
     provider: selfh
-    id: renovate
+    id: mend-renovate
   name: Renovate
   description: |-
     **Renovate** is an automated dependency update tool that creates pull requests for newer versions of dependencies.
@@ -28,28 +28,7 @@ metadata:
   tags:
     - traefik
     - swarm
-  next_steps: |
-    ## Post-Installation Steps
-    {% if swarm_enabled -%}
-    1. **Deploy to Docker Swarm**:
-       ```bash
-       docker stack deploy -c compose.yaml {{ service_name }}
-       ```
-       Secrets are automatically created from the generated `.env.secret.*` files.
-    2. **Access the Web Interface**:
-       - {%- if traefik_enabled %}Visit: https://{{ traefik_host }}
-       {%- else %}Visit: http://<swarm-node-ip>:{{ ports_http }}{% endif %}
-    3. **Configure webhooks** in your Git platform to trigger Renovate on repository events
-    {% else -%}
-    1. **Deploy with Docker Compose**:
-       ```bash
-       docker compose up -d
-       ```
-    2. **Access the Web Interface**:
-       - {%- if traefik_enabled %}Visit: https://{{ traefik_host }}
-       {%- else %}Visit: http://localhost:{{ ports_http }}{% endif %}
-    3. **Configure webhooks** in your Git platform to trigger Renovate on repository events
-    {% endif -%}
+  draft: true
 spec:
   general:
     vars:

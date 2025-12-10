@@ -14,12 +14,18 @@ metadata:
     * **Project:** https://checkmk.com/
     * **Documentation:** https://docs.checkmk.com/latest/en/
     * **GitHub:** https://github.com/tribe29/checkmk
+  next_steps: |-
+    Log in with your initial admin user:
+    ```bash
+    Username: cmkadmin
+    Password: {{ cmk_password }}
+    ```
   version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-09-28'
   tags:
     - traefik
-schema: "1.2"
+schema: 1.2
 spec:
   general:
     vars:
@@ -48,3 +54,4 @@ spec:
         description: Agent port
         type: int
         default: 5000
+        required: true

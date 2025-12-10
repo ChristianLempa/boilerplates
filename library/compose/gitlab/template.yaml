@@ -6,7 +6,8 @@ metadata:
   description: |
     A **complete DevOps platform** that provides Git repository management, CI/CD pipelines,
     issue tracking, and container registry in a single application.
-    ## Important Configuration Notes
+    ## Prerequisites
+    - ...
     **Performance Presets**:
     - `homelab`: Optimized for low-resource environments (limited workers, reduced PostgreSQL buffers)
     - `default`: Standard server configuration for production use
@@ -29,7 +30,6 @@ metadata:
   tags:
     - traefik
     - swarm
-    - volume_modes
   next_steps: |
     ## Post-Installation Steps
     1. **Start GitLab**:
@@ -60,14 +60,11 @@ metadata:
     ## Additional Resources
     - Documentation: https://docs.gitlab.com/
     - GitLab Runner: https://docs.gitlab.com/runner/
+  draft: true
 spec:
   general:
     vars:
       service_name:
-        default: "gitlab"
-      container_name:
-        default: "gitlab"
-      container_hostname:
         default: "gitlab"
       external_url:
         type: str
@@ -99,17 +96,7 @@ spec:
         default: true
   ports:
     vars:
-      ports_http:
-        type: int
-        description: HTTP port
-        default: 80
-      ports_https:
-        type: int
-        description: HTTPS port
-        default: 443
       ports_ssh:
-        type: int
-        description: SSH port
         default: 2424
       ports_registry:
         type: int

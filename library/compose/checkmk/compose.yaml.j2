@@ -1,16 +1,20 @@
 ---
 services:
   {{ service_name }}:
-    image: checkmk/check-mk-raw:2.4.0-p1
+    image: checkmk/check-mk-raw:2.4.0p17
     restart: {{ restart_policy }}
     environment:
+      {% if container_timezone %}
       - TZ={{ container_timezone }}
+      {% endif %}
       - CMK_PASSWORD=${CMK_PASSWORD}
       - CMK_SITE_ID={{ cmk_site_id }}
     tmpfs:
       - /opt/omd/sites/{{ cmk_site_id }}/tmp:uid={{ user_uid }},gid={{ user_gid }}
     volumes:
+      {% if not container_timezone %}
       - /etc/localtime:/etc/localtime:ro
+      {% endif %}
       - {{ service_name }}_data:/omd/sites:rw
     {% if traefik_enabled %}
     networks:

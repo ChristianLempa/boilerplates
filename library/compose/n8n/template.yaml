@@ -29,8 +29,8 @@ metadata:
   tags:
     - traefik
     - database
-  next_steps:
-schema: "1.2"
+  draft: true
+schema: 1.2
 spec:
   general:
     vars:

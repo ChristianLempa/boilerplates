@@ -1,52 +1,36 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
-  icon:
-    provider: selfh
-    id: homepage
   name: Homepage
-  description: |
+  description: |-
     Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations
     for over 100 services and translations into multiple languages.
-    
+
     Project: https://gethomepage.dev/
     Documentation: https://gethomepage.dev/latest/
     GitHub: https://github.com/gethomepage/homepage
   version: v1.6.1
   author: Christian Lempa
-  date: '2025-11-05'
+  date: "2025-11-05"
   tags:
     - traefik
     - swarm
     - volume_modes
+  icon:
+    provider: simpleicons
+    id: homepage
   draft: true
+  next_steps: ""
+schema: "1.2"
 spec:
   general:
     vars:
-      service_name:
+      container_hostname:
         default: homepage
       container_name:
         default: homepage
-      container_hostname:
+      service_name:
         default: homepage
-  homepage:
-    title: Homepage Configuration
-    required: true
-    vars:
-      homepage_allowed_hosts:
-        type: str
-        description: Allowed hosts (comma-separated, required for security)
-        default: "*"
-        extra: "Set to specific domains in production (e.g., homepage.home.arpa)"
-      homepage_puid:
-        type: int
-        description: User ID (optional, leave 0 to use container default)
-        default: 0
-      homepage_pgid:
-        type: int
-        description: Group ID (optional, leave 0 to use container default)
-        default: 0
   ports:
     vars:
       ports_http:

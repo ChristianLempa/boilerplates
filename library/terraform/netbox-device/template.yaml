@@ -4,7 +4,7 @@ schema: "1.0"
 metadata:
   icon:
     provider: selfh
-    id: terraform
+    id: netbox
   name: NetBox Device
   description: >
     Register a physical device in NetBox with automatic role, type, and manufacturer creation.

@@ -21,6 +21,7 @@ metadata:
   tags:
     - traefik
     - swarm
+  draft: true
 spec:
   general:
     vars:

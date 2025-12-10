@@ -813,7 +813,8 @@ class VariableCollection:
                 logger.error(error_msg)
 
         if errors:
-            logger.warning(f"Some defaults failed to apply: {'; '.join(errors)}")
+            # Raise exception to halt execution on validation errors
+            raise ValueError(f"Variable validation failed: {'; '.join(errors)}")
 
         return successful
 

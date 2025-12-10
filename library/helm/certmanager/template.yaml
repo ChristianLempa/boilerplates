@@ -16,8 +16,8 @@ metadata:
   date: "2025-01-11"
   tags: []
   icon:
-    provider: simpleicons
-    id: letsencrypt
+    provider: selfh
+    id: lets-encrypt
   draft: true
   next_steps: ""
 schema: "1.0"
