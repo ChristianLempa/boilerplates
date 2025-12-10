@@ -1,0 +1,47 @@
+---
+global:
+  image:
+    repository: "ghcr.io/goauthentik/server"
+    tag: "2025.6.3"
+    pullPolicy: IfNotPresent
+authentik:
+  postgresql:
+    host: {{ database_host }}
+    name: {{ database_name }}
+    user: {{ database_user }}
+    port: {{ database_port }}
+{% if email_enabled %}
+  email:
+    host: {{ email_host }}
+    port: {{ email_port }}
+    username: {{ email_username }}
+    use_tls: {{ email_use_tls | lower }}
+    from: {{ email_from }}
+{% endif %}
+  error_reporting:
+    enabled: {{ authentik_error_reporting | lower }}
+  log_level: {{ authentik_log_level }}
+server:
+  service:
+    type: {{ network_mode }}
+{% if traefik_enabled %}
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+{% if traefik_tls_enabled and traefik_tls_certmanager %}
+    annotations:
+      cert-manager.io/cluster-issuer: {{ certmanager_issuer }}
+{% endif %}
+    hosts:
+      - {{ traefik_host }}
+{% if traefik_tls_enabled %}
+    tls:
+      - secretName: {{ traefik_tls_secret }}
+        hosts:
+          - {{ traefik_host }}
+{% endif %}
+{% endif %}
+postgresql:
+  enabled: false
+redis:
+  enabled: true

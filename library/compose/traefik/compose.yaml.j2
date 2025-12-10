@@ -1,60 +1,153 @@
+---
 services:
   {{ service_name }}:
-    image: docker.io/library/traefik:v3.6.1
+    image: docker.io/library/traefik:v3.6.4
     {% if not swarm_enabled %}
+    {% if container_name %}
     container_name: {{ container_name }}
+    {% endif %}
     security_opt:
       - no-new-privileges:true
     {% endif %}
+    {% if container_hostname %}
     hostname: {{ container_hostname }}
+    {% endif %}
+    command:
+      - "--global.checkNewVersion=false"
+      - "--global.sendAnonymousUsage=false"
+      {% if container_loglevel %}
+      - "--log.level={{ container_loglevel }}"
+      {% endif %}
+      - "--ping=true"
+      - "--ping.entryPoint=ping"
+      {% if accesslog_enabled %}
+      - "--accesslog=true"
+      {% endif %}
+      - "--ping.entryPoint=ping"
+      {% if dashboard_enabled %}
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      {% endif %}
+      {% if prometheus_enabled %}
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.entryPoint=metrics"
+      - "--metrics.prometheus.addRoutersLabels=true"
+      {% endif %}
+      - "--entrypoints.ping.address=:8082"
+      {% if prometheus_enabled %}
+      - "--entrypoints.metrics.address=:9090"
+      {% endif %}
+      - "--entrypoints.web.address=:80"
+      {% if traefik_tls_enabled and traefik_tls_redirect %}
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      {% endif %}
+      {% if traefik_tls_enabled %}
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.email={{ traefik_tls_acme_email }}"
+      - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.caServer=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.dnsChallenge.provider={{ traefik_tls_certresolver }}"
+      - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.dnsChallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+      {% endif %}
+      {% if traefik_tls_min_version %}
+      - "--tls.options.default.minVersion={{ traefik_tls_min_version }}"
+      {% endif %}
+      {% if traefik_tls_secure_ciphers %}
+      - "--tls.options.default.cipherSuites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+      {% endif %}
+      {% if traefik_tls_skipverify %}
+      - "--serversTransport.insecureSkipVerify=true"
+      {% endif %}
+      {% if swarm_enabled %}
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--providers.swarm.exposedByDefault=false"
+      - "--providers.swarm.network={{ traefik_network }}"
+      {% else %}
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.network={{ traefik_network }}"
+      {% endif %}
     ports:
       - "{{ ports_http }}:80"
       - "{{ ports_https }}:443"
       {% if dashboard_enabled %}
       - "{{ ports_dashboard }}:8080"
       {% endif %}
+    {#
+      We always need volumes, because of the docker socket and certs storage
+      - certs storage for ACME
+      - docker socket for automatic service discovery
+      - Traefik configuration in non-swarm mode
+    #}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      {% if not swarm_enabled %}
-      - ./config/:/etc/traefik/:ro
-      - ./certs/:/var/traefik/certs/:rw
-      {% else %}
-      {% if swarm_volume_mode == 'mount' %}
-      - {{ swarm_volume_mount_path }}:/var/traefik/certs/:rw
-      {% elif swarm_volume_mode == 'local' %}
-      - traefik_certs:/var/traefik/certs/:rw
-      {% elif swarm_volume_mode == 'nfs' %}
-      - traefik_certs:/var/traefik/certs/:rw
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}:/var/traefik/certs/:rw
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}_certs:/var/traefik/certs/:rw
       {% endif %}
-      {% endif %}
-    {% if not swarm_enabled %}
-    env_file:
-      - ./.env
-    {% endif %}
     environment:
       - TZ={{ container_timezone }}
       {% if traefik_tls_enabled %}
-      {% if traefik_tls_acme_provider == 'cloudflare' %}
+      {% if traefik_tls_certresolver == 'cloudflare' %}
       {% if swarm_enabled %}
-      - CF_DNS_API_TOKEN_FILE=/run/secrets/{{ traefik_tls_acme_secret_name }}
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/{{ service_name }}_token
       {% else %}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       {% endif %}
+      {% elif traefik_tls_certresolver == 'porkbun' %}
+      {% if swarm_enabled %}
+      - PORKBUN_API_KEY_FILE=/run/secrets/{{ service_name }}_token
+      - PORKBUN_SECRET_API_KEY_FILE=/run/secrets/{{ service_name }}_token_key
+      {% else %}
+      - PORKBUN_API_KEY=${PORKBUN_API_KEY}
+      - PORKBUN_SECRET_API_KEY=${PORKBUN_SECRET_API_KEY}
+      {% endif %}
+      {% elif traefik_tls_certresolver == 'route53' %}
+      {% if swarm_enabled %}
+      - AWS_ACCESS_KEY_ID_FILE=/run/secrets/{{ service_name }}_token
+      - AWS_SECRET_ACCESS_KEY_FILE=/run/secrets/{{ service_name }}_token_key
+      {% else %}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      {% endif %}
+      - AWS_REGION={{ traefik_tls_acme_region }}
+      {% elif traefik_tls_certresolver == 'digitalocean' %}
+      {% if swarm_enabled %}
+      - DO_AUTH_TOKEN_FILE=/run/secrets/{{ service_name }}_token
+      {% else %}
+      - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
+      {% endif %}
+      {% elif traefik_tls_certresolver == 'godaddy' %}
+      {% if swarm_enabled %}
+      - GODADDY_API_KEY_FILE=/run/secrets/{{ service_name }}_token
+      - GODADDY_API_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
+      {% else %}
+      - GODADDY_API_KEY=${GODADDY_API_KEY}
+      - GODADDY_API_SECRET=${GODADDY_API_SECRET}
+      {% endif %}
+      {% elif traefik_tls_certresolver == 'azure' %}
+      {% if swarm_enabled %}
+      - AZURE_CLIENT_ID_FILE=/run/secrets/{{ service_name }}_token
+      - AZURE_CLIENT_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
+      {% else %}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      {% endif %}
+      - AZURE_TENANT_ID={{ traefik_tls_acme_tenant_id }}
+      - AZURE_SUBSCRIPTION_ID={{ traefik_tls_acme_subscription_id }}
+      - AZURE_RESOURCE_GROUP={{ traefik_tls_acme_resource_group }}
+      {% elif traefik_tls_certresolver == 'namecheap' %}
+      {% if swarm_enabled %}
+      - NAMECHEAP_API_KEY_FILE=/run/secrets/{{ service_name }}_token
+      {% else %}
+      - NAMECHEAP_API_KEY=${NAMECHEAP_API_KEY}
+      {% endif %}
+      - NAMECHEAP_API_USER={{ traefik_tls_acme_username }}
       {% endif %}
       {% endif %}
-    {% if swarm_enabled %}
-    configs:
-      - source: traefik_config
-        target: /etc/traefik/traefik.yaml
-      - source: traefik_middlewares
-        target: /etc/traefik/files/middlewares.yaml
-      - source: traefik_routers
-        target: /etc/traefik/files/routers.yaml
-      - source: traefik_services
-        target: /etc/traefik/files/services.yaml
-    {% endif %}
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8082/ping"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -64,7 +157,10 @@ services:
     {% if swarm_enabled %}
     {% if traefik_tls_enabled %}
     secrets:
-      - {{ traefik_tls_acme_secret_name }}
+      - {{ service_name }}_token
+      {% if traefik_tls_acme_secret_key %}
+      - {{ service_name }}_token_key
+      {% endif %}
     {% endif %}
     deploy:
       mode: {{ swarm_placement_mode }}
@@ -80,36 +176,23 @@ services:
     restart: {{ restart_policy }}
     {% endif %}
 
-{% if swarm_enabled %}
-{% if swarm_volume_mode in ['local', 'nfs'] %}
-volumes:
-  traefik_certs:
-    {% if swarm_volume_mode == 'nfs' %}
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr={{ swarm_volume_nfs_server }},nfsvers=4,{{ swarm_volume_nfs_options }}
-      device: ":{{ swarm_volume_nfs_path }}"
-    {% endif %}
-{% endif %}
-
-configs:
-  traefik_config:
-    file: ./config/traefik.yaml
-  traefik_middlewares:
-    file: ./config/files/middlewares.yaml
-  traefik_routers:
-    file: ./config/files/routers.yaml
-  traefik_services:
-    file: ./config/files/services.yaml
-
-{% if traefik_tls_enabled %}
+{#
+  If Traefik TLS is enabled in swarm mode, define the necessary secrets for ACME DNS challenge.
+#}
+{% if swarm_enabled and traefik_tls_enabled %}
 secrets:
-  {{ traefik_tls_acme_secret_name }}:
-    file: ./.env.secret
-{% endif %}
+  {{ service_name }}_token:
+    file: ./.env.secret.token
+  {% if traefik_tls_acme_secret_key %}
+  {{ service_name }}_token_key:
+    file: ./.env.secret.token_key
+  {% endif %}
 {% endif %}
 
+{#
+  Always define the traefik network, but if it's not external, set it up according to
+  swarm mode or bridge mode.
+#}
 networks:
   {{ traefik_network }}:
     {% if traefik_network_external %}
@@ -123,3 +206,20 @@ networks:
     {% endif %}
     name: {{ traefik_network }}
     {% endif %}
+
+{#
+  Always define volumes for certs based on volume_mode
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}_certs:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}_certs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}"
+{% endif %}

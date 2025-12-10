@@ -1,0 +1,29 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: ansible
+  name: Update and Upgrade Ubuntu Packages
+  description: >
+    Ansible playbook to update and upgrade APT packages on Ubuntu systems.
+    Performs apt update and dist-upgrade.
+
+
+    Project: https://ubuntu.com
+
+    Documentation: https://ubuntu.com/server/docs
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+  draft: true
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Update and upgrade apt packages
+      target_hosts:
+        default: all
+      become:
+        default: false

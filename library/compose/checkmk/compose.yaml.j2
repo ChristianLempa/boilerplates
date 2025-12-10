@@ -1,38 +1,55 @@
+---
 services:
-  monitoring:
-    image: checkmk/check-mk-raw:2.4.0-latest
-    container_name: checkmk
-    ports:
-      - "8000:8000"
-      - "5000:5000"
-      - "162:162/udp"
+  {{ service_name }}:
+    image: checkmk/check-mk-raw:2.4.0p17
+    restart: {{ restart_policy }}
     environment:
-      - TZ=Europe/Berlin
-      - CMK_PASSWORD=${CMK_PASSWORD:?no password set}
-      - CMK_SITE_ID=${CMK_SITE_ID:-cmk}
+      {% if container_timezone %}
+      - TZ={{ container_timezone }}
+      {% endif %}
+      - CMK_PASSWORD=${CMK_PASSWORD}
+      - CMK_SITE_ID={{ cmk_site_id }}
     tmpfs:
-      - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
+      - /opt/omd/sites/{{ cmk_site_id }}/tmp:uid={{ user_uid }},gid={{ user_gid }}
     volumes:
+      {% if not container_timezone %}
       - /etc/localtime:/etc/localtime:ro
-      - data:/omd/sites:rw
+      {% endif %}
+      - {{ service_name }}_data:/omd/sites:rw
+    {% if traefik_enabled %}
     networks:
-      - frontend
+      {{ traefik_network }}:
+    {% endif %}
+    ports:
+    {% if not traefik_enabled %}
+      - "{{ ports_http }}:8000"
+    {% endif %}
+      - "{{ ports_agent }}:5000"
+      - "{{ ports_snmp }}:162/udp"
+    {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.docker.network=frontend
-      - traefik.http.services.checkmk.loadbalancer.server.port=5000
-      - traefik.http.services.checkmk.loadbalancer.server.scheme=http
-      - traefik.http.routers.checkmk.service=checkmk
-      - traefik.http.routers.checkmk.rule=Host(`checkmk.home.arpa`)
-      - traefik.http.routers.checkmk.entrypoints=websecure
-      - traefik.http.routers.checkmk.tls=true
-      - traefik.http.routers.checkmk.tls.certresolver=cloudflare
-    restart: unless-stopped
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=5000
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
 
 volumes:
-  data:
+  {{ service_name }}_data:
     driver: local
 
+{% if traefik_enabled %}
 networks:
-  frontend:
+  {{ traefik_network }}:
     external: true
+{% endif %}

@@ -1,0 +1,27 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+spec:
+{% if middleware_type == 'redirectScheme' %}
+  redirectScheme:
+    scheme: https
+    permanent: true
+{% elif middleware_type == 'stripPrefix' %}
+  stripPrefix:
+    prefixes:
+      - /api
+{% elif middleware_type == 'addPrefix' %}
+  addPrefix:
+    prefix: /api
+{% elif middleware_type == 'headers' %}
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: https
+{% elif middleware_type == 'rateLimit' %}
+  rateLimit:
+    average: 100
+    burst: 50
+{% endif %}

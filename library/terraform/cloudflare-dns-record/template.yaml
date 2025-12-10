@@ -1,0 +1,80 @@
+---
+kind: terraform
+metadata:
+  name: Cloudflare DNS Record
+  description: |-
+    Create Cloudflare DNS records (A, AAAA, CNAME, TXT, MX) with configurable settings.
+
+    Supports all common DNS record types with proxy status and TTL configuration.
+
+    Project: https://www.cloudflare.com/
+    Documentation: https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/dns_record
+  version: 5.12.0
+  author: Christian Lempa
+  date: "2025-11-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: cloudflare
+  draft: false
+  next_steps: ""
+schema: "1.0"
+spec:
+  comment:
+    title: Comment
+    toggle: comment_enabled
+    vars:
+      comment_enabled:
+        description: Add comment to DNS record
+        type: bool
+        default: false
+      comment_text:
+        description: Comment for the DNS record
+        type: str
+        default: Managed by Terraform
+  general:
+    vars:
+      resource_name:
+        description: Terraform resource name (alphanumeric and underscores only)
+        type: str
+        default: dns_record
+      zone_id_value:
+        description: Cloudflare Zone ID
+        type: str
+  mx:
+    title: MX Record Settings
+    toggle: mx_enabled
+    vars:
+      mx_enabled:
+        description: Configure MX record priority
+        type: bool
+        default: false
+      priority:
+        description: MX record priority (lower = higher priority)
+        type: int
+        default: 10
+  record:
+    title: DNS Record
+    required: true
+    vars:
+      content:
+        description: DNS record content (IP, hostname, or text)
+        type: str
+        default: 192.0.2.1
+      name:
+        description: DNS record name (use @ for root domain)
+        type: str
+        default: www
+      proxied:
+        description: Enable Cloudflare proxy (orange cloud)
+        type: bool
+        default: true
+      record_type:
+        description: DNS record type
+        type: enum
+        default: A
+        options: [A, AAAA, CNAME, TXT, MX]
+      ttl:
+        description: Time to live (1 = automatic, or 60-86400 seconds)
+        type: int
+        default: 1

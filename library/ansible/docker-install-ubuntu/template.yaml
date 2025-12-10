@@ -1,0 +1,27 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: docker
+  name: Install Docker on Ubuntu
+  description: >
+    Ansible playbook to install Docker Engine on Ubuntu systems.
+    Includes Docker CE, Buildx plugin, and Compose plugin.
+
+
+    Project: https://www.docker.com
+
+    Documentation: https://docs.docker.com/engine/install/ubuntu/
+  version: 27.5.1
+  author: Christian Lempa
+  date: '2025-11-11'
+  draft: true
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Install docker
+      become:
+        default: true

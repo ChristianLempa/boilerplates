@@ -1,17 +1,56 @@
-volumes:
-  prometheus-data:
-    driver: local
+---
 services:
-  prometheus:
+  {{ service_name }}:
     image: docker.io/prom/prometheus:v3.7.3
-    container_name: prometheus
+    restart: {{ restart_policy }}
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
-      - --storage.tsdb.retention.time=7d
-      - --storage.tsdb.retention.size=2GB
+      - --storage.tsdb.retention.time={{ metrics_retention_time }}
+      {% if metrics_retention_size != '0' %}
+      - --storage.tsdb.retention.size={{ metrics_retention_size }}
+      {% endif %}
+      {% if metrics_enable_remote_write %}
+      - --web.enable-remote-write-receiver
+      {% endif %}
+      {% if traefik_enabled %}
+      {% if traefik_tls_enabled %}
+      - --web.external-url=https://{{ traefik_host }}.{{ traefik_domain }}
+      {% else %}
+      - --web.external-url=http://{{ traefik_host }}.{{ traefik_domain }}
+      {% endif %}
+      {% endif %}
+    {% if not traefik_enabled  %}
     ports:
-      - 9090:9090
+      - "{{ ports_http }}:9090"
+    {% endif %}
     volumes:
+      - {{ service_name }}_data:/prometheus
       - ./config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
-      - prometheus-data:/prometheus
-    restart: unless-stopped
+    {% if traefik_enabled  %}
+    networks:
+      {{ traefik_network }}:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=9090
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+
+volumes:
+  {{ service_name }}_data:
+    driver: local
+
+{% if traefik_enabled %}
+networks:
+  {{ traefik_network }}:
+    external: true
+{% endif %}

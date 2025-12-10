@@ -1,36 +1,99 @@
 services:
-  {{ service_name | default('bind9') }}:
-    image: docker.io/ubuntu/bind9:{{ bind9_version | default('9.20-24.10_edge') }}
-    container_name: {{ container_name | default('bind9') }}
-    hostname: {{ container_hostname | default('ns1') }}
+  {{ service_name }}:
+    image: docker.io/ubuntu/bind9:9.20-24.10_edge
+    restart: {{ restart_policy }}
+    {% if container_hostname %}
+    hostname: {{ container_hostname }}
+    {% endif %}
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
       - BIND9_USER=bind
-    {% if ports_enabled %}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% elif network_mode == 'bridge' or network_mode == 'macvlan' %}
+    networks:
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if network_mode == '' or network_mode == 'bridge' %}
     ports:
       - "53:53/tcp"
       - "53:53/udp"
     {% endif %}
     volumes:
-      - ./config:/etc/bind
-      - bind9_zones:/var/lib/bind
-      - bind9_cache:/var/cache/bind
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default('bridge') }}
-    {% endif %}
-    restart: {{ restart_policy | default('unless-stopped') }}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/config:/etc/bind:rw
+      - {{ volume_mount_path }}/zones:/var/lib/bind:rw
+      - {{ volume_mount_path }}/cache:/var/cache/bind:rw
+      {% else %}
+      - {{ service_name }}_config:/etc/bind
+      - {{ service_name }}_zones:/var/lib/bind
+      - {{ service_name }}_cache:/var/cache/bind
+      {% endif %}
 
-volumes:
-  bind9_zones:
-    driver: local
-  bind9_cache:
-    driver: local
-
-{% if network_enabled %}
+{#
+  Network definitions (only when needed):
+  - When network_mode is empty: no definition needed (uses Docker's default bridge)
+  - When network_mode is 'bridge': define custom bridge network
+  - When network_mode is 'macvlan': configure macvlan with static IP (for Compose mode)
+#}
+{% if network_mode == 'bridge' or network_mode == 'macvlan' %}
 networks:
-  {{ network_name | default('bridge') }}:
+  {{ network_name }}:
     {% if network_external %}
     external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif network_mode == 'bridge' %}
+    driver: bridge
     {% endif %}
+  {% endif %}
+{% endif %}
+
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}_config:
+    driver: local
+  {{ service_name }}_zones:
+    driver: local
+  {{ service_name }}_cache:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}_config:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/config"
+  {{ service_name }}_zones:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/zones"
+  {{ service_name }}_cache:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/cache"
 {% endif %}

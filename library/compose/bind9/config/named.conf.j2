@@ -1,10 +1,10 @@
 // BIND9 Main Configuration File
 // Documentation: https://bind9.readthedocs.io/
 
-// Include TSIG keys for secure zone transfers
+{% if tsig_enabled %}
 include "/etc/bind/tsig.key";
+{% endif %}
 
-// ACL definitions for access control
 acl "trusted" {
     127.0.0.1;
     ::1;

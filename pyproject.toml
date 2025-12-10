@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boilerplates"
-version = "0.0.7"
+version = "0.1.0"
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,6 +22,7 @@ dependencies = [
     "PyYAML>=6.0",
     "python-frontmatter>=1.0.0",
     "Jinja2>=3.0",
+    "email-validator>=2.0.0",
 ]
 
 [project.scripts]
@@ -30,3 +31,60 @@ boilerplates = "cli.__main__:run"
 [tool.setuptools.packages.find]
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
+
+[tool.ruff]
+# Extended line length for better readability
+line-length = 120
+
+# Python 3.9+ as minimum version
+target-version = "py39"
+
+# Exclude common directories
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable rule categories
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort (import sorting)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade (modern Python syntax)
+    "B",      # flake8-bugbear (likely bugs)
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "RET",    # flake8-return
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "PL",     # Pylint
+    "RUF",    # Ruff-specific rules
+    "T20",    # flake8-print
+]
+
+# Allow auto-fixing for these rules
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+# Use PEP 8 standard: 4 spaces for indentation
+indent-style = "space"
+
+# Use double quotes (consistent with Python conventions)
+quote-style = "double"
+
+# Unix line endings
+line-ending = "lf"
+
+[tool.ruff.lint.per-file-ignores]
+# CLI command functions need many parameters for command-line arguments
+"cli/core/module/base_module.py" = ["PLR0913"]  # generate() needs all CLI options
+"cli/core/repo.py" = ["PLR0913"]                # add() needs all library config options

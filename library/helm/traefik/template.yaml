@@ -1,0 +1,76 @@
+---
+kind: helm
+metadata:
+  name: Traefik Ingress Controller
+  description: |-
+    Helm values template for Traefik v3, a modern HTTP reverse proxy and load balancer designed for microservices.
+
+    Chart Repository: https://traefik.github.io/charts
+    Chart Name: traefik
+    Chart Version: Compatible with Traefik v3.5.3
+
+    Project: https://traefik.io/
+    Documentation: https://doc.traefik.io/traefik/
+  version: 3.5.3
+  author: Christian Lempa
+  date: "2025-01-11"
+  tags: []
+  icon:
+    provider: simpleicons
+    id: traefikproxy
+  draft: true
+  next_steps: ""
+schema: "1.0"
+spec:
+  dashboard:
+    title: Dashboard IngressRoute
+    toggle: dashboard_ingressroute_enabled
+    vars:
+      dashboard_host:
+        description: FQDN for the Traefik dashboard
+        type: hostname
+      dashboard_ingressroute_enabled:
+        description: Create IngressRoute for Traefik dashboard
+        type: bool
+        default: false
+      dashboard_middleware:
+        description: Authentication middleware name for dashboard protection
+        type: str
+        default: traefik-dashboard-auth
+      dashboard_tls_secret:
+        description: TLS secret name for dashboard
+        type: str
+        default: traefik-dashboard-tls
+  general:
+    vars:
+      release_name:
+        type: str
+        default: traefik
+  http_redirect:
+    title: HTTP to HTTPS Redirect
+    toggle: http_redirect_enabled
+    vars:
+      http_redirect_enabled:
+        description: Automatically redirect HTTP traffic to HTTPS
+        type: bool
+        default: true
+      http_redirect_permanent:
+        description: Use permanent redirect (301) instead of temporary (302)
+        type: bool
+        default: true
+  traefik_config:
+    title: Traefik Settings
+    vars:
+      accesslog_enabled:
+        description: Enable Traefik access log
+        type: bool
+        default: false
+      dashboard_enabled:
+        description: Enable Traefik dashboard
+        type: bool
+        default: false
+        extra: 'WARNING: Don''t use in production!'
+      prometheus_enabled:
+        description: Enable Prometheus metrics
+        type: bool
+        default: false

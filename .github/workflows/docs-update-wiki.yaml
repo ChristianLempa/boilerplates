@@ -6,11 +6,10 @@ name: Docs - Update Wiki
     branches:
       - main
     paths:
-      - 'cli/modules/*/spec_*.py'
-      - 'cli/modules/*/__init__.py'
-      - '.wiki/**'
-      - '.github/scripts/generate_wiki_docs.py'
-      - '.github/workflows/docs-update-wiki.yaml'
+      - 'cli/core/schema/**/*.json'  # JSON schema files
+      - '.wiki/**'  # Static wiki pages
+      - '.github/scripts/generate_wiki_docs.py'  # Wiki generation script
+      - '.github/workflows/docs-update-wiki.yaml'  # This workflow
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
@@ -40,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install typer rich pyyaml jinja2
+          pip install -e .
 
       - name: Generate variable documentation
         run: |
@@ -82,8 +81,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "Auto-update variable documentation from schema changes"
-          git push
+          git commit -m "Auto-update wiki pages"
+
+          # Pull with rebase to handle any remote changes, then push
+          # GitHub wikis use master as default branch
+          git pull --rebase origin master
+          git push origin master
 
       - name: Summary
         run: |

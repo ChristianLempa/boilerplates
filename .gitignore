@@ -6,6 +6,7 @@
 **/secret.*
 **/.env
 **/.envrc
+**/.direnv
 
 # Ignore Ansible
 **/.ansible
@@ -17,9 +18,12 @@
 **/*.pyd
 **/.venv
 **/venv/
+**/.ruff_cache/
 
 # Packaging
 *.egg-info/
+build/
+dist/
 
 # Installation tracking
 .installed-version
@@ -27,5 +31,3 @@
 # Test outputs
 tests/
 config.yaml
-
-*~

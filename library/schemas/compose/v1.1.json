@@ -1,0 +1,312 @@
+[
+  {
+    "key": "general",
+    "title": "General",
+    "required": true,
+    "vars": [
+      {
+        "name": "service_name",
+        "description": "Service name",
+        "type": "str"
+      },
+      {
+        "name": "container_name",
+        "description": "Container name",
+        "type": "str"
+      },
+      {
+        "name": "container_hostname",
+        "description": "Container internal hostname",
+        "type": "str"
+      },
+      {
+        "name": "container_timezone",
+        "description": "Container timezone (e.g., Europe/Berlin)",
+        "type": "str",
+        "default": "UTC"
+      },
+      {
+        "name": "user_uid",
+        "description": "User UID for container process",
+        "type": "int",
+        "default": 1000
+      },
+      {
+        "name": "user_gid",
+        "description": "User GID for container process",
+        "type": "int",
+        "default": 1000
+      },
+      {
+        "name": "container_loglevel",
+        "description": "Container log level",
+        "type": "enum",
+        "options": ["debug", "info", "warn", "error"],
+        "default": "info"
+      },
+      {
+        "name": "restart_policy",
+        "description": "Container restart policy",
+        "type": "enum",
+        "options": ["unless-stopped", "always", "on-failure", "no"],
+        "default": "unless-stopped"
+      }
+    ]
+  },
+  {
+    "key": "network",
+    "title": "Network",
+    "vars": [
+      {
+        "name": "network_mode",
+        "description": "Docker network mode",
+        "type": "enum",
+        "options": ["bridge", "host", "macvlan"],
+        "default": "bridge",
+        "extra": "bridge=default Docker networking, host=use host network stack, macvlan=dedicated MAC address on physical network"
+      },
+      {
+        "name": "network_name",
+        "description": "Docker network name",
+        "type": "str",
+        "default": "bridge",
+        "needs": ["network_mode=bridge,macvlan"]
+      },
+      {
+        "name": "network_external",
+        "description": "Use existing Docker network (external)",
+        "type": "bool",
+        "default": false,
+        "needs": ["network_mode=bridge,macvlan"]
+      },
+      {
+        "name": "network_macvlan_ipv4_address",
+        "description": "Static IP address for container",
+        "type": "str",
+        "default": "192.168.1.253",
+        "needs": ["network_mode=macvlan"]
+      },
+      {
+        "name": "network_macvlan_parent_interface",
+        "description": "Host network interface name",
+        "type": "str",
+        "default": "eth0",
+        "needs": ["network_mode=macvlan"]
+      },
+      {
+        "name": "network_macvlan_subnet",
+        "description": "Network subnet in CIDR notation",
+        "type": "str",
+        "default": "192.168.1.0/24",
+        "needs": ["network_mode=macvlan"]
+      },
+      {
+        "name": "network_macvlan_gateway",
+        "description": "Network gateway IP address",
+        "type": "str",
+        "default": "192.168.1.1",
+        "needs": ["network_mode=macvlan"]
+      }
+    ]
+  },
+  {
+    "key": "ports",
+    "title": "Ports",
+    "needs": ["network_mode=bridge"],
+    "vars": []
+  },
+  {
+    "key": "traefik",
+    "title": "Traefik",
+    "toggle": "traefik_enabled",
+    "needs": ["network_mode=bridge"],
+    "description": "Traefik routes external traffic to your service.",
+    "vars": [
+      {
+        "name": "traefik_enabled",
+        "description": "Enable Traefik reverse proxy integration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "traefik_network",
+        "description": "Traefik network name",
+        "type": "str",
+        "default": "traefik"
+      },
+      {
+        "name": "traefik_host",
+        "description": "Domain name for your service (e.g., app.example.com)",
+        "type": "str"
+      },
+      {
+        "name": "traefik_entrypoint",
+        "description": "HTTP entrypoint (non-TLS)",
+        "type": "str",
+        "default": "web"
+      }
+    ]
+  },
+  {
+    "key": "traefik_tls",
+    "title": "Traefik TLS/SSL",
+    "toggle": "traefik_tls_enabled",
+    "needs": ["traefik_enabled=true;network_mode=bridge"],
+    "description": "Enable HTTPS/TLS for Traefik with certificate management.",
+    "vars": [
+      {
+        "name": "traefik_tls_enabled",
+        "description": "Enable HTTPS/TLS",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "name": "traefik_tls_entrypoint",
+        "description": "TLS entrypoint",
+        "type": "str",
+        "default": "websecure"
+      },
+      {
+        "name": "traefik_tls_certresolver",
+        "description": "Traefik certificate resolver name",
+        "type": "str",
+        "default": "cloudflare"
+      }
+    ]
+  },
+  {
+    "key": "swarm",
+    "title": "Docker Swarm",
+    "toggle": "swarm_enabled",
+    "needs": ["network_mode=bridge"],
+    "description": "Deploy service in Docker Swarm mode.",
+    "vars": [
+      {
+        "name": "swarm_enabled",
+        "description": "Enable Docker Swarm mode",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "swarm_placement_mode",
+        "description": "Swarm placement mode",
+        "type": "enum",
+        "options": ["replicated", "global"],
+        "default": "replicated"
+      },
+      {
+        "name": "swarm_replicas",
+        "description": "Number of replicas",
+        "type": "int",
+        "default": 1,
+        "needs": ["swarm_placement_mode=replicated"]
+      },
+      {
+        "name": "swarm_placement_host",
+        "description": "Target hostname for placement constraint",
+        "type": "str",
+        "default": "",
+        "optional": true,
+        "needs": ["swarm_placement_mode=replicated"],
+        "extra": "Constrains service to run on specific node by hostname"
+      },
+      {
+        "name": "swarm_volume_mode",
+        "description": "Swarm volume storage backend",
+        "type": "enum",
+        "options": ["local", "mount", "nfs"],
+        "default": "local",
+        "extra": "WARNING: 'local' only works on single-node deployments!"
+      },
+      {
+        "name": "swarm_volume_mount_path",
+        "description": "Host path for bind mount",
+        "type": "str",
+        "default": "/mnt/storage",
+        "needs": ["swarm_volume_mode=mount"],
+        "extra": "Useful for shared/replicated storage"
+      },
+      {
+        "name": "swarm_volume_nfs_server",
+        "description": "NFS server address",
+        "type": "str",
+        "default": "192.168.1.1",
+        "needs": ["swarm_volume_mode=nfs"],
+        "extra": "IP address or hostname of NFS server"
+      },
+      {
+        "name": "swarm_volume_nfs_path",
+        "description": "NFS export path",
+        "type": "str",
+        "default": "/export",
+        "needs": ["swarm_volume_mode=nfs"],
+        "extra": "Path to NFS export on the server"
+      },
+      {
+        "name": "swarm_volume_nfs_options",
+        "description": "NFS mount options",
+        "type": "str",
+        "default": "rw,nolock,soft",
+        "needs": ["swarm_volume_mode=nfs"],
+        "extra": "Comma-separated NFS mount options"
+      }
+    ]
+  },
+  {
+    "key": "database",
+    "title": "Database",
+    "toggle": "database_enabled",
+    "description": "Connect to external database (PostgreSQL or MySQL)",
+    "vars": [
+      {
+        "name": "database_enabled",
+        "description": "Enable external database integration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "database_type",
+        "description": "Database type",
+        "type": "enum",
+        "options": ["default", "sqlite", "postgres", "mysql"],
+        "default": "default"
+      },
+      {
+        "name": "database_external",
+        "description": "Use an external database server?",
+        "extra": "skips creation of internal database container",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "database_host",
+        "description": "Database host",
+        "type": "str",
+        "default": "database"
+      },
+      {
+        "name": "database_port",
+        "description": "Database port",
+        "type": "int"
+      },
+      {
+        "name": "database_name",
+        "description": "Database name",
+        "type": "str"
+      },
+      {
+        "name": "database_user",
+        "description": "Database user",
+        "type": "str"
+      },
+      {
+        "name": "database_password",
+        "description": "Database password",
+        "type": "str",
+        "default": "",
+        "sensitive": true,
+        "autogenerated": true
+      }
+    ]
+  }
+]

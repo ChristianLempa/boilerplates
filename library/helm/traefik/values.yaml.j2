@@ -1,0 +1,41 @@
+---
+image:
+  repository: traefik
+  tag: v3.5.3
+  pullPolicy: IfNotPresent
+{% if http_redirect_enabled %}
+
+ports:
+  web:
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: {{ http_redirect_permanent | lower }}
+{% endif %}
+{% if dashboard_enabled or accesslog_enabled or prometheus_enabled %}
+
+additionalArguments:
+{% if dashboard_enabled %}
+  - "--api.dashboard=true"
+{% endif %}
+{% if accesslog_enabled %}
+  - "--accesslog=true"
+{% endif %}
+{% if prometheus_enabled %}
+  - "--metrics.prometheus=true"
+{% endif %}
+{% endif %}
+{% if dashboard_ingressroute_enabled %}
+
+ingressRoute:
+  dashboard:
+    enabled: true
+    entryPoints:
+      - websecure
+    matchRule: Host(`{{ dashboard_host }}`)
+    middlewares:
+      - name: {{ dashboard_middleware }}
+    tls:
+      secretName: {{ dashboard_tls_secret }}
+{% endif %}

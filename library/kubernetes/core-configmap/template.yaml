@@ -1,0 +1,26 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
+  name: Kubernetes ConfigMap
+  description: >
+    Kubernetes ConfigMap resource for storing non-sensitive configuration data as key-value pairs.
+
+
+    ConfigMaps allow you to decouple configuration from container images.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/configuration/configmap/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-config
+      namespace:
+        default: default

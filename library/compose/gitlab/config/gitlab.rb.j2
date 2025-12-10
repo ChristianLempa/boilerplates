@@ -1,6 +1,10 @@
 # GitLab Configuration
 external_url '{{ external_url }}'
 
+# Initial root user configuration (only used on first initialization)
+gitlab_rails['initial_root_password'] = ENV['GITLAB_ROOT_PASSWORD']
+gitlab_rails['initial_root_email'] = '{{ root_email }}'
+
 # GitLab Shell SSH settings
 gitlab_rails['gitlab_shell_ssh_port'] = {{ ports_ssh }}
 
@@ -20,7 +24,7 @@ nginx['redirect_http_to_https'] = true
 registry_external_url '{{ registry_external_url }}'
 gitlab_rails['registry_enabled']  = true
 registry_nginx['listen_https']    = false
-registry_nginx['listen_port']     = {{ ports_registry }}
+registry_nginx['listen_port']     = 5000
 {% endif %}
 
 {% if authentik_enabled %}
@@ -81,3 +85,10 @@ puma['worker_processes'] = 1
 
 # Prometheus monitoring
 prometheus_monitoring['enable'] = {{ prometheus_enabled | lower }}
+
+# Default UI settings
+gitlab_rails['gitlab_default_theme'] = {{ default_theme }}
+gitlab_rails['gitlab_default_color_mode'] = {{ default_color_mode }}
+
+# Product usage data
+gitlab_rails['initial_gitlab_product_usage_data'] = {{ 'false' if disable_usage_data else 'true' }}

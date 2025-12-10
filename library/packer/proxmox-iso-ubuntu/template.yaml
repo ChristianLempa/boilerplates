@@ -1,0 +1,191 @@
+---
+kind: packer
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: proxmox
+  name: Proxmox Ubuntu Server Template (ISO)
+  description: >
+    Packer template to create an Ubuntu Server VM template on Proxmox using ISO installation.
+    This template creates a cloud-init enabled Ubuntu VM that can be used as a template for cloning.
+
+
+    Features:
+    - Automated Ubuntu installation via autoinstall
+    - Cloud-init integration
+    - QEMU guest agent
+    - Configurable CPU, memory, and disk settings
+    - SSH authentication (password or key-based)
+
+
+    Project: https://www.packer.io/
+
+    Documentation: https://developer.hashicorp.com/packer/integrations/hashicorp/proxmox
+  version: 1.11.2
+  author: Christian Lempa
+  date: '2024-11-11'
+spec:
+  general:
+    vars:
+      image_name:
+        default: ubuntu-server-noble
+      vm_id:
+        type: int
+        description: Proxmox VM ID for the template
+        default: 100
+      vm_description:
+        type: str
+        description: VM template description
+        default: Ubuntu Server Noble (24.04) Image
+      proxmox_node:
+        type: str
+        description: Proxmox node name where the VM will be created
+        default: pve
+
+  proxmox:
+    title: Proxmox Connection
+    required: true
+    vars:
+      proxmox_api_url:
+        type: url
+        description: Proxmox API URL (e.g., https://proxmox.example.com:8006/api2/json)
+        default: https://proxmox.local:8006/api2/json
+      proxmox_api_token_id:
+        type: str
+        description: Proxmox API token ID (e.g., root@pam!packer)
+        default: root@pam!packer
+      proxmox_api_token_secret:
+        type: str
+        description: Proxmox API token secret
+        sensitive: true
+        default: ""
+      skip_tls_verify:
+        type: bool
+        description: Skip TLS certificate verification
+        default: false
+
+  iso:
+    title: ISO Configuration
+    required: true
+    vars:
+      iso_source:
+        type: enum
+        description: ISO source type
+        options:
+          - local
+          - download
+        default: local
+      iso_file:
+        type: str
+        description: Local ISO file path (for local source)
+        default: local:iso/ubuntu-24.04-live-server-amd64.iso
+      iso_url:
+        type: url
+        description: ISO download URL (for download source)
+        default: https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso
+      iso_storage:
+        type: str
+        description: Proxmox storage for downloaded ISO
+        default: local
+      iso_checksum:
+        type: str
+        description: ISO checksum (SHA256 or checksum file URL)
+        default: e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9
+
+  hardware:
+    title: Hardware Configuration
+    vars:
+      cpu_cores:
+        type: int
+        description: Number of CPU cores
+        default: 1
+      memory_mb:
+        type: int
+        description: Memory in MB
+        default: 2048
+      disk_size:
+        type: str
+        description: Disk size (e.g., 25G, 50G)
+        default: 25G
+      disk_storage:
+        type: str
+        description: Proxmox storage pool for disk
+        default: local-lvm
+      network_bridge:
+        type: str
+        description: Network bridge
+        default: vmbr0
+
+  cloudinit:
+    title: Cloud-Init Configuration
+    vars:
+      cloudinit_storage:
+        type: str
+        description: Proxmox storage pool for cloud-init disk
+        default: local-lvm
+      locale:
+        type: str
+        description: System locale
+        default: en_US
+      keyboard_layout:
+        type: str
+        description: Keyboard layout
+        default: us
+      timezone:
+        type: str
+        description: System timezone
+        default: UTC
+
+  ssh:
+    title: SSH Configuration
+    required: true
+    vars:
+      ssh_username:
+        type: str
+        description: SSH username for provisioning
+        default: ubuntu
+      ssh_auth_method:
+        type: enum
+        description: SSH authentication method
+        options:
+          - password
+          - key
+        default: password
+      ssh_password:
+        type: str
+        description: SSH password (for password auth)
+        sensitive: true
+        default: ""
+      ssh_private_key_file:
+        type: str
+        description: SSH private key file path (for key auth)
+        default: ~/.ssh/id_rsa
+      ssh_public_key:
+        type: str
+        description: SSH public key (for key auth in cloud-init)
+        default: ""
+      ssh_timeout:
+        type: str
+        description: SSH connection timeout
+        default: 30m
+
+  boot:
+    title: Boot Configuration
+    vars:
+      boot_wait:
+        type: str
+        description: Time to wait before typing boot command
+        default: 10s
+      http_bind_address:
+        type: str
+        description: HTTP server bind address for autoinstall
+        default: 0.0.0.0
+      http_port_min:
+        type: int
+        description: HTTP server minimum port
+        default: 8802
+      http_port_max:
+        type: int
+        description: HTTP server maximum port
+        default: 8802

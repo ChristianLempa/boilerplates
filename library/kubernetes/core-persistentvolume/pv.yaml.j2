@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ resource_name }}
+spec:
+  capacity:
+    storage: {{ storage_size }}
+{% if storage_class %}
+  storageClassName: {{ storage_class }}
+{% endif %}
+  accessModes:
+    - {{ access_mode }}
+  persistentVolumeReclaimPolicy: {{ reclaim_policy }}
+  hostPath:
+    path: {{ host_path }}

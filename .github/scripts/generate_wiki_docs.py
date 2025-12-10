@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Generate GitHub Wiki documentation for module variables.
+
+This script auto-generates variable documentation in GitHub Wiki markdown format
+for all registered modules, using the latest schema version for each.
+"""
+
+import sys
+from pathlib import Path
+
+# Add project root to path (script is in .github/scripts, so go up twice)
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# ruff: noqa: E402
+# Import all modules to register them
+import cli.modules.ansible
+import cli.modules.compose
+import cli.modules.helm
+import cli.modules.kubernetes
+import cli.modules.packer
+import cli.modules.terraform  # noqa: F401
+from cli.core.registry import registry  # Module import after path manipulation
+
+
+def format_value(value):
+    """Format value for markdown display."""
+    if value is None or value == "":
+        return "_none_"
+    if isinstance(value, bool):
+        return "✓" if value else "✗"
+    if isinstance(value, list):
+        return ", ".join(f"`{v}`" for v in value)
+    return f"`{value}`"
+
+
+def generate_module_docs(module_name: str, output_dir: Path):  # noqa: PLR0912, PLR0915
+    """Generate wiki documentation for a single module."""
+    # Get module class from registry
+    module_classes = dict(registry.iter_module_classes())
+
+    if module_name not in module_classes:
+        sys.stderr.write(f"Warning: Module '{module_name}' not found, skipping\n")
+        return False
+
+    module_cls = module_classes[module_name]
+    schema_version = module_cls.schema_version
+
+    # Get the spec for the latest schema version
+    if hasattr(module_cls, "schemas") and schema_version in module_cls.schemas:
+        spec = module_cls.schemas[schema_version]
+    elif hasattr(module_cls, "spec"):
+        spec = module_cls.spec
+    else:
+        sys.stderr.write(f"Warning: No spec found for module '{module_name}', skipping\n")
+        return False
+
+    # Generate markdown content
+    lines = []
+
+    # Header
+    lines.append(f"# {module_name.title()} Variables")
+    lines.append("")
+    lines.append(f"**Module:** `{module_name}`  ")
+    lines.append(f"**Schema Version:** `{schema_version}`  ")
+    lines.append(f"**Description:** {module_cls.description}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(
+        "This page documents all available variables for the "
+        + f"{module_name} module. Variables are organized into sections "
+        + "that can be enabled/disabled based on your configuration needs."
+    )
+    lines.append("")
+
+    # Table of contents
+    lines.append("## Table of Contents")
+    lines.append("")
+    for section_key, section_data in spec.items():
+        section_title = section_data.get("title", section_key)
+        anchor = section_title.lower().replace(" ", "-").replace("/", "")
+        lines.append(f"- [{section_title}](#{anchor})")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Process each section
+    for section_key, section_data in spec.items():
+        section_title = section_data.get("title", section_key)
+        section_desc = section_data.get("description", "")
+        section_toggle = section_data.get("toggle", "")
+        section_needs = section_data.get("needs", "")
+        section_required = section_data.get("required", False)
+        section_vars = section_data.get("vars", {})
+
+        # Section header
+        lines.append(f"## {section_title}")
+        lines.append("")
+
+        # Section metadata
+        metadata = []
+        if section_required:
+            metadata.append("**Required:** Yes")
+        if section_toggle:
+            metadata.append(f"**Toggle Variable:** `{section_toggle}`")
+        if section_needs:
+            if isinstance(section_needs, list):
+                needs_str = ", ".join(f"`{n}`" for n in section_needs)
+            else:
+                needs_str = f"`{section_needs}`"
+            metadata.append(f"**Depends On:** {needs_str}")
+
+        if metadata:
+            lines.append("  \n".join(metadata))
+            lines.append("")
+
+        if section_desc:
+            lines.append(section_desc)
+            lines.append("")
+
+        # Skip sections with no variables
+        if not section_vars:
+            lines.append("_No variables defined in this section._")
+            lines.append("")
+            continue
+
+        # Variables table
+        lines.append("| Variable | Type | Default | Description |")
+        lines.append("|----------|------|---------|-------------|")
+
+        for var_name, var_data in section_vars.items():
+            var_type = var_data.get("type", "str")
+            var_default = format_value(var_data.get("default"))
+            var_description = var_data.get("description", "").replace("\n", " ")
+
+            # Add extra metadata to description
+            extra_parts = []
+            if var_data.get("sensitive"):
+                extra_parts.append("**Sensitive**")
+            if var_data.get("autogenerated"):
+                extra_parts.append("**Auto-generated**")
+            if "options" in var_data:
+                opts = ", ".join(f"`{o}`" for o in var_data["options"])
+                extra_parts.append(f"**Options:** {opts}")
+            if "needs" in var_data:
+                extra_parts.append(f"**Needs:** `{var_data['needs']}`")
+            if "extra" in var_data:
+                extra_parts.append(var_data["extra"])
+
+            if extra_parts:
+                var_description += "<br>" + " • ".join(extra_parts)
+
+            lines.append(f"| `{var_name}` | `{var_type}` | {var_default} | {var_description} |")
+
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Footer
+    lines.append("## Notes")
+    lines.append("")
+    lines.append("- **Required sections** must be configured")
+    lines.append("- **Toggle variables** enable/disable entire sections")
+    lines.append("- **Dependencies** (`needs`) control when sections/variables are available")
+    lines.append("- **Sensitive variables** are masked during prompts")
+    lines.append("- **Auto-generated variables** are populated automatically if not provided")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(f"_Last updated: Schema version {schema_version}_")
+
+    # Write to file
+    output_file = output_dir / f"Variables-{module_name.title()}.md"
+    output_file.write_text("\n".join(lines))
+
+    sys.stdout.write(f"Generated: {output_file.name}\n")
+    return True
+
+
+def generate_variables_index(modules: list[str], output_dir: Path):
+    """Generate index page for all variable documentation."""
+    lines = []
+
+    lines.append("# Variables Documentation")
+    lines.append("")
+    lines.append("This section contains auto-generated documentation for all " + "available variables in each module.")
+    lines.append("")
+    lines.append("## Available Modules")
+    lines.append("")
+
+    for module_name in sorted(modules):
+        lines.append(f"- [{module_name.title()}](Variables-{module_name.title()})")
+
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("Each module page includes:")
+    lines.append("")
+    lines.append("- Schema version information")
+    lines.append("- Complete list of sections and variables")
+    lines.append("- Variable types, defaults, and descriptions")
+    lines.append("- Section dependencies and toggle configurations")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("_This documentation is auto-generated from module schemas._")
+
+    output_file = output_dir / "Variables.md"
+    output_file.write_text("\n".join(lines))
+
+    sys.stdout.write(f"Generated: {output_file.name}\n")
+
+
+# Minimum required arguments
+MIN_ARGS = 2
+
+
+def main():
+    """Main entry point."""
+    if len(sys.argv) < MIN_ARGS:
+        sys.stderr.write("Usage: python3 scripts/generate_wiki_docs.py <output_directory>\n")
+        sys.exit(1)
+
+    output_dir = Path(sys.argv[1])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    sys.stdout.write(f"Generating wiki documentation in: {output_dir}\n")
+    sys.stdout.write("\n")
+
+    # Get all registered modules
+    module_classes = dict(registry.iter_module_classes())
+    successful_modules = []
+
+    for module_name in sorted(module_classes.keys()):
+        if generate_module_docs(module_name, output_dir):
+            successful_modules.append(module_name)
+
+    sys.stdout.write("\n")
+
+    # Generate index page
+    if successful_modules:
+        generate_variables_index(successful_modules, output_dir)
+        sys.stdout.write("\n")
+        sys.stdout.write(f"✓ Successfully generated documentation for {len(successful_modules)} module(s)\n")
+    else:
+        sys.stderr.write("Error: No documentation generated\n")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

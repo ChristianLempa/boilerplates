@@ -1,0 +1,60 @@
+---
+kind: terraform
+metadata:
+  name: DNS A Record
+  description: |-
+    Create DNS A record for hostname to IP address mapping.
+
+    Supports single or multiple IP addresses with configurable TTL.
+
+    Project: https://www.terraform.io/
+    Documentation: https://registry.terraform.io/providers/hashicorp/dns/latest/docs/resources/a_record_set
+  version: 3.4.3
+  author: Christian Lempa
+  date: "2025-12-02"
+  tags: []
+  icon:
+    provider: selfh
+    id: bind-9
+  draft: false
+  next_steps: ""
+schema: "1.0"
+spec:
+  addresses:
+    title: IP Addresses
+    required: true
+    vars:
+      additional_ips:
+        description: Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)
+        type: str
+        default: ""
+        needs: [multiple_addresses=true]
+      ip_address:
+        description: Primary IP address
+        type: str
+        default: 10.20.0.10
+      multiple_addresses:
+        description: Enable multiple IP addresses
+        type: bool
+        default: false
+  dns:
+    title: DNS Configuration
+    required: true
+    vars:
+      record_name:
+        description: Record name (hostname without domain)
+        type: str
+        default: server
+      ttl:
+        description: Time to live in seconds
+        type: int
+        default: 3600
+      zone:
+        description: DNS zone (must end with a dot)
+        type: str
+        default: home.example.com.
+  general:
+    vars:
+      resource_name:
+        type: str
+        default: record

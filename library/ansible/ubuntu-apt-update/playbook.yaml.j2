@@ -1,0 +1,24 @@
+---
+- name: {{ playbook_name }}
+  hosts: {{ target_hosts }}
+{% if become %}
+  become: true
+{% endif %}
+{% if options_enabled and not gather_facts %}
+  gather_facts: false
+{% endif %}
+{% if secrets_enabled %}
+  vars_files:
+    - {{ secrets_file }}
+{% endif %}
+
+  tasks:
+    - name: Update packages with apt
+      when: ansible_pkg_mgr == 'apt'
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade packages with apt
+      when: ansible_pkg_mgr == 'apt'
+      ansible.builtin.apt:
+        upgrade: dist

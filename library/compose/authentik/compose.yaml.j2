@@ -1,138 +1,225 @@
+---
 services:
   {{ service_name }}:
     image: ghcr.io/goauthentik/server:2025.10.1
-    container_name: {{ container_name }}
+    restart: {{ restart_policy }}
     command: server
-    env_file:
-      - .env.authentik
-    {% if ports_enabled %}
+    environment:
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting }}
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name }}_postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${DATABASE_PASSWORD}
+      {% if email_enabled %}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD}
+      {% if email_encryption == "ssl" %}
+      - AUTHENTIK_EMAIL__USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - AUTHENTIK_EMAIL__USE_TLS=True
+      {% endif %}
+      {% endif %}
+    networks:
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+      - {{ service_name }}_backend
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:9000"
       - "{{ ports_https }}:9443"
     {% endif %}
-    {% if network_enabled or traefik_enabled %}
-    networks:
-      {% if network_enabled %}
-      - {{ network_name }}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/media:/media
+      - {{ volume_mount_path }}/templates:/templates
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}_media:/media
+      - {{ service_name }}_templates:/templates
       {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
-    {% endif %}
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=9000
-      - traefik.http.services.{{ service_name }}.loadbalancer.server.scheme=http
-      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=9000
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      - "traefik.http.middlewares.authentik.forwardauth.address=\
+        http://{{ service_name }}:9000/outpost.goauthentik.io/auth/traefik"
+      - "traefik.http.middlewares.authentik.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authentik.forwardauth.authResponseHeaders=\
+        X-authentik-username,\
+        X-authentik-groups,\
+        X-authentik-entitlements,\
+        X-authentik-email,\
+        X-authentik-name,\
+        X-authentik-uid,\
+        X-authentik-jwt,\
+        X-authentik-meta-jwks,\
+        X-authentik-meta-outpost,\
+        X-authentik-meta-provider,\
+        X-authentik-meta-app,\
+        X-authentik-meta-version"
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-      - traefik.http.routers.{{ service_name }}-https.tls=true
-      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    volumes:
-      - ./media:/media
-      - ./custom-templates:/templates
+    {% if not database_external %}
     depends_on:
-      - {{ service_name }}-postgres
-      - {{ service_name }}-redis
-    restart: {{ restart_policy }}
+      - {{ service_name }}_postgres
+    {% endif %}
 
-  {{ service_name }}-worker:
+  {#
+    Authentik Worker: Background task processor
+    Handles long-running tasks like email sending, cleanup jobs, and scheduled tasks
+  #}
+  {{ service_name }}_worker:
     image: ghcr.io/goauthentik/server:2025.10.1
-    container_name: {{ service_name }}-worker
+    restart: {{ restart_policy }}
     command: worker
-    env_file:
-      - .env.authentik
+    environment:
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_ERROR_REPORTING__ENABLED={{ authentik_error_reporting }}
+      - AUTHENTIK_POSTGRESQL__HOST={{ service_name }}_postgres
+      - AUTHENTIK_POSTGRESQL__USER={{ database_user }}
+      - AUTHENTIK_POSTGRESQL__NAME={{ database_name }}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${DATABASE_PASSWORD}
+      {% if email_enabled %}
+      - AUTHENTIK_EMAIL__HOST={{ email_host }}
+      - AUTHENTIK_EMAIL__PORT={{ email_port }}
+      - AUTHENTIK_EMAIL__FROM={{ email_from }}
+      - AUTHENTIK_EMAIL__USERNAME={{ email_username }}
+      - AUTHENTIK_EMAIL__PASSWORD=${EMAIL_PASSWORD}
+      {% if email_encryption == "ssl" %}
+      - AUTHENTIK_EMAIL__USE_SSL=True
+      {% elif email_encryption == "starttls" %}
+      - AUTHENTIK_EMAIL__USE_TLS=True
+      {% endif %}
+      {% endif %}
+      {% if authentik_admin_password %}
+      - AUTHENTIK_BOOTSTRAP_PASSWORD=${AUTHENTIK_ADMIN_PASSWORD}
+      {% endif %}
     user: root
+    networks:
+      - {{ service_name }}_backend
     volumes:
+      {# the embedded outpost uses the docker socket to manage containers #}
       - /run/docker.sock:/run/docker.sock
-      - ./media:/media
-      - ./certs:/certs
-      - ./custom-templates:/templates
-    {% if network_enabled or traefik_enabled %}
-    networks:
-      {% if network_enabled %}
-      - {{ network_name }}
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/media:/media
+      - {{ volume_mount_path }}/certs:/certs
+      - {{ volume_mount_path }}/templates:/templates
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}_media:/media
+      - {{ service_name }}_certs:/certs
+      - {{ service_name }}_templates:/templates
       {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
-    {% endif %}
+    {% if not database_external %}
     depends_on:
-      - {{ service_name }}-postgres
-      - {{ service_name }}-redis
-    restart: {{ restart_policy }}
-
-  {{ service_name }}-redis:
-    image: docker.io/library/redis:8.2.3
-    container_name: {{ service_name }}-redis
-    command: --save 60 1 --loglevel warning
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      start_period: 20s
-      interval: 30s
-      retries: 5
-      timeout: 3s
-    volumes:
-      - redis_data:/data
-    {% if network_enabled or traefik_enabled %}
-    networks:
-      {% if network_enabled %}
-      - {{ network_name }}
-      {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
+      - {{ service_name }}_postgres
     {% endif %}
-    restart: {{ restart_policy }}
 
+  {#
+    PostgreSQL database service
+  #}
   {% if not database_external %}
-  {{ service_name }}-postgres:
-    image: docker.io/library/postgres:17.7
-    container_name: {{ service_name }}-db
-    env_file:
-      - .env.postgres
+  {{ service_name }}_postgres:
+    image: docker.io/library/postgres:17.6
+    restart: {{ restart_policy }}
+    environment:
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
       start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 5
-    volumes:
-      - database_data:/var/lib/postgresql/data
-    {% if network_enabled or traefik_enabled %}
     networks:
-      {% if network_enabled %}
-      - {{ network_name }}
+      - {{ service_name }}_backend
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/postgres:/var/lib/postgresql/data
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
+      - {{ service_name }}_postgres:/var/lib/postgresql/data
       {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
-    {% endif %}
-    restart: {{ restart_policy }}
   {% endif %}
 
-volumes:
-  database_data:
-    driver: local
-  redis_data:
-    driver: local
-
-{% if network_enabled or traefik_enabled %}
+{#
+  Network definitions:
+  - Backend network: Internal communication between services
+  - Traefik network: External access via reverse proxy (always external)
+#}
 networks:
-  {% if network_enabled %}
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% endif %}
-  {% endif %}
+  {{ service_name }}_backend:
+    driver: bridge
   {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
   {% endif %}
+
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {% if not database_external %}
+  {{ service_name }}_postgres:
+    driver: local
+  {% endif %}
+  {{ service_name }}_redis:
+    driver: local
+  {{ service_name }}_media:
+    driver: local
+  {{ service_name }}_certs:
+    driver: local
+  {{ service_name }}_templates:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {% if not database_external %}
+  {{ service_name }}_postgres:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/postgres"
+  {% endif %}
+  {{ service_name }}_redis:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/redis"
+  {{ service_name }}_media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/media"
+  {{ service_name }}_certs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/certs"
+  {{ service_name }}_templates:
+    driver: local
+    driver_opts:  
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/templates"
 {% endif %}

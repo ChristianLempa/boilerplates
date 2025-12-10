@@ -1,27 +1,38 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: dockge
   name: Dockge
-  description: >
+  description: |-
     Dockge is a powerful Docker management platform that simplifies container orchestration and monitoring.
     It provides an intuitive web interface to manage Docker containers, images, networks, and volumes with ease.
-
-    Project: https://dockge.com/
-
-    Documentation: https://docs.dockge.com/
-
-    GitHub: https://github.com/dockge/dockge
+    ## Prerequisites
+    * **Project:** https://dockge.com/
+    * **Documentation:** https://docs.dockge.com/
+    * **GitHub:** https://github.com/dockge/dockge
   version: 1.5.0
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - management
-    - docker
-  draft: true
+    - traefik
+schema: 1.2
 spec:
   general:
     vars:
-      dockge_version:
+      service_name:
+        default: dockge
+      stacks_path:
         type: str
-        description: Dockge version
-        default: latest
+        description: Docker Compose Path
+        default: /opt/stacks
+        required: true
+  traefik:
+    vars:
+      traefik_host:
+        default: dockge
+  ports:
+    vars:
+      ports_http:
+        default: 5001

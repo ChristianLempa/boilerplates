@@ -1,0 +1,11 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: {{ resource_name }}
+{% if is_default %}
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+{% endif %}
+spec:
+  controller: {{ controller }}

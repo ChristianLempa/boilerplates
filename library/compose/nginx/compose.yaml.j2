@@ -1,65 +1,104 @@
 services:
-  {{ service_name | default('nginx') }}:
+  {{ service_name }}:
     image: docker.io/library/nginx:1.28.0-alpine
+    {#
+      If not in swarm mode, apply restart policy and container name
+    #}
     {% if not swarm_enabled %}
-    container_name: {{ container_name | default('nginx') }}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
     {% endif %}
-    {% if swarm_enabled %}
-    deploy:
-      replicas: {{ swarm_replicas | default(1) }}
-      {% if traefik_enabled %}
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network={{ traefik_network | default('traefik') }}
-        - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
-        - traefik.http.routers.{{ container_name | default('nginx') }}-http.rule=Host(`{{ traefik_host }}`)
-        - traefik.http.routers.{{ container_name | default('nginx') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}-http.service={{ container_name | default('nginx') }}
-        {% if traefik_tls_enabled %}
-        - traefik.http.routers.{{ container_name | default('nginx') }}-https.rule=Host(`{{ traefik_host }}`)
-        - traefik.http.routers.{{ container_name | default('nginx') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls=true
-        - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
-        - traefik.http.routers.{{ container_name | default('nginx') }}-https.service={{ container_name | default('nginx') }}
-        {% endif %}
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {#
+      Port mappings for HTTP and HTTPS (only when Traefik is disabled)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
+    {% if not traefik_enabled %}
+    ports:
+      {% if swarm_enabled %}
+      - target: 80
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: {{ ports_https }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:80"
+      - "{{ ports_https }}:443"
       {% endif %}
     {% endif %}
-    {% if ports_enabled %}
-    ports:
-      - "{{ ports_http | default(8080) }}:80"
-      - "{{ ports_https | default(8443) }}:443"
-    {% endif %}
+    {#
+      Volume configuration (commented out - uncomment and customize as needed):
+      - config: Nginx configuration files
+      - data: Static content to serve
+    #}
     # volumes:
     #   - ./config/default.conf:/etc/nginx/conf.d/default.conf:ro
     #   - ./data:/usr/share/nginx/html:ro
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.docker.network={{ traefik_network | default('traefik') }}
-      - traefik.http.services.{{ container_name | default('nginx') }}.loadbalancer.server.port=80
-      - traefik.http.routers.{{ container_name | default('nginx') }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name | default('nginx') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
-      - traefik.http.routers.{{ container_name | default('nginx') }}-http.service={{ container_name | default('nginx') }}
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ container_name | default('nginx') }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name | default('nginx') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls=true
-      - traefik.http.routers.{{ container_name | default('nginx') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
-      - traefik.http.routers.{{ container_name | default('nginx') }}-https.service={{ container_name | default('nginx') }}
+      - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-web-https.tls=true
+      - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
       {% endif %}
     {% endif %}
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default('bridge') }}
-    {% endif %}
-    {% if not swarm_enabled %}
-    restart: {{ restart_policy | default('unless-stopped') }}
+    {#
+      Deploy configuration for Swarm mode:
+      - Configure replicas
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+    #}
+    {% if swarm_enabled %}
+    deploy:
+      replicas: {{ swarm_replicas }}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set)
+      #}
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-web-http.entrypoints={{ traefik_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-web-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-web-https.tls=true
+        - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
+        - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
+        {% endif %}
+      {% endif %}
     {% endif %}
 
-{% if network_enabled %}
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  {{ network_name | default('bridge') }}:
-    {% if network_external %}
+  {{ traefik_network }}:
     external: true
-    {% endif %}
 {% endif %}

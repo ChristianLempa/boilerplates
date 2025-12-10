@@ -2,37 +2,55 @@
 kind: compose
 metadata:
   name: Grafana
-  description: >
+  description: |-
     Grafana is an open-source platform for monitoring and observability that allows you to visualize and analyze metrics, logs, and traces from various data
     sources. It provides a powerful and flexible dashboarding solution for IT infrastructure and application monitoring.
-
-
-    Project: https://grafana.com/
-
-    Documentation: https://grafana.com/docs/grafana/latest/
-
-    GitHub: https://github.com/grafana/grafana
+    ## Prerequisites
+    - **Project:** https://grafana.com/
+    - **Documentation:** https://grafana.com/docs/grafana/latest/
+    - **GitHub:** https://github.com/grafana/grafana
+  icon:
+    provider: selfh
+    id: grafana
+  next_steps: |-
+    Log in with the initial admin user:
+    ```bash
+    Username: admin
+    Password: admin
+    ```
   version: 12.1.1
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - grafana
-    - monitoring
-    - alerting
+    - traefik
+    - authentik
+schema: 1.2
 spec:
   general:
     vars:
       service_name:
-        default: "grafana"
-      container_name:
-        default: "grafana"
+        default: grafana
   ports:
     vars:
       ports_http:
-        description: "Host port for HTTP (3000)"
-        type: int
         default: 3000
+  authentik:
+    vars:
+      authentik_url:
+        default: https://auth.home.arpa
+      authentik_slug:
+        default: grafana
   traefik:
     vars:
       traefik_host:
-        default: grafana.home.arpa
+        default: grafana
+  database:
+    vars:
+      database_type:
+        options:
+          - sqlite
+          - postgres
+      database_name:
+        default: grafana
+      database_user:
+        default: grafana

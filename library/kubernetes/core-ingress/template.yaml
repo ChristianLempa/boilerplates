@@ -1,0 +1,44 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
+  name: Kubernetes Ingress
+  description: >
+    Kubernetes Ingress resource for HTTP/HTTPS routing to services.
+
+
+    Requires an Ingress controller (e.g., nginx-ingress, Traefik) to be installed.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: app-ingress
+      namespace:
+        default: default
+      ingress_class:
+        type: str
+        description: Ingress class name
+        default: nginx
+      ingress_host:
+        type: hostname
+        description: Hostname for the ingress
+      service_name:
+        type: str
+        description: Backend service name
+      service_port:
+        type: int
+        description: Backend service port
+        default: 80
+  traefik:
+    vars:
+      traefik_enabled:
+        default: false

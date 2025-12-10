@@ -1,0 +1,28 @@
+---
+- name: {{ playbook_name }}
+  hosts: {{ target_hosts }}
+{% if become %}
+  become: true
+{% endif %}
+{% if options_enabled and not gather_facts %}
+  gather_facts: false
+{% endif %}
+{% if secrets_enabled %}
+  vars_files:
+    - {{ secrets_file }}
+{% endif %}
+
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - prometheus-node-exporter
+          - nfs-common
+          - qemu-guest-agent
+        update_cache: true
+
+    - name: Start guest qemu-guest-agent
+      ansible.builtin.service:
+        name: qemu-guest-agent
+        state: started
+        enabled: true

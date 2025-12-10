@@ -1,29 +1,38 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: loki
   name: Loki
-  description: >
+  description: |-
     Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.
     This template sets up Loki in a Docker container using Docker Compose.
-
-
-    Project: https://grafana.com/oss/loki/
-
-    Documentation: https://grafana.com/docs/loki/latest/
-
-    GitHub: https://github.com/grafana/loki
+    ## References
+    * **Project:** https://grafana.com/oss/loki/
+    * **Documentation:** https://grafana.com/docs/loki/latest/
+    * **GitHub:** https://github.com/grafana/loki
   version: 3.5.8
   author: Christian Lempa
   date: '2025-11-07'
   tags:
-    - grafana
-    - monitoring
-    - logging
-  draft: true
+    - traefik
+    - authentik
+schema: 1.2
 spec:
   general:
     vars:
-      loki_version:
-        type: str
-        description: Loki version
-        default: latest
+      service_name:
+        default: loki
+      data_retention_days:
+        description: "Number of days to retain logs"
+        type: int
+        default: 7
+  ports:
+    vars:
+      ports_http:
+        default: 3100
+  traefik:
+    vars:
+      traefik_host:
+        default: loki

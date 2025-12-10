@@ -1,56 +1,47 @@
+---
 services:
-  {{ service_name | default('influxdb') }}:
-    container_name: {{ container_name | default('influxdb') }}
+  {{ service_name }}:
     image: docker.io/library/influxdb:2.7.12-alpine
+    restart: {{ restart_policy }}
     environment:
-      - TZ={{ container_timezone | default('UTC') }}
+      - TZ={{ container_timezone }}
       - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME={{ influxdb_init_username | default('admin') }}
-      - DOCKER_INFLUXDB_INIT_PASSWORD={{ influxdb_init_password | default('password') }}
-      - DOCKER_INFLUXDB_INIT_ORG={{ influxdb_init_org | default('myorg') }}
-      - DOCKER_INFLUXDB_INIT_BUCKET={{ influxdb_init_bucket | default('mybucket') }}
-      {% if influxdb_init_retention %}
-      - DOCKER_INFLUXDB_INIT_RETENTION={{ influxdb_init_retention }}
-      {% endif %}
-      {% if influxdb_init_token %}
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influxdb_init_token }}
-      {% endif %}
-    {% if ports_enabled %}
+      - DOCKER_INFLUXDB_INIT_USERNAME={{ influxdb_init_username }}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_INIT_PASSWORD}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {% if not traefik_enabled %}
     ports:
-      - "{{ ports_http | default(8086) }}:8086"
+      - "{{ ports_http }}:8086"
     {% endif %}
     volumes:
-      - influxdb-data:/var/lib/influxdb2
-      - /etc/influxdb2:/etc/influxdb2
-    {% if network_enabled %}
-    networks:
-      - {{ network_name | default('bridge') }}
-    {% endif %}
+      - {{ service_name }}_data:/var/lib/influxdb2
     {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.docker.network={{ traefik_network | default('traefik') }}
-      - traefik.http.services.{{ service_name | default('influxdb') }}.loadbalancer.server.port=8086
-      - traefik.http.services.{{ service_name | default('influxdb') }}.loadbalancer.server.scheme=http
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-http.entrypoints={{ traefik_entrypoint | default('web') }}
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.port=8086
+      - traefik.http.services.{{ service_name }}-web.loadbalancer.server.scheme=http
+      - traefik.http.routers.{{ service_name }}-web-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-http.entrypoints=web
+      - traefik.http.routers.{{ service_name }}-web-http.service={{ service_name }}-web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-https.entrypoints={{ traefik_tls_entrypoint | default('websecure') }}
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-https.tls=true
-      - traefik.http.routers.{{ service_name | default('influxdb') }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-web-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-web-https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}-web-https.tls=true
+      - traefik.http.routers.{{ service_name }}-web-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}-web-https.service={{ service_name }}-web
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy | default('unless-stopped') }}
-
+    
 volumes:
-  influxdb-data:
+  {{ service_name }}_data:
     driver: local
 
-{% if network_enabled %}
+{% if traefik_enabled %}
 networks:
-  {{ network_name | default('bridge') }}:
-    {% if network_external %}
+  {{ traefik_network }}:
     external: true
-    {% endif %}
 {% endif %}

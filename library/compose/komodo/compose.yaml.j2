@@ -1,0 +1,159 @@
+---
+services:
+  {{ service_name }}:
+    image: ghcr.io/moghtech/komodo:latest
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    container_name: {{ container_name }}
+    {% endif %}
+    hostname: {{ container_hostname }}
+    {% if network_mode == 'host' %}
+    network_mode: host
+    {% else %}
+    networks:
+      {% if traefik_enabled %}
+      {{ traefik_network }}:
+      {% endif %}
+      {% if network_mode == 'macvlan' %}
+      {{ network_name }}:
+        ipv4_address: {{ network_macvlan_ipv4_address }}
+      {% elif network_mode == 'bridge' %}
+      {{ network_name }}:
+      {% endif %}
+    {% endif %}
+    {% if network_mode == 'bridge' and not traefik_enabled %}
+    ports:
+      {% if swarm_enabled %}
+      - target: 9120
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:9120/tcp"
+      {% endif %}
+    {% endif %}
+    {% if environment_enabled %}
+    environment:
+      KOMODO_DATABASE_ADDRESS: "{{ environment_database_address }}"
+      KOMODO_DATABASE_DB_NAME: "{{ environment_database_name }}"
+      {% if environment_database_username %}
+      KOMODO_DATABASE_USERNAME: "{{ environment_database_username }}"
+      {% endif %}
+      {% if environment_database_password %}
+      KOMODO_DATABASE_PASSWORD: "{{ environment_database_password }}"
+      {% endif %}
+      {% if environment_jwt_secret %}
+      KOMODO_JWT_SECRET: "{{ environment_jwt_secret }}"
+      {% endif %}
+      LOG_LEVEL: "{{ environment_log_level }}"
+    {% endif %}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      - {{ volume_mount_path }}/data:/app/data:rw
+      - {{ volume_mount_path }}/repos:/app/repos:rw
+      {% elif volume_mode in ['local', 'nfs'] %}
+      - {{ service_name }}-data:/app/data
+      - {{ service_name }}-repos:/app/repos
+      {% endif %}
+    {% if swarm_enabled or resources_enabled %}
+    deploy:
+      {% if swarm_enabled %}
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {% if swarm_enabled and traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=9120
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    {% if traefik_enabled and not swarm_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=9120
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}-data:
+    driver: local
+  {{ service_name }}-repos:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/data"
+  {{ service_name }}-repos:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/repos"
+{% endif %}
+
+{% if network_mode != 'host' %}
+networks:
+  {{ network_name }}:
+    {% if network_external %}
+    external: true
+    {% else %}
+    {% if network_mode == 'macvlan' %}
+    driver: macvlan
+    driver_opts:
+      parent: {{ network_macvlan_parent_interface }}
+    ipam:
+      config:
+        - subnet: {{ network_macvlan_subnet }}
+          gateway: {{ network_macvlan_gateway }}
+    name: {{ network_name }}
+    {% elif swarm_enabled %}
+    driver: overlay
+    attachable: true
+    {% else %}
+    driver: bridge
+    {% endif %}
+    {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}

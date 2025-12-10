@@ -1,0 +1,27 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: docker
+  name: Docker Prune
+  description: >
+    Ansible playbook to clean up Docker resources.
+    Prunes non-dangling images to free up disk space.
+
+
+    Project: https://www.docker.com
+
+    Documentation: https://docs.docker.com/engine/reference/commandline/system_prune/
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+  draft: true
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Clean docker
+      become:
+        default: false

@@ -1,54 +1,108 @@
 services:
   {{ service_name }}:
     image: docker.io/grafana/grafana-oss:12.1.1
-    container_name: {{ container_name }}
+    restart: {{ restart_policy }}
+    {% if database_type != 'sqlite' or authentik_enabled %}
     environment:
-      - TZ={{ container_timezone }}
-    {% if ports_enabled %}
+      {% if database_type == 'postgres' %}
+      - GF_DATABASE_TYPE=postgres
+      {% if database_external %}
+      - GF_DATABASE_HOST={{ database_host }}
+      {% else %}
+      - GF_DATABASE_HOST={{ service_name }}_db
+      {% endif %}
+      - GF_DATABASE_NAME={{ database_name }}
+      - GF_DATABASE_USER={{ database_user }}
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - GF_DATABASE_SSL_MODE=disable
+      {% endif %}
+      {% if authentik_enabled %}
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME={{ authentik_slug }}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OAUTH_CLIENT_ID}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_CLIENT_SECRET}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL={{ authentik_url }}/application/o/authorize/
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL={{ authentik_url }}/application/o/token/
+      - GF_AUTH_GENERIC_OAUTH_API_URL={{ authentik_url }}/application/o/userinfo/
+      - GF_AUTH_SIGNOUT_REDIRECT_URL={{ authentik_url }}/application/o/{{ authentik_slug }}/end-session/
+      - GF_AUTH_OAUTH_AUTO_LOGIN=true
+      {% if traefik_enabled %}
+      - GF_SERVER_ROOT_URL=https://{{ traefik_host }}.{{ traefik_domain }}
+      {% endif %}
+      - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
+      - GF_AUTH_GENERIC_OAUTH_SKIP_ORG_ROLE_SYNC=true
+      {% endif %}
+    {% endif %}
+    {% if not database_external and (database_type == "postgres") or traefik_enabled %}
+    networks:
+    {% if not database_external and database_type != 'sqlite' %}
+      - {{ service_name }}_backend
+    {% endif %}
+    {% if traefik_enabled %}
+      - {{ traefik_network }}
+    {% endif %}
+    {% endif %}
+    {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:3000"
     {% endif %}
     volumes:
-      - grafana-data:/var/lib/grafana
-    {% if network_enabled or traefik_enabled %}
-    networks:
-      {% if network_enabled %}
-      - {{ network_name }}
-      {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
-    {% endif %}
-    {% if traefik_enabled %}
+      - {{ service_name }}_data:/var/lib/grafana
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=3000
-      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=3000
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-      - traefik.http.routers.{{ service_name }}-https.tls=true
-      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
+
+  {% if not database_external and database_type == "postgres" %}
+  {{ service_name }}_db:
+    image: docker.io/library/postgres:17.6
     restart: {{ restart_policy }}
+    environment:
+      - POSTGRES_USER={{ database_user }}
+      - POSTGRES_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - POSTGRES_DB={{ database_name }}
+    networks:
+      - {{ service_name }}_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - {{ service_name }}_db:/var/lib/postgresql/data
+  {% endif %}
 
-volumes:
-  grafana-data:
-    driver: local
-
-{% if network_enabled or traefik_enabled %}
+{% if not database_external and (database_type == "postgres") or traefik_enabled %}
 networks:
-  {% if network_enabled %}
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
-    {% endif %}
+  {% if not database_external %}
+  {{ service_name }}_backend:
+    driver: bridge
   {% endif %}
   {% if traefik_enabled %}
   {{ traefik_network }}:
     external: true
   {% endif %}
 {% endif %}
+
+
+volumes:
+  {{ service_name }}_data:
+    driver: local
+  {% if not database_external and database_type == 'postgres' %}
+  {{ service_name }}_db:
+    driver: local
+  {% endif %}

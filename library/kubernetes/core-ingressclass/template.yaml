@@ -1,0 +1,32 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
+  name: Kubernetes IngressClass
+  description: >
+    Kubernetes IngressClass for specifying which Ingress controller should handle Ingress resources.
+
+
+    IngressClass is cluster-scoped and defines ingress controller implementations.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: nginx
+      controller:
+        type: str
+        description: Ingress controller identifier (e.g., k8s.io/ingress-nginx)
+        default: k8s.io/ingress-nginx
+      is_default:
+        type: bool
+        description: Set as default IngressClass
+        default: false

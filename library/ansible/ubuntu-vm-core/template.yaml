@@ -1,0 +1,27 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: ansible
+  name: Install Ubuntu VM Core Packages
+  description: >
+    Ansible playbook to install essential packages for Ubuntu virtual machines.
+    Includes Prometheus node exporter, NFS client, and QEMU guest agent.
+
+
+    Project: https://ubuntu.com
+
+    Documentation: https://ubuntu.com/server/docs
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+  draft: true
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Install core packages for virtual machines
+      become:
+        default: true

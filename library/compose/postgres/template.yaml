@@ -1,6 +1,10 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: postgresql
   name: PostgreSQL
   description: >
     PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
@@ -16,25 +20,62 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - database
-    - sql
+    - swarm
   draft: true
 spec:
   general:
     vars:
-      postgres_version:
+      service_name:
+        default: "postgres"
+      container_name:
+        default: "postgres"
+  ports:
+    vars:
+      ports_postgres:
+        description: PostgreSQL port
+        type: int
+        default: 5432
+  traefik:
+    vars:
+      traefik_host:
+        default: "postgres"
+  network:
+    vars:
+      network_mode:
+        extra: >
+          Use 'host' mode if you need to bind directly to port 5432.
+          NOTE: Swarm only supports 'bridge' mode!
+      network_name:
+        default: "postgres_network"
+  swarm:
+    vars:
+      swarm_replicas:
+        description: Number of replicas for Swarm mode
+        type: int
+        default: 1
+  volume:
+    vars:
+      volume_mode:
+        description: Volume mounting mode (local, mount, nfs)
         type: str
-        description: PostgreSQL version
-        default: latest
-      postgres_secrets_enabled:
-        type: bool
-        description: "Enable Docker secrets for sensitive data"
-        default: false
-      postgres_initdb_args:
+        default: "local"
+        options:
+          - local
+          - mount
+          - nfs
+      volume_mount_path:
+        description: Path for bind mounts when volume_mode is 'mount'
         type: str
-        description: "PostgreSQL initialization arguments"
-        default: "--data-checksums"
-      postgres_host_auth_method:
+        default: "/var/lib/postgresql/data"
+      volume_nfs_server:
+        description: NFS server address when volume_mode is 'nfs'
         type: str
-        description: "PostgreSQL host authentication method (leave empty for password-based)"
         default: ""
+      volume_nfs_path:
+        description: NFS path when volume_mode is 'nfs'
+        type: str
+        default: ""
+      volume_nfs_options:
+        description: NFS mount options when volume_mode is 'nfs'
+        type: str
+        default: "rw"

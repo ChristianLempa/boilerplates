@@ -1,0 +1,113 @@
+---
+kind: terraform
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: netbox
+  name: NetBox Virtual Machine
+  description: >
+    Register a virtual machine in NetBox with cluster and site association.
+
+
+    Defines VM metadata including name, cluster, site, host device, and resource allocation.
+
+
+    Project: https://netboxlabs.com/
+
+    Documentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/virtual_machine
+  version: 5.0.0
+  author: Christian Lempa
+  date: '2025-12-02'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: vm
+  vm:
+    title: Virtual Machine Configuration
+    vars:
+      vm_name:
+        type: str
+        description: Virtual machine name
+        required: true
+        default: srv-prod-1
+      cluster_ref:
+        type: str
+        description: Cluster resource name
+        required: true
+        default: pve_prod_1
+      status:
+        type: enum
+        description: VM status
+        options:
+          - active
+          - planned
+          - staged
+          - offline
+          - decommissioning
+        default: active
+  site:
+    title: Site Assignment
+    vars:
+      site_ref:
+        type: str
+        description: Site data source name (leave empty to skip)
+  device:
+    title: Host Device
+    vars:
+      device_ref:
+        type: str
+        description: Device resource name for host assignment (leave empty to skip)
+  ipam:
+    title: IP Address Management
+    toggle: ipam_enabled
+    vars:
+      ipam_enabled:
+        type: bool
+        description: Enable IP address assignment
+        default: false
+      interface_name:
+        type: str
+        description: Network interface name
+        default: eth0
+        required: true
+      primary_ip4:
+        type: str
+        description: Primary IPv4 address resource name
+        required: true
+      dns_name:
+        type: str
+        description: DNS name for the IP address (leave empty to skip)
+  resources:
+    title: Resource Allocation
+    toggle: resources_enabled
+    vars:
+      resources_enabled:
+        type: bool
+        description: Specify resource allocation
+        default: false
+      vcpus:
+        type: int
+        description: Number of virtual CPUs
+        default: 2
+      memory_mb:
+        type: int
+        description: Memory allocation in MB
+        default: 4096
+      disk_gb:
+        type: int
+        description: Disk size in GB
+        default: 50
+  description:
+    title: Description
+    toggle: description_enabled
+    vars:
+      description_enabled:
+        type: bool
+        description: Add VM description
+        default: false
+      description_text:
+        type: str
+        description: VM description
+        default: Managed by Terraform

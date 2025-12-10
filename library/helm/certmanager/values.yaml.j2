@@ -1,0 +1,21 @@
+---
+image:
+  repository: quay.io/jetstack/cert-manager-controller
+  tag: v1.18.2
+webhook:
+  image:
+    repository: quay.io/jetstack/cert-manager-webhook
+    tag: v1.18.2
+cainjector:
+  image:
+    repository: quay.io/jetstack/cert-manager-cainjector
+    tag: v1.18.2
+
+crds:
+  enabled: true
+{% if dns_recursive_nameservers_only %}
+
+extraArgs:
+  - --dns01-recursive-nameservers-only
+  - --dns01-recursive-nameservers={{ dns_nameserver_1 }},{{ dns_nameserver_2 }}
+{% endif %}

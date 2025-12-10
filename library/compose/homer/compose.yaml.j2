@@ -1,50 +1,137 @@
 services:
   {{ service_name }}:
     image: docker.io/b4bz/homer:v25.10.1
+    {#
+      If not in swarm mode, check whether container_name is set and apply restart policy,
+      else swarm mode handles restarts via deploy.restart_policy
+    #}
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
     container_name: {{ container_name }}
+    {% endif %}
+    {#
+      Set container hostname for identification
+    #}
+    hostname: {{ container_hostname }}
+    {#
+      Environment variables for Homer configuration
+    #}
     environment:
       - TZ={{ container_timezone }}
-    {% if ports_enabled %}
-    ports:
-      - "{{ ports_http }}:8080"
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
     {% endif %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
+    #}
+    {% if not traefik_enabled %}
+    ports:
+      {% if swarm_enabled %}
+      - target: 8080
+        published: {{ ports_http }}
+        protocol: tcp
+        mode: host
+      {% else %}
+      - "{{ ports_http }}:8080"
+      {% endif %}
+    {% endif %}
+    {#
+      Volume configuration:
+      - assets: Homer dashboard configuration and assets
+    #}
     volumes:
       - ./assets:/www/assets
-    {% if network_enabled or traefik_enabled %}
-    networks:
-      {% if network_enabled %}
-      - {{ network_name }}
-      {% endif %}
-      {% if traefik_enabled %}
-      - {{ traefik_network }}
-      {% endif %}
-    {% endif %}
-    {% if traefik_enabled %}
+    {#
+      When traefik_enabled is set, and not running in swarm mode, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ service_name }}.loadbalancer.server.port=8080
-      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=8080
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}`)
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
       - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    restart: {{ restart_policy }}
-
-{% if network_enabled or traefik_enabled %}
-networks:
-  {% if network_enabled %}
-  {{ network_name }}:
-    {% if network_external %}
-    external: true
+    {#
+      Deploy configuration for Swarm mode and/or resource limits:
+      - Swarm: Configure replicas, placement constraints, and restart policy
+      - Resources: Set CPU/memory limits (and reservations in Swarm mode)
+      - Traefik: Labels for reverse proxy integration (Swarm mode)
+    #}
+    {% if swarm_enabled or resources_enabled %}
+    deploy:
+      {% if swarm_enabled %}
+      mode: {{ swarm_placement_mode }}
+      {% if swarm_placement_mode == 'replicated' %}
+      replicas: {{ swarm_replicas }}
+      {% endif %}
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+      {% endif %}
+      {% if resources_enabled %}
+      resources:
+        limits:
+          cpus: '{{ resources_cpu_limit }}'
+          memory: {{ resources_memory_limit }}
+        {% if swarm_enabled %}
+        reservations:
+          cpus: '{{ resources_cpu_reservation }}'
+          memory: {{ resources_memory_reservation }}
+        {% endif %}
+      {% endif %}
+      {#
+        When traefik_enabled is set in swarm mode, add traefik labels
+        (optionally enable TLS if traefik_tls_enabled is set, and authentik middleware if enabled)
+      #}
+      {% if swarm_enabled and traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=8080
+        - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+        {% if authentik_enabled %}
+        - traefik.http.routers.{{ service_name }}-http.middlewares={{ authentik_traefik_middleware }}
+        {% endif %}
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+        - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+        - traefik.http.routers.{{ service_name }}-https.tls=true
+        - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% if authentik_enabled %}
+        - traefik.http.routers.{{ service_name }}-https.middlewares={{ authentik_traefik_middleware }}
+        {% endif %}
+        {% endif %}
+      {% endif %}
     {% endif %}
-  {% endif %}
-  {% if traefik_enabled %}
+
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
+networks:
   {{ traefik_network }}:
     external: true
-  {% endif %}
 {% endif %}

@@ -1,20 +1,38 @@
 ---
 kind: compose
 metadata:
-  name: Volumes
-  description: Docker compose setup for volumes
+  icon:
+    provider: selfh
+    id: mariadb
+  name: MariaDB
+  description: |-
+    MariaDB is a community-developed, commercially supported fork of the MySQL relational database management system.
+    It's designed to remain free and open-source software under the GNU General Public License.
+    ## References
+    * **Project:** https://mariadb.org/
+    * **Documentation:** https://mariadb.com/kb/en/documentation/
+    * **GitHub:** https://github.com/MariaDB/server
+  next_steps: |-
+    Log in with your initial admin user:
+    ```bash
+    Username: `root` or `{{ database_user }}`
+    Password: {{ database_password }}
+    ```
   version: 12.0.2
   author: Christian Lempa
   date: '2025-09-28'
-  tags:
-    - volumes
-    - docker
-    - compose
+  tags: []
   draft: true
+schema: 1.2
 spec:
   general:
     vars:
-      volumes_version:
-        type: str
-        description: Volumes version
-        default: latest
+      service_name:
+        default: mariadb
+  ports:
+    vars:
+      ports_mariadb:
+        description: "Host port for MariaDB"
+        type: int
+        default: 3306
+        required: true

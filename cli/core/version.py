@@ -6,14 +6,13 @@ Supports version strings in the format: major.minor (e.g., "1.0", "1.2")
 
 from __future__ import annotations
 
-import re
-from typing import Tuple
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 
-def parse_version(version_str: str) -> Tuple[int, int]:
+def parse_version(version_str: str) -> tuple[int, int]:
     """Parse a semantic version string into a tuple of integers.
 
     Args:
@@ -42,10 +41,7 @@ def parse_version(version_str: str) -> Tuple[int, int]:
     match = re.match(pattern, version_str)
 
     if not match:
-        raise ValueError(
-            f"Invalid version format '{version_str}'. "
-            "Expected format: major.minor (e.g., '1.0', '1.2')"
-        )
+        raise ValueError(f"Invalid version format '{version_str}'. Expected format: major.minor (e.g., '1.0', '1.2')")
 
     major, minor = match.groups()
     return (int(major), int(minor))

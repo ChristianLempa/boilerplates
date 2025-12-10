@@ -1,6 +1,10 @@
 ---
 kind: compose
+schema: "1.2"
 metadata:
+  icon:
+    provider: selfh
+    id: twingate
   name: Twingate_Connector
   description: >
     The Twingate Connector is a lightweight software component that establishes secure connections between your private network and the
@@ -18,13 +22,34 @@ metadata:
   author: Christian Lempa
   date: '2025-11-11'
   tags:
-    - zero-trust
-    - remote-access
+    - swarm
   draft: true
 spec:
   general:
     vars:
-      twingate_connector_version:
+      service_name:
+        default: twingate
+      container_name:
+        default: twingate_connector
+      container_hostname:
+        default: twingate_connector
+      twingate_version:
         type: str
-        description: Twingate_Connector version
-        default: latest
+        description: Twingate Connector version
+        default: "1.79.0"
+  twingate:
+    title: Twingate Configuration
+    required: true
+    vars:
+      twingate_network:
+        type: str
+        description: Your Twingate network name
+        prompt: "Enter your Twingate network name"
+      twingate_log_level:
+        type: int
+        description: Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)
+        default: 1
+      twingate_dns:
+        type: str
+        description: Local DNS server IP (optional, leave empty to use default)
+        default: ""

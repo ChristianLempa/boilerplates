@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from pathlib import Path
 import logging
-from typing import Optional
+from pathlib import Path
+
 import yaml
 
-from .exceptions import LibraryError, TemplateNotFoundError, DuplicateTemplateError
+from .config import ConfigManager
+from .exceptions import DuplicateTemplateError, LibraryError, TemplateNotFoundError
 
 logger = logging.getLogger(__name__)
+
+# Qualified ID format: "template_id.library_name"
+QUALIFIED_ID_PARTS = 2
 
 
 class Library:
     """Represents a single library with a specific path."""
 
-    def __init__(
-        self, name: str, path: Path, priority: int = 0, library_type: str = "git"
-    ) -> None:
+    def __init__(self, name: str, path: Path, priority: int = 0, library_type: str = "git") -> None:
         """Initialize a library instance.
 
         Args:
@@ -25,9 +27,7 @@ class Library:
           library_type: Type of library ("git" or "static")
         """
         if library_type not in ("git", "static"):
-            raise ValueError(
-                f"Invalid library type: {library_type}. Must be 'git' or 'static'."
-            )
+            raise ValueError(f"Invalid library type: {library_type}. Must be 'git' or 'static'.")
 
         self.name = name
         self.path = path
@@ -45,12 +45,10 @@ class Library:
             return False
 
         try:
-            with open(template_file, "r", encoding="utf-8") as f:
+            with template_file.open(encoding="utf-8") as f:
                 docs = [doc for doc in yaml.safe_load_all(f) if doc]
-                return (
-                    docs[0].get("metadata", {}).get("draft", False) if docs else False
-                )
-        except (yaml.YAMLError, IOError, OSError) as e:
+                return docs[0].get("metadata", {}).get("draft", False) if docs else False
+        except (yaml.YAMLError, OSError) as e:
             logger.warning(f"Error checking draft status for {template_path}: {e}")
             return False
 
@@ -67,9 +65,7 @@ class Library:
         Raises:
             FileNotFoundError: If the template ID is not found in this library or is marked as draft
         """
-        logger.debug(
-            f"Looking for template '{template_id}' in module '{module_name}' in library '{self.name}'"
-        )
+        logger.debug(f"Looking for template '{template_id}' in module '{module_name}' in library '{self.name}'")
 
         # Build the path to the specific template directory
         template_path = self.path / module_name / template_id
@@ -85,9 +81,7 @@ class Library:
         logger.debug(f"Found template '{template_id}' at: {template_path}")
         return template_path, self.name
 
-    def find(
-        self, module_name: str, sort_results: bool = False
-    ) -> list[tuple[Path, str]]:
+    def find(self, module_name: str, sort_results: bool = False) -> list[tuple[Path, str]]:
         """Find templates in this library for a specific module.
 
         Excludes templates marked as draft.
@@ -102,27 +96,21 @@ class Library:
         Raises:
             FileNotFoundError: If the module directory is not found in this library
         """
-        logger.debug(
-            f"Looking for templates in module '{module_name}' in library '{self.name}'"
-        )
+        logger.debug(f"Looking for templates in module '{module_name}' in library '{self.name}'")
 
         # Build the path to the module directory
         module_path = self.path / module_name
 
         # Check if the module directory exists
         if not module_path.is_dir():
-            raise LibraryError(
-                f"Module '{module_name}' not found in library '{self.name}'"
-            )
+            raise LibraryError(f"Module '{module_name}' not found in library '{self.name}'")
 
         # Track seen IDs to detect duplicates within this library
         seen_ids = {}
         template_dirs = []
         try:
             for item in module_path.iterdir():
-                has_template = item.is_dir() and any(
-                    (item / f).exists() for f in ("template.yaml", "template.yml")
-                )
+                has_template = item.is_dir() and any((item / f).exists() for f in ("template.yaml", "template.yml"))
                 if has_template and not self._is_template_draft(item):
                     template_id = item.name
 
@@ -137,7 +125,7 @@ class Library:
         except PermissionError as e:
             raise LibraryError(
                 f"Permission denied accessing module '{module_name}' in library '{self.name}': {e}"
-            )
+            ) from e
 
         # Sort if requested
         if sort_results:
@@ -152,10 +140,37 @@ class LibraryManager:
 
     def __init__(self) -> None:
         """Initialize LibraryManager with git-based libraries from config."""
-        from .config import ConfigManager
-
         self.config = ConfigManager()
         self.libraries = self._load_libraries_from_config()
+
+    def _resolve_git_library_path(self, name: str, lib_config: dict, libraries_path: Path) -> Path:
+        """Resolve path for a git-based library."""
+        directory = lib_config.get("directory", ".")
+        library_base = libraries_path / name
+        if directory and directory != ".":
+            return library_base / directory
+        return library_base
+
+    def _resolve_static_library_path(self, name: str, lib_config: dict) -> Path | None:
+        """Resolve path for a static library."""
+        path_str = lib_config.get("path")
+        if not path_str:
+            logger.warning(f"Static library '{name}' has no path configured")
+            return None
+
+        library_path = Path(path_str).expanduser()
+        if not library_path.is_absolute():
+            library_path = (self.config.config_path.parent / library_path).resolve()
+        return library_path
+
+    def _warn_missing_library(self, name: str, library_path: Path, lib_type: str) -> None:
+        """Log warning about missing library."""
+        if lib_type == "git":
+            logger.warning(
+                f"Library '{name}' not found at {library_path}. Run 'boilerplates repo update' to sync libraries."
+            )
+        else:
+            logger.warning(f"Static library '{name}' not found at {library_path}")
 
     def _load_libraries_from_config(self) -> list[Library]:
         """Load libraries from configuration.
@@ -165,8 +180,6 @@ class LibraryManager:
         """
         libraries = []
         libraries_path = self.config.get_libraries_path()
-
-        # Get library configurations from config
         library_configs = self.config.get_libraries()
 
         for i, lib_config in enumerate(library_configs):
@@ -176,58 +189,25 @@ class LibraryManager:
                 continue
 
             name = lib_config.get("name")
-            lib_type = lib_config.get(
-                "type", "git"
-            )  # Default to "git" for backward compat
+            lib_type = lib_config.get("type", "git")
 
-            # Handle library type-specific path resolution
+            # Resolve library path based on type
             if lib_type == "git":
-                # Existing git logic
-                directory = lib_config.get("directory", ".")
-
-                # Build path to library: ~/.config/boilerplates/libraries/{name}/{directory}/
-                # For sparse-checkout, files remain in the specified directory
-                library_base = libraries_path / name
-                if directory and directory != ".":
-                    library_path = library_base / directory
-                else:
-                    library_path = library_base
-
+                library_path = self._resolve_git_library_path(name, lib_config, libraries_path)
             elif lib_type == "static":
-                # New static logic - use path directly
-                path_str = lib_config.get("path")
-                if not path_str:
-                    logger.warning(f"Static library '{name}' has no path configured")
+                library_path = self._resolve_static_library_path(name, lib_config)
+                if not library_path:
                     continue
-
-                # Expand ~ and resolve relative paths
-                library_path = Path(path_str).expanduser()
-                if not library_path.is_absolute():
-                    # Resolve relative to config directory
-                    library_path = (
-                        self.config.config_path.parent / library_path
-                    ).resolve()
-
             else:
-                logger.warning(
-                    f"Unknown library type '{lib_type}' for library '{name}'"
-                )
+                logger.warning(f"Unknown library type '{lib_type}' for library '{name}'")
                 continue
 
             # Check if library path exists
             if not library_path.exists():
-                if lib_type == "git":
-                    logger.warning(
-                        f"Library '{name}' not found at {library_path}. "
-                        f"Run 'repo update' to sync libraries."
-                    )
-                else:
-                    logger.warning(
-                        f"Static library '{name}' not found at {library_path}"
-                    )
+                self._warn_missing_library(name, library_path, lib_type)
                 continue
 
-            # Create Library instance with type and priority based on order (first = highest priority)
+            # Create Library instance with priority based on order
             priority = len(library_configs) - i
             libraries.append(
                 Library(
@@ -237,18 +217,14 @@ class LibraryManager:
                     library_type=lib_type,
                 )
             )
-            logger.debug(
-                f"Loaded {lib_type} library '{name}' from {library_path} with priority {priority}"
-            )
+            logger.debug(f"Loaded {lib_type} library '{name}' from {library_path} with priority {priority}")
 
         if not libraries:
-            logger.warning("No libraries loaded. Run 'repo update' to sync libraries.")
+            logger.warning("No libraries loaded. Run 'boilerplates repo update' to sync libraries.")
 
         return libraries
 
-    def find_by_id(
-        self, module_name: str, template_id: str
-    ) -> Optional[tuple[Path, str]]:
+    def find_by_id(self, module_name: str, template_id: str) -> tuple[Path, str] | None:
         """Find a template by its ID across all libraries.
 
         Supports both simple IDs and qualified IDs (template.library format).
@@ -260,34 +236,24 @@ class LibraryManager:
         Returns:
             Tuple of (template_path, library_name) if found, None otherwise
         """
-        logger.debug(
-            f"Searching for template '{template_id}' in module '{module_name}' across all libraries"
-        )
+        logger.debug(f"Searching for template '{template_id}' in module '{module_name}' across all libraries")
 
         # Check if this is a qualified ID (contains '.')
         if "." in template_id:
             parts = template_id.rsplit(".", 1)
-            if len(parts) == 2:
+            if len(parts) == QUALIFIED_ID_PARTS:
                 base_id, requested_lib = parts
-                logger.debug(
-                    f"Parsing qualified ID: base='{base_id}', library='{requested_lib}'"
-                )
+                logger.debug(f"Parsing qualified ID: base='{base_id}', library='{requested_lib}'")
 
                 # Try to find in the specific library
                 for library in self.libraries:
                     if library.name == requested_lib:
                         try:
-                            template_path, lib_name = library.find_by_id(
-                                module_name, base_id
-                            )
-                            logger.debug(
-                                f"Found template '{base_id}' in library '{requested_lib}'"
-                            )
+                            template_path, lib_name = library.find_by_id(module_name, base_id)
+                            logger.debug(f"Found template '{base_id}' in library '{requested_lib}'")
                             return template_path, lib_name
                         except TemplateNotFoundError:
-                            logger.debug(
-                                f"Template '{base_id}' not found in library '{requested_lib}'"
-                            )
+                            logger.debug(f"Template '{base_id}' not found in library '{requested_lib}'")
                             return None
 
                 logger.debug(f"Library '{requested_lib}' not found")
@@ -297,9 +263,7 @@ class LibraryManager:
         for library in sorted(self.libraries, key=lambda x: x.priority, reverse=True):
             try:
                 template_path, lib_name = library.find_by_id(module_name, template_id)
-                logger.debug(
-                    f"Found template '{template_id}' in library '{library.name}'"
-                )
+                logger.debug(f"Found template '{template_id}' in library '{library.name}'")
                 return template_path, lib_name
             except TemplateNotFoundError:
                 # Continue searching in next library
@@ -308,9 +272,7 @@ class LibraryManager:
         logger.debug(f"Template '{template_id}' not found in any library")
         return None
 
-    def find(
-        self, module_name: str, sort_results: bool = False
-    ) -> list[tuple[Path, str, bool]]:
+    def find(self, module_name: str, sort_results: bool = False) -> list[tuple[Path, str, bool]]:
         """Find templates across all libraries for a specific module.
 
         Handles duplicates by qualifying IDs with library names when needed.
@@ -323,9 +285,7 @@ class LibraryManager:
             List of tuples (template_path, library_name, needs_qualification)
             where needs_qualification is True if the template ID appears in multiple libraries
         """
-        logger.debug(
-            f"Searching for templates in module '{module_name}' across all libraries"
-        )
+        logger.debug(f"Searching for templates in module '{module_name}' across all libraries")
 
         all_templates = []
 
@@ -334,16 +294,12 @@ class LibraryManager:
             try:
                 templates = library.find(module_name, sort_results=False)
                 all_templates.extend(templates)
-                logger.debug(
-                    f"Found {len(templates)} templates in library '{library.name}'"
-                )
+                logger.debug(f"Found {len(templates)} templates in library '{library.name}'")
             except (LibraryError, DuplicateTemplateError) as e:
                 # DuplicateTemplateError from library.find() should propagate up
                 if isinstance(e, DuplicateTemplateError):
                     raise
-                logger.debug(
-                    f"Module '{module_name}' not found in library '{library.name}'"
-                )
+                logger.debug(f"Module '{module_name}' not found in library '{library.name}'")
                 continue
 
         # Track template IDs and their libraries to detect cross-library duplicates
@@ -360,10 +316,7 @@ class LibraryManager:
             if len(occurrences) > 1:
                 # Duplicate across libraries - mark for qualified IDs
                 lib_names = ", ".join(lib for _, lib in occurrences)
-                logger.info(
-                    f"Template '{template_id}' found in multiple libraries: {lib_names}. "
-                    f"Using qualified IDs."
-                )
+                logger.info(f"Template '{template_id}' found in multiple libraries: {lib_names}. Using qualified IDs.")
                 for template_path, library_name in occurrences:
                     # Mark that this ID needs qualification
                     result.append((template_path, library_name, True))

@@ -1,0 +1,12 @@
+---
+apiVersion: twingate.com/v1beta
+kind: TwingateConnector
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+spec:
+  image:
+    repository: twingate/connector
+    tag: {{ image_tag }}
+  name: {{ connector_name }}
+  hasStatusNotificationsEnabled: {{ status_notifications | lower }}

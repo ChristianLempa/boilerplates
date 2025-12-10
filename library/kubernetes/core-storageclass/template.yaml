@@ -1,0 +1,42 @@
+---
+kind: kubernetes
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: kubernetes
+  name: Kubernetes StorageClass
+  description: >
+    Kubernetes StorageClass for defining different types of storage that can be dynamically provisioned.
+
+
+    StorageClass allows administrators to describe different storage "classes" available.
+
+
+    Documentation: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  version: 1.31.0
+  author: Christian Lempa
+  date: '2025-01-11'
+spec:
+  general:
+    vars:
+      resource_name:
+        default: standard
+      provisioner:
+        type: str
+        description: Storage provisioner (e.g., kubernetes.io/no-provisioner, longhorn)
+        default: kubernetes.io/no-provisioner
+      volume_binding_mode:
+        type: enum
+        description: Volume binding mode
+        options:
+          - Immediate
+          - WaitForFirstConsumer
+        default: WaitForFirstConsumer
+      reclaim_policy:
+        type: enum
+        description: Reclaim policy for volumes
+        options:
+          - Retain
+          - Delete
+        default: Delete

@@ -1,0 +1,512 @@
+[
+  {
+    "key": "general",
+    "title": "General",
+    "vars": [
+      {
+        "name": "service_name",
+        "description": "Service name",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "container_name",
+        "description": "Container name",
+        "type": "str"
+      },
+      {
+        "name": "container_hostname",
+        "description": "Container internal hostname",
+        "type": "str"
+      },
+      {
+        "name": "container_timezone",
+        "description": "Container timezone (e.g., Europe/Berlin)",
+        "type": "str"
+      },
+      {
+        "name": "user_uid",
+        "description": "User UID for container process",
+        "type": "int",
+        "default": 1000
+      },
+      {
+        "name": "user_gid",
+        "description": "User GID for container process",
+        "type": "int",
+        "default": 1000
+      },
+      {
+        "name": "container_loglevel",
+        "description": "Container log level",
+        "type": "enum",
+        "options": ["debug", "info", "warn", "error"]
+      },
+      {
+        "name": "restart_policy",
+        "description": "Container restart policy",
+        "type": "enum",
+        "options": ["unless-stopped", "always", "on-failure", "no"],
+        "default": "unless-stopped",
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "network",
+    "title": "Network",
+    "vars": [
+      {
+        "name": "network_mode",
+        "description": "Docker network mode",
+        "type": "enum",
+        "options": ["bridge", "host", "macvlan"],
+        "extra": "bridge=default Docker networking, host=use host network stack, macvlan=dedicated MAC address on physical network"
+      },
+      {
+        "name": "network_name",
+        "description": "Docker network name",
+        "type": "str",
+        "default": "bridge",
+        "needs": ["network_mode=bridge,macvlan"],
+        "required": true
+      },
+      {
+        "name": "network_external",
+        "description": "Use existing Docker network (external)",
+        "type": "bool",
+        "default": false,
+        "needs": ["network_mode=bridge,macvlan"]
+      },
+      {
+        "name": "network_macvlan_ipv4_address",
+        "description": "Static IP address for container",
+        "type": "str",
+        "default": "192.168.1.253",
+        "needs": ["network_mode=macvlan"],
+        "required": true
+      },
+      {
+        "name": "network_macvlan_parent_interface",
+        "description": "Host network interface name",
+        "type": "str",
+        "default": "eth0",
+        "needs": ["network_mode=macvlan"],
+        "required": true
+      },
+      {
+        "name": "network_macvlan_subnet",
+        "description": "Network subnet in CIDR notation",
+        "type": "str",
+        "default": "192.168.1.0/24",
+        "needs": ["network_mode=macvlan"],
+        "required": true
+      },
+      {
+        "name": "network_macvlan_gateway",
+        "description": "Network gateway IP address",
+        "type": "str",
+        "default": "192.168.1.1",
+        "needs": ["network_mode=macvlan"],
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "ports",
+    "title": "Ports",
+    "needs": ["network_mode!=host,macvlan"],
+    "description": "Expose service ports to the host.",
+    "vars": [
+      {
+        "name": "ports_http",
+        "description": "HTTP port on host",
+        "type": "int",
+        "needs": ["traefik_enabled=false"],
+        "default": 8080,
+        "required": true
+      },
+      {
+        "name": "ports_https",
+        "description": "HTTPS port on host",
+        "type": "int",
+        "needs": ["traefik_enabled=false"],
+        "default": 8443,
+        "required": true
+      },
+      {
+        "name": "ports_ssh",
+        "description": "SSH port on host",
+        "type": "int",
+        "default": 22,
+        "required": true
+      },
+      {
+        "name": "ports_dns",
+        "description": "DNS port on host",
+        "type": "int",
+        "default": 53,
+        "required": true
+      },
+      {
+        "name": "ports_dhcp",
+        "description": "DHCP port on host",
+        "type": "int",
+        "default": 67,
+        "required": true
+      },
+      {
+        "name": "ports_smtp",
+        "description": "SMTP port on host",
+        "type": "int",
+        "default": 25,
+        "required": true
+      },
+      {
+        "name": "ports_snmp",
+        "description": "SNMP trap port",
+        "type": "int",
+        "default": 162,
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "traefik",
+    "title": "Traefik",
+    "toggle": "traefik_enabled",
+    "needs": ["network_mode!=host,macvlan"],
+    "description": "Traefik routes external traffic to your service.",
+    "vars": [
+      {
+        "name": "traefik_enabled",
+        "description": "Enable Traefik reverse proxy integration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "traefik_network",
+        "description": "Traefik network name",
+        "type": "str",
+        "default": "traefik",
+        "required": true
+      },
+      {
+        "name": "traefik_host",
+        "description": "Service subdomain or full hostname (e.g., 'app' or 'app.example.com')",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "traefik_domain",
+        "description": "Base domain (e.g., example.com)",
+        "type": "str",
+        "default": "home.arpa",
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "traefik_tls",
+    "title": "Traefik TLS/SSL",
+    "toggle": "traefik_tls_enabled",
+    "needs": ["traefik_enabled=true", "network_mode!=host,macvlan"],
+    "description": "Enable HTTPS/TLS for Traefik with certificate management.",
+    "vars": [
+      {
+        "name": "traefik_tls_enabled",
+        "description": "Enable HTTPS/TLS",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "name": "traefik_tls_certresolver",
+        "description": "Traefik certificate resolver name",
+        "type": "str",
+        "default": "cloudflare",
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "volume",
+    "title": "Volume Storage",
+    "description": "Configure persistent storage for your service.",
+    "vars": [
+      {
+        "name": "volume_mode",
+        "description": "Volume storage backend",
+        "type": "enum",
+        "options": ["local", "mount", "nfs"],
+        "default": "local",
+        "required": true
+      },
+      {
+        "name": "volume_mount_path",
+        "description": "Host path for bind mounts",
+        "type": "str",
+        "default": "/mnt/storage",
+        "needs": ["volume_mode=mount"],
+        "required": true
+      },
+      {
+        "name": "volume_nfs_server",
+        "description": "NFS server address",
+        "type": "str",
+        "default": "192.168.1.1",
+        "needs": ["volume_mode=nfs"],
+        "required": true
+      },
+      {
+        "name": "volume_nfs_path",
+        "description": "NFS export path",
+        "type": "str",
+        "default": "/export",
+        "needs": ["volume_mode=nfs"],
+        "required": true
+      },
+      {
+        "name": "volume_nfs_options",
+        "description": "NFS mount options (comma-separated)",
+        "type": "str",
+        "default": "rw,nolock,soft",
+        "needs": ["volume_mode=nfs"],
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "resources",
+    "title": "Resource Limits",
+    "toggle": "resources_enabled",
+    "description": "Set CPU and memory limits for the service.",
+    "vars": [
+      {
+        "name": "resources_enabled",
+        "description": "Enable resource limits",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "resources_cpu_limit",
+        "description": "Maximum CPU cores (e.g., 0.5, 1.0, 2.0)",
+        "type": "str",
+        "default": "1.0",
+        "required": true
+      },
+      {
+        "name": "resources_cpu_reservation",
+        "description": "Reserved CPU cores",
+        "type": "str",
+        "default": "0.25",
+        "needs": ["swarm_enabled=true"],
+        "required": true
+      },
+      {
+        "name": "resources_memory_limit",
+        "description": "Maximum memory (e.g., 512M, 1G, 2G)",
+        "type": "str",
+        "default": "1G",
+        "required": true
+      },
+      {
+        "name": "resources_memory_reservation",
+        "description": "Reserved memory",
+        "type": "str",
+        "default": "512M",
+        "needs": ["swarm_enabled=true"],
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "swarm",
+    "title": "Docker Swarm",
+    "toggle": "swarm_enabled",
+    "needs": ["network_mode!=host,macvlan"],
+    "description": "Deploy service in Docker Swarm mode.",
+    "vars": [
+      {
+        "name": "swarm_enabled",
+        "description": "Enable Docker Swarm mode",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "swarm_placement_mode",
+        "description": "Swarm placement mode",
+        "type": "enum",
+        "options": ["replicated", "global"],
+        "default": "replicated",
+        "required": true
+      },
+      {
+        "name": "swarm_replicas",
+        "description": "Number of replicas",
+        "type": "int",
+        "default": 1,
+        "needs": ["swarm_placement_mode=replicated"],
+        "required": true
+      },
+      {
+        "name": "swarm_placement_host",
+        "description": "Target hostname for placement constraint",
+        "type": "str",
+        "default": "",
+        "needs": ["swarm_placement_mode=replicated"],
+        "extra": "Constrains service to run on specific node by hostname"
+      }
+    ]
+  },
+  {
+    "key": "database",
+    "title": "Database",
+    "toggle": "database_enabled",
+    "description": "Connect to external database (PostgreSQL or MySQL)",
+    "vars": [
+      {
+        "name": "database_enabled",
+        "description": "Enable external database integration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "database_type",
+        "description": "Database type",
+        "type": "enum",
+        "options": ["sqlite", "postgres", "mysql"],
+        "default": "sqlite",
+        "required": true
+      },
+      {
+        "name": "database_external",
+        "description": "Use an external database server?",
+        "extra": "skips creation of internal database container",
+        "type": "bool",
+        "needs": ["database_type=postgres,mysql"],
+        "default": false
+      },
+      {
+        "name": "database_host",
+        "description": "Database host",
+        "type": "str",
+        "needs": ["database_external=true"],
+        "default": "database",
+        "required": true
+      },
+      {
+        "name": "database_port",
+        "description": "Database port",
+        "type": "int",
+        "required": true
+      },
+      {
+        "name": "database_name",
+        "description": "Database name",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "database_user",
+        "description": "Database user",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "database_password",
+        "description": "Database password",
+        "type": "str",
+        "default": "",
+        "sensitive": true,
+        "autogenerated": true,
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "email",
+    "title": "Email Server",
+    "toggle": "email_enabled",
+    "description": "Configure email server for notifications and user management.",
+    "vars": [
+      {
+        "name": "email_enabled",
+        "description": "Enable email server configuration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "email_host",
+        "description": "SMTP server hostname",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "email_port",
+        "description": "SMTP server port",
+        "type": "int",
+        "default": 25,
+        "required": true
+      },
+      {
+        "name": "email_username",
+        "description": "SMTP username",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "email_password",
+        "description": "SMTP password",
+        "type": "str",
+        "sensitive": true,
+        "required": true
+      },
+      {
+        "name": "email_from",
+        "description": "From email address",
+        "type": "email",
+        "required": true
+      },
+      {
+        "name": "email_encryption",
+        "description": "Email encryption method to use",
+        "type": "enum",
+        "options": ["none", "starttls", "ssl"]
+      }
+    ]
+  },
+  {
+    "key": "authentik",
+    "title": "Authentik SSO",
+    "toggle": "authentik_enabled",
+    "description": "Integrate with Authentik for Single Sign-On authentication.",
+    "vars": [
+      {
+        "name": "authentik_enabled",
+        "description": "Enable Authentik SSO integration",
+        "type": "bool",
+        "default": false
+      },
+      {
+        "name": "authentik_url",
+        "description": "Authentik base URL (e.g., https://auth.example.com)",
+        "type": "url",
+        "required": true
+      },
+      {
+        "name": "authentik_slug",
+        "description": "Authentik application slug",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "authentik_traefik_middleware",
+        "description": "Traefik middleware name for Authentik authentication",
+        "type": "str",
+        "default": "authentik-middleware@file",
+        "needs": ["traefik_enabled=true"],
+        "required": true
+      }
+    ]
+  }
+]

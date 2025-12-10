@@ -1,0 +1,28 @@
+[
+  {
+    "key": "general",
+    "title": "General",
+    "required": true,
+    "vars": [
+      {
+        "name": "script_name",
+        "description": "Script name",
+        "type": "str",
+        "required": true
+      },
+      {
+        "name": "script_type",
+        "description": "Script type/runtime",
+        "type": "enum",
+        "options": ["bash", "python"],
+        "default": "bash",
+        "required": true
+      },
+      {
+        "name": "description",
+        "description": "Script description",
+        "type": "str"
+      }
+    ]
+  }
+]

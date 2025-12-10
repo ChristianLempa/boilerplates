@@ -1,27 +1,37 @@
 ---
 kind: compose
 metadata:
+  icon:
+    provider: selfh
+    id: passbolt
   name: Passbolt
-  description: >
-    Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store, share, and manage passwords and sensitive
-    information collaboratively.
-
-
-    Project: https://www.passbolt.com/
-
-    Documentation: https://help.passbolt.com/
-
-    GitHub: https://github.com/passbolt/passbolt
+  description: |-
+    Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store,
+    share, and manage passwords and sensitive information collaboratively.
+    ## References
+    - **Project:** https://www.passbolt.com/
+    - **Documentation:** https://help.passbolt.com/
+    - **GitHub:** https://github.com/passbolt/passbolt
   version: 11.3
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - password-manager
+    - traefik
+    - database
   draft: true
+schema: 1.2
 spec:
   general:
     vars:
-      volumes_version:
-        type: str
-        description: Volumes version
-        default: latest
+      service_name:
+        default: passbolt
+  traefik:
+    vars:
+      traefik_host:
+        default: passbolt
+  database:
+    vars:
+      database_name:
+        default: passbolt
+      database_user:
+        default: passbolt

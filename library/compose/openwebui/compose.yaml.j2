@@ -1,40 +1,84 @@
 services:
-  openwebui:
+  {{ service_name }}:
     image: ghcr.io/open-webui/open-webui:v0.6.36
-    container_name: openwebui
-    ports:
-      - "8080:8080"
+    container_name: {{ container_name }}
+    {#
+      Set container hostname for identification
+    #}
+    hostname: {{ container_hostname }}
+    {#
+      Environment variables for OpenWebUI configuration:
+      - Ollama API URL
+      - OAuth/OpenID configuration (if Authentik is enabled)
+    #}
     environment:
-      # Ollama Config
-      - OLLAMA_BASE_URL=http://ollama.example.com:11434
-      # Authentik SSO Config
+      - TZ={{ container_timezone }}
+      - OLLAMA_BASE_URL={{ ollama_base_url }}
+      {% if authentik_enabled %}
       - ENABLE_OAUTH_SIGNUP=true
-      - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false
+      - OAUTH_MERGE_ACCOUNTS_BY_EMAIL={{ oauth_merge_accounts|lower }}
       - OAUTH_PROVIDER_NAME=authentik
-      - OPENID_PROVIDER_URL=https://authentik.example.com/application/o/openwebui-slug/.well-known/openid-configuration
-      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
-      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
-      - OAUTH_SCOPES=openid email profile
-      - OPENID_REDIRECT_URI=https://openwebui.example.com/oauth/oidc/callback
+      - OPENID_PROVIDER_URL={{ openid_provider_url }}
+      - OAUTH_CLIENT_ID={{ authentik_client_id }}
+      - OAUTH_CLIENT_SECRET={{ authentik_client_secret }}
+      - OAUTH_SCOPES={{ oauth_scopes }}
+      - OPENID_REDIRECT_URI={{ openid_redirect_uri }}
+      {% endif %}
+    {#
+      Volume configuration for persistent data
+    #}
     volumes:
       - data:/app/backend/data:rw
+    {#
+      When traefik is enabled, add traefik network for reverse proxy access
+    #}
+    {% if traefik_enabled %}
     networks:
-      - frontend
+      {{ traefik_network }}:
+    {% endif %}
+    {#
+      Port mappings for web interface (only when Traefik is disabled)
+    #}
+    {% if not traefik_enabled %}
+    ports:
+      - "{{ ports_http }}:8080"
+    {% endif %}
+    {#
+      When traefik_enabled is set, add traefik labels
+      (optionally enable TLS if traefik_tls_enabled is set)
+    #}
+    {% if traefik_enabled %}
     labels:
       - traefik.enable=true
-      - traefik.docker.network=frontend
-      - traefik.http.routers.openwebui.rule=Host(`openwebui.example.com`)
-      - traefik.http.routers.openwebui.entrypoints=websecure
-      - traefik.http.routers.openwebui.tls=true
-      - traefik.http.routers.openwebui.tls.certresolver=cloudflare
-      - traefik.http.routers.openwebui.service=openwebui
-      - traefik.http.services.openwebui.loadBalancer.server.port=8080
-    restart: unless-stopped
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}-web.loadBalancer.server.port=8080
+      - traefik.http.routers.{{ service_name }}-http.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-http.entrypoints={{ traefik_entrypoint }}
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
+      - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
+      - traefik.http.routers.{{ service_name }}-https.tls=true
+      - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
+    restart: {{ restart_policy }}
 
+{#
+  Volume definitions:
+  - data: Persistent storage for OpenWebUI data
+#}
 volumes:
   data:
     driver: local
 
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
+{% if traefik_enabled %}
 networks:
-  frontend:
+  {{ traefik_network }}:
     external: true
+{% endif %}

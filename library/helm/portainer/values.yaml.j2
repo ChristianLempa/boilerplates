@@ -1,0 +1,29 @@
+---
+image:
+  repository: portainer/portainer-ce
+  tag: 2.34.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: {{ network_mode }}
+{% if traefik_enabled %}
+
+ingress:
+  enabled: true
+  hosts:
+    - host: {{ traefik_host }}
+      paths:
+        - path: /
+          port: "9000"
+{% if traefik_tls_enabled %}
+  tls:
+    - secretName: {{ traefik_tls_secret }}
+      hosts:
+        - {{ traefik_host }}
+{% endif %}
+{% endif %}
+{% if volumes_mode == 'existing-pvc' %}
+
+persistence:
+  existingClaim: {{ volumes_pvc_name }}
+{% endif %}

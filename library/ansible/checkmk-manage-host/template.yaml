@@ -1,0 +1,65 @@
+---
+kind: ansible
+metadata:
+  name: Manage Checkmk Host
+  description: |-
+    Ansible playbook to manage hosts in Checkmk monitoring. Uses the checkmk.general.host module to create or update host configuration.
+    ## References
+    - **Project**: https://github.com/Checkmk/ansible-collection-checkmk.general
+    - **Documentation**: https://docs.checkmk.com/
+  version: 2.4.0
+  author: Christian Lempa
+  date: "2025-11-11"
+  tags: []
+  icon:
+    provider: selfh
+    id: checkmk
+  draft: false
+  next_steps: ""
+schema: "1.0"
+spec:
+  checkmk:
+    title: Checkmk Configuration
+    vars:
+      checkmk_server:
+        type: str
+        description: Checkmk Server
+        required: true
+      checkmk_protocol:
+        type: str
+        description: Checkmk Server Protocol
+        enum:
+          - http
+          - https
+        default: https
+        required: true
+      checkmk_site:
+        type: str
+        description: Checkmk Site
+        default: cmk
+        required: true
+      checkmk_user:
+        type: str
+        description: Checkmk Automation User
+        required: true
+      checkmk_pass:
+        type: str
+        description: Checkmk Automation User Password
+        required: true
+        sensitive: true
+  host:
+    title: Host Configuration
+    vars:
+      host_name:
+        type: str
+        description: Hostname to add to Checkmk
+        required: true
+      host_ip:
+        type: str
+        description: IP address of the host
+        required: true
+      host_folder:
+        type: str
+        description: Folder path in Checkmk
+        default: /
+        required: true

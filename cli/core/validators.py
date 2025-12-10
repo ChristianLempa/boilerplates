@@ -9,22 +9,25 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    pass
 
 import yaml
-from rich.console import Console
+
+from .display import DisplayManager
 
 logger = logging.getLogger(__name__)
-console = Console()
 
 
 class ValidationResult:
     """Represents the result of a validation operation."""
 
     def __init__(self):
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-        self.info: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+        self.info: list[str] = []
 
     def add_error(self, message: str) -> None:
         """Add an error message."""
@@ -52,36 +55,38 @@ class ValidationResult:
         return len(self.warnings) > 0
 
     def display(self, context: str = "Validation") -> None:
-        """Display validation results to console."""
+        """Display validation results using DisplayManager."""
+        display = DisplayManager()
+
         if self.errors:
-            console.print(f"\n[red]✗ {context} Failed:[/red]")
+            display.error(f"\n✗ {context} Failed:")
             for error in self.errors:
-                console.print(f"  [red]• {error}[/red]")
+                display.error(f"  • {error}")
 
         if self.warnings:
-            console.print(f"\n[yellow]⚠ {context} Warnings:[/yellow]")
+            display.warning(f"\n⚠ {context} Warnings:")
             for warning in self.warnings:
-                console.print(f"  [yellow]• {warning}[/yellow]")
+                display.warning(f"  • {warning}")
 
         if self.info:
-            console.print(f"\n[blue]ℹ {context} Info:[/blue]")
+            display.text(f"\n[blue]i {context} Info:[/blue]")
             for info_msg in self.info:
-                console.print(f"  [blue]• {info_msg}[/blue]")
+                display.text(f"  [blue]• {info_msg}[/blue]")
 
         if self.is_valid and not self.has_warnings:
-            console.print(f"\n[green]✓ {context} Passed[/green]")
+            display.text(f"\n[green]✓ {context} Passed[/green]")
 
 
 class ContentValidator(ABC):
     """Abstract base class for content validators."""
 
     @abstractmethod
-    def validate(self, content: str, file_path: str) -> ValidationResult:
+    def validate(self, content: str, _file_path: str) -> ValidationResult:
         """Validate content and return results.
 
         Args:
             content: The file content to validate
-            file_path: Path to the file (for error messages)
+            _file_path: Path to the file (unused in base class, kept for API compatibility)
 
         Returns:
             ValidationResult with errors, warnings, and info
@@ -104,7 +109,7 @@ class ContentValidator(ABC):
 class DockerComposeValidator(ContentValidator):
     """Validator for Docker Compose files."""
 
-    COMPOSE_FILENAMES = {
+    COMPOSE_FILENAMES: ClassVar[set[str]] = {
         "docker-compose.yml",
         "docker-compose.yaml",
         "compose.yml",
@@ -116,7 +121,7 @@ class DockerComposeValidator(ContentValidator):
         filename = Path(file_path).name.lower()
         return filename in self.COMPOSE_FILENAMES
 
-    def validate(self, content: str, file_path: str) -> ValidationResult:
+    def validate(self, content: str, _file_path: str) -> ValidationResult:
         """Validate Docker Compose file structure."""
         result = ValidationResult()
 
@@ -130,9 +135,7 @@ class DockerComposeValidator(ContentValidator):
 
             # Check for version (optional in Compose v2, but good practice)
             if "version" not in data:
-                result.add_info(
-                    "No 'version' field specified (using Compose v2 format)"
-                )
+                result.add_info("No 'version' field specified (using Compose v2 format)")
 
             # Check for services (required)
             if "services" not in data:
@@ -170,9 +173,7 @@ class DockerComposeValidator(ContentValidator):
 
         return result
 
-    def _validate_service(
-        self, name: str, config: Any, result: ValidationResult
-    ) -> None:
+    def _validate_service(self, name: str, config: Any, result: ValidationResult) -> None:
         """Validate a single service configuration."""
         if not isinstance(config, dict):
             result.add_error(f"Service '{name}': configuration must be a dictionary")
@@ -203,9 +204,8 @@ class DockerComposeValidator(ContentValidator):
                 keys = [e.split("=")[0] for e in env if isinstance(e, str) and "=" in e]
                 duplicates = {k for k in keys if keys.count(k) > 1}
                 if duplicates:
-                    result.add_warning(
-                        f"Service '{name}': duplicate environment variables: {', '.join(duplicates)}"
-                    )
+                    dups = ", ".join(duplicates)
+                    result.add_warning(f"Service '{name}': duplicate environment variables: {dups}")
 
         # Check for ports
         if "ports" in config:
@@ -221,7 +221,7 @@ class YAMLValidator(ContentValidator):
         """Check if file is a YAML file."""
         return Path(file_path).suffix.lower() in [".yml", ".yaml"]
 
-    def validate(self, content: str, file_path: str) -> ValidationResult:
+    def validate(self, content: str, _file_path: str) -> ValidationResult:
         """Validate YAML syntax."""
         result = ValidationResult()
 
@@ -238,7 +238,7 @@ class ValidatorRegistry:
     """Registry for content validators."""
 
     def __init__(self):
-        self.validators: List[ContentValidator] = []
+        self.validators: list[ContentValidator] = []
         self._register_default_validators()
 
     def _register_default_validators(self) -> None:
@@ -255,7 +255,7 @@ class ValidatorRegistry:
         self.validators.append(validator)
         logger.debug(f"Registered validator: {validator.__class__.__name__}")
 
-    def get_validator(self, file_path: str) -> Optional[ContentValidator]:
+    def get_validator(self, file_path: str) -> ContentValidator | None:
         """Get the most appropriate validator for a file.
 
         Args:
@@ -288,9 +288,7 @@ class ValidatorRegistry:
 
         # No validator found - return empty result
         result = ValidationResult()
-        result.add_info(
-            f"No semantic validator available for {Path(file_path).suffix} files"
-        )
+        result.add_info(f"No semantic validator available for {Path(file_path).suffix} files")
         return result
 
 

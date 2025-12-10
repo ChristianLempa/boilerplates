@@ -1,0 +1,16 @@
+---
+- name: Install Checkmk agent on all hosts
+  hosts: {{ target_hosts }}
+  become: true
+  roles:
+    - checkmk.general.agent
+  vars:
+    checkmk_agent_version: "2.4.0p15"
+    checkmk_agent_server: {{ checkmk_server }}
+    checkmk_agent_server_protocol: {{ checkmk_protocol }}
+    checkmk_agent_site: {{ checkmk_site }}
+    checkmk_agent_auto_activate: {{ checkmk_auto_activate }}
+    checkmk_agent_tls: {{ checkmk_tls }}
+    checkmk_agent_user: {{ checkmk_user }}
+    checkmk_agent_pass: {{ checkmk_pass }}
+    checkmk_agent_host_name: {{ checkmk_host }}

@@ -1,0 +1,7 @@
+# Example Packer Variables File
+# Copy this file to variables.pkrvars.hcl and fill in your values
+
+# Proxmox Connection
+proxmox_api_url          = "https://proxmox.example.com:8006/api2/json"
+proxmox_api_token_id     = "root@pam!packer"
+proxmox_api_token_secret = "your-secret-token-here"

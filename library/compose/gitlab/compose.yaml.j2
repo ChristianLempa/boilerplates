@@ -1,69 +1,188 @@
 services:
   {{ service_name }}:
-    image: docker.io/gitlab/gitlab-ce:18.5.2-ce.0
-    container_name: {{ container_name }}
+    image: docker.io/gitlab/gitlab-ce:18.5.1-ce.0
+    {% if not swarm_enabled %}
+    restart: {{ restart_policy }}
+    {% endif %}
     shm_size: '256m'
-{% if traefik_enabled %}
+    environment:
+      - 
+    {% if traefik_enabled %}
     networks:
-      - {{ traefik_network }}
-{% endif %}
-    volumes:
-      - ./config/gitlab.rb:/etc/gitlab/gitlab.rb:ro
-      - gitlab-config:/etc/gitlab
-      - gitlab-logs:/var/log/gitlab
-      - gitlab-data:/var/opt/gitlab
-{% if ports_enabled %}
+      {{ traefik_network }}:
+    {% endif %}
     ports:
+      {% if not traefik_enabled %}
       - "{{ ports_http }}:80"
+      {% endif %}
       - "{{ ports_ssh }}:22"
       {% if registry_enabled %}
-      - "{{ ports_registry }}:5678"
+      - "{{ ports_registry }}:5000"
       {% endif %}
-{% else %}
-    ports:
-      - "{{ ports_ssh }}:22"
-{% endif %}
-{% if traefik_enabled %}
+    volumes:
+      {% if volume_mode == 'mount' %}
+      {% if not swarm_enabled %}
+      - {{ volume_mount_path }}/config/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      {% endif %}
+      - {{ volume_mount_path }}/config:/etc/gitlab
+      - {{ volume_mount_path }}/logs:/var/log/gitlab
+      - {{ volume_mount_path }}/data:/var/opt/gitlab
+      {% else %}
+      {% if not swarm_enabled %}
+      - ./config/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      {% endif %}
+      - {{ service_name }}_config:/etc/gitlab
+      - {{ service_name }}_logs:/var/log/gitlab
+      - {{ service_name }}_data:/var/opt/gitlab
+      {% endif %}
+    {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
-      - traefik.http.services.{{ container_name }}.loadbalancer.server.port=80
-      - traefik.http.services.{{ container_name }}.loadbalancer.server.scheme=http
-      - traefik.http.routers.{{ container_name }}-http.service={{ container_name }}
-      - traefik.http.routers.{{ container_name }}-http.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name }}-http.entrypoints={{ traefik_entrypoint }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=80
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ container_name }}-https.service={{ container_name }}
-      - traefik.http.routers.{{ container_name }}-https.rule=Host(`{{ traefik_host }}`)
-      - traefik.http.routers.{{ container_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
-      - traefik.http.routers.{{ container_name }}-https.tls=true
-      - traefik.http.routers.{{ container_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
+      {% if registry_enabled %}
+      - traefik.http.services.{{ service_name }}_registry.loadBalancer.server.port=5000
+      - traefik.http.routers.{{ service_name }}_registry-http.service={{ service_name }}_registry
+      - traefik.http.routers.{{ service_name }}_registry-http.rule=Host(`{{ traefik_registry_host }}`)
+      - traefik.http.routers.{{ service_name }}_registry-http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}_registry-https.service={{ service_name }}_registry
+      - traefik.http.routers.{{ service_name }}_registry-https.rule=Host(`{{ traefik_registry_host }}`)
+      - traefik.http.routers.{{ service_name }}_registry-https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_registry-https.tls=true
+      - traefik.http.routers.{{ service_name }}_registry-https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+      {% endif %}
+    {% endif %}
+    {#
+      Docker Swarm configuration (only when swarm_enabled is set):
+      - Configs: GitLab configuration file
+      - Secrets: Root password and registry secret (if registry enabled)
+      - Deploy: Replication, placement, restart policy, and Traefik labels
+    #}
+    {% if swarm_enabled %}
+    configs:
+      - source: gitlab_config
+        target: /etc/gitlab/gitlab.rb
+    secrets:
+      - source: {{ service_name }}_root_password
+        target: /run/secrets/gitlab_root_password
+        mode: 0400
+      {% if registry_enabled %}
+      - source: {{ service_name }}_registry_secret
+        target: /run/secrets/gitlab_registry_secret
+        mode: 0400
+      {% endif %}
+    deploy:
+      mode: replicated
+      replicas: 1
+      {% if swarm_placement_host %}
+      placement:
+        constraints:
+          - node.hostname == {{ swarm_placement_host }}
+      {% endif %}
+      restart_policy:
+        condition: on-failure
+      {% if traefik_enabled %}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network={{ traefik_network }}
+        - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=80
+        - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+        - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+        - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+        - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+        - traefik.http.routers.{{ service_name }}_https.tls=true
+        - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+        {% if registry_enabled %}
+        - traefik.http.services.{{ service_name }}_registry.loadBalancer.server.port=5000
+        - traefik.http.routers.{{ service_name }}_registry-http.service={{ service_name }}_registry
+        - traefik.http.routers.{{ service_name }}_registry-http.rule=Host(`{{ traefik_registry_host }}`)
+        - traefik.http.routers.{{ service_name }}_registry-http.entrypoints=web
+        {% if traefik_tls_enabled %}
+        - traefik.http.routers.{{ service_name }}_registry-https.service={{ service_name }}_registry
+        - traefik.http.routers.{{ service_name }}_registry-https.rule=Host(`{{ traefik_registry_host }}`)
+        - traefik.http.routers.{{ service_name }}_registry-https.entrypoints=websecure
+        - traefik.http.routers.{{ service_name }}_registry-https.tls=true
+        - traefik.http.routers.{{ service_name }}_registry-https.tls.certresolver={{ traefik_tls_certresolver }}
+        {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+{#
+  Volume definitions:
+  - When volume_mode is 'local' (default): use docker-managed local volumes
+  - When volume_mode is 'nfs': configure NFS-backed volumes
+  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
+#}
+{% if volume_mode == 'local' %}
+volumes:
+  {{ service_name }}_config:
+    driver: local
+  {{ service_name }}_logs:
+    driver: local
+  {{ service_name }}_data:
+    driver: local
+{% elif volume_mode == 'nfs' %}
+volumes:
+  {{ service_name }}_config:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/config"
+  {{ service_name }}_logs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/logs"
+  {{ service_name }}_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
+      device: ":{{ volume_nfs_path }}/data"
+{% endif %}
+
+{#
+  Docker Swarm configs and secrets (only when swarm_enabled is set):
+  - Config: GitLab configuration file
+  - Secrets: Root password and registry secret (if registry enabled)
+#}
+{% if swarm_enabled %}
+configs:
+  gitlab_config:
+    file: ./config/gitlab.rb
+
+secrets:
+  {{ service_name }}_root_password:
+    file: ./.env.secret
   {% if registry_enabled %}
-      - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.port={{ ports_registry }}
-      - traefik.http.services.{{ container_name }}-registry.loadbalancer.server.scheme=http
-      - traefik.http.routers.{{ container_name }}-registry-http.service={{ container_name }}-registry
-      - traefik.http.routers.{{ container_name }}-registry-http.rule=Host(`{{ traefik_registry_host }}`)
-      - traefik.http.routers.{{ container_name }}-registry-http.entrypoints={{ traefik_entrypoint }}
-      {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ container_name }}-registry-https.service={{ container_name }}-registry
-      - traefik.http.routers.{{ container_name }}-registry-https.rule=Host(`{{ traefik_registry_host }}`)
-      - traefik.http.routers.{{ container_name }}-registry-https.entrypoints={{ traefik_tls_entrypoint }}
-      - traefik.http.routers.{{ container_name }}-registry-https.tls=true
-      - traefik.http.routers.{{ container_name }}-registry-https.tls.certresolver={{ traefik_tls_certresolver }}
-      {% endif %}
+  {{ service_name }}_registry_secret:
+    file: ./.env.registry.secret
   {% endif %}
 {% endif %}
-    restart: {{ restart_policy }}
 
-volumes:
-  gitlab-config:
-    driver: local
-  gitlab-logs:
-    driver: local
-  gitlab-data:
-    driver: local
-
+{#
+  Network definitions (only when Traefik is enabled):
+  - Traefik network: always external (managed by Traefik)
+#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

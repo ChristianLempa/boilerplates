@@ -4,7 +4,9 @@ This module defines specific exception types for better error handling
 and diagnostics throughout the application.
 """
 
-from typing import Optional, List, Dict
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 
 
 class BoilerplatesError(Exception):
@@ -34,7 +36,7 @@ class TemplateError(BoilerplatesError):
 class TemplateNotFoundError(TemplateError):
     """Raised when a template cannot be found."""
 
-    def __init__(self, template_id: str, module_name: Optional[str] = None):
+    def __init__(self, template_id: str, module_name: str | None = None):
         self.template_id = template_id
         self.module_name = module_name
         msg = f"Template '{template_id}' not found"
@@ -64,7 +66,7 @@ class TemplateLoadError(TemplateError):
 class TemplateSyntaxError(TemplateError):
     """Raised when a Jinja2 template has syntax errors."""
 
-    def __init__(self, template_id: str, errors: List[str]):
+    def __init__(self, template_id: str, errors: list[str]):
         self.template_id = template_id
         self.errors = errors
         msg = f"Jinja2 syntax errors in template '{template_id}':\n" + "\n".join(errors)
@@ -101,37 +103,43 @@ class IncompatibleSchemaVersionError(TemplateError):
         super().__init__(msg)
 
 
+@dataclass
+class RenderErrorContext:
+    """Context information for template rendering errors."""
+
+    file_path: str | None = None
+    line_number: int | None = None
+    column: int | None = None
+    context_lines: list[str] = field(default_factory=list)
+    variable_context: dict[str, str] = field(default_factory=dict)
+    suggestions: list[str] = field(default_factory=list)
+    original_error: Exception | None = None
+
+
 class TemplateRenderError(TemplateError):
     """Raised when template rendering fails."""
 
-    def __init__(
-        self,
-        message: str,
-        file_path: Optional[str] = None,
-        line_number: Optional[int] = None,
-        column: Optional[int] = None,
-        context_lines: Optional[List[str]] = None,
-        variable_context: Optional[Dict[str, str]] = None,
-        suggestions: Optional[List[str]] = None,
-        original_error: Optional[Exception] = None,
-    ):
-        self.file_path = file_path
-        self.line_number = line_number
-        self.column = column
-        self.context_lines = context_lines or []
-        self.variable_context = variable_context or {}
-        self.suggestions = suggestions or []
-        self.original_error = original_error
+    def __init__(self, message: str, context: RenderErrorContext | None = None):
+        self.context = context or RenderErrorContext()
+
+        # Expose context fields as instance attributes for backward compatibility
+        self.file_path = self.context.file_path
+        self.line_number = self.context.line_number
+        self.column = self.context.column
+        self.context_lines = self.context.context_lines
+        self.variable_context = self.context.variable_context
+        self.suggestions = self.context.suggestions
+        self.original_error = self.context.original_error
 
         # Build enhanced error message
         parts = [message]
 
-        if file_path:
-            location = f"File: {file_path}"
-            if line_number:
-                location += f", Line: {line_number}"
-                if column:
-                    location += f", Column: {column}"
+        if self.context.file_path:
+            location = f"File: {self.context.file_path}"
+            if self.context.line_number:
+                location += f", Line: {self.context.line_number}"
+                if self.context.column:
+                    location += f", Column: {self.context.column}"
             parts.append(location)
 
         super().__init__("\n".join(parts))
@@ -188,6 +196,17 @@ class ModuleLoadError(ModuleError):
     """Raised when a module fails to load."""
 
     pass
+
+
+class SchemaError(BoilerplatesError):
+    """Raised when schema operations fail."""
+
+    def __init__(self, message: str, details: str | None = None):
+        self.details = details
+        msg = message
+        if details:
+            msg += f" ({details})"
+        super().__init__(msg)
 
 
 class FileOperationError(BoilerplatesError):

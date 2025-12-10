@@ -1,0 +1,35 @@
+---
+kind: ansible
+schema: "1.0"
+metadata:
+  icon:
+    provider: selfh
+    id: docker
+  name: Enable Docker TLS
+  description: >
+    Ansible playbook to enable TLS on Docker daemon using existing certificates.
+    Configures Docker to use TLS for secure remote access.
+
+
+    Project: https://www.docker.com
+
+    Documentation: https://docs.docker.com/engine/security/protect-access/
+  version: 1.0.0
+  author: Christian Lempa
+  date: '2025-11-11'
+  draft: true
+spec:
+  general:
+    vars:
+      playbook_name:
+        default: Docker Certs enable
+      become:
+        default: true
+  certificates:
+    title: Certificate Configuration
+    required: true
+    vars:
+      certs_path:
+        type: str
+        description: Path where certificates are stored
+        default: /root/docker-certs

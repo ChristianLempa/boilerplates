@@ -1,40 +1,43 @@
+---
 services:
-  loki:
-    container_name: loki
+  {{ service_name }}:
     image: docker.io/grafana/loki:3.5.8
+    restart: {{ restart_policy }}
     command: "-config.file=/etc/loki/config.yaml"
+    {% if not traefik_enabled %}
     ports:
-      # --> (Optional) Remove when using traefik...
-      - "3100:3100"
-      # <--
+      - "{{ ports_http }}:3100"
+    {% endif %}
     volumes:
+      - {{ service_name }}_data:/loki:rw
       - ./config/config.yaml:/etc/loki/config.yaml:ro
-      - data_loki:/loki:rw
-    # --> (Optional) When using traefik...
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.docker.network=frontend
-    #   # -- Traefik Services
-    #   - traefik.http.services.loki.loadbalancer.server.port=3100
-    #   # -- Traefik Routers
-    #   - traefik.http.routers.loki.entrypoints=websecure
-    #   - traefik.http.routers.loki.rule=Host(`loki-fqdn`)
-    #   - traefik.http.routers.loki.tls=true
-    #   - traefik.http.routers.loki.tls.certresolver=cloudflare
-    #   - traefik.http.routers.loki.service=loki
-    #   # -- (Optional) Authentication
-    #   # - traefik.http.routers.loki.middlewares=authentik-middleware@file
-    # networks:
-    #   - frontend
-    # <--
-    restart: unless-stopped
+    {% if traefik_enabled %}
+    networks:
+      {{ traefik_network }}:
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=3100
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% endif %}
 
 volumes:
-  data_loki:
+  {{ service_name }}_data:
     driver: local
 
-# --> (Optional) When using traefik...
-# networks:
-#   frontend:
-#     external: true
-# <--
+{% if traefik_enabled %}
+networks:
+  {{ traefik_network }}:
+    external: true
+{% endif %}
