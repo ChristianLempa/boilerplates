@@ -98,7 +98,7 @@ class PromptHandler:
                 if self._should_skip_variable(var_name, section, variables, section_enabled):
                     continue
 
-                self._collect_variable_value(variable, section, collected)
+                self._collect_variable_value(variable, collected)
 
         logger.info(f"Variable collection completed. Collected {len(collected)} values")
         return collected
