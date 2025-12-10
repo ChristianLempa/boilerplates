@@ -59,7 +59,7 @@ class PromptHandler:
 
         return False
 
-    def _collect_variable_value(self, variable: Variable, section, collected: dict[str, Any]) -> None:
+    def _collect_variable_value(self, variable: Variable, collected: dict[str, Any]) -> None:
         """Collect a single variable value and update if changed."""
         current_value = variable.convert(variable.value)
         new_value = self._prompt_variable(variable, _required=False)
