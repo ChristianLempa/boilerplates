@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+...
+
+## [0.1.0] - 2025-12-10
+
 ### Added
 - Variable file support with `--var-file` flag (#1331) - Load variables from YAML file for non-interactive deployments
 - Variable override support for `show` command with `--var` and `--var-file` flags (#1421) - Preview variable overrides before generating
