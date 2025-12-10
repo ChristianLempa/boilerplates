@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: checkmk/check-mk-raw:2.4.0p17
+    image: checkmk/check-mk-raw:2.4.0
     restart: {{ restart_policy }}
     environment:
       {% if container_timezone %}
