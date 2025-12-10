@@ -77,12 +77,7 @@ class PromptHandler:
 
     def _handle_section_toggle(self, section, collected: dict[str, Any]) -> bool:
         """Handle section toggle prompt and return whether section will be enabled."""
-        # Required sections are always enabled
-        if section.required:
-            logger.debug(f"Processing required section '{section.key}' without toggle prompt")
-            return True
-
-        # Handle optional sections with toggle
+        # Handle sections with toggle
         if not section.toggle:
             return True
 
@@ -92,7 +87,7 @@ class PromptHandler:
 
         # Prompt for toggle variable
         current_value = toggle_var.convert(toggle_var.value)
-        new_value = self._prompt_variable(toggle_var, required=section.required)
+        new_value = self._prompt_variable(toggle_var, required=False)
 
         if new_value != current_value:
             collected[toggle_var.name] = new_value
