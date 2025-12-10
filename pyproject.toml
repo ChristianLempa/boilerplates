@@ -32,6 +32,9 @@ boilerplates = "cli.__main__:run"
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
 
+[tool.setuptools.package-data]
+cli = ["core/schema/**/*.json"]
+
 [tool.ruff]
 # Extended line length for better readability
 line-length = 120

@@ -1,6 +1,9 @@
 # Include library directory with all templates
 recursive-include library *
 
+# Include JSON schema files
+recursive-include cli/core/schema *.json
+
 # Include documentation
 include README.md
 include LICENSE
