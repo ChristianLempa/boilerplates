@@ -25,6 +25,7 @@ spec:
   general:
     vars:
       resource_name:
+        type: str
         default: app-middleware
       namespace:
         default: default
@@ -33,6 +34,3 @@ spec:
         type: enum
         default: redirectScheme
         options: [redirectScheme, stripPrefix, addPrefix, headers, rateLimit]
-      resource_name:
-        type: str
-        default: app-middleware

@@ -57,4 +57,3 @@ spec:
         type: str
         description: Checkmk Host Name
         required: true
-  
