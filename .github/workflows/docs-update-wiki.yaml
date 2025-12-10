@@ -4,7 +4,7 @@ name: Docs - Update Wiki
 'on':
   push:
     branches:
-      - release/v0.1.0  # TODO: Switch to 'main' after v0.1.0 release
+      - main
     paths:
       - 'cli/core/schema/**/*.json'  # JSON schema files
       - '.wiki/**'  # Static wiki pages
