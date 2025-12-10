@@ -3,7 +3,8 @@ kind: helm
 metadata:
   name: Longhorn
   description: |-
-    Helm values template for Longhorn, a distributed block storage system for Kubernetes that provides persistent storage with built-in backup and disaster recovery.
+    Helm values template for Longhorn, a distributed block storage system for Kubernetes.
+    Provides persistent storage with built-in backup and disaster recovery.
 
     Chart Repository: https://charts.longhorn.io
     Chart Name: longhorn
