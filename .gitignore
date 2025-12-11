@@ -29,5 +29,4 @@ dist/
 .installed-version
 
 # Test outputs
-tests/
 config.yaml

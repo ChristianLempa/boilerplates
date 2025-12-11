@@ -91,3 +91,19 @@ line-ending = "lf"
 # CLI command functions need many parameters for command-line arguments
 "cli/core/module/base_module.py" = ["PLR0913"]  # generate() needs all CLI options
 "cli/core/repo.py" = ["PLR0913"]                # add() needs all library config options
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
