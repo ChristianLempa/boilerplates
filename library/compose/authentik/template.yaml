@@ -26,9 +26,9 @@ metadata:
     Username: akadmin
     Password: {{ authentik_admin_password }}
     ```
-  version: 2025.10.1
+  version: 2025.10.2
   author: Christian Lempa
-  date: '2025-11-05'
+  date: '2025-12-11'
   tags:
     - traefik
     - volume
