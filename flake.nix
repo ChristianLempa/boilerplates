@@ -17,7 +17,7 @@
 
         boilerplates = pkgs.python3Packages.buildPythonApplication {
           pname = "boilerplates";
-          version = "0.0.6";
+          version = "0.1.2";
 
           src = ./.;
 
@@ -34,6 +34,7 @@
             pyyaml
             python-frontmatter
             jinja2
+            email-validator
           ];
 
           meta = with pkgs.lib; {

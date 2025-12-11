@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Fixed AttributeError caused by code trying to access a deprecated `section.required` attribute that no longer exists on VariableSection objects.
+## [0.1.2] - 2025-12-11
+
+### Fixed
+- Nix flake missing `email-validator` dependency causing build failures (#1573)
 
 ## [0.1.0] - 2025-12-10
 
@@ -111,7 +113,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release with core CLI functionality.
 
-[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.0.7...HEAD
+[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/christianlempa/boilerplates/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/christianlempa/boilerplates/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/christianlempa/boilerplates/compare/v0.0.7...v0.1.0
 [0.0.7]: https://github.com/christianlempa/boilerplates/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/christianlempa/boilerplates/releases/tag/v0.0.6
 [0.0.4]: https://github.com/christianlempa/boilerplates/releases/tag/v0.0.4
