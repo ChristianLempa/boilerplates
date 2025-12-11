@@ -18,9 +18,9 @@ metadata:
     Username: {{ influxdb_init_username }}
     Password: {{ influxdb_init_password }}
     ```
-  version: 2.7.12-alpine
+  version: 2.8.0-alpine
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-12-11'
   tags:
     - traefik
   draft: true

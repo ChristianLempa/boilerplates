@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/library/influxdb:2.7.12-alpine
+    image: docker.io/library/influxdb:2.8.0-alpine
     restart: {{ restart_policy }}
     environment:
       - TZ={{ container_timezone }}
