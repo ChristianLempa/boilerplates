@@ -1,6 +1,6 @@
 services:
   {{ service_name }}-app:
-    image: docker.io/library/nextcloud:31.0.10-apache
+    image: docker.io/library/nextcloud:31.0.11-apache
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}-app
