@@ -20,9 +20,9 @@ metadata:
   icon:
     provider: selfh
     id: adguard-home
-  version: v0.107.69
+  version: v0.107.71
   author: Christian Lempa
-  date: '2025-11-13'
+  date: '2025-12-11'
   tags:
     - traefik
     - network
