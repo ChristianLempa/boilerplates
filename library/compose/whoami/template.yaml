@@ -30,7 +30,5 @@ spec:
         default: whoami
   traefik:
     vars:
-      traefik_enabled:
-        default: true
       traefik_host:
         default: whoami
