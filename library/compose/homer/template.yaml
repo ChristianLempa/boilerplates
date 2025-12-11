@@ -13,9 +13,9 @@ metadata:
     Project: https://github.com/bastienwirtz/homer
 
     Documentation: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
-  version: v25.10.1
+  version: v25.11.1
   author: Christian Lempa
-  date: '2025-10-31'
+  date: '2025-12-11'
   tags:
     - traefik
     - swarm
