@@ -16,9 +16,9 @@ metadata:
     Documentation: https://www.postgresql.org/docs/
 
     GitHub: https://github.com/postgres/postgres
-  version: 17.6
+  version: 18.1
   author: Christian Lempa
-  date: '2025-09-28'
+  date: '2025-12-11'
   tags:
     - swarm
   draft: true
