@@ -12,9 +12,9 @@ metadata:
     * **Project:** https://grafana.com/oss/loki/
     * **Documentation:** https://grafana.com/docs/loki/latest/
     * **GitHub:** https://github.com/grafana/loki
-  version: 3.5.8
+  version: 3.6.2
   author: Christian Lempa
-  date: '2025-11-07'
+  date: '2025-12-11'
   tags:
     - traefik
     - authentik
