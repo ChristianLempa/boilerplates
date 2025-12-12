@@ -10,9 +10,9 @@ metadata:
     - **Project:** https://netbox.dev/
     - **Documentation:** https://docs.netbox.dev/
     - **GitHub:** https://github.com/netbox-community/netbox
-  version: v4.2.9
+  version: v4.4.8
   author: Christian Lempa
-  date: '2025-12-11'
+  date: '2025-12-12'
   tags:
     - traefik
     - database
