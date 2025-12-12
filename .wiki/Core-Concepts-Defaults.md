@@ -49,7 +49,7 @@ Default Variables (Compose):
 Save a default value:
 
 ```bash
-boilerplates compose defaults set container_timezone "America/New_York"
+boilerplates compose defaults set container_timezone="America/New_York"
 ```
 
 Response:
@@ -65,16 +65,16 @@ Set default: container_timezone = America/New_York
 **Examples:**
 ```bash
 # String
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set restart_policy="unless-stopped"
 
 # Integer
-boilerplates compose defaults set user_uid 1000
+boilerplates compose defaults set user_uid=1000
 
 # Boolean
-boilerplates compose defaults set traefik_enabled true
+boilerplates compose defaults set traefik_enabled=true
 
 # String with spaces
-boilerplates compose defaults set container_hostname "my app server"
+boilerplates compose defaults set container_hostname="my app server"
 ```
 
 ### Get a Default
@@ -166,7 +166,7 @@ boilerplates compose defaults list
 Set your local timezone once:
 
 ```bash
-boilerplates compose defaults set container_timezone "Europe/Berlin"
+boilerplates compose defaults set container_timezone="Europe/Berlin"
 ```
 
 Now all Docker containers use your timezone by default.
@@ -176,8 +176,8 @@ Now all Docker containers use your timezone by default.
 Standardize network settings:
 
 ```bash
-boilerplates compose defaults set network_external true
-boilerplates compose defaults set network_name "docker-network"
+boilerplates compose defaults set network_external=true
+boilerplates compose defaults set network_name="docker-network"
 ```
 
 ### Traefik Configuration
@@ -185,9 +185,9 @@ boilerplates compose defaults set network_name "docker-network"
 Set common Traefik values:
 
 ```bash
-boilerplates compose defaults set traefik_network "traefik"
-boilerplates compose defaults set traefik_domain "example.com"
-boilerplates compose defaults set traefik_tls_certresolver "cloudflare"
+boilerplates compose defaults set traefik_network="traefik"
+boilerplates compose defaults set traefik_domain="example.com"
+boilerplates compose defaults set traefik_tls_certresolver="cloudflare"
 ```
 
 ### User IDs
@@ -195,8 +195,8 @@ boilerplates compose defaults set traefik_tls_certresolver "cloudflare"
 Match your host user:
 
 ```bash
-boilerplates compose defaults set user_uid $(id -u)
-boilerplates compose defaults set user_gid $(id -g)
+boilerplates compose defaults set user_uid=$(id -u)
+boilerplates compose defaults set user_gid=$(id -g)
 ```
 
 ### Restart Policy
@@ -204,7 +204,7 @@ boilerplates compose defaults set user_gid $(id -g)
 Standardize container behavior:
 
 ```bash
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set restart_policy="unless-stopped"
 ```
 
 ## Overriding Defaults
@@ -237,13 +237,13 @@ Each module has its own defaults:
 
 ```bash
 # Compose defaults
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set restart_policy="unless-stopped"
 
 # Terraform defaults (separate)
-boilerplates terraform defaults set region "us-east-1"
+boilerplates terraform defaults set region="us-east-1"
 
 # Ansible defaults (separate)
-boilerplates ansible defaults set become true
+boilerplates ansible defaults set become=true
 ```
 
 Defaults don't transfer between modules—they're module-specific.
@@ -303,10 +303,10 @@ Set defaults programmatically:
 #!/bin/bash
 
 # Set common defaults
-boilerplates compose defaults set container_timezone "$(cat /etc/timezone)"
-boilerplates compose defaults set user_uid "$(id -u)"
-boilerplates compose defaults set user_gid "$(id -g)"
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set container_timezone="$(cat /etc/timezone)"
+boilerplates compose defaults set user_uid="$(id -u)"
+boilerplates compose defaults set user_gid="$(id -g)"
+boilerplates compose defaults set restart_policy="unless-stopped"
 ```
 
 ## Troubleshooting
@@ -365,16 +365,16 @@ Set these common defaults:
 
 ```bash
 # System
-boilerplates compose defaults set container_timezone "$(cat /etc/timezone)"
-boilerplates compose defaults set user_uid $(id -u)
-boilerplates compose defaults set user_gid $(id -g)
+boilerplates compose defaults set container_timezone="$(cat /etc/timezone)"
+boilerplates compose defaults set user_uid=$(id -u)
+boilerplates compose defaults set user_gid=$(id -g)
 
 # Containers
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set restart_policy="unless-stopped"
 
 # Networking (if using external networks)
-boilerplates compose defaults set network_external true
-boilerplates compose defaults set network_name "docker-network"
+boilerplates compose defaults set network_external=true
+boilerplates compose defaults set network_name="docker-network"
 ```
 
 ### Don't Over-Configure
