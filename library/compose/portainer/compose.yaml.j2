@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/portainer/portainer-ce:2.35.0-alpine
+    image: docker.io/portainer/portainer-ce:2.37.0-alpine
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     {% endif %}
