@@ -98,8 +98,8 @@ Save time by setting default values for variables you use frequently:
 
 ```bash
 # Set a default value
-boilerplates compose defaults set container_timezone "America/New_York"
-boilerplates compose defaults set restart_policy "unless-stopped"
+boilerplates compose defaults set container_timezone="America/New_York"
+boilerplates compose defaults set restart_policy="unless-stopped"
 
 ```
 

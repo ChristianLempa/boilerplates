@@ -176,7 +176,7 @@ Save frequently used values to avoid repetitive typing:
 
 ```bash
 # Set a default value
-boilerplates compose defaults set container_timezone "America/New_York"
+boilerplates compose defaults set container_timezone="America/New_York"
 
 # View all defaults
 boilerplates compose defaults list
