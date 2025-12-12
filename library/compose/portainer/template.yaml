@@ -13,9 +13,9 @@ metadata:
     - **Project:** https://www.portainer.io/
     - **Documentation:** https://docs.portainer.io/
     - **GitHub:** https://github.com/portainer/portainer
-  version: 2.35.0-alpine
+  version: 2.37.0-alpine
   author: Christian Lempa
-  date: '2025-10-31'
+  date: '2025-12-12'
   tags:
     - traefik
     - swarm
