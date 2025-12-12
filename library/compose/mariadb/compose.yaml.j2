@@ -2,7 +2,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/library/mariadb:12.0.2
+    image: docker.io/library/mariadb:12.1.2
     restart: {{ restart_policy }}
     environment:
       - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
