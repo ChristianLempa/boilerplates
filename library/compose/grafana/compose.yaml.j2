@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/grafana/grafana-oss:12.1.1
+    image: docker.io/grafana/grafana-oss:12.3.1
     restart: {{ restart_policy }}
     {% if database_type != 'sqlite' or authentik_enabled %}
     environment:
