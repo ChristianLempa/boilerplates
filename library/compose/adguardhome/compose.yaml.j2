@@ -17,14 +17,6 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {#
-      Port mappings (only in bridge mode or default network):
-      - HTTP/HTTPS (80/443) ports are only exposed when Traefik is disabled
-      - Initial setup port 3000 is exposed during first-time setup (when not using Traefik)
-      - DNS and related ports (53, 853, 5443) are always exposed
-      - In host or macvlan mode, ports are bound directly to host network
-      Note: When using Traefik, access initial setup via container IP:3000 before DNS is configured
-    #}
     {% if not network_mode or network_mode == 'bridge' or traefik_enabled %}
     ports:
       {% if not traefik_enabled %}
@@ -71,16 +63,6 @@ services:
     {% endif %}
 
 {% if network_mode == 'bridge' or network_mode == 'macvlan' or traefik_enabled %}
-{#
-  Network definitions:
-  - 'bridge' mode: creates custom bridge network
-  - 'macvlan' mode: creates macvlan network with static IP assignment
-    (requires manual network creation in Swarm mode)
-  - Swarm overlay: used when swarm_enabled=true with bridge mode
-  - Traefik network: always external (managed separately by Traefik stack)
-  - Default mode (network_mode=''): uses Docker's default bridge (no definition needed)
-  - Host mode: no network definition (container uses host network stack directly)
-#}
 networks:
   {% if network_mode == 'bridge' or network_mode == 'macvlan'%}
   {{ network_name }}:
@@ -108,12 +90,6 @@ networks:
 {% endif %}
 
 {% if volume_mode == 'local' %}
-{#
-  Volume definitions:
-  - 'local' mode: Docker-managed local volumes
-  - 'nfs' mode: NFS-backed volumes for shared storage
-  - 'mount' mode: bind mounts (no volume definition needed)
-#}
 volumes:
   {{ service_name }}_work:
     driver: local
