@@ -38,12 +38,14 @@ services:
       - "--entrypoints.metrics.address=:9090"
       {% endif %}
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.encodedCharacters.allowEncodedSlash=true"
       {% if traefik_tls_enabled and traefik_tls_redirect %}
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       {% endif %}
       {% if traefik_tls_enabled %}
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.encodedCharacters.allowEncodedSlash=true"
       - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.email={{ traefik_tls_acme_email }}"
       - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.caServer=https://acme-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.{{ traefik_tls_certresolver }}.acme.dnsChallenge.provider={{ traefik_tls_certresolver }}"
