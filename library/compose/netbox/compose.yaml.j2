@@ -153,7 +153,7 @@ services:
 
   {% if not database_external %}
   {{ service_name }}_postgres:
-    image: docker.io/library/postgres:17.6
+    image: docker.io/library/postgres:17.7
     restart: {{ restart_policy }}
     environment:
       {% if container_timezone %}
