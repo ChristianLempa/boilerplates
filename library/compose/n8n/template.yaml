@@ -23,9 +23,9 @@ metadata:
     - **Project**: https://n8n.io/
     - **Documentation**: https://docs.n8n.io/
     - **GitHub**: https://github.com/n8n-io/n8n
-  version: 7-alpine
+  version: 8-alpine
   author: Christian Lempa
-  date: '2025-12-11'
+  date: '2025-12-17'
   tags:
     - traefik
     - database
