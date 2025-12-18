@@ -4,7 +4,15 @@ This package provides Template, VariableCollection, VariableSection, and Variabl
 classes for managing templates and their variables.
 """
 
-from .template import Template, TemplateErrorHandler, TemplateFile, TemplateMetadata
+from .template import (
+    TEMPLATE_STATUS_DRAFT,
+    TEMPLATE_STATUS_INVALID,
+    TEMPLATE_STATUS_PUBLISHED,
+    Template,
+    TemplateErrorHandler,
+    TemplateFile,
+    TemplateMetadata,
+)
 from .variable import Variable
 from .variable_collection import VariableCollection
 from .variable_section import VariableSection
@@ -17,4 +25,7 @@ __all__ = [
     "Variable",
     "VariableCollection",
     "VariableSection",
+    "TEMPLATE_STATUS_PUBLISHED",
+    "TEMPLATE_STATUS_DRAFT",
+    "TEMPLATE_STATUS_INVALID",
 ]

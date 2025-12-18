@@ -42,6 +42,11 @@ from .variable_collection import VariableCollection
 
 logger = logging.getLogger(__name__)
 
+# Template Status Constants
+TEMPLATE_STATUS_PUBLISHED = "published"
+TEMPLATE_STATUS_DRAFT = "draft"
+TEMPLATE_STATUS_INVALID = "invalid"
+
 
 class TemplateErrorHandler:
     """Handles parsing and formatting of template rendering errors.
@@ -908,3 +913,17 @@ class Template:
             # Sort sections: required first, then enabled, then disabled
             self.__variables.sort_sections()
         return self.__variables
+
+    @property
+    def status(self) -> str:
+        """Get the status of the template.
+        
+        Returns:
+            Status string: 'published', 'draft', or 'invalid'
+        """
+        # Check if template is marked as draft in metadata
+        if self.metadata.draft:
+            return TEMPLATE_STATUS_DRAFT
+        
+        # Template is published (valid and not draft)
+        return TEMPLATE_STATUS_PUBLISHED
