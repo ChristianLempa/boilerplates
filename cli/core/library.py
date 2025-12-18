@@ -53,17 +53,21 @@ class Library:
             return False
 
     def find_by_id(self, module_name: str, template_id: str) -> tuple[Path, str]:
-        """Find a template by its ID in this library.
+        """Find a template by its ID in this library for generation/show operations.
+
+        Note: Draft templates are intentionally excluded from this method.
+        They are visible in list/search commands (via find()) but cannot be
+        used for generation as they are work-in-progress.
 
         Args:
             module_name: The module name (e.g., 'compose', 'terraform')
             template_id: The template ID to find
 
         Returns:
-            Path to the template directory if found
+            Path to the template directory if found and not draft
 
         Raises:
-            FileNotFoundError: If the template ID is not found in this library or is marked as draft
+            TemplateNotFoundError: If the template ID is not found in this library or is marked as draft
         """
         logger.debug(f"Looking for template '{template_id}' in module '{module_name}' in library '{self.name}'")
 
@@ -75,6 +79,7 @@ class Library:
             (template_path / f).exists() for f in ("template.yaml", "template.yml")
         )
 
+        # Draft templates are not available for generation/show operations
         if not has_template or self._is_template_draft(template_path):
             raise TemplateNotFoundError(template_id, module_name)
 

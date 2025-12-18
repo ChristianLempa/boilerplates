@@ -919,7 +919,11 @@ class Template:
         """Get the status of the template.
 
         Returns:
-            Status string: 'published', 'draft', or 'invalid'
+            Status string: 'published' or 'draft'
+
+        Note:
+            The 'invalid' status is reserved for future use when template validation
+            is implemented without impacting list command performance.
         """
         # Check if template is marked as draft in metadata
         if self.metadata.draft:
