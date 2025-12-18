@@ -917,13 +917,13 @@ class Template:
     @property
     def status(self) -> str:
         """Get the status of the template.
-        
+
         Returns:
             Status string: 'published', 'draft', or 'invalid'
         """
         # Check if template is marked as draft in metadata
         if self.metadata.draft:
             return TEMPLATE_STATUS_DRAFT
-        
+
         # Template is published (valid and not draft)
         return TEMPLATE_STATUS_PUBLISHED

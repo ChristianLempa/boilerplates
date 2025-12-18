@@ -19,7 +19,6 @@ from ..exceptions import (
 from ..input import InputManager
 from ..template import (
     TEMPLATE_STATUS_DRAFT,
-    TEMPLATE_STATUS_INVALID,
     TEMPLATE_STATUS_PUBLISHED,
     Template,
 )
@@ -88,7 +87,7 @@ def list_templates(module_instance, raw: bool = False) -> list:
                 tags_list = template.metadata.tags or []
                 tags = ", ".join(tags_list) if tags_list else "-"
                 version = str(template.metadata.version) if template.metadata.version else ""
-                
+
                 # Get status and format it
                 status = template.status
                 if status == TEMPLATE_STATUS_PUBLISHED:
@@ -97,7 +96,7 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     status_display = "[dim]Draft[/dim]"
                 else:  # TEMPLATE_STATUS_INVALID
                     status_display = "[red]Invalid[/red]"
-                
+
                 schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
                 library_name = template.metadata.library or ""
                 library_type = template.metadata.library_type or "git"
@@ -105,7 +104,7 @@ def list_templates(module_instance, raw: bool = False) -> list:
                 icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
                 color = "yellow" if library_type == "static" else "blue"
                 library_display = f"[{color}]{icon} {library_name}[/{color}]"
-                
+
                 # Apply dimmed style to entire row if draft
                 if status == TEMPLATE_STATUS_DRAFT:
                     template_id = f"[dim]{template.id}[/dim]"
@@ -116,7 +115,7 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     library_display = f"[dim]{icon} {library_name}[/dim]"
                 else:
                     template_id = template.id
-                
+
                 return (template_id, name, tags, version, status_display, schema, library_display)
 
             module_instance.display.data_table(
@@ -157,7 +156,7 @@ def search_templates(module_instance, query: str) -> list:
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
             version = str(template.metadata.version) if template.metadata.version else ""
-            
+
             # Get status and format it
             status = template.status
             if status == TEMPLATE_STATUS_PUBLISHED:
@@ -166,7 +165,7 @@ def search_templates(module_instance, query: str) -> list:
                 status_display = "[dim]Draft[/dim]"
             else:  # TEMPLATE_STATUS_INVALID
                 status_display = "[red]Invalid[/red]"
-            
+
             schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
@@ -174,7 +173,7 @@ def search_templates(module_instance, query: str) -> list:
             icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
-            
+
             # Apply dimmed style to entire row if draft
             if status == TEMPLATE_STATUS_DRAFT:
                 template_id = f"[dim]{template.id}[/dim]"
@@ -185,7 +184,7 @@ def search_templates(module_instance, query: str) -> list:
                 library_display = f"[dim]{icon} {library_name}[/dim]"
             else:
                 template_id = template.id
-            
+
             return (template_id, name, tags, version, status_display, schema, library_display)
 
         module_instance.display.data_table(

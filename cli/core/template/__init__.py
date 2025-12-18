@@ -18,6 +18,9 @@ from .variable_collection import VariableCollection
 from .variable_section import VariableSection
 
 __all__ = [
+    "TEMPLATE_STATUS_DRAFT",
+    "TEMPLATE_STATUS_INVALID",
+    "TEMPLATE_STATUS_PUBLISHED",
     "Template",
     "TemplateErrorHandler",
     "TemplateFile",
@@ -25,7 +28,4 @@ __all__ = [
     "Variable",
     "VariableCollection",
     "VariableSection",
-    "TEMPLATE_STATUS_PUBLISHED",
-    "TEMPLATE_STATUS_DRAFT",
-    "TEMPLATE_STATUS_INVALID",
 ]
