@@ -51,11 +51,13 @@ class TemplateDraftError(TemplateError):
     def __init__(self, template_id: str, module_name: str | None = None):
         self.template_id = template_id
         self.module_name = module_name
-        msg = f"Template '{template_id}' is in draft mode and not yet available for use"
-        if module_name:
-            msg += f" in module '{module_name}'"
-        msg += ".\nDraft templates are work-in-progress and cannot be generated yet."
-        msg += "\nTo get updates when published, run 'boilerplates repo update' to sync your library."
+
+        module_suffix = f" in module '{module_name}'" if module_name else ""
+        msg = (
+            f"Template '{template_id}' is in draft mode and not yet available for use{module_suffix}.\n"
+            "Draft templates are work-in-progress and cannot be generated yet.\n"
+            "To get updates when published, run 'boilerplates repo update' to sync your library."
+        )
         super().__init__(msg)
 
 
