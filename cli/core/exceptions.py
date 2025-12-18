@@ -45,6 +45,20 @@ class TemplateNotFoundError(TemplateError):
         super().__init__(msg)
 
 
+class TemplateDraftError(TemplateError):
+    """Raised when attempting to use a draft template."""
+
+    def __init__(self, template_id: str, module_name: str | None = None):
+        self.template_id = template_id
+        self.module_name = module_name
+        msg = f"Template '{template_id}' is in draft mode and not yet available for use"
+        if module_name:
+            msg += f" in module '{module_name}'"
+        msg += ".\nDraft templates are work-in-progress and cannot be generated yet."
+        msg += "\nTo get updates when published, run 'boilerplates repo update' to sync your library."
+        super().__init__(msg)
+
+
 class DuplicateTemplateError(TemplateError):
     """Raised when duplicate template IDs are found within the same library."""
 

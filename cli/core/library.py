@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from .config import ConfigManager
-from .exceptions import DuplicateTemplateError, LibraryError, TemplateNotFoundError
+from .exceptions import DuplicateTemplateError, LibraryError, TemplateDraftError, TemplateNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,8 @@ class Library:
             Path to the template directory if found and not draft
 
         Raises:
-            TemplateNotFoundError: If the template ID is not found in this library or is marked as draft
+            TemplateDraftError: If the template exists but is marked as draft
+            TemplateNotFoundError: If the template ID is not found in this library
         """
         logger.debug(f"Looking for template '{template_id}' in module '{module_name}' in library '{self.name}'")
 
@@ -79,9 +80,13 @@ class Library:
             (template_path / f).exists() for f in ("template.yaml", "template.yml")
         )
 
-        # Draft templates are not available for generation/show operations
-        if not has_template or self._is_template_draft(template_path):
+        # Template not found at all
+        if not has_template:
             raise TemplateNotFoundError(template_id, module_name)
+
+        # Template exists but is in draft mode
+        if self._is_template_draft(template_path):
+            raise TemplateDraftError(template_id, module_name)
 
         logger.debug(f"Found template '{template_id}' at: {template_path}")
         return template_path, self.name
@@ -255,7 +260,7 @@ class LibraryManager:
                             template_path, lib_name = library.find_by_id(module_name, base_id)
                             logger.debug(f"Found template '{base_id}' in library '{requested_lib}'")
                             return template_path, lib_name
-                        except TemplateNotFoundError:
+                        except (TemplateNotFoundError, TemplateDraftError):
                             logger.debug(f"Template '{base_id}' not found in library '{requested_lib}'")
                             return None
 
@@ -271,6 +276,9 @@ class LibraryManager:
             except TemplateNotFoundError:
                 # Continue searching in next library
                 continue
+            except TemplateDraftError:
+                # Draft error should propagate immediately (don't search other libraries)
+                raise
 
         logger.debug(f"Template '{template_id}' not found in any library")
         return None
