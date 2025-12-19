@@ -8,8 +8,10 @@ metadata:
     It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC support.
     ## Prerequisites
     - :info: During the initial setup, AdGuard Home runs an HTTP server on port 3000 to guide you through configuration.
-    After completing the setup, AdGuard Home switches to the configured HTTP port, and port, consider re-deploying the
-    service with `initial_setup=false`.
+    **With Traefik enabled:** Access initial setup via container IP at `http://<container-ip>:3000`.
+    After setup completes, access the admin interface via the configured domain.
+    - :warning: **Security Notice:** The initial setup on port 3000 uses an unencrypted HTTP connection.
+    Only use this for initial configuration and disable it (`initial_setup=false`) after setup is complete.
     - :warning: If you require DHCP functionality or want AdGuard Home to bind directly to port 53,
     you must set `network_mode` to `host` or `macvlan`. Note this exposes all container ports directly on the host.
     You can't use `traefik_enabled` in this case!
@@ -28,33 +30,31 @@ metadata:
     - network
     - volume
   next_steps:
-  draft: true
 schema: 1.2
 spec:
   general:
     vars:
       service_name:
-        default: "adguardhome"
+        default: adguardhome
       initial_setup:
-        description: "Enable initial setup wizard on port 3000"
+        description: Enable initial setup wizard on port 3000 (only used without Traefik)
         type: bool
         default: true
         extra: >
-          Port 3000 is only used during the initial setup wizard.
-          After completing setup, AdGuard Home switches to the configured HTTP port and port 3000 becomes inactive.
-          Set to false if you've already completed the initial setup.
+          Port 3000 is only used during the initial setup wizard when Traefik is disabled.
+          With Traefik enabled, access setup via container IP instead.
+          After completing setup, AdGuard Home switches to port 80 and port 3000 becomes inactive.
   traefik:
     vars:
       traefik_host:
-        default: "adguardhome"
+        default: adguardhome
   network:
     vars:
       network_mode:
         extra: >
           Use 'host' mode if you need DHCP functionality or want AdGuard Home to bind directly to port 53.
-          NOTE: Swarm only supports 'bridge' mode!
       network_name:
-        default: "adguardhome_network"
+        default: adguardhome_network
   ports:
     vars:
       ports_http:
@@ -62,21 +62,20 @@ spec:
       ports_https:
         default: 443
       ports_initial:
-        description: "Initial setup wizard port"
+        description: Initial setup wizard port (only when Traefik is disabled)
         type: int
         default: 3000
         needs: ["traefik_enabled=false", "initial_setup=true"]
         extra: >
-          Only used during first-time setup. After configuration, port becomes inactive.
-      ports_dns:
-        description: "DNS port"
-        type: int
-        default: 53
+          Only used during first-time setup without Traefik. After configuration, port becomes inactive.
+          With Traefik, access setup via container IP instead.
       ports_tls:
-        description: "DNS over TLS Port"
+        description: DNS over TLS Port
         type: int
         default: 853
+        required: true
       ports_dnscrypt:
-        description: "DNSCrypt Port"
+        description: DNSCrypt Port
         type: int
         default: 5443
+        required: true

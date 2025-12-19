@@ -17,21 +17,14 @@ services:
       {{ network_name }}:
       {% endif %}
     {% endif %}
-    {#
-      Port mappings (only in bridge mode or default network):
-      - HTTP/HTTPS (80/443) ports are only exposed when Traefik is disabled
-      - Initial setup port 3000 is exposed during first-time setup
-      - DNS and related ports (53, 853, 5443) are always exposed
-      - In host or macvlan mode, ports are bound directly to host network
-    #}
-    {% if network_mode == '' or network_mode == 'bridge' or traefik_enabled %}
+    {% if not network_mode or network_mode == 'bridge' or traefik_enabled %}
     ports:
       {% if not traefik_enabled %}
       - "{{ ports_http }}:80/tcp"
       - "{{ ports_https }}:443/tcp"
+      {% endif %}
       {% if initial_setup %}
       - "{{ ports_initial }}:3000/tcp"
-      {% endif %}
       {% endif %}
       - "{{ ports_https }}:443/udp"
       - "{{ ports_dns }}:53/tcp"
@@ -57,42 +50,19 @@ services:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
       - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=80
-      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
-      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      - traefik.http.routers.{{ service_name }}_web_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_web_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_web_http.entrypoints=web
       {% if traefik_tls_enabled %}
-      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
-      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
-      - traefik.http.routers.{{ service_name }}_https.tls=true
-      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
-      {% endif %}
-      {#
-        Initial setup routing (port 3000):
-        Routes setup wizard through separate Traefik service.
-        Note: Setup wizard is available at http://<host>.<domain>/setup during initial configuration.
-      #}
-      {% if initial_setup %}
-      - traefik.http.services.{{ service_name }}_setup.loadBalancer.server.port=3000
-      - traefik.http.routers.{{ service_name }}_setup.service={{ service_name }}_setup
-      - traefik.http.routers.{{ service_name }}_setup.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`) && PathPrefix(`/setup`)
-      - traefik.http.routers.{{ service_name }}_setup.entrypoints=web
-      - traefik.http.middlewares.{{ service_name }}_setup-strip.stripprefix.prefixes=/setup
-      - traefik.http.routers.{{ service_name }}_setup.middlewares={{ service_name }}_setup-strip
+      - traefik.http.routers.{{ service_name }}_web_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_web_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_web_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_web_https.tls=true
+      - traefik.http.routers.{{ service_name }}_web_https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
 
 {% if network_mode == 'bridge' or network_mode == 'macvlan' or traefik_enabled %}
-{#
-  Network definitions:
-  - 'bridge' mode: creates custom bridge network
-  - 'macvlan' mode: creates macvlan network with static IP assignment
-    (requires manual network creation in Swarm mode)
-  - Swarm overlay: used when swarm_enabled=true with bridge mode
-  - Traefik network: always external (managed separately by Traefik stack)
-  - Default mode (network_mode=''): uses Docker's default bridge (no definition needed)
-  - Host mode: no network definition (container uses host network stack directly)
-#}
 networks:
   {% if network_mode == 'bridge' or network_mode == 'macvlan'%}
   {{ network_name }}:
@@ -108,9 +78,6 @@ networks:
         - subnet: {{ network_macvlan_subnet }}
           gateway: {{ network_macvlan_gateway }}
     name: {{ network_name }}
-    {% elif swarm_enabled %}
-    driver: overlay
-    attachable: true
     {% else %}
     driver: bridge
     {% endif %}
@@ -123,12 +90,6 @@ networks:
 {% endif %}
 
 {% if volume_mode == 'local' %}
-{#
-  Volume definitions:
-  - 'local' mode: Docker-managed local volumes
-  - 'nfs' mode: NFS-backed volumes for shared storage
-  - 'mount' mode: bind mounts (no volume definition needed)
-#}
 volumes:
   {{ service_name }}_work:
     driver: local
