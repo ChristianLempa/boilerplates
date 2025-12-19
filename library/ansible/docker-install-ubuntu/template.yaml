@@ -21,7 +21,7 @@ metadata:
 spec:
   general:
     vars:
-      playbook_name:
-        default: Install docker
-      become:
-        default: true
+      target_hosts:
+        type: string
+        default: all
+        description: Target hosts for the Ansible playbook.
