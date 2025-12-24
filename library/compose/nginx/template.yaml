@@ -15,9 +15,9 @@ metadata:
     * **Documentation:** https://nginx.org/en/docs/
     * **GitHub:** https://github.com/nginx/nginx
 
-  version: 1.28.0-alpine
+  version: 1.28.1-alpine
   author: Christian Lempa
-  date: '2023-10-01'
+  date: '2025-12-24'
   tags:
     - traefik
     - swarm
