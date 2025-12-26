@@ -24,9 +24,9 @@ metadata:
   icon:
     provider: selfh
     id: gitlab
-  version: 18.5.4-ce.0
+  version: 18.7.0-ce.0
   author: Christian Lempa
-  date: '2025-12-11'
+  date: '2025-12-24'
   tags:
     - traefik
     - swarm
