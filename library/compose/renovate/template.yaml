@@ -22,9 +22,9 @@ metadata:
     - **Documentation**: https://docs.renovatebot.com/
     - **GitHub**: https://github.com/renovatebot/renovate
 
-  version: 10.5.0
+  version: 13.2.0-full
   author: Christian Lempa
-  date: '2025-11-05'
+  date: '2025-12-29'
   tags:
     - traefik
     - swarm
