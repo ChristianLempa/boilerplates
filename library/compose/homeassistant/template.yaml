@@ -8,9 +8,9 @@ metadata:
 
     Project: https://www.home-assistant.io/
     Documentation: https://www.home-assistant.io/docs/
-  version: 2025.12.4
+  version: 2025.12.5
   author: Christian Lempa
-  date: '2025-12-19'
+  date: '2025-12-29'
   tags: []
   icon:
     provider: selfh
