@@ -505,20 +505,23 @@ class Template:
         # These are the problematic ones - the template relies on schema
         missing_definitions = (used_vars & module_vars) - template_vars
 
-        if missing_definitions:
-            # Only warn once per template (use a flag to avoid repeated warnings)
-            if not hasattr(self, "_schema_deprecation_warned"):
-                self._schema_deprecation_warned = True
-                logger.warning(
-                    f"DEPRECATION WARNING: Template '{self.id}' uses {len(missing_definitions)} "
-                    f"variable(s) from module schema without defining them in template.yaml. "
-                    f"In future versions, all used variables must be defined in template.yaml. "
-                    f"Missing definitions: {', '.join(sorted(list(missing_definitions)[:10]))}{'...' if len(missing_definitions) > 10 else ''}"
-                )
-                logger.debug(
-                    f"Template '{self.id}' should add these variable definitions to template.yaml spec: "
-                    f"{sorted(missing_definitions)}"
-                )
+        # Only warn once per template (use a flag to avoid repeated warnings)
+        if missing_definitions and not hasattr(self, "_schema_deprecation_warned"):
+            self._schema_deprecation_warned = True
+            # Show first N variables in warning, full list in debug
+            max_shown_vars = 10
+            shown_vars = sorted(list(missing_definitions)[:max_shown_vars])
+            ellipsis = "..." if len(missing_definitions) > max_shown_vars else ""
+            logger.warning(
+                f"DEPRECATION WARNING: Template '{self.id}' uses {len(missing_definitions)} "
+                f"variable(s) from module schema without defining them in template.yaml. "
+                f"In future versions, all used variables must be defined in template.yaml. "
+                f"Missing definitions: {', '.join(shown_vars)}{ellipsis}"
+            )
+            logger.debug(
+                f"Template '{self.id}' should add these variable definitions to template.yaml spec: "
+                f"{sorted(missing_definitions)}"
+            )
 
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
