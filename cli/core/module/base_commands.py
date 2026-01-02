@@ -220,9 +220,6 @@ def show_template(module_instance, id: str, var: list[str] | None = None, var_fi
         apply_var_file(template, var_file, module_instance.display)
         apply_cli_overrides(template, var)
 
-        # Re-sort sections after applying overrides (toggle values may have changed)
-        template.variables.sort_sections()
-
         # Reset disabled bool variables to False to prevent confusion
         reset_vars = template.variables.reset_disabled_bool_variables()
         if reset_vars:
@@ -391,7 +388,6 @@ def _prepare_template(
     apply_cli_overrides(template, var)
 
     if template.variables:
-        template.variables.sort_sections()
         reset_vars = template.variables.reset_disabled_bool_variables()
         if reset_vars:
             logger.debug(f"Reset {len(reset_vars)} disabled bool variables to False")
