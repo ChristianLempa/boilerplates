@@ -20,7 +20,6 @@ metadata:
     provider: selfh
     id: grafana
   next_steps:
-schema: 1.2
 spec:
   general:
     vars:
@@ -28,6 +27,9 @@ spec:
         default: alloy
       container_hostname:
         description: Container internal hostname
+        type: str
+      container_timezone:
+        description: Container timezone (e.g., Europe/Berlin)
         type: str
       restart_policy:
         description: Container restart policy
@@ -39,6 +41,17 @@ spec:
           - 'no'
         default: unless-stopped
         required: true
+  network:
+    title: Network
+    vars:
+      network_mode:
+        description: Docker network mode
+        type: enum
+        options:
+          - bridge
+          - host
+          - macvlan
+        default: bridge
   logs:
     title: Log Collection
     toggle: logs_enabled
@@ -82,12 +95,15 @@ spec:
         type: bool
         default: true
   ports:
+    title: Ports
     vars:
       ports_webui:
         description: Port for Alloy web UI
         type: int
         default: 12345
   traefik:
+    title: Traefik
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
         description: Enable Traefik reverse proxy integration
@@ -106,6 +122,8 @@ spec:
         default: home.arpa
         required: true
   traefik_tls:
+    title: Traefik TLS/SSL
+    toggle: traefik_tls_enabled
     vars:
       traefik_tls_enabled:
         description: Enable HTTPS/TLS

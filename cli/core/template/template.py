@@ -356,9 +356,15 @@ class Template:
             # Validate 'kind' field (always needed)
             self._validate_kind(self._template_data)
 
-            # Extract schema version (default to 1.0 for backward compatibility)
-            self.schema_version = str(self._template_data.get("schema", "1.0"))
-            logger.debug(f"Template schema version: {self.schema_version}")
+            # Extract schema version (only if explicitly declared in template.yaml)
+            # If schema property is missing, template is self-contained (no schema inheritance)
+            if "schema" in self._template_data:
+                self.schema_version = str(self._template_data["schema"])
+                logger.debug(f"Template uses schema version: {self.schema_version}")
+            else:
+                # No schema property = template is self-contained
+                self.schema_version = None
+                logger.debug(f"Template is self-contained (no schema property)")
 
             # Note: Schema version validation is done by the module when loading templates
 
@@ -637,6 +643,8 @@ class Template:
     def _validate_schema_version(self, module_schema: str, module_name: str) -> None:
         """Validate that template schema version is supported by the module.
 
+        Self-contained templates (with schema=None) don't require validation.
+        
         Args:
             module_schema: Schema version supported by the module
             module_name: Name of the module (for error messages)
@@ -645,6 +653,11 @@ class Template:
             IncompatibleSchemaVersionError: If template schema > module schema
         """
         template_schema = self.schema_version
+
+        # Self-contained templates (no schema property) don't need validation
+        if template_schema is None:
+            logger.debug(f"Template '{self.id}' is self-contained (no schema inheritance)")
+            return
 
         # Compare schema versions
         if not is_compatible(module_schema, template_schema):
@@ -932,10 +945,18 @@ class Template:
 
     @property
     def module_specs(self) -> dict:
-        """Get the spec from the module definition for this template's schema version."""
+        """Get the spec from the module definition for this template's schema version.
+        
+        Returns empty dict if template doesn't declare a schema (self-contained).
+        """
         if self.__module_specs is None:
-            kind = self._template_data.get("kind")
-            self.__module_specs = self._load_module_specs_for_schema(kind, self.schema_version)
+            # Only load module specs if template explicitly declares a schema version
+            # Templates without a schema property are self-contained
+            if self.schema_version is not None:
+                kind = self._template_data.get("kind")
+                self.__module_specs = self._load_module_specs_for_schema(kind, self.schema_version)
+            else:
+                self.__module_specs = {}
         return self.__module_specs
 
     @property
