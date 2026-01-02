@@ -1,77 +1,107 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: prometheus
   name: Prometheus
-  description: |
-    Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud.
+  description: 'Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud.
+
     It is designed for reliability and scalability, making it suitable for monitoring dynamic cloud environments.
-    Prometheus collects and stores metrics as time series data, providing powerful querying capabilities and integration with various visualization tools.
+
+    Prometheus collects and stores metrics as time series data, providing powerful querying capabilities and integration with
+    various visualization tools.
+
     ##  Swarm Deployment Warning
+
     Prometheus uses local TSDB storage and does NOT support running multiple replicas.
-    This template enforces a single replica with node placement constraints. For true HA, consider remote storage solutions (Thanos, Cortex, VictoriaMetrics).
+
+    This template enforces a single replica with node placement constraints. For true HA, consider remote storage solutions
+    (Thanos, Cortex, VictoriaMetrics).
+
 
     Project: https://prometheus.io/
 
+
     Documentation: https://prometheus.io/docs/
 
+
     GitHub: https://github.com/prometheus/prometheus
+
+    '
   version: v3.8.1
   author: Christian Lempa
   date: '2025-12-16'
   tags:
-    - traefik
-    - swarm
-    - authentik
-  next_steps: |
-    {% if swarm_enabled -%}
-    1. Deploy to Docker Swarm:
-       docker stack deploy -c compose.yaml {{ service_name }}
-    2. Access Prometheus:
-       {%- if traefik_enabled %} https://{{ traefik_host }}
-       {%- else %} http://<swarm-node-ip>:{{ ports_http }}{%- endif %}
-    {% else -%}
-    1. Start Prometheus with Docker Compose:
-       docker compose up -d
-    2. Access Prometheus:
-       {%- if traefik_enabled %} https://{{ traefik_host }}
-       {%- else %} http://localhost:{{ ports_http }}{%- endif %}
-    {% endif -%}
-    3. Edit config/prometheus.yaml to add scrape targets
-    4. Reload configuration: docker exec {{ container_name if not swarm_enabled else service_name }} kill -HUP 1
-schema: "1.2"
+  - traefik
+  - swarm
+  - authentik
+  next_steps: "{% if swarm_enabled -%}\n1. Deploy to Docker Swarm:\n   docker stack deploy -c compose.yaml {{ service_name\
+    \ }}\n2. Access Prometheus:\n   {%- if traefik_enabled %} https://{{ traefik_host }}\n   {%- else %} http://<swarm-node-ip>:{{\
+    \ ports_http }}{%- endif %}\n{% else -%}\n1. Start Prometheus with Docker Compose:\n   docker compose up -d\n2. Access\
+    \ Prometheus:\n   {%- if traefik_enabled %} https://{{ traefik_host }}\n   {%- else %} http://localhost:{{ ports_http\
+    \ }}{%- endif %}\n{% endif -%}\n3. Edit config/prometheus.yaml to add scrape targets\n4. Reload configuration: docker\
+    \ exec {{ container_name if not swarm_enabled else service_name }} kill -HUP 1\n"
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: prometheus
+      restart_policy:
+        type: enum
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
+        required: true
   metrics:
     title: Metrics & Storage
     description: Configure data retention and storage settings
     vars:
       metrics_retention_time:
         type: str
-        description: "How long to retain samples (e.g., 15d, 30d, 1y)"
-        default: "15d"
-        extra: "Older data will be deleted. Use 'h', 'd', 'w', 'y' for time units."
+        description: How long to retain samples (e.g., 15d, 30d, 1y)
+        default: 15d
+        extra: Older data will be deleted. Use 'h', 'd', 'w', 'y' for time units.
       metrics_retention_size:
         type: str
-        description: "Maximum storage size (e.g., 5GB, 10GB, 1TB)"
-        default: "0"
-        extra: "Set to 0 for unlimited. Triggers deletion when exceeded."
+        description: Maximum storage size (e.g., 5GB, 10GB, 1TB)
+        default: '0'
+        extra: Set to 0 for unlimited. Triggers deletion when exceeded.
       metrics_enable_remote_write:
         type: bool
-        description: "Enable remote write receiver (allows pushing metrics via /api/v1/write)"
+        description: Enable remote write receiver (allows pushing metrics via /api/v1/write)
         default: false
-        extra: "Caution: Intended for low-volume use cases only. Not efficient for general ingestion."
+        extra: 'Caution: Intended for low-volume use cases only. Not efficient for general ingestion.'
   ports:
     vars:
       ports_http:
         default: 9090
-
   traefik:
     vars:
       traefik_host:
         default: prometheus
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS

@@ -381,28 +381,6 @@ class Template:
                 return path
         raise FileNotFoundError(f"Main template file (template.yaml or template.yml) not found in {self.template_dir}")
 
-    def _merge_specs(self) -> dict:
-        """Process template specs into merged format.
-
-        Since schemas are no longer used, this just uses the template specs directly
-        and warns about unused variables.
-        """
-        if not self.template_specs:
-            return {}
-
-        # Warn about unused variables in spec
-        self._warn_about_unused_variables(self.template_specs)
-
-        # Create VariableCollection from template specs
-        collection = VariableCollection(self.template_specs)
-
-        # Convert back to dict format
-        merged_spec = {}
-        for section_key, section in collection.get_sections().items():
-            merged_spec[section_key] = section.to_dict()
-
-        return merged_spec
-
     def _warn_about_unused_variables(self, template_specs: dict) -> None:
         """Warn about variables defined in spec but not used in template files.
 
@@ -818,11 +796,11 @@ class Template:
     @property
     def variables(self) -> VariableCollection:
         if self.__variables is None:
-            # Process template specs (merge and warn about unused variables)
-            merged_specs = self._merge_specs()
+            # Warn about unused variables in spec
+            self._warn_about_unused_variables(self.template_specs)
 
             # Validate that all used variables are defined
-            self._validate_variable_definitions(self.used_variables, merged_specs)
+            self._validate_variable_definitions(self.used_variables, self.template_specs)
 
             # Filter specs to only used variables
             filtered_specs = self._filter_specs_to_used(

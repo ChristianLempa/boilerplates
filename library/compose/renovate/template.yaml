@@ -44,6 +44,9 @@ spec:
         default: "renovate"
       container_timezone:
         default: "UTC"
+      container_loglevel:
+        type: enum
+        options: [debug, info, warn, error]
   renovate_settings:
     title: "Renovate Settings"
     required: true

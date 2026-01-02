@@ -22,6 +22,6 @@ spec:
   general:
     vars:
       target_hosts:
-        type: string
-        default: all
-        description: Target hosts for the Ansible playbook.
+        type: str
+        description: Target hosts or group
+        required: true

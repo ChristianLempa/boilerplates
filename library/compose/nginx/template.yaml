@@ -1,40 +1,47 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: nginx
   name: Nginx
-  description: |-
-    Nginx is a high-performance web server, reverse proxy, and load balancer known for its stability, rich feature set, simple configuration, and low resource
+  description: 'Nginx is a high-performance web server, reverse proxy, and load balancer known for its stability, rich feature
+    set, simple configuration, and low resource
+
     consumption. It is widely used to serve static content, handle HTTP requests, and distribute traffic across multiple servers.
 
-    ## Prerequisites
-    * **Project:** https://nginx.org/
-    * **Documentation:** https://nginx.org/en/docs/
-    * **GitHub:** https://github.com/nginx/nginx
 
+    ## Prerequisites
+
+    * **Project:** https://nginx.org/
+
+    * **Documentation:** https://nginx.org/en/docs/
+
+    * **GitHub:** https://github.com/nginx/nginx'
   version: 1.28.1-alpine
   author: Christian Lempa
   date: '2025-12-24'
   tags:
-    - traefik
-    - swarm
+  - traefik
+  - swarm
   draft: true
-schema: "1.2"
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
-        default: "nginx"
+        default: nginx
       restart_policy:
         type: enum
-        options: ["unless-stopped", "always", "on-failure", "no"]
-        default: "unless-stopped"
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
       container_name:
-        default: "nginx"
+        default: nginx
       container_timezone:
-        default: "UTC"
+        default: UTC
   ports:
     vars:
       ports_http:
@@ -51,28 +58,31 @@ spec:
         type: bool
         default: false
       traefik_network:
-        default: "traefik"
+        default: traefik
       traefik_host:
-        default: "nginx"
+        default: nginx
       traefik_domain:
-        default: "home.arpa"
+        default: home.arpa
       traefik_entrypoint:
-        default: "web"
+        default: web
       traefik_tls_entrypoint:
-        default: "websecure"
+        default: websecure
       traefik_tls_enabled:
         type: bool
         default: true
       traefik_tls_certresolver:
-        default: "cloudflare"
+        default: cloudflare
   network:
     vars:
       network_mode:
         type: enum
-        options: ["bridge", "host", "macvlan"]
-        default: "bridge"
+        options:
+        - bridge
+        - host
+        - macvlan
+        default: bridge
       network_name:
-        default: "bridge"
+        default: bridge
   swarm:
     vars:
       swarm_enabled:
@@ -82,3 +92,11 @@ spec:
         description: Number of replicas for Swarm mode
         type: int
         default: 1
+      swarm_placement_host:
+        type: str
+        default: ''
+        description: The placement host
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode

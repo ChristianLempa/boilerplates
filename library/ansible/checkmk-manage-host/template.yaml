@@ -18,6 +18,12 @@ metadata:
   next_steps: ""
 schema: "1.2"
 spec:
+  general:
+    vars:
+      target_hosts:
+        description: Target hosts or group
+        type: str
+        required: true
   checkmk:
     title: Checkmk Configuration
     vars:

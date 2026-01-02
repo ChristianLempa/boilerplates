@@ -1,214 +1,281 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: n8n
   name: N8N
-  description: |
-    N8n is a free and source-available workflow automation tool. It enables you to connect
+  description: 'N8n is a free and source-available workflow automation tool. It enables you to connect
+
     various apps and services to automate repetitive tasks without coding.
+
     With its user-friendly interface, you can create complex workflows by simply dragging
+
     and dropping nodes that represent different actions and triggers.
+
     ## Prerequisites
+
     - :info: By default, n8n uses SQLite as its database, which is suitable for small-scale or
+
     personal use. For production environments, it is recommended to use an external
+
     database like PostgreSQL or MySQL for better performance and reliability. This is also
+
     required when using Queue Mode.
+
     - :info: Queue mode allows n8n to handle a large number of workflows and tasks efficiently, by using
+
     multiple Workers, and Redis as the queue backend. This is essential for high-availability
+
     setups where multiple n8n instances work together. It also supports Queue Monitoring
+
     (when Prometheus metrics are enabled).
+
     ## Resources
+
     - **Project**: https://n8n.io/
+
     - **Documentation**: https://docs.n8n.io/
+
     - **GitHub**: https://github.com/n8n-io/n8n
+
+    '
   version: 8-alpine
   author: Christian Lempa
   date: '2025-12-17'
   tags:
-    - traefik
-    - database
+  - traefik
+  - database
   draft: true
-schema: "1.2"
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
-        default: "n8n"
+        default: n8n
       container_name:
-        default: "n8n-server"
+        default: n8n-server
       container_hostname:
-        default: "n8n-server"
+        default: n8n-server
+      container_timezone:
+        type: str
+      container_loglevel:
+        type: enum
+        options:
+        - debug
+        - info
+        - warn
+        - error
+      restart_policy:
+        type: enum
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
+        required: true
   queue:
-    title: "Queue Mode"
-    description: "Enable queue mode with Redis for scaled deployments"
+    title: Queue Mode
+    description: Enable queue mode with Redis for scaled deployments
     toggle: queue_enabled
-    needs: "database_enabled=true"
+    needs: database_enabled=true
     vars:
       queue_enabled:
         type: bool
-        description: "Enable queue mode (requires Redis)"
+        description: Enable queue mode (requires Redis)
         default: false
-        extra: "Required for multiple workers and scaled deployments"
+        extra: Required for multiple workers and scaled deployments
       queue_redis_external:
         type: bool
-        description: "Use external Redis instance"
+        description: Use external Redis instance
         default: false
-        needs: "queue_enabled"
+        needs: queue_enabled
       queue_redis_host:
         type: str
-        description: "Redis host"
-        default: "redis"
-        needs: "queue_enabled"
+        description: Redis host
+        default: redis
+        needs: queue_enabled
       queue_redis_port:
         type: int
-        description: "Redis port"
+        description: Redis port
         default: 6379
-        needs: "queue_enabled"
+        needs: queue_enabled
       queue_embedded_worker:
         type: bool
-        description: "Include embedded worker in this deployment"
+        description: Include embedded worker in this deployment
         default: false
-        needs: "queue_enabled"
-        extra: "Add a worker service to this compose file. For production, use separate n8n-worker template."
+        needs: queue_enabled
+        extra: Add a worker service to this compose file. For production, use separate n8n-worker template.
   database:
-    title: "Database"
-    description: "External database configuration"
+    title: Database
+    description: External database configuration
     vars:
       database_enabled:
         type: bool
-        description: "Use external database"
+        description: Use external database
         default: false
       database_type:
         type: enum
-        description: "Database type"
+        description: Database type
         options:
-          - "postgres"
-          - "mysql"
-        default: "postgres"
-        needs: "database_enabled"
+        - postgres
+        - mysql
+        default: postgres
+        needs: database_enabled
       database_host:
         type: str
-        description: "Database host"
-        default: "postgres"
-        needs: "database_enabled"
+        description: Database host
+        default: postgres
+        needs: database_enabled
       database_port:
         type: int
-        description: "Database port"
+        description: Database port
         default: 5432
-        needs: "database_enabled"
+        needs: database_enabled
       database_name:
         type: str
-        description: "Database name"
-        default: "n8n"
-        needs: "database_enabled"
+        description: Database name
+        default: n8n
+        needs: database_enabled
       database_user:
         type: str
-        description: "Database username"
-        default: "n8n"
-        needs: "database_enabled"
+        description: Database username
+        default: n8n
+        needs: database_enabled
       database_password:
         type: str
-        description: "Database password"
+        description: Database password
         sensitive: true
-        needs: "database_enabled"
+        needs: database_enabled
+      database_external:
+        type: bool
+        default: false
+        description: Use external database
   security:
-    title: "Security"
+    title: Security
     vars:
       encryption_key:
         type: str
-        description: "N8N encryption key for credentials"
+        description: N8N encryption key for credentials
         sensitive: true
         autogenerated: true
-        extra: "Keep this secure! Used to encrypt stored credentials."
+        extra: Keep this secure! Used to encrypt stored credentials.
       proxy_hops:
         type: int
-        description: "Number of proxy hops (X-Forwarded-For)"
+        description: Number of proxy hops (X-Forwarded-For)
         default: 1
-        extra: "Set to 2 if behind multiple proxies (e.g., Cloudflare + Traefik)"
+        extra: Set to 2 if behind multiple proxies (e.g., Cloudflare + Traefik)
   webhooks:
-    title: "Webhooks"
-    description: "Webhook configuration for external triggers"
+    title: Webhooks
+    description: Webhook configuration for external triggers
     vars:
       webhook_url:
         type: url
-        description: "Webhook base URL"
-        default: ""
-        extra: "Optional separate webhook URL (e.g., https://webhooks.example.com/)"
+        description: Webhook base URL
+        default: ''
+        extra: Optional separate webhook URL (e.g., https://webhooks.example.com/)
   metrics:
-    title: "Metrics"
-    description: "Prometheus metrics configuration"
+    title: Metrics
+    description: Prometheus metrics configuration
     vars:
       metrics_enabled:
         type: bool
-        description: "Enable Prometheus metrics"
+        description: Enable Prometheus metrics
         default: false
       metrics_detailed:
         type: bool
-        description: "Include detailed metrics (workflows, nodes, API endpoints)"
+        description: Include detailed metrics (workflows, nodes, API endpoints)
         default: false
-        needs: "metrics_enabled"
+        needs: metrics_enabled
   execution:
-    title: "Execution Settings"
+    title: Execution Settings
     vars:
       execution_save_on_error:
         type: enum
-        description: "Save execution data on error"
+        description: Save execution data on error
         options:
-          - "all"
-          - "none"
-        default: "all"
+        - all
+        - none
+        default: all
       execution_save_on_success:
         type: enum
-        description: "Save execution data on success"
+        description: Save execution data on success
         options:
-          - "all"
-          - "none"
-        default: "none"
-        extra: "Set to 'none' to reduce database size"
+        - all
+        - none
+        default: none
+        extra: Set to 'none' to reduce database size
   network:
     vars:
       network_mode:
-        extra: "For queue mode with workers, use 'bridge' with shared networks. Swarm only supports 'bridge'."
+        extra: For queue mode with workers, use 'bridge' with shared networks. Swarm only supports 'bridge'.
       network_name:
-        default: "n8n_network"
+        default: n8n_network
+      network_external:
+        type: bool
+        default: false
+        description: Whether the network is external
   traefik:
     vars:
       traefik_enabled:
-        needs: "network_mode=bridge"
+        needs: network_mode=bridge
       traefik_host:
-        default: "n8n.home.arpa"
+        default: n8n.home.arpa
       traefik_webhook_host:
         type: hostname
-        description: "Separate hostname for webhooks (optional)"
-        default: ""
-        needs: "traefik_enabled"
-        extra: "Leave empty to use same host for webhooks"
+        description: Separate hostname for webhooks (optional)
+        default: ''
+        needs: traefik_enabled
+        extra: Leave empty to use same host for webhooks
       traefik_network:
         type: str
-        description: "Traefik network name"
-        default: "traefik"
-        needs: "traefik_enabled"
+        description: Traefik network name
+        default: traefik
+        needs: traefik_enabled
       traefik_network_external:
         type: bool
-        description: "Use external Traefik network"
+        description: Use external Traefik network
         default: true
-        needs: "traefik_enabled"
+        needs: traefik_enabled
+      traefik_domain:
+        type: str
+        default: home.arpa
+        required: true
   ports:
     vars:
       ports_http:
-        description: "External HTTP port"
+        description: External HTTP port
         type: int
         default: 5678
-        needs: ["traefik_enabled=false", "network_mode=bridge"]
+        needs:
+        - traefik_enabled=false
+        - network_mode=bridge
   swarm:
     vars:
       swarm_enabled:
-        needs: "network_mode=bridge"
+        needs: network_mode=bridge
       swarm_replicas:
         type: int
-        description: "Number of server replicas"
+        description: Number of server replicas
         default: 1
-        needs: "swarm_enabled"
-        extra: "For HA, set > 1 (requires queue mode)"
+        needs: swarm_enabled
+        extra: For HA, set > 1 (requires queue mode)
+      swarm_placement_host:
+        type: str
+        description: Target hostname for placement constraint
+        default: ''
+        extra: Constrains service to run on specific node by hostname
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS

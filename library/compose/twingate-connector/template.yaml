@@ -1,15 +1,13 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: twingate
   name: Twingate_Connector
-  description: >
-    The Twingate Connector is a lightweight software component that establishes secure connections between your private network and the
-    Twingate service. It acts as a bridge, allowing authorized users to access internal resources without exposing them directly to the
-    internet. The Connector uses strong encryption and authentication mechanisms to ensure that all data transmitted between users and
-    resources remains confidential and secure.
+  description: 'The Twingate Connector is a lightweight software component that establishes secure connections between your
+    private network and the Twingate service. It acts as a bridge, allowing authorized users to access internal resources
+    without exposing them directly to the internet. The Connector uses strong encryption and authentication mechanisms to
+    ensure that all data transmitted between users and resources remains confidential and secure.
 
 
     Project: https://www.twingate.com/
@@ -17,13 +15,15 @@ metadata:
     Documentation: https://docs.twingate.com/docs/architecture/connectors
 
     GitHub: https://github.com/twingate/twingate-connector
+
+    '
   version: 1.80.0
   author: Christian Lempa
   date: '2025-11-11'
   tags:
-    - swarm
+  - swarm
   draft: true
-schema: "1.2"
+schema: '1.2'
 spec:
   general:
     vars:
@@ -33,10 +33,21 @@ spec:
         default: twingate_connector
       container_hostname:
         default: twingate_connector
+      container_timezone:
+        type: str
+      restart_policy:
+        type: enum
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
+        required: true
       twingate_version:
         type: str
         description: Twingate Connector version
-        default: "1.79.0"
+        default: 1.79.0
   twingate:
     title: Twingate Configuration
     required: true
@@ -44,7 +55,7 @@ spec:
       twingate_network:
         type: str
         description: Your Twingate network name
-        prompt: "Enter your Twingate network name"
+        prompt: Enter your Twingate network name
       twingate_log_level:
         type: int
         description: Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)
@@ -52,4 +63,50 @@ spec:
       twingate_dns:
         type: str
         description: Local DNS server IP (optional, leave empty to use default)
-        default: ""
+        default: ''
+  resources:
+    vars:
+      resources_enabled:
+        type: bool
+        default: false
+      resources_cpu_limit:
+        type: str
+        default: 1.0
+        required: true
+      resources_cpu_reservation:
+        type: str
+        default: 0.25
+        needs:
+        - swarm_enabled=true
+        required: true
+      resources_memory_limit:
+        type: str
+        default: 1G
+        required: true
+      resources_memory_reservation:
+        type: str
+        default: 512M
+        needs:
+        - swarm_enabled=true
+        required: true
+  swarm:
+    vars:
+      swarm_replicas:
+        type: int
+        default: 1
+        needs:
+        - swarm_placement_mode=replicated
+        required: true
+      swarm_placement_host:
+        type: str
+        description: Target hostname for placement constraint
+        default: ''
+        extra: Constrains service to run on specific node by hostname
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode

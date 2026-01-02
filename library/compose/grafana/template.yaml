@@ -1,35 +1,51 @@
----
 kind: compose
 metadata:
   name: Grafana
-  description: |-
-    Grafana is an open-source platform for monitoring and observability that allows you to visualize and analyze metrics, logs, and traces from various data
+  description: 'Grafana is an open-source platform for monitoring and observability that allows you to visualize and analyze
+    metrics, logs, and traces from various data
+
     sources. It provides a powerful and flexible dashboarding solution for IT infrastructure and application monitoring.
+
     ## Prerequisites
+
     - **Project:** https://grafana.com/
+
     - **Documentation:** https://grafana.com/docs/grafana/latest/
-    - **GitHub:** https://github.com/grafana/grafana
+
+    - **GitHub:** https://github.com/grafana/grafana'
   icon:
     provider: selfh
     id: grafana
-  next_steps: |-
-    Log in with the initial admin user:
+  next_steps: 'Log in with the initial admin user:
+
     ```bash
+
     Username: admin
+
     Password: admin
-    ```
+
+    ```'
   version: 12.3.1
   author: Christian Lempa
   date: '2025-12-16'
   tags:
-    - traefik
-    - authentik
-schema: "1.2"
+  - traefik
+  - authentik
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: grafana
+      restart_policy:
+        type: enum
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
+        required: true
   ports:
     vars:
       ports_http:
@@ -40,17 +56,80 @@ spec:
         default: https://auth.home.arpa
       authentik_slug:
         default: grafana
+      authentik_client_id:
+        type: str
+        sensitive: true
+        required: true
+      authentik_client_secret:
+        type: str
+        sensitive: true
+        required: true
+      authentik_enabled:
+        type: bool
+        default: false
+        description: Enable Authentik SSO integration
   traefik:
     vars:
       traefik_host:
         default: grafana
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
   database:
     vars:
       database_type:
         options:
-          - sqlite
-          - postgres
+        - sqlite
+        - postgres
       database_name:
         default: grafana
       database_user:
         default: grafana
+      database_host:
+        type: str
+        required: true
+      database_password:
+        type: str
+        sensitive: true
+        required: true
+      database_external:
+        type: bool
+        default: false
+        description: Use external database
+  swarm:
+    vars:
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+      swarm_placement_host:
+        type: str
+        default: ''
+        description: The placement host
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode
+      swarm_replicas:
+        type: int
+        default: 1
+        description: The number of replicas

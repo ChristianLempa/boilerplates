@@ -1,80 +1,175 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: homer
   name: Homer
-  description: >
-    A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration file.
+  description: 'A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration
+    file.
 
 
     Project: https://github.com/bastienwirtz/homer
 
     Documentation: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
+
+    '
   version: v25.11.1
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-    - traefik
-    - swarm
-    - authentik
+  - traefik
+  - swarm
+  - authentik
   draft: true
-  next_steps: |
-    1. Start the Homer dashboard:
-       docker compose up -d
-
-    2. Customize your dashboard:
-       - Edit assets/config.yml to add your services
-       - Organize services into groups (Applications, Monitoring, etc.)
-       - Add links to the navbar for quick access
-
-    3. Optional: Add a logo:
-       - Place your logo.png file in the assets/ directory
-       - Or update the logo path in assets/config.yml
-       - Supported formats: PNG, SVG, JPG
-
-    4. Optional: Customize the theme:
-       - Uncomment and modify the colors section in config.yml
-       - Available themes: default, sui
-       - See documentation for advanced theming options
-
-    5. Access your dashboard:
-       {% if traefik_enabled -%}
-       - Via Traefik: https://{{ traefik_host }}
-       {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
-       {%- else -%}
-       - Open http://localhost:{{ ports_http }} in your browser
-       {%- endif %}
-
-    For more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
-schema: "1.2"
+  next_steps: "1. Start the Homer dashboard:\n   docker compose up -d\n\n2. Customize your dashboard:\n   - Edit assets/config.yml\
+    \ to add your services\n   - Organize services into groups (Applications, Monitoring, etc.)\n   - Add links to the navbar\
+    \ for quick access\n\n3. Optional: Add a logo:\n   - Place your logo.png file in the assets/ directory\n   - Or update\
+    \ the logo path in assets/config.yml\n   - Supported formats: PNG, SVG, JPG\n\n4. Optional: Customize the theme:\n   -\
+    \ Uncomment and modify the colors section in config.yml\n   - Available themes: default, sui\n   - See documentation for\
+    \ advanced theming options\n\n5. Access your dashboard:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{ traefik_host\
+    \ }}\n   {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{%\
+    \ endif %}\n   {%- else -%}\n   - Open http://localhost:{{ ports_http }} in your browser\n   {%- endif %}\n\nFor more\
+    \ information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md\n"
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
-        default: "homer"
+        default: homer
       container_name:
-        default: "homer"
+        default: homer
+      container_hostname:
+        type: str
+      container_timezone:
+        type: str
+      restart_policy:
+        type: enum
+        options:
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
+        default: unless-stopped
+        required: true
       homer_title:
-        description: "Dashboard title"
+        description: Dashboard title
         type: str
-        default: "My Dashboard"
+        default: My Dashboard
       homer_subtitle:
-        description: "Dashboard subtitle"
+        description: Dashboard subtitle
         type: str
-        default: "Homer"
+        default: Homer
       homer_logo:
-        description: "Logo file path (relative to assets/)"
+        description: Logo file path (relative to assets/)
         type: str
-        default: "logo.png"
+        default: logo.png
   ports:
     vars:
       ports_http:
-        description: "Host port for HTTP (8080)"
+        description: Host port for HTTP (8080)
         type: int
         default: 8080
   traefik:
     vars:
       traefik_host:
         default: homer.home.arpa
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
+  resources:
+    vars:
+      resources_enabled:
+        type: bool
+        default: false
+      resources_cpu_limit:
+        type: str
+        default: 1.0
+        required: true
+      resources_cpu_reservation:
+        type: str
+        default: 0.25
+        needs:
+        - swarm_enabled=true
+        required: true
+      resources_memory_limit:
+        type: str
+        default: 1G
+        required: true
+      resources_memory_reservation:
+        type: str
+        default: 512M
+        needs:
+        - swarm_enabled=true
+        required: true
+  swarm:
+    vars:
+      swarm_placement_mode:
+        type: enum
+        options:
+        - replicated
+        - global
+        default: replicated
+        required: true
+      swarm_replicas:
+        type: int
+        default: 1
+        needs:
+        - swarm_placement_mode=replicated
+        required: true
+      swarm_placement_host:
+        type: str
+        default: ''
+        needs:
+        - swarm_placement_mode=replicated
+        extra: Constrains service to run on specific node by hostname
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+  authentik:
+    vars:
+      authentik_traefik_middleware:
+        type: str
+        default: authentik-middleware@file
+        needs:
+        - traefik_enabled=true
+        required: true
+      authentik_client_id:
+        type: str
+        default: ''
+        description: The Authentik client ID
+      authentik_client_secret:
+        type: str
+        default: ''
+        description: The Authentik client secret
+      authentik_enabled:
+        type: bool
+        default: false
+        description: Enable Authentik SSO integration
+      authentik_slug:
+        type: str
+        default: ''
+        description: The Authentik application slug
+      authentik_url:
+        type: str
+        default: ''
+        description: The Authentik URL

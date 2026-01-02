@@ -29,16 +29,78 @@ spec:
   general:
     vars:
       release_name:
+        type: str
+        description: Helm release name
+        default: portainer
+      namespace:
+        type: str
+        description: Kubernetes namespace
         default: portainer
   networking:
     vars:
       network_mode:
+        type: str
+        description: Network mode for service
         default: ClusterIP
+  database:
+    title: Database Configuration
+    toggle: database_enabled
+    vars:
+      database_enabled:
+        type: bool
+        description: Enable database
+        default: false
+      database_type:
+        type: enum
+        description: Database type
+        options: [postgres, mysql]
+        default: postgres
+      database_host:
+        type: hostname
+        description: Database host
+      database_port:
+        type: int
+        description: Database port
+        default: 5432
+      database_name:
+        type: str
+        description: Database name
+      database_user:
+        type: str
+        description: Database user
+      database_password:
+        type: str
+        description: Database password
+        sensitive: true
   traefik:
+    title: Traefik Configuration
+    toggle: traefik_enabled
     vars:
+      traefik_enabled:
+        type: bool
+        description: Enable Traefik ingress
+        default: false
       traefik_host:
+        type: hostname
+        description: Traefik hostname
         default: portainer.home.arpa
+      traefik_tls_enabled:
+        type: bool
+        description: Enable TLS for Traefik ingress
+        default: false
+      traefik_tls_secret:
+        type: str
+        description: TLS secret name for Traefik ingress
+        default: portainer-tls
   volumes:
+    title: Volume Configuration
     vars:
+      volumes_mode:
+        type: enum
+        description: Volume storage mode
+        options: [pvc, hostPath]
+        default: pvc
       volumes_pvc_name:
+        type: str
+        description: PVC name for volumes
         default: portainer

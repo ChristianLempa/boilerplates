@@ -22,6 +22,53 @@ metadata:
   next_steps: ""
 schema: "1.2"
 spec:
+  general:
+    vars:
+      release_name:
+        type: str
+        description: Helm release name
+        default: traefik
+      namespace:
+        type: str
+        description: Kubernetes namespace
+        default: traefik
+  networking:
+    title: Networking Configuration
+    vars:
+      network_mode:
+        type: str
+        description: Network mode for service
+        default: LoadBalancer
+  database:
+    title: Database Configuration
+    toggle: database_enabled
+    vars:
+      database_enabled:
+        type: bool
+        description: Enable database
+        default: false
+      database_type:
+        type: enum
+        description: Database type
+        options: [postgres, mysql]
+        default: postgres
+      database_host:
+        type: hostname
+        description: Database host
+      database_port:
+        type: int
+        description: Database port
+        default: 5432
+      database_name:
+        type: str
+        description: Database name
+      database_user:
+        type: str
+        description: Database user
+      database_password:
+        type: str
+        description: Database password
+        sensitive: true
   dashboard:
     title: Dashboard IngressRoute
     toggle: dashboard_ingressroute_enabled

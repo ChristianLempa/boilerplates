@@ -25,6 +25,8 @@ spec:
     vars:
       service_name:
         default: passbolt
+      container_timezone:
+        type: str
   traefik:
     vars:
       traefik_host:

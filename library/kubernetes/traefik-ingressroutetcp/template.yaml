@@ -29,17 +29,60 @@ spec:
         default: app-tcp-route
       namespace:
         default: default
+  resources:
+    title: Resource Limits
+    toggle: resources_enabled
+    vars:
+      resources_enabled:
+        type: bool
+        description: Enable resource limits and requests
+        default: false
+      resources_cpu_limit:
+        type: str
+        description: CPU limit
+        default: 100m
+      resources_cpu_request:
+        type: str
+        description: CPU request
+        default: 50m
+      resources_memory_limit:
+        type: str
+        description: Memory limit
+        default: 128Mi
+      resources_memory_request:
+        type: str
+        description: Memory request
+        default: 64Mi
   traefik:
+    title: Traefik Configuration
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
+        type: bool
+        description: Enable Traefik integration
         default: true
+      traefik_host:
+        type: hostname
+        description: Traefik host
+      traefik_domain:
+        type: str
+        description: Traefik domain
       traefik_entrypoint:
+        type: str
+        description: Traefik entrypoint for TCP routing
         default: tcp
       traefik_service_name:
+        type: str
         description: Backend service name for TCP routing
       traefik_service_port:
+        type: int
+        description: Backend service port for TCP routing
         default: 5432
-  traefik_tls:
-    vars:
       traefik_tls_enabled:
+        type: bool
+        description: Enable TLS
         default: false
+      traefik_tls_certresolver:
+        type: str
+        description: TLS certificate resolver
+        default: letsencrypt-prod

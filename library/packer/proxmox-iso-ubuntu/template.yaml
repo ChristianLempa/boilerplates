@@ -28,6 +28,9 @@ schema: "1.2"
 spec:
   general:
     vars:
+      playbook_name:
+        type: str
+        description: Name of the playbook
       image_name:
         default: ubuntu-server-noble
       vm_id:
