@@ -320,6 +320,7 @@ class Template:
         self.__used_variables: set[str] | None = None
         self.__variables: VariableCollection | None = None
         self.__template_files: list[TemplateFile] | None = None  # New attribute
+        self._schema_deprecation_warned: bool = False  # Track if deprecation warning shown
 
         try:
             # Find and parse the main template file (template.yaml or template.yml)
@@ -499,14 +500,14 @@ class Template:
         used_vars = self.used_variables
 
         # Find variables that are:
-        # 1. Used in template files
-        # 2. Defined in module schema
-        # 3. NOT explicitly defined in template.yaml
+        # 1. Used in template files AND defined in module schema (inherited variables)
+        # 2. NOT explicitly defined in template.yaml (missing definitions)
         # These are the problematic ones - the template relies on schema
-        missing_definitions = (used_vars & module_vars) - template_vars
+        inherited_vars = used_vars & module_vars
+        missing_definitions = inherited_vars - template_vars
 
         # Only warn once per template (use a flag to avoid repeated warnings)
-        if missing_definitions and not hasattr(self, "_schema_deprecation_warned"):
+        if missing_definitions and not self._schema_deprecation_warned:
             self._schema_deprecation_warned = True
             # Show first N variables in warning, full list in debug
             max_shown_vars = 10
