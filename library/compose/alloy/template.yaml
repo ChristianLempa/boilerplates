@@ -26,6 +26,19 @@ spec:
     vars:
       service_name:
         default: alloy
+      container_hostname:
+        description: Container internal hostname
+        type: str
+      restart_policy:
+        description: Container restart policy
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   logs:
     title: Log Collection
     toggle: logs_enabled
@@ -76,5 +89,30 @@ spec:
         default: 12345
   traefik:
     vars:
+      traefik_enabled:
+        description: Enable Traefik reverse proxy integration
+        type: bool
+        default: false
+      traefik_network:
+        description: Traefik network name
+        type: str
+        default: traefik
+        required: true
       traefik_host:
         default: alloy
+      traefik_domain:
+        description: Base domain (e.g., example.com)
+        type: str
+        default: home.arpa
+        required: true
+  traefik_tls:
+    vars:
+      traefik_tls_enabled:
+        description: Enable HTTPS/TLS
+        type: bool
+        default: true
+      traefik_tls_certresolver:
+        description: Traefik certificate resolver name
+        type: str
+        default: cloudflare
+        required: true
