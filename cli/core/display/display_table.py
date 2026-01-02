@@ -92,7 +92,6 @@ class TableDisplay:
         table.add_column("Name")
         table.add_column("Tags")
         table.add_column("Version", no_wrap=True)
-        table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
         settings = self.settings
@@ -102,7 +101,6 @@ class TableDisplay:
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
             version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
 
             # Format library with icon and color
             library_name = template.metadata.library or ""
@@ -111,7 +109,7 @@ class TableDisplay:
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
-            table.add_row(template.id, name, tags, version, schema, library_display)
+            table.add_row(template.id, name, tags, version, library_display)
 
         self.base._print_table(table)
 

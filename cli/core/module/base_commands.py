@@ -97,7 +97,6 @@ def list_templates(module_instance, raw: bool = False) -> list:
                 else:  # TEMPLATE_STATUS_INVALID
                     status_display = "[red]Invalid[/red]"
 
-                schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
                 library_name = template.metadata.library or ""
                 library_type = template.metadata.library_type or "git"
                 # Format library with icon and color
@@ -111,12 +110,11 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     name = f"[dim]{name}[/dim]"
                     tags = f"[dim]{tags}[/dim]"
                     version = f"[dim]{version}[/dim]"
-                    schema = f"[dim]{schema}[/dim]"
                     library_display = f"[dim]{icon} {library_name}[/dim]"
                 else:
                     template_id = template.id
 
-                return (template_id, name, tags, version, status_display, schema, library_display)
+                return (template_id, name, tags, version, status_display, library_display)
 
             module_instance.display.data_table(
                 columns=[
@@ -125,7 +123,6 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     {"name": "Tags"},
                     {"name": "Version", "no_wrap": True},
                     {"name": "Status", "no_wrap": True},
-                    {"name": "Schema", "no_wrap": True},
                     {"name": "Library", "no_wrap": True},
                 ],
                 rows=filtered_templates,
@@ -166,7 +163,6 @@ def search_templates(module_instance, query: str) -> list:
             else:  # TEMPLATE_STATUS_INVALID
                 status_display = "[red]Invalid[/red]"
 
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
             # Format library with icon and color
@@ -180,12 +176,11 @@ def search_templates(module_instance, query: str) -> list:
                 name = f"[dim]{name}[/dim]"
                 tags = f"[dim]{tags}[/dim]"
                 version = f"[dim]{version}[/dim]"
-                schema = f"[dim]{schema}[/dim]"
                 library_display = f"[dim]{icon} {library_name}[/dim]"
             else:
                 template_id = template.id
 
-            return (template_id, name, tags, version, status_display, schema, library_display)
+            return (template_id, name, tags, version, status_display, library_display)
 
         module_instance.display.data_table(
             columns=[
@@ -194,7 +189,6 @@ def search_templates(module_instance, query: str) -> list:
                 {"name": "Tags"},
                 {"name": "Version", "no_wrap": True},
                 {"name": "Status", "no_wrap": True},
-                {"name": "Schema", "no_wrap": True},
                 {"name": "Library", "no_wrap": True},
             ],
             rows=filtered_templates,
