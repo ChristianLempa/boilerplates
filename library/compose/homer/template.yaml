@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -17,9 +18,9 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-  - traefik
-  - swarm
-  - authentik
+    - traefik
+    - swarm
+    - authentik
   draft: true
   next_steps: "1. Start the Homer dashboard:\n   docker compose up -d\n\n2. Customize your dashboard:\n   - Edit assets/config.yml\
     \ to add your services\n   - Organize services into groups (Applications, Monitoring, etc.)\n   - Add links to the navbar\
@@ -45,10 +46,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
       homer_title:
@@ -108,7 +109,7 @@ spec:
         type: str
         default: 0.25
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -118,28 +119,28 @@ spec:
         type: str
         default: 512M
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
   swarm:
     vars:
       swarm_placement_mode:
         type: enum
         options:
-        - replicated
-        - global
+          - replicated
+          - global
         default: replicated
         required: true
       swarm_replicas:
         type: int
         default: 1
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str
         default: ''
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         extra: Constrains service to run on specific node by hostname
       swarm_enabled:
         type: bool
@@ -151,7 +152,7 @@ spec:
         type: str
         default: authentik-middleware@file
         needs:
-        - traefik_enabled=true
+          - traefik_enabled=true
         required: true
       authentik_client_id:
         type: str

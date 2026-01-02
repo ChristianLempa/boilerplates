@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -32,7 +33,7 @@ metadata:
   author: Christian Lempa
   date: '2025-12-10'
   tags:
-  - traefik
+    - traefik
 schema: '1.2'
 spec:
   general:
@@ -50,10 +51,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
       cmk_password:

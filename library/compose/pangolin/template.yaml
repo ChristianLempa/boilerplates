@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -25,10 +26,10 @@ metadata:
   author: Christian Lempa
   date: '2025-11-13'
   tags:
-  - traefik
-  - swarm
-  - proxy
-  - wireguard
+    - traefik
+    - swarm
+    - proxy
+    - wireguard
   draft: true
   next_steps: '### 1. Configure Database
 
@@ -100,10 +101,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   traefik:
@@ -140,25 +141,25 @@ spec:
         type: str
         default: 192.168.1.253
         needs:
-        - network_mode=macvlan
+          - network_mode=macvlan
         required: true
       network_macvlan_parent_interface:
         type: str
         default: eth0
         needs:
-        - network_mode=macvlan
+          - network_mode=macvlan
         required: true
       network_macvlan_subnet:
         type: str
         default: 192.168.1.0/24
         needs:
-        - network_mode=macvlan
+          - network_mode=macvlan
         required: true
       network_macvlan_gateway:
         type: str
         default: 192.168.1.1
         needs:
-        - network_mode=macvlan
+          - network_mode=macvlan
         required: true
       network_external:
         type: bool
@@ -175,8 +176,8 @@ spec:
         type: int
         default: 8080
         needs:
-        - traefik_enabled=false
-        - network_mode=bridge
+          - traefik_enabled=false
+          - network_mode=bridge
   volume:
     vars:
       volume_mount_path:
@@ -185,26 +186,26 @@ spec:
         type: str
         default: 192.168.1.1
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_mode:
         type: enum
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
         default: local
         description: The volume mode
   resources:
@@ -220,7 +221,7 @@ spec:
         type: str
         default: 0.25
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -230,7 +231,7 @@ spec:
         type: str
         default: 512M
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
   postgres:
     title: PostgreSQL Configuration
@@ -264,10 +265,10 @@ spec:
         type: enum
         default: info
         options:
-        - debug
-        - info
-        - warn
-        - error
+          - debug
+          - info
+          - warn
+          - error
         description: Log level
         needs: environment_enabled=true
   swarm:

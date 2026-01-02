@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -21,8 +22,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-24'
   tags:
-  - traefik
-  - swarm
+    - traefik
+    - swarm
   draft: true
 schema: '1.2'
 spec:
@@ -33,10 +34,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
       container_name:
         default: nginx
@@ -77,9 +78,9 @@ spec:
       network_mode:
         type: enum
         options:
-        - bridge
-        - host
-        - macvlan
+          - bridge
+          - host
+          - macvlan
         default: bridge
       network_name:
         default: bridge

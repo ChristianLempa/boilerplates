@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -43,8 +44,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-17'
   tags:
-  - traefik
-  - database
+    - traefik
+    - database
   draft: true
 schema: '1.2'
 spec:
@@ -61,17 +62,17 @@ spec:
       container_loglevel:
         type: enum
         options:
-        - debug
-        - info
-        - warn
-        - error
+          - debug
+          - info
+          - warn
+          - error
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   queue:
@@ -118,8 +119,8 @@ spec:
         type: enum
         description: Database type
         options:
-        - postgres
-        - mysql
+          - postgres
+          - mysql
         default: postgres
         needs: database_enabled
       database_host:
@@ -194,15 +195,15 @@ spec:
         type: enum
         description: Save execution data on error
         options:
-        - all
-        - none
+          - all
+          - none
         default: all
       execution_save_on_success:
         type: enum
         description: Save execution data on success
         options:
-        - all
-        - none
+          - all
+          - none
         default: none
         extra: Set to 'none' to reduce database size
   network:
@@ -248,8 +249,8 @@ spec:
         type: int
         default: 5678
         needs:
-        - traefik_enabled=false
-        - network_mode=bridge
+          - traefik_enabled=false
+          - network_mode=bridge
   swarm:
     vars:
       swarm_enabled:

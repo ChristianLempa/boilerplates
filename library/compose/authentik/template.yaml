@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: Authentik
@@ -44,8 +45,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-16'
   tags:
-  - traefik
-  - volume
+    - traefik
+    - volume
 schema: '1.2'
 spec:
   general:
@@ -55,10 +56,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   database:
@@ -135,34 +136,34 @@ spec:
       volume_mode:
         type: enum
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-        - volume_mode=mount
+          - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
   email:
     vars:

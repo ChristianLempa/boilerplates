@@ -84,8 +84,6 @@ spec:
         description: Use only recursive nameservers for DNS01 challenges
         type: bool
         default: true
-  general:
-    vars:
       namespace:
         type: str
         default: cert-manager

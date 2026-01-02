@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -32,9 +33,9 @@ metadata:
   author: Christian Lempa
   date: '2025-12-16'
   tags:
-  - traefik
-  - swarm
-  - authentik
+    - traefik
+    - swarm
+    - authentik
   next_steps: "{% if swarm_enabled -%}\n1. Deploy to Docker Swarm:\n   docker stack deploy -c compose.yaml {{ service_name\
     \ }}\n2. Access Prometheus:\n   {%- if traefik_enabled %} https://{{ traefik_host }}\n   {%- else %} http://<swarm-node-ip>:{{\
     \ ports_http }}{%- endif %}\n{% else -%}\n1. Start Prometheus with Docker Compose:\n   docker compose up -d\n2. Access\
@@ -50,10 +51,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   metrics:

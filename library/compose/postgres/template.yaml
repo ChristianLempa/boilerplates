@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -19,7 +20,7 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-  - swarm
+    - swarm
   draft: true
 schema: '1.2'
 spec:
@@ -36,10 +37,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -89,9 +90,9 @@ spec:
         type: str
         default: local
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
       volume_mount_path:
         description: Path for bind mounts when volume_mode is 'mount'
         type: str

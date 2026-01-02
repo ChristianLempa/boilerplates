@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -21,7 +22,7 @@ metadata:
   author: Christian Lempa
   date: '2025-11-11'
   tags:
-  - swarm
+    - swarm
   draft: true
 schema: '1.2'
 spec:
@@ -38,10 +39,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
       twingate_version:
@@ -77,7 +78,7 @@ spec:
         type: str
         default: 0.25
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -87,7 +88,7 @@ spec:
         type: str
         default: 512M
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
   swarm:
     vars:
@@ -95,7 +96,7 @@ spec:
         type: int
         default: 1
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str

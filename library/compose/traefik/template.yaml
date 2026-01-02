@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: Traefik
@@ -16,8 +17,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-17'
   tags:
-  - swarm
-  - volume
+    - swarm
+    - volume
   icon:
     provider: simpleicons
     id: traefikproxy
@@ -41,17 +42,17 @@ spec:
       container_loglevel:
         type: enum
         options:
-        - debug
-        - info
-        - warn
-        - error
+          - debug
+          - info
+          - warn
+          - error
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -62,7 +63,7 @@ spec:
         default: 8080
         required: true
         needs:
-        - dashboard_enabled=true
+          - dashboard_enabled=true
         extra: Only used when dashboard is enabled
       ports_http:
         default: 80
@@ -110,57 +111,57 @@ spec:
         default: us-east-1
         required: true
         needs:
-        - traefik_tls_certresolver=route53
+          - traefik_tls_certresolver=route53
       traefik_tls_acme_resource_group:
         description: Azure Resource Group
         type: str
         required: true
         needs:
-        - traefik_tls_certresolver=azure
+          - traefik_tls_certresolver=azure
       traefik_tls_acme_secret_key:
         description: DNS provider secret key
         type: str
         sensitive: true
         required: true
         needs:
-        - traefik_tls_certresolver=azure,godaddy,porkbun,route53
+          - traefik_tls_certresolver=azure,godaddy,porkbun,route53
         extra: AZURE_CLIENT_SECRET, GODADDY_API_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY
       traefik_tls_acme_subscription_id:
         description: Azure Subscription ID
         type: str
         required: true
         needs:
-        - traefik_tls_certresolver=azure
+          - traefik_tls_certresolver=azure
       traefik_tls_acme_tenant_id:
         description: Azure Tenant ID
         type: str
         required: true
         needs:
-        - traefik_tls_certresolver=azure
+          - traefik_tls_certresolver=azure
       traefik_tls_acme_token:
         description: DNS provider API token
         type: str
         sensitive: true
         required: true
         needs:
-        - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun
+          - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun
         extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY
       traefik_tls_acme_username:
         description: Namecheap API username
         type: str
         required: true
         needs:
-        - traefik_tls_certresolver=namecheap
+          - traefik_tls_certresolver=namecheap
       traefik_tls_certresolver:
         description: ACME DNS challenge provider
         options:
-        - cloudflare
-        - porkbun
-        - godaddy
-        - digitalocean
-        - route53
-        - azure
-        - namecheap
+          - cloudflare
+          - porkbun
+          - godaddy
+          - digitalocean
+          - route53
+          - azure
+          - namecheap
         extra: DNS provider for domain validation
       traefik_tls_enabled:
         description: Enable HTTPS/TLS with ACME
@@ -169,8 +170,8 @@ spec:
         description: Minimum TLS version
         type: enum
         options:
-        - VersionTLS12
-        - VersionTLS13
+          - VersionTLS12
+          - VersionTLS13
         extra: TLS 1.2 is recommended for compatibility, TLS 1.3 for maximum security
       traefik_tls_redirect:
         description: Redirect all HTTP traffic to HTTPS
@@ -189,56 +190,56 @@ spec:
       volume_mode:
         type: enum
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-        - volume_mode=mount
+          - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
   swarm:
     vars:
       swarm_placement_mode:
         type: enum
         options:
-        - replicated
-        - global
+          - replicated
+          - global
         default: replicated
         required: true
       swarm_replicas:
         type: int
         default: 1
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str
         description: Target hostname for placement constraint
         default: ''
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         extra: Constrains service to run on specific node by hostname
       swarm_enabled:
         type: bool

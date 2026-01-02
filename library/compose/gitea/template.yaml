@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: Gitea
@@ -29,7 +30,7 @@ metadata:
   author: Christian Lempa
   date: '2025-12-19'
   tags:
-  - traefik
+    - traefik
 schema: '1.2'
 spec:
   general:
@@ -47,32 +48,32 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
       gitea_url:
         description: Public URL
         type: str
         needs:
-        - traefik_enabled=false
+          - traefik_enabled=false
         default: https://git.example.com
   database:
     vars:
       database_type:
         type: enum
         options:
-        - sqlite
-        - postgres
-        - mysql
+          - sqlite
+          - postgres
+          - mysql
         default: sqlite
         required: true
       database_host:
         type: str
         needs:
-        - database_external=true;database_type=postgres,mysql
+          - database_external=true;database_type=postgres,mysql
         required: true
       database_name:
         default: gitea

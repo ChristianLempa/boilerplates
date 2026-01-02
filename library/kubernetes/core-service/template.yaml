@@ -95,7 +95,6 @@ spec:
         type: str
         description: TLS certificate resolver
         default: letsencrypt-prod
-        default: TCP
       app_selector:
         type: str
         description: App label selector (e.g., app.kubernetes.io/name value)
