@@ -18,7 +18,6 @@ metadata:
     id: bind-9
   draft: false
   next_steps: ""
-schema: "1.0"
 spec:
   addresses:
     title: IP Addresses

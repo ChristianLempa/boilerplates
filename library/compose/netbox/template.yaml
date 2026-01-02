@@ -27,7 +27,6 @@ metadata:
     Username: admin
     Password: admin
     ```
-schema: 1.2
 spec:
   database:
     vars:

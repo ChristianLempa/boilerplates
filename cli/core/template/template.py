@@ -364,7 +364,7 @@ class Template:
             else:
                 # No schema property = template is self-contained
                 self.schema_version = None
-                logger.debug(f"Template is self-contained (no schema property)")
+                logger.debug("Template is self-contained (no schema property)")
 
             # Note: Schema version validation is done by the module when loading templates
 
@@ -564,9 +564,7 @@ class Template:
                 f"Template '{self.id}' defines {len(unused_vars)} variable(s) that are not used in template files. "
                 f"Consider removing them from the spec: {', '.join(shown_vars)}{ellipsis}"
             )
-            logger.debug(
-                f"Template '{self.id}' unused variables: {sorted(unused_vars)}"
-            )
+            logger.debug(f"Template '{self.id}' unused variables: {sorted(unused_vars)}")
 
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
@@ -677,7 +675,7 @@ class Template:
         """Validate that template schema version is supported by the module.
 
         Self-contained templates (with schema=None) don't require validation.
-        
+
         Args:
             module_schema: Schema version supported by the module
             module_name: Name of the module (for error messages)
@@ -979,7 +977,7 @@ class Template:
     @property
     def module_specs(self) -> dict:
         """Get the spec from the module definition for this template's schema version.
-        
+
         Returns empty dict if template doesn't declare a schema (self-contained).
         """
         if self.__module_specs is None:

@@ -29,7 +29,6 @@ metadata:
     2. Start Traefik with Docker Compose from the project directory:
       `docker compose up -d`
     {% endif %}
-schema: "1.2"
 spec:
   general:
     vars:

@@ -20,7 +20,6 @@ metadata:
     id: traefik
   draft: false
   next_steps: ""
-schema: "1.0"
 spec:
   general:
     vars:

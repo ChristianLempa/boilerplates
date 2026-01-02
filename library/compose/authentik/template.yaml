@@ -32,7 +32,6 @@ metadata:
   tags:
     - traefik
     - volume
-schema: "1.2"
 spec:
   general:
     vars:

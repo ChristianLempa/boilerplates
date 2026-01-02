@@ -20,7 +20,6 @@ metadata:
     id: traefikproxy
   draft: true
   next_steps: ""
-schema: "1.0"
 spec:
   dashboard:
     title: Dashboard IngressRoute

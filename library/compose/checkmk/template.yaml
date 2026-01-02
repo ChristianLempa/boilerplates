@@ -25,7 +25,6 @@ metadata:
   date: '2025-12-10'
   tags:
     - traefik
-schema: 1.2
 spec:
   general:
     vars:

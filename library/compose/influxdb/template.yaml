@@ -24,7 +24,6 @@ metadata:
   tags:
     - traefik
   draft: true
-schema: "1.2"
 spec:
   ports:
     vars:

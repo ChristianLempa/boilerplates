@@ -24,7 +24,6 @@ metadata:
   tags:
     - traefik
     - authentik
-schema: 1.2
 spec:
   general:
     vars:

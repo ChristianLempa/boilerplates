@@ -20,7 +20,6 @@ metadata:
     - traefik
     - swarm
     - volumes
-schema: 1.2
 spec:
   general:
     vars:

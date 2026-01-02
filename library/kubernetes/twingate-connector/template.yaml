@@ -18,7 +18,6 @@ metadata:
     id: twingate
   draft: false
   next_steps: ""
-schema: "1.0"
 spec:
   general:
     vars:

@@ -30,7 +30,6 @@ metadata:
     Username: {{ admin_user }}
     Password: {{ admin_pass }}
     ```
-schema: 1.2
 spec:
   general:
     vars:
