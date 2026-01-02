@@ -394,6 +394,10 @@ class Template:
     def _load_module_specs_for_schema(kind: str, schema_version: str) -> dict:
         """Load specifications from the corresponding module for a specific schema version.
 
+        DEPRECATION NOTICE (v0.1.3): Module schemas are being deprecated. Templates should define
+        all variables in their template.yaml spec section. In future versions, this method will
+        return an empty dict and templates will need to be self-contained.
+
         Uses LRU cache to avoid re-loading the same module spec multiple times.
         This significantly improves performance when listing many templates of the same kind.
 
@@ -463,6 +467,51 @@ class Template:
             merged_spec[section_key] = section.to_dict()
 
         return merged_spec
+
+    def _warn_about_inherited_variables(self, module_specs: dict, template_specs: dict) -> None:
+        """Warn about variables inherited from module schemas (deprecation warning).
+
+        DEPRECATION (v0.1.3): Templates should define all variables explicitly in template.yaml.
+        This method detects variables that come from module schemas and warns users to add them
+        to the template spec.
+
+        Args:
+            module_specs: Variables defined in module schema
+            template_specs: Variables defined in template.yaml
+        """
+        # Skip if no module specs (already self-contained)
+        if not module_specs:
+            return
+
+        # Collect variables from module specs
+        module_vars = set()
+        for section_data in module_specs.values():
+            if isinstance(section_data, dict) and "vars" in section_data:
+                module_vars.update(section_data["vars"].keys())
+
+        # Collect variables explicitly defined in template
+        template_vars = set()
+        for section_data in (template_specs or {}).values():
+            if isinstance(section_data, dict) and "vars" in section_data:
+                template_vars.update(section_data["vars"].keys())
+
+        # Find variables inherited from module (not overridden in template)
+        inherited_vars = module_vars - template_vars
+
+        if inherited_vars:
+            # Only warn once per template (use a flag to avoid repeated warnings)
+            if not hasattr(self, "_schema_deprecation_warned"):
+                self._schema_deprecation_warned = True
+                logger.warning(
+                    f"DEPRECATION WARNING: Template '{self.id}' inherits {len(inherited_vars)} variables "
+                    f"from module schema (kind='{self._template_data.get('kind')}', schema={self.schema_version}). "
+                    f"In future versions, templates must define all variables in template.yaml. "
+                    f"Inherited variables: {', '.join(sorted(list(inherited_vars)[:10]))}{'...' if len(inherited_vars) > 10 else ''}"
+                )
+                logger.debug(
+                    f"Template '{self.id}' should add these variables to template.yaml spec: "
+                    f"{sorted(inherited_vars)}"
+                )
 
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
@@ -876,6 +925,8 @@ class Template:
     @property
     def merged_specs(self) -> dict:
         if self.__merged_specs is None:
+            # Warn about inherited variables (deprecation)
+            self._warn_about_inherited_variables(self.module_specs, self.template_specs)
             self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)
         return self.__merged_specs
 
