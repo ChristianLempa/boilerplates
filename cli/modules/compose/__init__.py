@@ -1,9 +1,9 @@
 """Docker Compose module."""
 
 import logging
+from typing import Annotated
 
 from typer import Argument, Option
-from typing import Annotated
 
 from ...core.module import Module
 from ...core.module.base_commands import validate_templates

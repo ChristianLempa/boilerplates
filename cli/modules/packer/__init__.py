@@ -8,7 +8,6 @@ from ...core.registry import registry
 logger = logging.getLogger(__name__)
 
 
-
 class PackerModule(Module):
     """Packer module."""
 

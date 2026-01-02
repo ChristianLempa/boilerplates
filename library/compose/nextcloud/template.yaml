@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: Nextcloud
@@ -20,7 +21,7 @@ metadata:
   author: Christian Lempa
   date: '2025-12-12'
   tags:
-  - traefik
+    - traefik
   draft: true
 schema: '1.2'
 spec:
@@ -31,8 +32,8 @@ spec:
         description: Database type (Nextcloud supports PostgreSQL or MySQL/MariaDB)
         type: enum
         options:
-        - postgres
-        - mysql
+          - postgres
+          - mysql
         default: postgres
       database_name:
         type: str
@@ -55,10 +56,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   network:
@@ -119,7 +120,7 @@ spec:
         type: int
         default: 1
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         required: true
       swarm_enabled:
         type: bool

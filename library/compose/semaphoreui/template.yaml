@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   icon:
@@ -31,8 +32,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-17'
   tags:
-  - traefik
-  - database
+    - traefik
+    - database
   next_steps: 'Log in with your initial admin user:
 
     ```bash
@@ -53,10 +54,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
       secret_key:
@@ -123,8 +124,8 @@ spec:
     vars:
       database_type:
         options:
-        - postgres
-        - mysql
+          - postgres
+          - mysql
         default: mysql
       database_name:
         default: semaphore

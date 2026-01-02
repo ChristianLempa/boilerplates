@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: NetBox
@@ -19,9 +20,9 @@ metadata:
   author: Christian Lempa
   date: '2025-12-12'
   tags:
-  - traefik
-  - database
-  - email
+    - traefik
+    - database
+    - email
   icon:
     provider: selfh
     id: netbox
@@ -101,10 +102,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   netbox:

@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: GitLab
@@ -43,8 +44,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-  - traefik
-  - swarm
+    - traefik
+    - swarm
   next_steps: "## Post-Installation Steps\n1. **Start GitLab**:\n   ```bash\n   docker compose up -d\n   ```\n2. **Wait for\
     \ initialization** (2-5 minutes):\n   ```bash\n   docker compose logs -f gitlab\n   ```\n   Wait for message: `gitlab\
     \ Reconfigured!`\n3. **Access the web interface**:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{ traefik_host\
@@ -93,10 +94,10 @@ spec:
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -119,7 +120,7 @@ spec:
         default: gitlab.home.arpa
       traefik_registry_host:
         needs:
-        - registry_enabled=true
+          - registry_enabled=true
         default: registry.home.arpa
         type: str
         description: Hostname for Container Registry in Traefik (if enabled)
@@ -150,34 +151,34 @@ spec:
       volume_mode:
         type: enum
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-        - volume_mode=mount
+          - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-        - volume_mode=nfs
+          - volume_mode=nfs
         required: true
   swarm:
     vars:
@@ -218,8 +219,8 @@ spec:
         type: enum
         description: Performance optimization profile
         options:
-        - homelab
-        - default
+          - homelab
+          - default
         default: homelab
         extra: homelab is optimized for low-resource environments, default is for standard servers
       prometheus_enabled:

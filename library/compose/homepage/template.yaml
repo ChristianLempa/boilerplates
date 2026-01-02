@@ -1,3 +1,4 @@
+---
 kind: compose
 metadata:
   name: Homepage
@@ -15,9 +16,9 @@ metadata:
   author: Christian Lempa
   date: '2025-12-12'
   tags:
-  - traefik
-  - swarm
-  - volume_modes
+    - traefik
+    - swarm
+    - volume_modes
   icon:
     provider: simpleicons
     id: homepage
@@ -38,17 +39,17 @@ spec:
       container_loglevel:
         type: enum
         options:
-        - debug
-        - info
-        - warn
-        - error
+          - debug
+          - info
+          - warn
+          - error
       restart_policy:
         type: enum
         options:
-        - unless-stopped
-        - always
-        - on-failure
-        - 'no'
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -86,16 +87,16 @@ spec:
       volume_mode:
         type: enum
         options:
-        - local
-        - mount
-        - nfs
+          - local
+          - mount
+          - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-        - volume_mode=mount
+          - volume_mode=mount
         required: true
       volume_nfs_options:
         type: str
@@ -122,7 +123,7 @@ spec:
         type: str
         default: 0.25
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -132,7 +133,7 @@ spec:
         type: str
         default: 512M
         needs:
-        - swarm_enabled=true
+          - swarm_enabled=true
         required: true
   swarm:
     vars:
@@ -140,13 +141,13 @@ spec:
         type: int
         default: 1
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str
         default: ''
         needs:
-        - swarm_placement_mode=replicated
+          - swarm_placement_mode=replicated
         extra: Constrains service to run on specific node by hostname
       swarm_enabled:
         type: bool
