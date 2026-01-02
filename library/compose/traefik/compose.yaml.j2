@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/library/traefik:v3.6.5
+    image: docker.io/library/traefik:v3.6.6
     {% if not swarm_enabled %}
     {% if container_name %}
     container_name: {{ container_name }}
