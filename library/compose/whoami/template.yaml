@@ -28,7 +28,72 @@ spec:
     vars:
       service_name:
         default: whoami
+      restart_policy:
+        description: Container restart policy
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   traefik:
     vars:
       traefik_host:
         default: whoami
+      traefik_network:
+        description: Traefik network name
+        type: str
+        default: traefik
+        required: true
+      traefik_domain:
+        description: Base domain (e.g., example.com)
+        type: str
+        default: home.arpa
+        required: true
+  traefik_tls:
+    vars:
+      traefik_tls_enabled:
+        description: Enable HTTPS/TLS
+        type: bool
+        default: true
+      traefik_tls_certresolver:
+        description: Traefik certificate resolver name
+        type: str
+        default: cloudflare
+        required: true
+  resources:
+    vars:
+      resources_enabled:
+        description: Enable resource limits
+        type: bool
+        default: false
+  swarm:
+    vars:
+      swarm_enabled:
+        description: Enable Docker Swarm mode
+        type: bool
+        default: false
+      swarm_placement_mode:
+        description: Swarm placement mode
+        type: enum
+        options:
+          - replicated
+          - global
+        default: replicated
+        required: true
+      swarm_replicas:
+        description: Number of replicas
+        type: int
+        default: 1
+        needs:
+          - swarm_placement_mode=replicated
+        required: true
+      swarm_placement_host:
+        description: Target hostname for placement constraint
+        type: str
+        default: ''
+        needs:
+          - swarm_placement_mode=replicated
+        extra: Constrains service to run on specific node by hostname

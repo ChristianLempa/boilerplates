@@ -2,6 +2,6 @@
 Boilerplates CLI - A sophisticated command-line tool for managing infrastructure boilerplates.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "Christian Lempa"
 __description__ = "CLI tool for managing infrastructure boilerplates"
