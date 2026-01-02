@@ -21,6 +21,7 @@ metadata:
     id: rancher-longhorn
   draft: true
   next_steps: ""
+schema: "1.2"
 spec:
   backup:
     title: Backup Configuration

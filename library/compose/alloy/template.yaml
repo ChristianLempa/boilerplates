@@ -20,6 +20,7 @@ metadata:
     provider: selfh
     id: grafana
   next_steps:
+schema: "1.2"
 spec:
   general:
     vars:

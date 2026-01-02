@@ -30,6 +30,7 @@ metadata:
     - network
     - volume
   next_steps:
+schema: "1.2"
 spec:
   general:
     vars:

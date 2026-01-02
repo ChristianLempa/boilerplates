@@ -41,6 +41,7 @@ metadata:
     {% endif -%}
     3. Edit config/prometheus.yaml to add scrape targets
     4. Reload configuration: docker exec {{ container_name if not swarm_enabled else service_name }} kill -HUP 1
+schema: "1.2"
 spec:
   general:
     vars:

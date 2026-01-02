@@ -16,6 +16,7 @@ metadata:
   version: 1.31.0
   author: Christian Lempa
   date: '2025-01-11'
+schema: "1.2"
 spec:
   general:
     vars:

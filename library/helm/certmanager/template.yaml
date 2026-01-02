@@ -20,6 +20,7 @@ metadata:
     id: lets-encrypt
   draft: true
   next_steps: ""
+schema: "1.2"
 spec:
   dns:
     title: DNS Configuration

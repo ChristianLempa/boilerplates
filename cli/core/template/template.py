@@ -356,17 +356,13 @@ class Template:
             # Validate 'kind' field (always needed)
             self._validate_kind(self._template_data)
 
-            # Extract schema version (only if explicitly declared in template.yaml)
-            # If schema property is missing, template is self-contained (no schema inheritance)
-            if "schema" in self._template_data:
-                self.schema_version = str(self._template_data["schema"])
-                logger.debug(f"Template uses schema version: {self.schema_version}")
-            else:
-                # No schema property = template is self-contained
-                self.schema_version = None
-                logger.debug("Template is self-contained (no schema property)")
+            # DEPRECATION (v0.1.3): Schema property is ignored for backwards compatibility
+            # Templates are now self-contained and never use schemas
+            # The schema property may still exist in template.yaml for older client compatibility
+            self.schema_version = None
+            logger.debug("Template is self-contained (schemas are no longer used)")
 
-            # Note: Schema version validation is done by the module when loading templates
+            # Note: Schema loading and validation removed in v0.1.3
 
             # NOTE: File collection is now lazy-loaded via the template_files property
             # This significantly improves performance when listing many templates
@@ -479,61 +475,6 @@ class Template:
             merged_spec[section_key] = section.to_dict()
 
         return merged_spec
-
-    def _warn_about_inherited_variables(self, module_specs: dict, template_specs: dict) -> None:
-        """Warn about variables inherited from module schemas (deprecation warning).
-
-        DEPRECATION (v0.1.3): Templates should define all variables explicitly in template.yaml.
-        This method detects variables that are used in template files but come from module schemas,
-        and warns users to add them to the template spec.
-
-        Args:
-            module_specs: Variables defined in module schema
-            template_specs: Variables defined in template.yaml
-        """
-        # Skip if no module specs (already self-contained)
-        if not module_specs:
-            return
-
-        # Collect variables from module specs
-        module_vars = set()
-        for section_data in module_specs.values():
-            if isinstance(section_data, dict) and "vars" in section_data:
-                module_vars.update(section_data["vars"].keys())
-
-        # Collect variables explicitly defined in template
-        template_vars = set()
-        for section_data in (template_specs or {}).values():
-            if isinstance(section_data, dict) and "vars" in section_data:
-                template_vars.update(section_data["vars"].keys())
-
-        # Get variables actually used in template files
-        used_vars = self.used_variables
-
-        # Find variables that are:
-        # 1. Used in template files AND defined in module schema (inherited variables)
-        # 2. NOT explicitly defined in template.yaml (missing definitions)
-        # These are the problematic ones - the template relies on schema
-        inherited_vars = used_vars & module_vars
-        missing_definitions = inherited_vars - template_vars
-
-        # Only warn once per template (use a flag to avoid repeated warnings)
-        if missing_definitions and not self._schema_deprecation_warned:
-            self._schema_deprecation_warned = True
-            # Show first N variables in warning, full list in debug
-            max_shown_vars = 10
-            shown_vars = sorted(list(missing_definitions)[:max_shown_vars])
-            ellipsis = "..." if len(missing_definitions) > max_shown_vars else ""
-            logger.warning(
-                f"DEPRECATION WARNING: Template '{self.id}' uses {len(missing_definitions)} "
-                f"variable(s) from module schema without defining them in template.yaml. "
-                f"In future versions, all used variables must be defined in template.yaml. "
-                f"Missing definitions: {', '.join(shown_vars)}{ellipsis}"
-            )
-            logger.debug(
-                f"Template '{self.id}' should add these variable definitions to template.yaml spec: "
-                f"{sorted(missing_definitions)}"
-            )
 
     def _warn_about_unused_variables(self, template_specs: dict) -> None:
         """Warn about variables defined in spec but not used in template files.
@@ -976,25 +917,16 @@ class Template:
 
     @property
     def module_specs(self) -> dict:
-        """Get the spec from the module definition for this template's schema version.
-
-        Returns empty dict if template doesn't declare a schema (self-contained).
+        """Get the spec from the module (always empty in v0.1.3+).
+        
+        Schemas are no longer used. All templates are self-contained.
+        This property returns empty dict for backwards compatibility.
         """
         if self.__module_specs is None:
-            # Only load module specs if template explicitly declares a schema version
-            # Templates without a schema property are self-contained
-            if self.schema_version is not None:
-                kind = self._template_data.get("kind")
-                self.__module_specs = self._load_module_specs_for_schema(kind, self.schema_version)
-            else:
-                self.__module_specs = {}
-        return self.__module_specs
-
+            self.__module_specs = {}
     @property
     def merged_specs(self) -> dict:
         if self.__merged_specs is None:
-            # Warn about inherited variables (deprecation)
-            self._warn_about_inherited_variables(self.module_specs, self.template_specs)
             # Warn about unused variables in spec
             self._warn_about_unused_variables(self.template_specs)
             self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)

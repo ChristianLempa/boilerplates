@@ -18,6 +18,7 @@ metadata:
     id: cloudflare
   draft: false
   next_steps: ""
+schema: "1.2"
 spec:
   comment:
     title: Comment

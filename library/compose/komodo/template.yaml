@@ -60,6 +60,7 @@ metadata:
     * Add servers to Komodo through the web interface
     * Configure API keys for programmatic access
     * Start managing deployments, stacks, and builds
+schema: "1.2"
 spec:
   general:
     vars:

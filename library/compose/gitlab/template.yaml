@@ -60,6 +60,7 @@ metadata:
     - Documentation: https://docs.gitlab.com/
     - GitLab Runner: https://docs.gitlab.com/runner/
   draft: true
+schema: "1.2"
 spec:
   general:
     vars:

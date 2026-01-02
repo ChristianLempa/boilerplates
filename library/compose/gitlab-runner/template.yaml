@@ -18,4 +18,5 @@ metadata:
     id: gitlab
   draft: true
   next_steps: ""
-spec: {}
+schema: "1.2"
+spec:

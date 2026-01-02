@@ -20,6 +20,7 @@ metadata:
   author: Christian Lempa
   date: '2025-01-13'
   draft: true
+schema: "1.2"
 spec:
   general:
     vars:

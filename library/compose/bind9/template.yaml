@@ -19,6 +19,7 @@ metadata:
     provider: selfh
     id: bind-9
   draft: true
+schema: "1.2"
 spec:
   dns_security:
     title: dns_security

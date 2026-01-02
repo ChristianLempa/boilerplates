@@ -24,6 +24,7 @@ metadata:
   version: 1.11.2
   author: Christian Lempa
   date: '2024-11-11'
+schema: "1.2"
 spec:
   general:
     vars:

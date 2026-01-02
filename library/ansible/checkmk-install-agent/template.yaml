@@ -16,6 +16,7 @@ metadata:
     id: checkmk
   draft: false
   next_steps: ""
+schema: "1.2"
 spec:
   checkmk:
     title: Checkmk Configuration

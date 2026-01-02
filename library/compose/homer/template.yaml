@@ -48,6 +48,7 @@ metadata:
        {%- endif %}
 
     For more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
+schema: "1.2"
 spec:
   general:
     vars:

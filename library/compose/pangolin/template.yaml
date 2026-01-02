@@ -52,6 +52,7 @@ metadata:
     ### 4. Configure WireGuard Clients
     * Use the Pangolin web interface to create and manage WireGuard tunnels
     * Deploy Newt client on remote machines to establish secure connections
+schema: "1.2"
 spec:
   general:
     vars:

@@ -22,6 +22,7 @@ metadata:
   tags:
     - traefik
   draft: true
+schema: "1.2"
 spec:
   database:
     required: true

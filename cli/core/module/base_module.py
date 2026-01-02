@@ -79,9 +79,6 @@ class Module(ABC):
 
                 template = Template(template_dir, library_name=library_name, library_type=library_type)
 
-                # Validate schema version compatibility
-                template._validate_schema_version(self.schema_version, self.name)
-
                 # If template ID needs qualification, set qualified ID
                 if needs_qualification:
                     template.set_qualified_id()
@@ -114,9 +111,6 @@ class Module(ABC):
 
         try:
             template = Template(template_dir, library_name=library_name, library_type=library_type)
-
-            # Validate schema version compatibility
-            template._validate_schema_version(self.schema_version, self.name)
 
             # If the original ID was qualified, preserve it
             if "." in id:
