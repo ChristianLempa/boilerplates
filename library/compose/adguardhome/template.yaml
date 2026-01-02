@@ -65,24 +65,7 @@ spec:
         default: true
         extra: 'Port 3000 is only used during the initial setup wizard when Traefik is disabled. With Traefik enabled, access
           setup via container IP instead. After completing setup, AdGuard Home switches to port 80 and port 3000 becomes inactive.
-
           '
-  traefik:
-    vars:
-      traefik_host:
-        default: adguardhome
-      traefik_network:
-        default: traefik
-        type: str
-        required: true
-      traefik_domain:
-        default: home.arpa
-        type: str
-        required: true
-      traefik_enabled:
-        type: bool
-        default: false
-        description: Enable Traefik integration
   network:
     vars:
       network_mode:
@@ -150,6 +133,22 @@ spec:
         type: int
         default: 5443
         required: true
+  traefik:
+    vars:
+      traefik_host:
+        default: adguardhome
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
