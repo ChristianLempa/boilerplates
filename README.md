@@ -145,3 +145,9 @@ Creating high-quality videos and valuable resources that are accessible to every
 Remember, ***supporting me is entirely optional.*** Your choice to become a member or not won't change your access to my videos and resources. You are also welcome to reach out to me on Discord, if you have any questions or feedback.
 
 [https://www.patreon.com/christianlempa](https://www.patreon.com/christianlempa)
+
+---
+
+## Legacy Templates (v1)
+
+Looking for templates from my older videos? The original boilerplates collection is still available in the [`backup/boilerplates-v1`](https://github.com/ChristianLempa/boilerplates/tree/backup/boilerplates-v1) branch. These templates haven't been migrated to the new CLI tool yet, but you can still access and use them directly from that branch.
