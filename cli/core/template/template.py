@@ -383,19 +383,19 @@ class Template:
 
     def _merge_specs(self) -> dict:
         """Process template specs into merged format.
-        
+
         Since schemas are no longer used, this just uses the template specs directly
         and warns about unused variables.
         """
         if not self.template_specs:
             return {}
-        
+
         # Warn about unused variables in spec
         self._warn_about_unused_variables(self.template_specs)
-        
+
         # Create VariableCollection from template specs
         collection = VariableCollection(self.template_specs)
-        
+
         # Convert back to dict format
         merged_spec = {}
         for section_key, section in collection.get_sections().items():
@@ -820,10 +820,10 @@ class Template:
         if self.__variables is None:
             # Process template specs (merge and warn about unused variables)
             merged_specs = self._merge_specs()
-            
+
             # Validate that all used variables are defined
             self._validate_variable_definitions(self.used_variables, merged_specs)
-            
+
             # Filter specs to only used variables
             filtered_specs = self._filter_specs_to_used(
                 self.used_variables,
