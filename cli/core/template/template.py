@@ -535,6 +535,39 @@ class Template:
                 f"{sorted(missing_definitions)}"
             )
 
+    def _warn_about_unused_variables(self, template_specs: dict) -> None:
+        """Warn about variables defined in spec but not used in template files.
+
+        This helps identify unnecessary variable definitions that can be removed.
+
+        Args:
+            template_specs: Variables defined in template.yaml spec
+        """
+        # Collect variables explicitly defined in template
+        defined_vars = set()
+        for section_data in (template_specs or {}).values():
+            if isinstance(section_data, dict) and "vars" in section_data:
+                defined_vars.update(section_data["vars"].keys())
+
+        # Get variables actually used in template files
+        used_vars = self.used_variables
+
+        # Find variables that are defined but not used
+        unused_vars = defined_vars - used_vars
+
+        if unused_vars:
+            # Show first N variables in warning, full list in debug
+            max_shown_vars = 10
+            shown_vars = sorted(list(unused_vars)[:max_shown_vars])
+            ellipsis = "..." if len(unused_vars) > max_shown_vars else ""
+            logger.warning(
+                f"Template '{self.id}' defines {len(unused_vars)} variable(s) that are not used in template files. "
+                f"Consider removing them from the spec: {', '.join(shown_vars)}{ellipsis}"
+            )
+            logger.debug(
+                f"Template '{self.id}' unused variables: {sorted(unused_vars)}"
+            )
+
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
         template_files: list[TemplateFile] = []
@@ -964,6 +997,8 @@ class Template:
         if self.__merged_specs is None:
             # Warn about inherited variables (deprecation)
             self._warn_about_inherited_variables(self.module_specs, self.template_specs)
+            # Warn about unused variables in spec
+            self._warn_about_unused_variables(self.template_specs)
             self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)
         return self.__merged_specs
 

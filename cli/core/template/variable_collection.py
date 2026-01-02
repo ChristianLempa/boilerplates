@@ -775,7 +775,7 @@ class VariableCollection:
             try:
                 variable = self._variable_map.get(var_name)
                 if not variable:
-                    logger.warning(f"Variable '{var_name}' not found in template")
+                    logger.debug(f"Default value for '{var_name}' not applicable to this template (variable not defined)")
                     continue
 
                 # Check if variable's needs are satisfied

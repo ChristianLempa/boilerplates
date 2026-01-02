@@ -27,9 +27,6 @@ spec:
     vars:
       service_name:
         default: whoami
-      container_timezone:
-        description: Container timezone (e.g., Europe/Berlin)
-        type: str
       restart_policy:
         description: Container restart policy
         type: enum

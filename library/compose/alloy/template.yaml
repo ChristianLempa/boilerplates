@@ -28,9 +28,6 @@ spec:
       container_hostname:
         description: Container internal hostname
         type: str
-      container_timezone:
-        description: Container timezone (e.g., Europe/Berlin)
-        type: str
       restart_policy:
         description: Container restart policy
         type: enum
@@ -41,17 +38,6 @@ spec:
           - 'no'
         default: unless-stopped
         required: true
-  network:
-    title: Network
-    vars:
-      network_mode:
-        description: Docker network mode
-        type: enum
-        options:
-          - bridge
-          - host
-          - macvlan
-        default: bridge
   logs:
     title: Log Collection
     toggle: logs_enabled
