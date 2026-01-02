@@ -472,8 +472,8 @@ class Template:
         """Warn about variables inherited from module schemas (deprecation warning).
 
         DEPRECATION (v0.1.3): Templates should define all variables explicitly in template.yaml.
-        This method detects variables that come from module schemas and warns users to add them
-        to the template spec.
+        This method detects variables that are used in template files but come from module schemas,
+        and warns users to add them to the template spec.
 
         Args:
             module_specs: Variables defined in module schema
@@ -495,22 +495,29 @@ class Template:
             if isinstance(section_data, dict) and "vars" in section_data:
                 template_vars.update(section_data["vars"].keys())
 
-        # Find variables inherited from module (not overridden in template)
-        inherited_vars = module_vars - template_vars
+        # Get variables actually used in template files
+        used_vars = self.used_variables
 
-        if inherited_vars:
+        # Find variables that are:
+        # 1. Used in template files
+        # 2. Defined in module schema
+        # 3. NOT explicitly defined in template.yaml
+        # These are the problematic ones - the template relies on schema
+        missing_definitions = (used_vars & module_vars) - template_vars
+
+        if missing_definitions:
             # Only warn once per template (use a flag to avoid repeated warnings)
             if not hasattr(self, "_schema_deprecation_warned"):
                 self._schema_deprecation_warned = True
                 logger.warning(
-                    f"DEPRECATION WARNING: Template '{self.id}' inherits {len(inherited_vars)} variables "
-                    f"from module schema (kind='{self._template_data.get('kind')}', schema={self.schema_version}). "
-                    f"In future versions, templates must define all variables in template.yaml. "
-                    f"Inherited variables: {', '.join(sorted(list(inherited_vars)[:10]))}{'...' if len(inherited_vars) > 10 else ''}"
+                    f"DEPRECATION WARNING: Template '{self.id}' uses {len(missing_definitions)} "
+                    f"variable(s) from module schema without defining them in template.yaml. "
+                    f"In future versions, all used variables must be defined in template.yaml. "
+                    f"Missing definitions: {', '.join(sorted(list(missing_definitions)[:10]))}{'...' if len(missing_definitions) > 10 else ''}"
                 )
                 logger.debug(
-                    f"Template '{self.id}' should add these variables to template.yaml spec: "
-                    f"{sorted(inherited_vars)}"
+                    f"Template '{self.id}' should add these variable definitions to template.yaml spec: "
+                    f"{sorted(missing_definitions)}"
                 )
 
     def _collect_template_files(self) -> None:
