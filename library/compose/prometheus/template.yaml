@@ -29,9 +29,9 @@ metadata:
     GitHub: https://github.com/prometheus/prometheus
 
     '
-  version: v3.8.1
+  version: v3.9.0
   author: Christian Lempa
-  date: '2025-12-16'
+  date: '2026-01-07'
   tags:
     - traefik
     - swarm
