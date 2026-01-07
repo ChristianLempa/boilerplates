@@ -29,7 +29,7 @@ metadata:
     GitHub: https://github.com/prometheus/prometheus
 
     '
-  version: v3.9.0
+  version: v3.9.1
   author: Christian Lempa
   date: '2026-01-07'
   tags:
