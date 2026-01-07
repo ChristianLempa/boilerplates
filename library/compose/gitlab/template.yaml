@@ -2,66 +2,78 @@
 kind: compose
 metadata:
   name: GitLab
-  description: 'A **complete DevOps platform** that provides Git repository management, CI/CD pipelines,
-
+  description: |-
+    A **complete DevOps platform** that provides Git repository management, CI/CD pipelines,
     issue tracking, and container registry in a single application.
-
     ## Prerequisites
-
     - ...
-
     **Performance Presets**:
-
     - `homelab`: Optimized for low-resource environments (limited workers, reduced PostgreSQL buffers)
-
     - `default`: Standard server configuration for production use
-
     **External URL**:
-
     - Set to your public domain (e.g., `https://gitlab.example.com`) for proper clone URLs
-
     - Affects SSH clone URLs and web links in emails/notifications
-
     **Container Registry**:
-
     - Enable if you need private Docker image hosting
-
     - Requires separate external URL (e.g., `https://registry.example.com`)
-
     ## Resources
-
     - **Project**: https://about.gitlab.com/
-
     - **Documentation**: https://docs.gitlab.com/
-
     - **Community**: https://forum.gitlab.com/
-
-    '
   icon:
     provider: selfh
     id: gitlab
-  version: 18.5.4-ce.0
+  version: 18.6.1-ce.0
   author: Christian Lempa
   date: '2025-12-11'
   tags:
     - traefik
-    - swarm
-  next_steps: "## Post-Installation Steps\n1. **Start GitLab**:\n   ```bash\n   docker compose up -d\n   ```\n2. **Wait for\
-    \ initialization** (2-5 minutes):\n   ```bash\n   docker compose logs -f gitlab\n   ```\n   Wait for message: `gitlab\
-    \ Reconfigured!`\n3. **Access the web interface**:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{ traefik_host\
-    \ }}\n   {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{%\
-    \ endif %}\n   {%- else -%}\n   - Open {{ external_url }} in your browser\n   {% if network_mode == 'bridge' %}- Or: http://localhost:{{\
-    \ ports_http }}{% endif %}\n   {%- endif %}\n4. **Initial login credentials**:\n   - **Username**: `root`\n   - **Password**:\
-    \ `{{ root_password }}`\n   > **Important**: This password only works on FIRST initialization.\n   > Change it immediately\
-    \ after first login via GitLab's web interface!\n5. **Configure SSH** (optional):\n   - SSH clone URLs will use port `{{\
-    \ ports_ssh }}`\n   - Update your Git remote if needed\n## Additional Resources\n- Documentation: https://docs.gitlab.com/\n\
-    - GitLab Runner: https://docs.gitlab.com/runner/\n"
-  draft: true
+  next_steps: |-
+    ## Post-Installation Steps
+    1. **Start GitLab**:
+      ```bash
+      docker compose up -d
+      ```
+    2. **Wait for\
+      \ initialization** (2-5 minutes):
+        ```bash
+        docker compose logs -f gitlab
+        ```
+        Wait for message: `gitlab\
+      \ Reconfigured!`
+      3. **Access the web interface**:
+        {% if traefik_enabled -%}
+        - Via Traefik: https://{{ traefik_host\
+      \ }}
+        {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{%\
+      \ endif %}
+        {%- else -%}
+        - Open {{ external_url }} in your browser
+        {% if network_mode == 'bridge' %}- Or: http://localhost:{{\
+      \ ports_http }}{% endif %}
+        {%- endif %}
+      4. **Initial login credentials**:
+        - **Username**: `root`
+        - **Password**:\
+      \ `{{ root_password }}`
+        > **Important**: This password only works on FIRST initialization.
+        > Change it immediately\
+      \ after first login via GitLab's web interface!
+      5. **Configure SSH** (optional):
+        - SSH clone URLs will use port `{{\
+      \ ports_ssh }}`
+        - Update your Git remote if needed
+      ## Additional Resources
+      - Documentation: https://docs.gitlab.com/
+      \
+      - GitLab Runner: https://docs.gitlab.com/runner/
 schema: '1.2'
 spec:
   general:
     vars:
       service_name:
+        type: str
+        description: Docker service name
         default: gitlab
       external_url:
         type: str
@@ -100,6 +112,23 @@ spec:
           - 'no'
         default: unless-stopped
         required: true
+  advanced:
+    title: Advanced Settings
+    description: Performance tuning and advanced configuration options
+    vars:
+      performance_preset:
+        type: enum
+        description: Performance optimization profile
+        options:
+          - homelab
+          - default
+        default: homelab
+        extra: homelab is optimized for low-resource environments, default is for standard servers
+      prometheus_enabled:
+        type: bool
+        description: Enable Prometheus monitoring
+        default: false
+        extra: Disabling saves ~200-400MB RAM. GitLab UI metrics will be unavailable.
   ports:
     vars:
       ports_http:
@@ -110,10 +139,18 @@ spec:
         type: int
         description: Container Registry port
         default: 5000
-  network:
+  registry:
+    description: GitLab Container Registry configuration
+    toggle: registry_enabled
     vars:
-      network_name:
-        default: gitlab_network
+      registry_enabled:
+        type: bool
+        description: Enable GitLab Container Registry
+        default: false
+      registry_external_url:
+        type: str
+        description: External URL for Container Registry
+        default: http://localhost:5000
   traefik:
     vars:
       traefik_host:
@@ -146,85 +183,61 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
-  volume:
+  email:
     vars:
-      volume_mode:
-        type: enum
-        options:
-          - local
-          - mount
-          - nfs
-        default: local
-        required: true
-      volume_mount_path:
+      email_enabled:
+        type: bool
+        default: false
+        description: Enable email server configuration
+      email_host:
         type: str
-        default: /mnt/storage
-        needs:
-          - volume_mode=mount
-        required: true
-      volume_nfs_server:
-        type: str
-        default: 192.168.1.1
-        needs:
-          - volume_mode=nfs
-        required: true
-      volume_nfs_path:
-        type: str
-        default: /export
-        needs:
-          - volume_mode=nfs
-        required: true
-      volume_nfs_options:
-        type: str
-        default: rw,nolock,soft
-        needs:
-          - volume_mode=nfs
-        required: true
-  swarm:
-    vars:
-      swarm_placement_host:
-        type: str
-        description: Target hostname for placement constraint
         default: ''
-        extra: Constrains service to run on specific node by hostname
-      swarm_enabled:
-        type: bool
-        default: false
-        description: Enable Docker Swarm mode
-      swarm_placement_mode:
-        type: str
-        default: replicated
-        description: The placement mode
-      swarm_replicas:
+        description: SMTP server hostname
+      email_port:
         type: int
-        default: 1
-        description: The number of replicas
-  registry:
-    description: GitLab Container Registry configuration
-    toggle: registry_enabled
-    vars:
-      registry_enabled:
-        type: bool
-        description: Enable GitLab Container Registry
-        default: false
-      registry_external_url:
+        default: 587
+        description: SMTP server port
+      email_username:
         type: str
-        description: External URL for Container Registry
-        default: http://localhost:5000
-  advanced:
-    title: Advanced Settings
-    description: Performance tuning and advanced configuration options
-    vars:
-      performance_preset:
-        type: enum
-        description: Performance optimization profile
-        options:
-          - homelab
-          - default
-        default: homelab
-        extra: homelab is optimized for low-resource environments, default is for standard servers
-      prometheus_enabled:
+        default: ''
+        description: SMTP username
+      email_password:
+        type: str
+        sensitive: true
+        default: ''
+        description: SMTP password
+      email_from:
+        type: str
+        default: ''
+        description: From email address
+      email_use_tls:
         type: bool
-        description: Enable Prometheus monitoring
+        default: true
+        description: Use TLS encryption
+      email_use_ssl:
+        type: bool
         default: false
-        extra: Disabling saves ~200-400MB RAM. GitLab UI metrics will be unavailable.
+        description: Use SSL encryption
+  authentik:
+    vars:
+      authentik_enabled:
+        type: bool
+        default: false
+        description: Enable Authentik SSO integration
+      authentik_url:
+        type: str
+        default: https://auth.home.arpa
+        description: Authentik base URL (e.g., https://auth.example.com)
+      authentik_slug:
+        type: str
+        default: gitlab
+        description: Authentik application slug
+      authentik_client_id:
+        type: str
+        default: ''
+        description: OAuth client ID from Authentik provider
+      authentik_client_secret:
+        type: str
+        sensitive: true
+        default: ''
+        description: OAuth client secret from Authentik provider
