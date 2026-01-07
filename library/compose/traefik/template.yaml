@@ -24,7 +24,7 @@ metadata:
     id: traefikproxy
   draft: false
   next_steps: "Start the `{{ service_name }}` project\n{% if swarm_enabled %}\n1. Deploy Traefik to Docker Swarm:\n  `docker\
-    \ stack deploy -c docker-compose.yaml {{ service_name }}`\n{% else %}\n1. Copy the project directory for `{{ service_name\
+    \ stack deploy -c compose.yaml {{ service_name }}`\n{% else %}\n1. Copy the project directory for `{{ service_name\
     \ }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`\n{% endif\
     \ %}"
 schema: '1.2'
