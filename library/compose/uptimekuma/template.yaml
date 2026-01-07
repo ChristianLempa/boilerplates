@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -21,6 +20,7 @@ metadata:
   date: '2025-10-31'
   tags: []
   draft: true
+schema: "1.2"
 spec:
   general:
     vars:

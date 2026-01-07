@@ -5,27 +5,40 @@ metadata:
     provider: selfh
     id: loki
   name: Loki
-  description: |-
-    Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.
+  description: 'Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.
+
     This template sets up Loki in a Docker container using Docker Compose.
+
     ## References
+
     * **Project:** https://grafana.com/oss/loki/
+
     * **Documentation:** https://grafana.com/docs/loki/latest/
-    * **GitHub:** https://github.com/grafana/loki
+
+    * **GitHub:** https://github.com/grafana/loki'
   version: 3.6.3
   author: Christian Lempa
   date: '2025-12-11'
   tags:
     - traefik
     - authentik
-schema: 1.2
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: loki
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
       data_retention_days:
-        description: "Number of days to retain logs"
+        description: Number of days to retain logs
         type: int
         default: 7
   ports:
@@ -36,3 +49,25 @@ spec:
     vars:
       traefik_host:
         default: loki
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS

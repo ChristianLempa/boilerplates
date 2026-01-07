@@ -21,8 +21,55 @@ metadata:
     id: rancher-longhorn
   draft: true
   next_steps: ""
-schema: "1.0"
+schema: "1.2"
 spec:
+  general:
+    vars:
+      release_name:
+        type: str
+        description: Helm release name
+        default: longhorn
+      namespace:
+        type: str
+        description: Kubernetes namespace
+        default: longhorn-system
+  networking:
+    title: Networking Configuration
+    vars:
+      network_mode:
+        type: str
+        description: Network mode for service
+        default: ClusterIP
+  database:
+    title: Database Configuration
+    toggle: database_enabled
+    vars:
+      database_enabled:
+        type: bool
+        description: Enable database
+        default: false
+      database_type:
+        type: enum
+        description: Database type
+        options: [postgres, mysql]
+        default: postgres
+      database_host:
+        type: hostname
+        description: Database host
+      database_port:
+        type: int
+        description: Database port
+        default: 5432
+      database_name:
+        type: str
+        description: Database name
+      database_user:
+        type: str
+        description: Database user
+      database_password:
+        type: str
+        description: Database password
+        sensitive: true
   backup:
     title: Backup Configuration
     toggle: backup_enabled
@@ -34,8 +81,6 @@ spec:
       backup_target:
         description: Backup target URL (e.g., s3://bucket or nfs://server/path)
         type: str
-  general:
-    vars:
       namespace:
         type: str
         default: longhorn-system

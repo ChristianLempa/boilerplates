@@ -5,32 +5,58 @@ metadata:
     provider: selfh
     id: checkmk
   name: Checkmk
-  description: |-
-    Checkmk is a comprehensive IT monitoring solution that provides real-time insights
+  description: 'Checkmk is a comprehensive IT monitoring solution that provides real-time insights
+
     into the health and performance of your infrastructure, applications, and services.
+
     It offers a wide range of monitoring capabilities, including server, network, cloud,
+
     and application monitoring, with an emphasis on ease of use and scalability.
+
     ## References
+
     * **Project:** https://checkmk.com/
+
     * **Documentation:** https://docs.checkmk.com/latest/en/
-    * **GitHub:** https://github.com/tribe29/checkmk
-  next_steps: |-
-    Log in with your initial admin user:
+
+    * **GitHub:** https://github.com/tribe29/checkmk'
+  next_steps: 'Log in with your initial admin user:
+
     ```bash
+
     Username: cmkadmin
+
     Password: {{ cmk_password }}
-    ```
+
+    ```'
   version: 2.4.0-latest
   author: Christian Lempa
   date: '2025-12-10'
   tags:
     - traefik
-schema: 1.2
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: checkmk
+      container_timezone:
+        type: str
+      user_uid:
+        type: int
+        default: 1000
+      user_gid:
+        type: int
+        default: 1000
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
       cmk_password:
         type: str
         description: CheckMK admin password
@@ -46,6 +72,18 @@ spec:
     vars:
       traefik_host:
         default: checkmk
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
   ports:
     vars:
       ports_http:
@@ -55,3 +93,18 @@ spec:
         type: int
         default: 5000
         required: true
+      ports_snmp:
+        description: SNMP trap port
+        type: int
+        default: 162
+        required: true
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS

@@ -1,6 +1,5 @@
 ---
 kind: packer
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -25,9 +24,13 @@ metadata:
   version: 1.11.2
   author: Christian Lempa
   date: '2024-11-11'
+schema: "1.2"
 spec:
   general:
     vars:
+      playbook_name:
+        type: str
+        description: Name of the playbook
       image_name:
         default: ubuntu-server-noble
       vm_id:

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-01-06
+
+### Added
+- Draft template visibility in list command (#1610) - Draft templates now shown with dimmed styling and status indicator instead of being hidden
+
+### Changed
+- Schema deprecation postponed (#1636) - Template-only variable definitions deferred to maintain backward compatibility and reduce migration complexity
+
 ## [0.1.2] - 2025-12-11
 
 ### Fixed

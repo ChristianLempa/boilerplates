@@ -1,6 +1,5 @@
 ---
 kind: terraform
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -19,6 +18,7 @@ metadata:
   version: 5.0.0
   author: Christian Lempa
   date: '2025-12-02'
+schema: "1.2"
 spec:
   general:
     vars:
@@ -111,3 +111,35 @@ spec:
         type: str
         description: VM description
         default: Managed by Terraform
+  depends_on:
+    title: Dependencies
+    toggle: depends_on_enabled
+    vars:
+      depends_on_enabled:
+        description: Enable resource dependencies
+        type: bool
+        default: false
+      dependencies:
+        description: Comma-separated list of resource dependencies
+        type: str
+        default: ""
+  lifecycle:
+    title: Lifecycle
+    toggle: lifecycle_enabled
+    vars:
+      lifecycle_enabled:
+        description: Enable lifecycle rules
+        type: bool
+        default: false
+      prevent_destroy:
+        description: Prevent resource destruction
+        type: bool
+        default: false
+      create_before_destroy:
+        description: Create replacement before destroying
+        type: bool
+        default: false
+      ignore_changes:
+        description: Comma-separated list of attributes to ignore changes for
+        type: str
+        default: ""

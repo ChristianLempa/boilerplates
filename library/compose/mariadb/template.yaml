@@ -23,16 +23,33 @@ metadata:
   date: '2025-09-28'
   tags: []
   draft: true
-schema: 1.2
+schema: "1.2"
 spec:
   general:
     vars:
       service_name:
         default: mariadb
+      restart_policy:
+        type: enum
+        options: [unless-stopped, always, on-failure, "no"]
+        default: unless-stopped
+        required: true
   ports:
     vars:
       ports_mariadb:
         description: "Host port for MariaDB"
         type: int
         default: 3306
+        required: true
+  database:
+    vars:
+      database_name:
+        type: str
+        required: true
+      database_user:
+        type: str
+        required: true
+      database_password:
+        type: str
+        sensitive: true
         required: true

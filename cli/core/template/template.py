@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import base64
-import importlib
 import logging
 import os
 import re
 import secrets
 import string
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
@@ -29,7 +27,6 @@ from jinja2.exceptions import (
 from jinja2.sandbox import SandboxedEnvironment
 
 from ..exceptions import (
-    IncompatibleSchemaVersionError,
     RenderErrorContext,
     TemplateLoadError,
     TemplateRenderError,
@@ -37,10 +34,14 @@ from ..exceptions import (
     TemplateValidationError,
     YAMLParseError,
 )
-from ..version import is_compatible
 from .variable_collection import VariableCollection
 
 logger = logging.getLogger(__name__)
+
+# Template Status Constants
+TEMPLATE_STATUS_PUBLISHED = "published"
+TEMPLATE_STATUS_DRAFT = "draft"
+TEMPLATE_STATUS_INVALID = "invalid"
 
 
 class TemplateErrorHandler:
@@ -314,8 +315,6 @@ class Template:
         self.library_type = library_type
 
         # Initialize caches for lazy loading
-        self.__module_specs: dict | None = None
-        self.__merged_specs: dict | None = None
         self.__jinja_env: Environment | None = None
         self.__used_variables: set[str] | None = None
         self.__variables: VariableCollection | None = None
@@ -350,12 +349,6 @@ class Template:
             # Validate 'kind' field (always needed)
             self._validate_kind(self._template_data)
 
-            # Extract schema version (default to 1.0 for backward compatibility)
-            self.schema_version = str(self._template_data.get("schema", "1.0"))
-            logger.debug(f"Template schema version: {self.schema_version}")
-
-            # Note: Schema version validation is done by the module when loading templates
-
             # NOTE: File collection is now lazy-loaded via the template_files property
             # This significantly improves performance when listing many templates
 
@@ -389,80 +382,36 @@ class Template:
                 return path
         raise FileNotFoundError(f"Main template file (template.yaml or template.yml) not found in {self.template_dir}")
 
-    @staticmethod
-    @lru_cache(maxsize=32)
-    def _load_module_specs_for_schema(kind: str, schema_version: str) -> dict:
-        """Load specifications from the corresponding module for a specific schema version.
+    def _warn_about_unused_variables(self, template_specs: dict) -> None:
+        """Warn about variables defined in spec but not used in template files.
 
-        Uses LRU cache to avoid re-loading the same module spec multiple times.
-        This significantly improves performance when listing many templates of the same kind.
+        This helps identify unnecessary variable definitions that can be removed.
 
         Args:
-            kind: The module kind (e.g., 'compose', 'terraform')
-            schema_version: The schema version to load (e.g., '1.0', '1.1')
-
-        Returns:
-            Dictionary containing the module's spec for the requested schema version,
-            or empty dict if kind is empty
-
-        Raises:
-            ValueError: If module cannot be loaded or spec is invalid
+            template_specs: Variables defined in template.yaml spec
         """
-        if not kind:
-            return {}
+        # Collect variables explicitly defined in template
+        defined_vars = set()
+        for section_data in (template_specs or {}).values():
+            if isinstance(section_data, dict) and "vars" in section_data:
+                defined_vars.update(section_data["vars"].keys())
 
-        # Log cache statistics for performance monitoring
-        cache_info = Template._load_module_specs_for_schema.cache_info()
-        logger.debug(
-            f"Loading module spec: kind='{kind}', schema={schema_version} "
-            f"(cache: hits={cache_info.hits}, misses={cache_info.misses}, size={cache_info.currsize})"
-        )
+        # Get variables actually used in template files
+        used_vars = self.used_variables
 
-        try:
-            module = importlib.import_module(f"cli.modules.{kind}")
+        # Find variables that are defined but not used
+        unused_vars = defined_vars - used_vars
 
-            # Check if module has schema-specific specs (multi-schema support)
-            # Try SCHEMAS constant first (uppercase), then schemas attribute
-            schemas = getattr(module, "SCHEMAS", None) or getattr(module, "schemas", None)
-            if schemas and schema_version in schemas:
-                spec = schemas[schema_version]
-                logger.debug(f"Loaded and cached module spec for kind '{kind}' schema {schema_version}")
-            else:
-                # Fallback to default spec if schema mapping not available
-                spec = getattr(module, "spec", {})
-                logger.debug(f"Loaded and cached module spec for kind '{kind}' (default/no schema mapping)")
-
-            return spec
-        except Exception as e:
-            raise ValueError(f"Error loading module specifications for kind '{kind}': {e}") from e
-
-    def _merge_specs(self, module_specs: dict, template_specs: dict) -> dict:
-        """Deep merge template specs with module specs using VariableCollection.
-
-        Uses VariableCollection's native merge() method for consistent merging logic.
-        Module specs are base, template specs override with origin tracking.
-        """
-        # Create VariableCollection from module specs (base)
-        module_collection = VariableCollection(module_specs) if module_specs else VariableCollection({})
-
-        # Set origin for module variables
-        for section in module_collection.get_sections().values():
-            for variable in section.variables.values():
-                if not variable.origin:
-                    variable.origin = "module"
-
-        # Merge template specs into module specs (template overrides)
-        if template_specs:
-            merged_collection = module_collection.merge(template_specs, origin="template")
-        else:
-            merged_collection = module_collection
-
-        # Convert back to dict format
-        merged_spec = {}
-        for section_key, section in merged_collection.get_sections().items():
-            merged_spec[section_key] = section.to_dict()
-
-        return merged_spec
+        if unused_vars:
+            # Show first N variables in warning, full list in debug
+            max_shown_vars = 10
+            shown_vars = sorted(list(unused_vars)[:max_shown_vars])
+            ellipsis = "..." if len(unused_vars) > max_shown_vars else ""
+            logger.warning(
+                f"Template '{self.id}' defines {len(unused_vars)} variable(s) that are not used in template files. "
+                f"Consider removing them from the spec: {', '.join(shown_vars)}{ellipsis}"
+            )
+            logger.debug(f"Template '{self.id}' unused variables: {sorted(unused_vars)}")
 
     def _collect_template_files(self) -> None:
         """Collects all TemplateFile objects in the template directory."""
@@ -537,8 +486,6 @@ class Template:
     def _filter_specs_to_used(
         self,
         used_variables: set,
-        merged_specs: dict,
-        _module_specs: dict,
         template_specs: dict,
     ) -> dict:
         """Filter specs to only include variables used in templates using VariableCollection.
@@ -552,15 +499,15 @@ class Template:
             if isinstance(section_data, dict) and "vars" in section_data:
                 template_defined_vars.update(section_data["vars"].keys())
 
-        # Create VariableCollection from merged specs
-        merged_collection = VariableCollection(merged_specs)
+        # Create VariableCollection from template specs
+        template_collection = VariableCollection(template_specs)
 
         # Filter to only used variables (and sensitive ones that are template-defined)
         # We keep sensitive variables that are either:
         # 1. Actually used in template files, OR
         # 2. Explicitly defined in the template spec (even if not yet used)
         variables_to_keep = used_variables | template_defined_vars
-        filtered_collection = merged_collection.filter_to_used(variables_to_keep, keep_sensitive=False)
+        filtered_collection = template_collection.filter_to_used(variables_to_keep, keep_sensitive=False)
 
         # Convert back to dict format
         filtered_specs = {}
@@ -568,36 +515,6 @@ class Template:
             filtered_specs[section_key] = section.to_dict()
 
         return filtered_specs
-
-    def _validate_schema_version(self, module_schema: str, module_name: str) -> None:
-        """Validate that template schema version is supported by the module.
-
-        Args:
-            module_schema: Schema version supported by the module
-            module_name: Name of the module (for error messages)
-
-        Raises:
-            IncompatibleSchemaVersionError: If template schema > module schema
-        """
-        template_schema = self.schema_version
-
-        # Compare schema versions
-        if not is_compatible(module_schema, template_schema):
-            logger.error(
-                f"Template '{self.id}' uses schema version {template_schema}, "
-                f"but module '{module_name}' only supports up to {module_schema}"
-            )
-            raise IncompatibleSchemaVersionError(
-                template_id=self.id,
-                template_schema=template_schema,
-                module_schema=module_schema,
-                module_name=module_name,
-            )
-
-        logger.debug(
-            f"Template '{self.id}' schema version compatible: "
-            f"template uses {template_schema}, module supports {module_schema}"
-        )
 
     @staticmethod
     def _validate_kind(template_data: dict) -> None:
@@ -866,20 +783,6 @@ class Template:
         return self._template_data.get("spec", {})
 
     @property
-    def module_specs(self) -> dict:
-        """Get the spec from the module definition for this template's schema version."""
-        if self.__module_specs is None:
-            kind = self._template_data.get("kind")
-            self.__module_specs = self._load_module_specs_for_schema(kind, self.schema_version)
-        return self.__module_specs
-
-    @property
-    def merged_specs(self) -> dict:
-        if self.__merged_specs is None:
-            self.__merged_specs = self._merge_specs(self.module_specs, self.template_specs)
-        return self.__merged_specs
-
-    @property
     def jinja_env(self) -> Environment:
         if self.__jinja_env is None:
             self.__jinja_env = self._create_jinja_env(self.template_dir)
@@ -894,17 +797,35 @@ class Template:
     @property
     def variables(self) -> VariableCollection:
         if self.__variables is None:
+            # Warn about unused variables in spec
+            self._warn_about_unused_variables(self.template_specs)
+
             # Validate that all used variables are defined
-            self._validate_variable_definitions(self.used_variables, self.merged_specs)
+            self._validate_variable_definitions(self.used_variables, self.template_specs)
+
             # Filter specs to only used variables
             filtered_specs = self._filter_specs_to_used(
                 self.used_variables,
-                self.merged_specs,
-                self.module_specs,
                 self.template_specs,
             )
 
             self.__variables = VariableCollection(filtered_specs)
-            # Sort sections: required first, then enabled, then disabled
-            self.__variables.sort_sections()
         return self.__variables
+
+    @property
+    def status(self) -> str:
+        """Get the status of the template.
+
+        Returns:
+            Status string: 'published' or 'draft'
+
+        Note:
+            The 'invalid' status is reserved for future use when template validation
+            is implemented without impacting list command performance.
+        """
+        # Check if template is marked as draft in metadata
+        if self.metadata.draft:
+            return TEMPLATE_STATUS_DRAFT
+
+        # Template is published (valid and not draft)
+        return TEMPLATE_STATUS_PUBLISHED

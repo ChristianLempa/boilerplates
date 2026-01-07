@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -29,6 +28,7 @@ metadata:
     - traefik
     - swarm
   draft: true
+schema: "1.2"
 spec:
   general:
     vars:
@@ -44,6 +44,9 @@ spec:
         default: "renovate"
       container_timezone:
         default: "UTC"
+      container_loglevel:
+        type: enum
+        options: [debug, info, warn, error]
   renovate_settings:
     title: "Renovate Settings"
     required: true

@@ -1,24 +1,35 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
     id: komodo
   name: Komodo
-  description: |
-    Build and deployment automation tool for managing software across multiple servers. Komodo provides
+  description: 'Build and deployment automation tool for managing software across multiple servers. Komodo provides
+
     unlimited server connections, flexible API access, and comprehensive management of Docker deployments,
+
     stacks, and builds. Features include real-time container monitoring, batch operations, and integration
+
     with Docker, Docker Compose, and build systems. Supports both MongoDB and FerretDB as database backends.
+
     ## Important Notes
+
     * Requires MongoDB or FerretDB for data storage (database not included in this template)
+
     * Requires Periphery agent on managed servers for remote operations
+
     * Web interface and API accessible through configured ports
+
     ## References
+
     * **Project:** https://github.com/moghtech/komodo
+
     * **Documentation:** https://github.com/moghtech/komodo/tree/main/docsite/docs
+
     * **Docker Hub:** https://hub.docker.com/r/moghtech/komodo
+
+    '
   draft: true
   version: latest
   author: Christian Lempa
@@ -28,107 +39,278 @@ metadata:
     - swarm
     - deployment
     - automation
-  next_steps: |
-    ### 1. Prerequisites
+  next_steps: '### 1. Prerequisites
+
     * Deploy MongoDB or FerretDB database
+
     * Configure database connection in environment variables
+
     * Install Periphery agent on servers you want to manage
+
     ### 2. Deploy the Service
+
     {% if swarm_enabled -%}
+
     Deploy to Docker Swarm:
+
     ```bash
+
     docker stack deploy -c compose.yaml komodo
+
     ```
+
     {% else -%}
+
     Start Komodo using Docker Compose:
+
     ```bash
+
     docker compose up -d
+
     ```
+
     {% endif -%}
+
     ### 3. Access the Web Interface
+
     {% if traefik_enabled -%}
+
     * Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**
+
     {% else -%}
+
     * Navigate to: **http://localhost:{{ ports_http }}**
+
     {% endif -%}
+
     * Complete initial setup and create admin user
+
     ### 4. Install Periphery Agent
+
     On each server you want to manage:
+
     ```bash
+
     curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | python3
+
     ```
+
     ### 5. Configure Servers
+
     * Add servers to Komodo through the web interface
+
     * Configure API keys for programmatic access
+
     * Start managing deployments, stacks, and builds
+
+    '
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
-        default: "komodo"
+        default: komodo
       container_name:
-        default: "komodo"
+        default: komodo
       container_hostname:
-        default: "komodo"
+        default: komodo
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   traefik:
     vars:
       traefik_host:
-        default: "komodo"
+        default: komodo
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
   network:
     vars:
       network_name:
-        default: "komodo_network"
+        default: komodo_network
+      network_macvlan_ipv4_address:
+        type: str
+        default: 192.168.1.253
+        needs:
+          - network_mode=macvlan
+        required: true
+      network_macvlan_parent_interface:
+        type: str
+        default: eth0
+        needs:
+          - network_mode=macvlan
+        required: true
+      network_macvlan_subnet:
+        type: str
+        default: 192.168.1.0/24
+        needs:
+          - network_mode=macvlan
+        required: true
+      network_macvlan_gateway:
+        type: str
+        default: 192.168.1.1
+        needs:
+          - network_mode=macvlan
+        required: true
+      network_external:
+        type: bool
+        default: false
+        description: Whether the network is external
+      network_mode:
+        type: str
+        default: bridge
+        description: The network mode for the container
   ports:
     vars:
       ports_http:
-        description: "External HTTP port (web interface and API)"
+        description: External HTTP port (web interface and API)
         type: int
         default: 9120
-        needs: ["traefik_enabled=false", "network_mode=bridge"]
+        needs:
+          - traefik_enabled=false
+          - network_mode=bridge
   volume:
     vars:
       volume_mount_path:
-        default: "/mnt/storage/komodo"
+        default: /mnt/storage/komodo
+      volume_nfs_server:
+        type: str
+        default: 192.168.1.1
+        needs:
+          - volume_mode=nfs
+        required: true
+      volume_nfs_path:
+        type: str
+        default: /export
+        needs:
+          - volume_mode=nfs
+        required: true
+      volume_nfs_options:
+        type: str
+        default: rw,nolock,soft
+        needs:
+          - volume_mode=nfs
+        required: true
+      volume_mode:
+        type: enum
+        options:
+          - local
+          - mount
+          - nfs
+        default: local
+        description: The volume mode
+  resources:
+    vars:
+      resources_enabled:
+        type: bool
+        default: false
+      resources_cpu_limit:
+        type: str
+        default: 1.0
+        required: true
+      resources_cpu_reservation:
+        type: str
+        default: 0.25
+        needs:
+          - swarm_enabled=true
+        required: true
+      resources_memory_limit:
+        type: str
+        default: 1G
+        required: true
+      resources_memory_reservation:
+        type: str
+        default: 512M
+        needs:
+          - swarm_enabled=true
+        required: true
   environment:
-    title: "Environment Variables"
+    title: Environment Variables
     toggle: environment_enabled
     required: true
     vars:
       environment_enabled:
         type: bool
         default: true
-        description: "Configure environment variables (required)"
+        description: Configure environment variables (required)
       environment_database_address:
         type: str
-        default: "mongodb://mongo:27017"
-        description: "Database connection address (MongoDB or FerretDB)"
-        needs: "environment_enabled=true"
+        default: mongodb://mongo:27017
+        description: Database connection address (MongoDB or FerretDB)
+        needs: environment_enabled=true
       environment_database_name:
         type: str
-        default: "komodo"
-        description: "Database name"
-        needs: "environment_enabled=true"
+        default: komodo
+        description: Database name
+        needs: environment_enabled=true
       environment_database_username:
         type: str
-        default: ""
-        description: "Database username (optional)"
-        needs: "environment_enabled=true"
+        default: ''
+        description: Database username (optional)
+        needs: environment_enabled=true
       environment_database_password:
         type: str
-        default: ""
+        default: ''
         sensitive: true
-        description: "Database password (optional)"
-        needs: "environment_enabled=true"
+        description: Database password (optional)
+        needs: environment_enabled=true
       environment_jwt_secret:
         type: str
-        default: ""
+        default: ''
         sensitive: true
         autogenerated: true
-        description: "JWT secret for authentication (auto-generated if empty)"
-        needs: "environment_enabled=true"
+        description: JWT secret for authentication (auto-generated if empty)
+        needs: environment_enabled=true
       environment_log_level:
         type: enum
-        default: "info"
-        options: ["debug", "info", "warn", "error"]
-        description: "Log level"
-        needs: "environment_enabled=true"
+        default: info
+        options:
+          - debug
+          - info
+          - warn
+          - error
+        description: Log level
+        needs: environment_enabled=true
+  swarm:
+    vars:
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+      swarm_placement_host:
+        type: str
+        default: ''
+        description: The placement host
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode
+      swarm_replicas:
+        type: int
+        default: 1
+        description: The number of replicas

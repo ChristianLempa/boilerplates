@@ -19,4 +19,13 @@ metadata:
   draft: true
   next_steps: ""
 schema: "1.2"
-spec: {}
+spec:
+  general:
+    vars:
+      service_name:
+        default: gitlab-runner
+      restart_policy:
+        type: enum
+        options: [unless-stopped, always, on-failure, "no"]
+        default: unless-stopped
+        required: true

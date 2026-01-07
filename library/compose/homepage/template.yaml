@@ -2,13 +2,16 @@
 kind: compose
 metadata:
   name: Homepage
-  description: |-
-    Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations
+  description: 'Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations
+
     for over 100 services and translations into multiple languages.
 
+
     Project: https://gethomepage.dev/
+
     Documentation: https://gethomepage.dev/latest/
-    GitHub: https://github.com/gethomepage/homepage
+
+    GitHub: https://github.com/gethomepage/homepage'
   version: v1.8.0
   author: Christian Lempa
   date: '2025-12-12'
@@ -20,8 +23,8 @@ metadata:
     provider: simpleicons
     id: homepage
   draft: true
-  next_steps: ""
-schema: "1.2"
+  next_steps: ''
+schema: '1.2'
 spec:
   general:
     vars:
@@ -31,6 +34,24 @@ spec:
         default: homepage
       service_name:
         default: homepage
+      container_timezone:
+        type: str
+      container_loglevel:
+        type: enum
+        options:
+          - debug
+          - info
+          - warn
+          - error
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   ports:
     vars:
       ports_http:
@@ -39,3 +60,100 @@ spec:
     vars:
       traefik_host:
         default: homepage
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
+  volume:
+    vars:
+      volume_mode:
+        type: enum
+        options:
+          - local
+          - mount
+          - nfs
+        default: local
+        required: true
+      volume_mount_path:
+        type: str
+        default: /mnt/storage
+        needs:
+          - volume_mode=mount
+        required: true
+      volume_nfs_options:
+        type: str
+        default: nfsvers=4,soft,timeo=180,intr
+        description: The NFS mount options
+      volume_nfs_path:
+        type: str
+        default: ''
+        description: The NFS path
+      volume_nfs_server:
+        type: str
+        default: ''
+        description: The NFS server
+  resources:
+    vars:
+      resources_enabled:
+        type: bool
+        default: false
+      resources_cpu_limit:
+        type: str
+        default: 1.0
+        required: true
+      resources_cpu_reservation:
+        type: str
+        default: 0.25
+        needs:
+          - swarm_enabled=true
+        required: true
+      resources_memory_limit:
+        type: str
+        default: 1G
+        required: true
+      resources_memory_reservation:
+        type: str
+        default: 512M
+        needs:
+          - swarm_enabled=true
+        required: true
+  swarm:
+    vars:
+      swarm_replicas:
+        type: int
+        default: 1
+        needs:
+          - swarm_placement_mode=replicated
+        required: true
+      swarm_placement_host:
+        type: str
+        default: ''
+        needs:
+          - swarm_placement_mode=replicated
+        extra: Constrains service to run on specific node by hostname
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode

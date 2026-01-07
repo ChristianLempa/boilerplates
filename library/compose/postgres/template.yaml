@@ -1,13 +1,11 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
     id: postgresql
   name: PostgreSQL
-  description: >
-    PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
+  description: 'PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
     that has earned it a strong reputation for reliability, feature robustness, and performance.
 
 
@@ -16,19 +14,35 @@ metadata:
     Documentation: https://www.postgresql.org/docs/
 
     GitHub: https://github.com/postgres/postgres
+
+    '
   version: 18.1
   author: Christian Lempa
   date: '2025-12-11'
   tags:
     - swarm
   draft: true
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
-        default: "postgres"
+        default: postgres
       container_name:
-        default: "postgres"
+        default: postgres
+      container_hostname:
+        type: str
+      container_timezone:
+        type: str
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   ports:
     vars:
       ports_postgres:
@@ -38,27 +52,43 @@ spec:
   traefik:
     vars:
       traefik_host:
-        default: "postgres"
+        default: postgres
   network:
     vars:
       network_mode:
-        extra: >
-          Use 'host' mode if you need to bind directly to port 5432.
-          NOTE: Swarm only supports 'bridge' mode!
+        extra: 'Use ''host'' mode if you need to bind directly to port 5432. NOTE: Swarm only supports ''bridge'' mode!
+
+          '
       network_name:
-        default: "postgres_network"
+        default: postgres_network
+      network_external:
+        type: bool
+        default: false
+        description: Whether the network is external
   swarm:
     vars:
       swarm_replicas:
         description: Number of replicas for Swarm mode
         type: int
         default: 1
+      swarm_enabled:
+        type: bool
+        default: false
+        description: Enable Docker Swarm mode
+      swarm_placement_host:
+        type: str
+        default: ''
+        description: The placement host
+      swarm_placement_mode:
+        type: str
+        default: replicated
+        description: The placement mode
   volume:
     vars:
       volume_mode:
         description: Volume mounting mode (local, mount, nfs)
         type: str
-        default: "local"
+        default: local
         options:
           - local
           - mount
@@ -66,16 +96,28 @@ spec:
       volume_mount_path:
         description: Path for bind mounts when volume_mode is 'mount'
         type: str
-        default: "/var/lib/postgresql/data"
+        default: /var/lib/postgresql/data
       volume_nfs_server:
         description: NFS server address when volume_mode is 'nfs'
         type: str
-        default: ""
+        default: ''
       volume_nfs_path:
         description: NFS path when volume_mode is 'nfs'
         type: str
-        default: ""
+        default: ''
       volume_nfs_options:
         description: NFS mount options when volume_mode is 'nfs'
         type: str
-        default: "rw"
+        default: rw
+  database:
+    vars:
+      database_port:
+        type: int
+        default: 5432
+        required: true
+      database_name:
+        type: str
+        required: true
+      database_user:
+        type: str
+        required: true

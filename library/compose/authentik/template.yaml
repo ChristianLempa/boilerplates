@@ -2,48 +2,85 @@
 kind: compose
 metadata:
   name: Authentik
-  description: |-
-    Integrate Authentik Single Sign-On (SSO) for secure and streamlined user authentication.
+  description: 'Integrate Authentik Single Sign-On (SSO) for secure and streamlined user authentication.
+
     Authentik is an open-source identity provider that supports various authentication protocols.
+
     This configuration enables OAuth-based SSO, allowing users to log in using their Authentik
+
     credentials, enhancing security and user experience.
+
     ## Prerequisites
+
     - :warning: The `authentik_secret_key` must be generated using the following command
+
     according to the official documentation.
+
     ```bash
-    echo "$(openssl rand -base64 60 | tr -d '\n')"
+
+    echo "$(openssl rand -base64 60 | tr -d ''\n'')"
+
     ```
+
     ## References
+
     * **Project:** https://goauthentik.io/
+
     * **Documentation:** https://goauthentik.io/docs/
-    * **GitHub:** https://github.com/goauthentik/authentik
+
+    * **GitHub:** https://github.com/goauthentik/authentik'
   icon:
     provider: selfh
     id: authentik
-  next_steps: |-
-    Log in with your initial admin user:
+  next_steps: 'Log in with your initial admin user:
+
     ```bash
+
     Username: akadmin
+
     Password: {{ authentik_admin_password }}
-    ```
+
+    ```'
   version: 2025.10.3
   author: Christian Lempa
   date: '2025-12-16'
   tags:
     - traefik
     - volume
-schema: "1.2"
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: authentik
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
   database:
     vars:
-      database_name:
-        default: authentik
+      database_password:
+        description: Database password
+        type: str
+        sensitive: true
+        required: true
       database_user:
-        default: authentik
+        type: str
+        default: ''
+        description: The database user
+      database_name:
+        type: str
+        default: ''
+        description: The database name
+      database_external:
+        type: bool
+        default: false
+        description: Use external database
   ports:
     vars:
       ports_http:
@@ -54,6 +91,18 @@ spec:
     vars:
       traefik_host:
         default: authentik
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
   authentik:
     description: Configure Authentik application settings
     required: true
@@ -72,3 +121,79 @@ spec:
       authentik_error_reporting:
         description: Enable error reporting to Authentik developers
         type: bool
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
+  volume:
+    vars:
+      volume_mode:
+        type: enum
+        options:
+          - local
+          - mount
+          - nfs
+        default: local
+        required: true
+      volume_mount_path:
+        type: str
+        default: /mnt/storage
+        needs:
+          - volume_mode=mount
+        required: true
+      volume_nfs_server:
+        type: str
+        default: 192.168.1.1
+        needs:
+          - volume_mode=nfs
+        required: true
+      volume_nfs_path:
+        type: str
+        default: /export
+        needs:
+          - volume_mode=nfs
+        required: true
+      volume_nfs_options:
+        type: str
+        default: rw,nolock,soft
+        needs:
+          - volume_mode=nfs
+        required: true
+  email:
+    vars:
+      email_host:
+        description: SMTP server hostname
+        type: str
+        required: true
+      email_port:
+        description: SMTP server port
+        type: int
+        default: 25
+        required: true
+      email_username:
+        description: SMTP username
+        type: str
+        required: true
+      email_password:
+        description: SMTP password
+        type: str
+        sensitive: true
+        required: true
+      email_from:
+        description: From email address
+        type: str
+        required: true
+      email_enabled:
+        type: bool
+        default: false
+        description: Enable email integration
+      email_encryption:
+        type: str
+        default: tls
+        description: The email encryption type

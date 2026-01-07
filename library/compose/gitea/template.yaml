@@ -2,18 +2,27 @@
 kind: compose
 metadata:
   name: Gitea
-  description: |-
-    Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service
-    written in Go. It's similar to GitHub, Bitbucket, and GitLab, providing Git repository
+  description: 'Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service
+
+    written in Go. It''s similar to GitHub, Bitbucket, and GitLab, providing Git repository
+
     hosting, code review, team collaboration, and more.
+
     ## Prerequisites
+
     - :info: Gitea supports multiple database backends. You can choose between SQLite (default),
+
     PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL and MySQL
+
     are recommended for larger installations.
+
     ## References
+
     - **Project:** https://gitea.io/
+
     - **Documentation:** https://docs.gitea.io/
-    - **GitHub:** https://github.com/go-gitea/gitea
+
+    - **GitHub:** https://github.com/go-gitea/gitea'
   icon:
     provider: selfh
     id: gitea
@@ -22,23 +31,62 @@ metadata:
   date: '2025-12-19'
   tags:
     - traefik
-schema: 1.2
+schema: '1.2'
 spec:
   general:
     vars:
       service_name:
         default: gitea
-      gitea_url:
-        description: "Public URL"
+      container_timezone:
         type: str
-        needs: ["traefik_enabled=false"]
-        default: "https://git.example.com"
+      user_uid:
+        type: int
+        default: 1000
+      user_gid:
+        type: int
+        default: 1000
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
+      gitea_url:
+        description: Public URL
+        type: str
+        needs:
+          - traefik_enabled=false
+        default: https://git.example.com
   database:
     vars:
+      database_type:
+        type: enum
+        options:
+          - sqlite
+          - postgres
+          - mysql
+        default: sqlite
+        required: true
+      database_host:
+        type: str
+        needs:
+          - database_external=true;database_type=postgres,mysql
+        required: true
       database_name:
         default: gitea
       database_user:
         default: gitea
+      database_password:
+        type: str
+        sensitive: true
+        required: true
+      database_external:
+        type: bool
+        default: false
+        description: Use external database
   ports:
     vars:
       ports_http:
@@ -49,3 +97,25 @@ spec:
     vars:
       traefik_host:
         default: gitea
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS

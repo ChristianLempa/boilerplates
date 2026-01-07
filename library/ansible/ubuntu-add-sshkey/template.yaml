@@ -1,6 +1,5 @@
 ---
 kind: ansible
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -18,9 +17,14 @@ metadata:
   author: Christian Lempa
   date: '2025-11-11'
   draft: true
+schema: "1.2"
 spec:
   general:
     vars:
+      target_hosts:
+        description: Target hosts
+        type: str
+        required: true
       playbook_name:
         default: Add ssh key
       become:

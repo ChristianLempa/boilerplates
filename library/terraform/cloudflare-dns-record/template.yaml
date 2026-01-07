@@ -18,7 +18,7 @@ metadata:
     id: cloudflare
   draft: false
   next_steps: ""
-schema: "1.0"
+schema: "1.2"
 spec:
   comment:
     title: Comment
@@ -78,3 +78,47 @@ spec:
         description: Time to live (1 = automatic, or 60-86400 seconds)
         type: int
         default: 1
+  depends_on:
+    title: Dependencies
+    toggle: depends_on_enabled
+    vars:
+      depends_on_enabled:
+        description: Enable resource dependencies
+        type: bool
+        default: false
+      dependencies:
+        description: Comma-separated list of resource dependencies
+        type: str
+        default: ""
+  lifecycle:
+    title: Lifecycle
+    toggle: lifecycle_enabled
+    vars:
+      lifecycle_enabled:
+        description: Enable lifecycle rules
+        type: bool
+        default: false
+      prevent_destroy:
+        description: Prevent resource destruction
+        type: bool
+        default: false
+      create_before_destroy:
+        description: Create replacement before destroying
+        type: bool
+        default: false
+      ignore_changes:
+        description: Comma-separated list of attributes to ignore changes for
+        type: str
+        default: ""
+  tags:
+    title: Tags
+    toggle: tags_enabled
+    vars:
+      tags_enabled:
+        description: Enable tags
+        type: bool
+        default: false
+      tags_json:
+        description: Tags in JSON format
+        type: str
+        default: "{}"

@@ -1,16 +1,14 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
     id: open-webui
   name: Openwebui
-  description: >
-    OpenWebUI is an open-source web-based user interface for managing and interacting with AI models.
-    It provides a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as
-    image generation, text generation, and more. OpenWebUI supports integration with popular AI frameworks
-    and offers features like model management, user authentication, and real-time interaction.
+  description: 'OpenWebUI is an open-source web-based user interface for managing and interacting with AI models. It provides
+    a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as image generation, text generation,
+    and more. OpenWebUI supports integration with popular AI frameworks and offers features like model management, user authentication,
+    and real-time interaction.
 
 
     Project: https://openwebui.io/
@@ -18,6 +16,8 @@ metadata:
     Documentation: https://docs.openwebui.io/
 
     GitHub: https://github.com/openwebui/openwebui
+
+    '
   version: 0.6.41
   author: Christian Lempa
   date: '2025-12-11'
@@ -25,6 +25,7 @@ metadata:
     - traefik
     - authentik
   draft: true
+schema: '1.2'
 spec:
   general:
     vars:
@@ -32,6 +33,19 @@ spec:
         default: openwebui
       container_name:
         default: openwebui
+      container_hostname:
+        type: str
+      container_timezone:
+        type: str
+      restart_policy:
+        type: enum
+        options:
+          - unless-stopped
+          - always
+          - on-failure
+          - 'no'
+        default: unless-stopped
+        required: true
       ollama_base_url:
         type: str
         description: Ollama API base URL
@@ -40,6 +54,28 @@ spec:
     vars:
       traefik_host:
         default: openwebui.home.arpa
+      traefik_network:
+        default: traefik
+        type: str
+        required: true
+      traefik_domain:
+        default: home.arpa
+        type: str
+        required: true
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+  traefik_tls:
+    vars:
+      traefik_tls_certresolver:
+        type: str
+        default: cloudflare
+        required: true
+      traefik_tls_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik TLS
   ports:
     vars:
       ports_http:
@@ -66,3 +102,19 @@ spec:
         type: bool
         description: Merge OAuth accounts by email
         default: false
+      authentik_client_id:
+        type: str
+        sensitive: true
+        required: true
+      authentik_client_secret:
+        type: str
+        sensitive: true
+        required: true
+      authentik_slug:
+        type: str
+        default: ''
+        description: The Authentik application slug
+      authentik_url:
+        type: str
+        default: ''
+        description: The Authentik URL

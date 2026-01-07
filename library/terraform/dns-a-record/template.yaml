@@ -18,7 +18,7 @@ metadata:
     id: bind-9
   draft: false
   next_steps: ""
-schema: "1.0"
+schema: "1.2"
 spec:
   addresses:
     title: IP Addresses
@@ -58,3 +58,35 @@ spec:
       resource_name:
         type: str
         default: record
+  depends_on:
+    title: Dependencies
+    toggle: depends_on_enabled
+    vars:
+      depends_on_enabled:
+        description: Enable resource dependencies
+        type: bool
+        default: false
+      dependencies:
+        description: Comma-separated list of resource dependencies
+        type: str
+        default: ""
+  lifecycle:
+    title: Lifecycle
+    toggle: lifecycle_enabled
+    vars:
+      lifecycle_enabled:
+        description: Enable lifecycle rules
+        type: bool
+        default: false
+      prevent_destroy:
+        description: Prevent resource destruction
+        type: bool
+        default: false
+      create_before_destroy:
+        description: Create replacement before destroying
+        type: bool
+        default: false
+      ignore_changes:
+        description: Comma-separated list of attributes to ignore changes for
+        type: str
+        default: ""
