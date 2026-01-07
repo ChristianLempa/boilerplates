@@ -23,9 +23,9 @@ metadata:
   icon:
     provider: selfh
     id: gitlab
-  version: 18.6.1-ce.0
+  version: 18.6.2-ce.0
   author: Christian Lempa
-  date: '2025-12-11'
+  date: '2026-01-07'
   tags:
     - traefik
   next_steps: |-
