@@ -16,7 +16,7 @@ metadata:
     - **Documentation:** https://docs.netbox.dev/
 
     - **GitHub:** https://github.com/netbox-community/netbox'
-  version: v4.4.9
+  version: v4.5.0
   author: Christian Lempa
   date: '2026-01-07'
   tags:
