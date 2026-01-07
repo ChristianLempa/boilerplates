@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/prom/prometheus:v3.9.0
+    image: docker.io/prom/prometheus:v3.9.1
     restart: {{ restart_policy }}
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
