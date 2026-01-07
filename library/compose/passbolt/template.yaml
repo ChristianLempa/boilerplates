@@ -12,9 +12,9 @@ metadata:
     - **Project:** https://www.passbolt.com/
     - **Documentation:** https://help.passbolt.com/
     - **GitHub:** https://github.com/passbolt/passbolt
-  version: 5.7.2-1-ce
+  version: 5.8.0-1-ce
   author: Christian Lempa
-  date: '2025-12-12'
+  date: '2026-01-07'
   tags:
     - traefik
     - database
