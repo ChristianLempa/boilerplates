@@ -11,9 +11,9 @@ metadata:
     - **Project**: https://grafana.com/oss/alloy/
     - **Documentation**: https://grafana.com/docs/alloy/latest/
     - **GitHub**: https://github.com/grafana/alloy
-  version: v1.12.1
+  version: v1.12.2
   author: Christian Lempa
-  date: '2025-12-15'
+  date: '2026-01-08'
   tags:
     - traefik
   icon:
