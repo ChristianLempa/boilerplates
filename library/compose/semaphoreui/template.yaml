@@ -28,9 +28,9 @@ metadata:
     - **Documentation:** https://docs.semaphoreui.com/
 
     - **GitHub:** https://github.com/semaphoreui/semaphore'
-  version: v2.16.47
+  version: v2.16.48
   author: Christian Lempa
-  date: '2025-12-17'
+  date: '2026-01-08'
   tags:
     - traefik
     - database
