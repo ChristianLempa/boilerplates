@@ -18,9 +18,9 @@ metadata:
     GitHub: https://github.com/openwebui/openwebui
 
     '
-  version: 0.6.43
+  version: 0.7.1
   author: Christian Lempa
-  date: '2026-01-07'
+  date: '2026-01-09'
   tags:
     - traefik
     - authentik
