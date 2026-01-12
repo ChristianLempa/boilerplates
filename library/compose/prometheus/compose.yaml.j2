@@ -25,7 +25,7 @@ services:
     {% endif %}
     volumes:
       - {{ service_name }}_data:/prometheus
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
     {% if traefik_enabled  %}
     networks:
       {{ traefik_network }}:
