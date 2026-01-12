@@ -15,7 +15,7 @@ services:
     {% endif %}
     volumes:
       - {{ service_name }}_data:/alloy/data
-      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - ./config/config.alloy:/etc/alloy/config.alloy:ro
       {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
       - /sys:/sys:ro
