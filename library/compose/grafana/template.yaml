@@ -54,17 +54,25 @@ spec:
   authentik:
     vars:
       authentik_url:
+        type: url
         default: https://auth.home.arpa
+        required: true
+        needs: authentik_enabled=true
       authentik_slug:
+        type: hostname
         default: grafana
+        required: true
+        needs: authentik_enabled=true
       authentik_client_id:
         type: str
         sensitive: true
         required: true
+        needs: authentik_enabled=true
       authentik_client_secret:
         type: str
         sensitive: true
         required: true
+        needs: authentik_enabled=true
       authentik_enabled:
         type: bool
         default: false
