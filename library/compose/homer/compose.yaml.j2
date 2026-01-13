@@ -1,34 +1,20 @@
 services:
   {{ service_name }}:
     image: docker.io/b4bz/homer:v25.11.1
-    {#
-      If not in swarm mode, check whether container_name is set and apply restart policy,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
+    {% if container_name %}
     container_name: {{ container_name }}
     {% endif %}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Homer configuration
-    #}
+    {% endif %}
+    {% if container_timezone %}
     environment:
       - TZ={{ container_timezone }}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
+    {% endif %}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-      Note: Swarm mode uses 'host' mode for port publishing to avoid port conflicts
-    #}
     {% if not traefik_enabled %}
     ports:
       {% if swarm_enabled %}
@@ -40,16 +26,8 @@ services:
       - "{{ ports_http }}:8080"
       {% endif %}
     {% endif %}
-    {#
-      Volume configuration:
-      - assets: Homer dashboard configuration and assets
-    #}
     volumes:
       - ./assets:/www/assets
-    {#
-      When traefik_enabled is set, and not running in swarm mode, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -66,13 +44,7 @@ services:
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    {#
-      Deploy configuration for Swarm mode and/or resource limits:
-      - Swarm: Configure replicas, placement constraints, and restart policy
-      - Resources: Set CPU/memory limits (and reservations in Swarm mode)
-      - Traefik: Labels for reverse proxy integration (Swarm mode)
-    #}
-    {% if swarm_enabled or resources_enabled %}
+    {% if swarm_enabled %}
     deploy:
       {% if swarm_enabled %}
       mode: {{ swarm_placement_mode }}
@@ -87,21 +59,6 @@ services:
       restart_policy:
         condition: on-failure
       {% endif %}
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        {% if swarm_enabled %}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-        {% endif %}
-      {% endif %}
-      {#
-        When traefik_enabled is set in swarm mode, add traefik labels
-        (optionally enable TLS if traefik_tls_enabled is set, and authentik middleware if enabled)
-      #}
       {% if swarm_enabled and traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -126,10 +83,6 @@ services:
       {% endif %}
     {% endif %}
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

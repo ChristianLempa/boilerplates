@@ -39,8 +39,6 @@ spec:
         default: homer
       container_name:
         default: homer
-      container_hostname:
-        type: str
       container_timezone:
         type: str
       restart_policy:
@@ -72,8 +70,17 @@ spec:
         default: 8080
   traefik:
     vars:
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+      traefik_entrypoint:
+        description: The Traefik entrypoint
+        type: str
+        required: true
+        default: web
       traefik_host:
-        default: homer.home.arpa
+        default: homepage
       traefik_network:
         default: traefik
         type: str
@@ -82,45 +89,21 @@ spec:
         default: home.arpa
         type: str
         required: true
-      traefik_enabled:
-        type: bool
-        default: false
-        description: Enable Traefik integration
   traefik_tls:
     vars:
+      traefik_tls_enabled:
+        description: Enable Traefik TLS
+        type: bool
+        default: false
+      traefik_tls_entrypoint:
+        description: The Traefik TLS entrypoint
+        type: str
+        default: websecure
+        required: true
       traefik_tls_certresolver:
         type: str
+        required: true
         default: cloudflare
-        required: true
-      traefik_tls_enabled:
-        type: bool
-        default: false
-        description: Enable Traefik TLS
-  resources:
-    vars:
-      resources_enabled:
-        type: bool
-        default: false
-      resources_cpu_limit:
-        type: str
-        default: 1.0
-        required: true
-      resources_cpu_reservation:
-        type: str
-        default: 0.25
-        needs:
-          - swarm_enabled=true
-        required: true
-      resources_memory_limit:
-        type: str
-        default: 1G
-        required: true
-      resources_memory_reservation:
-        type: str
-        default: 512M
-        needs:
-          - swarm_enabled=true
-        required: true
   swarm:
     vars:
       swarm_placement_mode:

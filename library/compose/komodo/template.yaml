@@ -125,8 +125,17 @@ spec:
         required: true
   traefik:
     vars:
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+      traefik_entrypoint:
+        description: The Traefik entrypoint
+        type: str
+        required: true
+        default: web
       traefik_host:
-        default: komodo
+        default: homepage
       traefik_network:
         default: traefik
         type: str
@@ -135,20 +144,21 @@ spec:
         default: home.arpa
         type: str
         required: true
-      traefik_enabled:
-        type: bool
-        default: false
-        description: Enable Traefik integration
   traefik_tls:
     vars:
-      traefik_tls_certresolver:
-        type: str
-        default: cloudflare
-        required: true
       traefik_tls_enabled:
+        description: Enable Traefik TLS
         type: bool
         default: false
-        description: Enable Traefik TLS
+      traefik_tls_entrypoint:
+        description: The Traefik TLS entrypoint
+        type: str
+        default: websecure
+        required: true
+      traefik_tls_certresolver:
+        type: str
+        required: true
+        default: cloudflare
   network:
     vars:
       network_name:

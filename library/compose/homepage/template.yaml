@@ -28,15 +28,20 @@ schema: '1.2'
 spec:
   general:
     vars:
-      container_hostname:
+      service_name:
+        description: The service name
+        type: str
+        required: true
         default: homepage
       container_name:
-        default: homepage
-      service_name:
+        description: The container name
+        type: str
         default: homepage
       container_timezone:
+        description: The container timezone
         type: str
       container_loglevel:
+        description: The container log level
         type: enum
         options:
           - debug
@@ -44,20 +49,35 @@ spec:
           - warn
           - error
       restart_policy:
+        description: The container restart policy
         type: enum
         options:
           - unless-stopped
           - always
           - on-failure
           - 'no'
-        default: unless-stopped
         required: true
+        default: unless-stopped
   ports:
     vars:
       ports_http:
+        description: The HTTP port
+        type: int
+        needs:
+          - traefik_enabled=false
+        required: true
         default: 3000
   traefik:
     vars:
+      traefik_enabled:
+        type: bool
+        default: false
+        description: Enable Traefik integration
+      traefik_entrypoint:
+        description: The Traefik entrypoint
+        type: str
+        required: true
+        default: web
       traefik_host:
         default: homepage
       traefik_network:
@@ -68,20 +88,21 @@ spec:
         default: home.arpa
         type: str
         required: true
-      traefik_enabled:
-        type: bool
-        default: false
-        description: Enable Traefik integration
   traefik_tls:
     vars:
-      traefik_tls_certresolver:
-        type: str
-        default: cloudflare
-        required: true
       traefik_tls_enabled:
+        description: Enable Traefik TLS
         type: bool
         default: false
-        description: Enable Traefik TLS
+      traefik_tls_entrypoint:
+        description: The Traefik TLS entrypoint
+        type: str
+        default: websecure
+        required: true
+      traefik_tls_certresolver:
+        type: str
+        required: true
+        default: cloudflare
   volume:
     vars:
       volume_mode:
@@ -110,50 +131,29 @@ spec:
         type: str
         default: ''
         description: The NFS server
-  resources:
-    vars:
-      resources_enabled:
-        type: bool
-        default: false
-      resources_cpu_limit:
-        type: str
-        default: 1.0
-        required: true
-      resources_cpu_reservation:
-        type: str
-        default: 0.25
-        needs:
-          - swarm_enabled=true
-        required: true
-      resources_memory_limit:
-        type: str
-        default: 1G
-        required: true
-      resources_memory_reservation:
-        type: str
-        default: 512M
-        needs:
-          - swarm_enabled=true
-        required: true
   swarm:
     vars:
-      swarm_replicas:
-        type: int
-        default: 1
-        needs:
-          - swarm_placement_mode=replicated
-        required: true
-      swarm_placement_host:
-        type: str
-        default: ''
-        needs:
-          - swarm_placement_mode=replicated
-        extra: Constrains service to run on specific node by hostname
       swarm_enabled:
+        description: Enable Docker Swarm mode
         type: bool
         default: false
-        description: Enable Docker Swarm mode
-      swarm_placement_mode:
+      swarm_replicas:
+        description: Number of replicas for replicated mode
+        type: int
+        needs:
+          - swarm_enabled=true
+          - swarm_placement_mode=replicated
+        required: true
+        default: 1
+      swarm_placement_host:
+        description: Hostname for placement constraint
         type: str
-        default: replicated
+        needs:
+          - swarm_enabled=true
+          - swarm_placement_mode=replicated
+      swarm_placement_mode:
         description: The placement mode
+        type: str
+        needs:
+          - swarm_enabled=true
+        default: replicated

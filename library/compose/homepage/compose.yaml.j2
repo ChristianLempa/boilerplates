@@ -1,51 +1,29 @@
 services:
   {{ service_name }}:
     image: ghcr.io/gethomepage/homepage:v1.8.0
-    {#
-      If not in swarm mode, check whether container_name is set and apply restart policy,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
+    {% if container_name %}
     container_name: {{ container_name }}
     {% endif %}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Homepage configuration:
-      - Timezone, log level, and allowed hosts
-      - Optional user/group IDs for file permissions
-    #}
+    {% endif %}
+    {% if container_timezone or container_loglevel %}
     environment:
+      {% if container_timezone %}
       - TZ={{ container_timezone }}
-      - LOG_LEVEL={{ container_loglevel }}
-      - HOMEPAGE_ALLOWED_HOSTS={{ homepage_allowed_hosts }}
-      {% if homepage_puid %}
-      - PUID={{ homepage_puid }}
-      - PGID={{ homepage_pgid }}
       {% endif %}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
+      {% if container_loglevel %}
+      - LOG_LEVEL={{ container_loglevel }}
+      {% endif %}
+    {% endif %}
     {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-    #}
     {% if not traefik_enabled %}
     ports:
       - {{ ports_http }}:3000
     {% endif %}
-    {#
-      Volume configuration for persistent data:
-      - config: Dashboard configuration files
-      - images: Custom images for dashboard
-      - icons: Custom icons for services
-    #}
     volumes:
       {% if volume_mode == 'local' %}
       - {{ service_name }}_config:/app/config
@@ -56,10 +34,6 @@ services:
       - {{ volume_mount_path }}/{{ service_name }}/images:/app/images
       - {{ volume_mount_path }}/{{ service_name }}/icons:/app/icons
       {% endif %}
-    {#
-      When traefik_enabled is set, and not running in swarm mode, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
     {% if traefik_enabled and not swarm_enabled %}
     labels:
       - traefik.enable=true
@@ -71,17 +45,11 @@ services:
       {% if traefik_tls_enabled %}
       - traefik.http.routers.{{ service_name }}-https.service={{ service_name }}-web
       - traefik.http.routers.{{ service_name }}-https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
-      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint %}
+      - traefik.http.routers.{{ service_name }}-https.entrypoints={{ traefik_tls_entrypoint }}
       - traefik.http.routers.{{ service_name }}-https.tls=true
       - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
     {% endif %}
-    {#
-      Deploy configuration for Swarm mode:
-      - Configure replicas or global mode, placement constraints, and restart policy
-      - Traefik: Labels for reverse proxy integration (Swarm mode)
-      - Resources: Set CPU/memory limits and reservations
-    #}
     {% if swarm_enabled %}
     deploy:
       {% if swarm_placement_mode == 'replicated' %}
@@ -92,10 +60,6 @@ services:
       {% else %}
       mode: global
       {% endif %}
-      {#
-        When traefik_enabled is set in swarm mode, add traefik labels
-        (optionally enable TLS if traefik_tls_enabled is set)
-      #}
       {% if traefik_enabled %}
       labels:
         - traefik.enable=true
@@ -112,33 +76,14 @@ services:
         - traefik.http.routers.{{ service_name }}-https.tls.certresolver={{ traefik_tls_certresolver }}
         {% endif %}
       {% endif %}
-      {% if resources_enabled %}
-      resources:
-        limits:
-          cpus: '{{ resources_cpu_limit }}'
-          memory: {{ resources_memory_limit }}
-        reservations:
-          cpus: '{{ resources_cpu_reservation }}'
-          memory: {{ resources_memory_reservation }}
-      {% endif %}
     {% endif %}
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:
     external: true
 {% endif %}
 
-{#
-  Volume definitions (only when volume_mode is 'local'):
-  - config: Dashboard configuration files
-  - images: Custom images for dashboard
-  - icons: Custom icons for services
-#}
 {% if volume_mode == 'local' %}
 volumes:
   {{ service_name }}_config:
