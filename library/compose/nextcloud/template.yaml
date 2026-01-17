@@ -17,7 +17,7 @@ metadata:
   icon:
     provider: selfh
     id: nextcloud
-  version: 32.0.4-apache
+  version: 32.0.5-apache
   author: Christian Lempa
   date: '2026-01-17'
   tags:
