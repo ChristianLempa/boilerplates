@@ -23,7 +23,6 @@ services:
       {% if accesslog_enabled %}
       - "--accesslog=true"
       {% endif %}
-      - "--ping.entryPoint=ping"
       {% if dashboard_enabled %}
       - "--api.dashboard=true"
       - "--api.insecure=true"
