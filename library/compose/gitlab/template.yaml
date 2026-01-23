@@ -184,6 +184,7 @@ spec:
         default: false
         description: Enable Traefik TLS
   email:
+    toggle: email_enabled
     vars:
       email_enabled:
         type: bool
@@ -219,6 +220,7 @@ spec:
         default: false
         description: Use SSL encryption
   authentik:
+    toggle: authentik_enabled
     vars:
       authentik_enabled:
         type: bool

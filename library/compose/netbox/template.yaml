@@ -110,6 +110,7 @@ spec:
         required: true
   netbox:
     title: NetBox Configuration
+    toggle: netbox_metrics_enabled
     description: Configure NetBox application settings
     vars:
       netbox_metrics_enabled:

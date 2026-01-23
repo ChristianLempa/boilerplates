@@ -69,6 +69,7 @@ spec:
         type: int
         default: 8080
   traefik:
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
         type: bool
@@ -90,6 +91,7 @@ spec:
         type: str
         required: true
   traefik_tls:
+    toggle: traefik_tls_enabled
     vars:
       traefik_tls_enabled:
         description: Enable Traefik TLS

@@ -96,6 +96,7 @@ spec:
         description: "External HTTP port for web interface"
         default: 8080
   traefik:
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
         type: bool
@@ -124,6 +125,7 @@ spec:
       network_name:
         default: "bridge"
   swarm:
+    toggle: swarm_enabled
     vars:
       swarm_enabled:
         type: bool

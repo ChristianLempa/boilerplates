@@ -49,42 +49,6 @@ spec:
         needs:
           - tsig_enabled=true
   network:
-    vars:
-      network_name:
-        type: str
-        required: true
-      network_macvlan_ipv4_address:
-        type: str
-        default: 192.168.1.253
-        needs:
-          - network_mode=macvlan
-        required: true
-      network_macvlan_parent_interface:
-        type: str
-        default: eth0
-        needs:
-          - network_mode=macvlan
-        required: true
-      network_macvlan_subnet:
-        type: str
-        default: 192.168.1.0/24
-        needs:
-          - network_mode=macvlan
-        required: true
-      network_macvlan_gateway:
-        type: str
-        default: 192.168.1.1
-        needs:
-          - network_mode=macvlan
-        required: true
-      network_external:
-        type: bool
-        default: false
-        description: Whether the network is external
-      network_mode:
-        type: str
-        default: bridge
-        description: The network mode for the container
   volume:
     vars:
       volume_mode:

@@ -61,32 +61,6 @@ spec:
           - traefik_enabled=false
         default: https://git.example.com
   database:
-    vars:
-      database_type:
-        type: enum
-        options:
-          - sqlite
-          - postgres
-          - mysql
-        default: sqlite
-        required: true
-      database_host:
-        type: str
-        needs:
-          - database_external=true;database_type=postgres,mysql
-        required: true
-      database_name:
-        default: gitea
-      database_user:
-        default: gitea
-      database_password:
-        type: str
-        sensitive: true
-        required: true
-      database_external:
-        type: bool
-        default: false
-        description: Use external database
   ports:
     vars:
       ports_http:

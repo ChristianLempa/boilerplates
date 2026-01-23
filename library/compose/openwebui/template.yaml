@@ -83,6 +83,7 @@ spec:
         type: int
         default: 8080
   authentik:
+    toggle: authentik_enabled
     vars:
       authentik_enabled:
         default: false

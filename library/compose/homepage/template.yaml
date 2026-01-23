@@ -132,28 +132,3 @@ spec:
         default: ''
         description: The NFS server
   swarm:
-    vars:
-      swarm_enabled:
-        description: Enable Docker Swarm mode
-        type: bool
-        default: false
-      swarm_replicas:
-        description: Number of replicas for replicated mode
-        type: int
-        needs:
-          - swarm_enabled=true
-          - swarm_placement_mode=replicated
-        required: true
-        default: 1
-      swarm_placement_host:
-        description: Hostname for placement constraint
-        type: str
-        needs:
-          - swarm_enabled=true
-          - swarm_placement_mode=replicated
-      swarm_placement_mode:
-        description: The placement mode
-        type: str
-        needs:
-          - swarm_enabled=true
-        default: replicated

@@ -54,6 +54,7 @@ spec:
         type: int
         default: 8443
   traefik:
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
         type: bool
@@ -85,6 +86,7 @@ spec:
       network_name:
         default: bridge
   swarm:
+    toggle: swarm_enabled
     vars:
       swarm_enabled:
         type: bool

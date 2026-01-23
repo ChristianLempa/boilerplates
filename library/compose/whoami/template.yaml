@@ -53,6 +53,7 @@ spec:
         default: home.arpa
         required: true
   traefik_tls:
+    toggle: traefik_tls_enabled
     vars:
       traefik_tls_enabled:
         description: Enable HTTPS/TLS
@@ -64,12 +65,14 @@ spec:
         default: cloudflare
         required: true
   resources:
+    toggle: resources_enabled
     vars:
       resources_enabled:
         description: Enable resource limits
         type: bool
         default: false
   swarm:
+    toggle: swarm_enabled
     vars:
       swarm_enabled:
         description: Enable Docker Swarm mode

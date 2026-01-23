@@ -109,6 +109,7 @@ spec:
         extra: Add a worker service to this compose file. For production, use separate n8n-worker template.
   database:
     title: Database
+    toggle: database_enabled
     description: External database configuration
     vars:
       database_enabled:
@@ -177,6 +178,7 @@ spec:
         extra: Optional separate webhook URL (e.g., https://webhooks.example.com/)
   metrics:
     title: Metrics
+    toggle: metrics_enabled
     description: Prometheus metrics configuration
     vars:
       metrics_enabled:
@@ -217,6 +219,7 @@ spec:
         default: false
         description: Whether the network is external
   traefik:
+    toggle: traefik_enabled
     vars:
       traefik_enabled:
         needs: network_mode=bridge
@@ -252,6 +255,7 @@ spec:
           - traefik_enabled=false
           - network_mode=bridge
   swarm:
+    toggle: swarm_enabled
     vars:
       swarm_enabled:
         needs: network_mode=bridge

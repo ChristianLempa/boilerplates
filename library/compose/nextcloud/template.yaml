@@ -115,22 +115,3 @@ spec:
         default: false
         description: Enable Traefik TLS
   swarm:
-    vars:
-      swarm_replicas:
-        type: int
-        default: 1
-        needs:
-          - swarm_placement_mode=replicated
-        required: true
-      swarm_enabled:
-        type: bool
-        default: false
-        description: Enable Docker Swarm mode
-      swarm_placement_host:
-        type: str
-        default: ''
-        description: The placement host
-      swarm_placement_mode:
-        type: str
-        default: replicated
-        description: The placement mode

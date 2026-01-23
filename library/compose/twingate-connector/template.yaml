@@ -91,23 +91,3 @@ spec:
           - swarm_enabled=true
         required: true
   swarm:
-    vars:
-      swarm_replicas:
-        type: int
-        default: 1
-        needs:
-          - swarm_placement_mode=replicated
-        required: true
-      swarm_placement_host:
-        type: str
-        description: Target hostname for placement constraint
-        default: ''
-        extra: Constrains service to run on specific node by hostname
-      swarm_enabled:
-        type: bool
-        default: false
-        description: Enable Docker Swarm mode
-      swarm_placement_mode:
-        type: str
-        default: replicated
-        description: The placement mode
