@@ -12,9 +12,9 @@ metadata:
     Documentation: https://gethomepage.dev/latest/
 
     GitHub: https://github.com/gethomepage/homepage'
-  version: v1.8.0
+  version: v1.9.0
   author: Christian Lempa
-  date: '2025-12-12'
+  date: '2026-01-19'
   tags:
     - traefik
     - swarm

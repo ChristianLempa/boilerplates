@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: ghcr.io/goauthentik/server:2025.10.3
+    image: ghcr.io/goauthentik/server:2025.12.1
     restart: {{ restart_policy }}
     command: server
     environment:
@@ -83,7 +83,7 @@ services:
     Handles long-running tasks like email sending, cleanup jobs, and scheduled tasks
   #}
   {{ service_name }}_worker:
-    image: ghcr.io/goauthentik/server:2025.10.3
+    image: ghcr.io/goauthentik/server:2025.12.1
     restart: {{ restart_policy }}
     command: worker
     environment:

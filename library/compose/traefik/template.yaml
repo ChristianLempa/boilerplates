@@ -13,9 +13,9 @@ metadata:
     - **Documentation:** https://doc.traefik.io/traefik/
 
     - **GitHub:** https://github.com/traefik/traefik'
-  version: v3.6.6
+  version: v3.6.7
   author: Christian Lempa
-  date: '2026-01-07'
+  date: '2026-01-15'
   tags:
     - swarm
     - volume

@@ -26,9 +26,9 @@ metadata:
   icon:
     provider: selfh
     id: gitea
-  version: 1.25.3
+  version: 1.25.4
   author: Christian Lempa
-  date: '2025-12-19'
+  date: '2026-01-22'
   tags:
     - traefik
 schema: '1.2'
