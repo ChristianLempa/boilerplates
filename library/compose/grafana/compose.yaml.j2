@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/grafana/grafana-oss:12.3.1
+    image: docker.io/grafana/grafana-oss:12.3.2
     restart: {{ restart_policy }}
     {% if database_type == 'postgres' or authentik_enabled %}
     environment:
