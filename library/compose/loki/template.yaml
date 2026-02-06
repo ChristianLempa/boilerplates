@@ -16,9 +16,9 @@ metadata:
     * **Documentation:** https://grafana.com/docs/loki/latest/
 
     * **GitHub:** https://github.com/grafana/loki'
-  version: 3.6.4
+  version: 3.6.5
   author: Christian Lempa
-  date: '2026-01-21'
+  date: '2026-02-06'
   tags:
     - traefik
     - authentik
