@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: ghcr.io/gethomepage/homepage:v1.9.0
+    image: ghcr.io/gethomepage/homepage:v1.10.1
     {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     {% if container_name %}
