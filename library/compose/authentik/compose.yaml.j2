@@ -35,10 +35,10 @@ services:
     {% endif %}
     volumes:
       {% if volume_mode == 'mount' %}
-      - {{ volume_mount_path }}/media:/media
+      - {{ volume_mount_path }}/data:/data
       - {{ volume_mount_path }}/templates:/templates
       {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
-      - {{ service_name }}_media:/media
+      - {{ service_name }}_data:/data
       - {{ service_name }}_templates:/templates
       {% endif %}
     {% if traefik_enabled %}
@@ -115,11 +115,11 @@ services:
       {# the embedded outpost uses the docker socket to manage containers #}
       - /run/docker.sock:/run/docker.sock
       {% if volume_mode == 'mount' %}
-      - {{ volume_mount_path }}/media:/media
+      - {{ volume_mount_path }}/data:/data
       - {{ volume_mount_path }}/certs:/certs
       - {{ volume_mount_path }}/templates:/templates
       {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
-      - {{ service_name }}_media:/media
+      - {{ service_name }}_data:/data
       - {{ service_name }}_certs:/certs
       - {{ service_name }}_templates:/templates
       {% endif %}
@@ -182,7 +182,7 @@ volumes:
   {% endif %}
   {{ service_name }}_redis:
     driver: local
-  {{ service_name }}_media:
+  {{ service_name }}_data:
     driver: local
   {{ service_name }}_certs:
     driver: local
@@ -204,12 +204,12 @@ volumes:
       type: nfs
       o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
       device: ":{{ volume_nfs_path }}/redis"
-  {{ service_name }}_media:
+  {{ service_name }}_data:
     driver: local
     driver_opts:
       type: nfs
       o: addr={{ volume_nfs_server }},nfsvers=4,{{ volume_nfs_options }}
-      device: ":{{ volume_nfs_path }}/media"
+      device: ":{{ volume_nfs_path }}/data"
   {{ service_name }}_certs:
     driver: local
     driver_opts:
