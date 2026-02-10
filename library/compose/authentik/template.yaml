@@ -41,9 +41,9 @@ metadata:
     Password: {{ authentik_admin_password }}
 
     ```'
-  version: 2025.12.2
+  version: 2025.12.3
   author: Christian Lempa
-  date: '2026-01-30'
+  date: '2026-02-10'
   tags:
     - traefik
     - volume
