@@ -9,13 +9,17 @@ services:
     networks:
       {{ traefik_network }}:
     {% endif %}
+    command:
+      - run
+      - /etc/alloy/alloy.d/
+      - --server.http.listen-addr=127.0.0.1:12345
     {% if not traefik_enabled %}
     ports:
       - "{{ ports_webui }}:12345"
     {% endif %}
     volumes:
       - {{ service_name }}_data:/alloy/data
-      - ./config/config.alloy:/etc/alloy/config.alloy:ro
+      - ./config:/etc/alloy/alloy.d/:ro
       {% if logs_enabled or metrics_enabled %}
       - /:/rootfs:ro
       - /sys:/sys:ro

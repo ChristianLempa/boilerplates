@@ -1,0 +1,20 @@
+{% if logs_enabled  %}
+loki.write "default" {
+  endpoint {
+    url = "{{ logs_loki_url }}"
+    
+    // Batching configuration to reduce request volume and prevent rate limiting
+    batch_wait = "5s"           // Wait up to 5 seconds before sending
+    batch_size = "1MiB"         // Send when batch reaches 1MB (1048576 bytes)
+  }
+  external_labels = {}
+}
+{% endif %}
+
+{% if metrics_enabled %}
+prometheus.remote_write "default" {
+  endpoint {
+    url = "{{ metrics_prometheus_url }}"
+  }
+}
+{% endif %}
