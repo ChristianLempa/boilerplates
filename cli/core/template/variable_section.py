@@ -137,9 +137,10 @@ class VariableSection:
 
     def _topological_sort(self, var_list: list[str], dependencies: dict[str, list[str]]) -> list[str]:
         """Perform topological sort using Kahn's algorithm."""
+        var_order = {var_name: index for index, var_name in enumerate(var_list)}
         in_degree = {var_name: len(deps) for var_name, deps in dependencies.items()}
         queue = [var for var, degree in in_degree.items() if degree == 0]
-        queue.sort(key=lambda v: var_list.index(v))
+        queue.sort(key=var_order.__getitem__)
         result = []
 
         while queue:
@@ -152,7 +153,7 @@ class VariableSection:
                     in_degree[var_name] -= 1
                     if in_degree[var_name] == 0:
                         queue.append(var_name)
-                        queue.sort(key=lambda v: var_list.index(v))
+                        queue.sort(key=var_order.__getitem__)
 
         # If not all variables were sorted (cycle), append remaining in original order
         if len(result) != len(var_list):
