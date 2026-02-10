@@ -31,7 +31,7 @@ services:
 
   {% endif -%}
   {{ service_name }}:
-    image: n8nio/n8n:2.5.2
+    image: n8nio/n8n:2.7.3
     {% if not swarm_enabled -%}
     container_name: {{ container_name }}
     hostname: {{ container_hostname }}
@@ -185,7 +185,7 @@ services:
 {% if queue_enabled and queue_embedded_worker -%}
 
   {{ service_name }}-worker:
-    image: n8nio/n8n:2.5.2
+    image: n8nio/n8n:2.7.3
     command: worker
     {% if not swarm_enabled -%}
     container_name: {{ container_name }}-worker
