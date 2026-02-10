@@ -130,7 +130,7 @@ services:
       - {{ service_name }}_redis-cache
 
   {{ service_name }}_redis:
-    image: docker.io/library/redis:8.4.0-alpine
+    image: docker.io/library/redis:8.4.1-alpine
     restart: {{ restart_policy }}
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
@@ -141,7 +141,7 @@ services:
       - {{ service_name }}_redis:/data
 
   {{ service_name }}_redis-cache:
-    image: docker.io/library/redis:8.4.0-alpine
+    image: docker.io/library/redis:8.4.1-alpine
     restart: {{ restart_policy }}
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
