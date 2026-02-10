@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/passbolt/passbolt:5.8.0-1-ce
+    image: docker.io/passbolt/passbolt:5.9.0-1-ce
     restart: unless-stopped
     environment:
       {% if container_timezone%}
