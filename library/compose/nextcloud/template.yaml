@@ -17,9 +17,9 @@ metadata:
   icon:
     provider: selfh
     id: nextcloud
-  version: 32.0.5-apache
+  version: 32.0.6-apache
   author: Christian Lempa
-  date: '2026-01-17'
+  date: '2026-02-13'
   tags:
     - traefik
   draft: true
