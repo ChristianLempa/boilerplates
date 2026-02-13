@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/library/postgres:18.1
+    image: docker.io/library/postgres:18.2
     {#
       If not in swarm mode, apply restart policy and container_name,
       else swarm mode handles restarts via deploy.restart_policy
