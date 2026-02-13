@@ -16,9 +16,9 @@ metadata:
     GitHub: https://github.com/postgres/postgres
 
     '
-  version: 18.1
+  version: 18.2
   author: Christian Lempa
-  date: '2025-12-11'
+  date: '2026-02-13'
   tags:
     - swarm
   draft: true
