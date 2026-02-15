@@ -1,6 +1,6 @@
 services:
   {{ service_name }}:
-    image: docker.io/grafana/alloy:v1.13.0
+    image: docker.io/grafana/alloy:v1.13.1
     restart: {{ restart_policy }}
     {% if container_hostname %}
     hostname: {{ container_hostname }}
