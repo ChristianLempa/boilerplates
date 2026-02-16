@@ -23,6 +23,18 @@ Each template includes sensible defaults, best practices, and common configurati
 
 > **Note:** Technologies evolve rapidly. While I actively maintain these templates, always review generated configurations before deploying to production.
 
+### Requirements
+
+- **Python 3.10 or higher** is required
+- Git
+- pipx (automatically installed by the installer script)
+
+> **Note for RHEL/AlmaLinux/Rocky Linux 9 users:** These distributions ship with Python 3.9 by default. You need to install Python 3.11 or later:
+> ```bash
+> sudo dnf install python3.11
+> pipx reinstall --python python3.11 boilerplates
+> ```
+
 ### Installation
 
 #### Automated installer script

@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Dependency update: typer to v0.21.1 (#1627)
 
+### Fixed
+- Python 3.10+ requirement enforcement - Install script now validates Python version and provides clear upgrade instructions for AlmaLinux/RHEL 9 users
+- Python 3.9 compatibility - Added `from __future__ import annotations` to compose module to support union type syntax on Python 3.9+ (requires Python 3.10+ at runtime)
+
 ## [0.1.3] - 2026-01-06
 
 ### Added

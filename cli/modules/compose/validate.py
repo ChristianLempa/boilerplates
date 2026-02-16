@@ -1,5 +1,7 @@
 """Docker Compose validation functionality."""
 
+from __future__ import annotations
+
 import logging
 import subprocess
 import tempfile
