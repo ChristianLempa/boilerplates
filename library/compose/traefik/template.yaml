@@ -117,6 +117,7 @@ spec:
           - route53
           - azure
           - namecheap
+          - ovh
         default: cloudflare
         required: true
         needs:
@@ -128,6 +129,15 @@ spec:
         required: true
         needs:
           - traefik_tls_enabled=true
+      traefik_tls_acme_endpoint:
+        description: OVH API endpoint
+        type: str
+        default: ovh-eu
+        required: true
+        needs:
+          - traefik_tls_enabled=true
+          - traefik_tls_certresolver=ovh
+        extra: Common values are ovh-eu, ovh-ca, ovh-us
       traefik_tls_acme_region:
         description: AWS Region
         type: str
@@ -150,8 +160,8 @@ spec:
         required: true
         needs:
           - traefik_tls_enabled=true
-          - traefik_tls_certresolver=azure,godaddy,porkbun,route53
-        extra: AZURE_CLIENT_SECRET, GODADDY_API_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY
+          - traefik_tls_certresolver=azure,godaddy,ovh,porkbun,route53
+        extra: AZURE_CLIENT_SECRET, GODADDY_API_SECRET, OVH_APPLICATION_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY
       traefik_tls_acme_subscription_id:
         description: Azure Subscription ID
         type: str
@@ -173,8 +183,8 @@ spec:
         required: true
         needs:
           - traefik_tls_enabled=true
-          - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun
-        extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY
+          - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,ovh,porkbun
+        extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, OVH_APPLICATION_KEY, or PORKBUN_API_KEY
       traefik_tls_acme_username:
         description: Namecheap API username
         type: str
@@ -182,6 +192,14 @@ spec:
         needs:
           - traefik_tls_enabled=true
           - traefik_tls_certresolver=namecheap
+      traefik_tls_acme_consumer_key:
+        description: OVH Consumer Key
+        type: str
+        sensitive: true
+        required: true
+        needs:
+          - traefik_tls_enabled=true
+          - traefik_tls_certresolver=ovh
       traefik_tls_redirect:
         description: Redirect all HTTP traffic to HTTPS
         type: bool
