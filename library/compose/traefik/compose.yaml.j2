@@ -143,7 +143,7 @@ services:
       {% endif %}
       - NAMECHEAP_API_USER={{ traefik_tls_acme_username }}
       {% elif traefik_tls_certresolver == 'ovh' %}
-      - OVH_ENDPOINT={{ traefik_tls_acme_endpoint }}
+      - OVH_ENDPOINT={{ traefik_tls_acme_endpoint | default('ovh-eu') }}
       {% if swarm_enabled %}
       - OVH_APPLICATION_KEY_FILE=/run/secrets/{{ service_name }}_token
       - OVH_APPLICATION_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
