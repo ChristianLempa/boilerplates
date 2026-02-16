@@ -111,10 +111,7 @@ spec:
         default: "home.arpa"
       traefik_entrypoint:
         default: "web"
-        default: "websecure"
         type: bool
-        default: true
-        default: "cloudflare"
   network:
     vars:
       network_mode:
