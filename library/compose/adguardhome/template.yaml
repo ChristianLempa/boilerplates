@@ -1,28 +1,35 @@
----
 kind: compose
 metadata:
   name: AdGuard Home
-  description: 'Network-wide software for blocking ads and tracking. AdGuard Home operates as a DNS server that
+  description: 'Network-wide software for blocking ads and tracking. AdGuard Home
+    operates as a DNS server that
 
-    re-routes tracking domains to a "black hole", thus preventing your devices from connecting to those servers.
+    re-routes tracking domains to a "black hole", thus preventing your devices from
+    connecting to those servers.
 
-    It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC support.
+    It features advanced DNS filtering, parental controls, safe browsing, and HTTPS/DNS-over-TLS/DNS-over-QUIC
+    support.
 
     ## Prerequisites
 
-    - :info: During the initial setup, AdGuard Home runs an HTTP server on port 3000 to guide you through configuration.
+    - :info: During the initial setup, AdGuard Home runs an HTTP server on port 3000
+    to guide you through configuration.
 
     **With Traefik enabled:** Access initial setup via container IP at `http://<container-ip>:3000`.
 
     After setup completes, access the admin interface via the configured domain.
 
-    - :warning: **Security Notice:** The initial setup on port 3000 uses an unencrypted HTTP connection.
+    - :warning: **Security Notice:** The initial setup on port 3000 uses an unencrypted
+    HTTP connection.
 
-    Only use this for initial configuration and disable it (`initial_setup=false`) after setup is complete.
+    Only use this for initial configuration and disable it (`initial_setup=false`)
+    after setup is complete.
 
-    - :warning: If you require DHCP functionality or want AdGuard Home to bind directly to port 53,
+    - :warning: If you require DHCP functionality or want AdGuard Home to bind directly
+    to port 53,
 
-    you must set `network_mode` to `host` or `macvlan`. Note this exposes all container ports directly on the host.
+    you must set `network_mode` to `host` or `macvlan`. Note this exposes all container
+    ports directly on the host.
 
     You can''t use `traefik_enabled` in this case!
 
@@ -40,9 +47,9 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-    - traefik
-    - network
-    - volume
+  - traefik
+  - network
+  - volume
   next_steps: null
 schema: '1.2'
 spec:
@@ -53,23 +60,25 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       initial_setup:
         description: Enable initial setup wizard on port 3000 (only used without Traefik)
         type: bool
         default: true
-        extra: 'Port 3000 is only used during the initial setup wizard when Traefik is disabled. With Traefik enabled, access
-          setup via container IP instead. After completing setup, AdGuard Home switches to port 80 and port 3000 becomes inactive.
-          '
+        extra: 'Port 3000 is only used during the initial setup wizard when Traefik
+          is disabled. With Traefik enabled, access setup via container IP instead.
+          After completing setup, AdGuard Home switches to port 80 and port 3000 becomes
+          inactive. '
   network:
     vars:
       network_mode:
-        extra: 'Use ''host'' mode if you need DHCP functionality or want AdGuard Home to bind directly to port 53.
+        extra: 'Use ''host'' mode if you need DHCP functionality or want AdGuard Home
+          to bind directly to port 53.
 
           '
       network_name:
@@ -78,25 +87,25 @@ spec:
         type: str
         default: 192.168.1.253
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_parent_interface:
         type: str
         default: eth0
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_subnet:
         type: str
         default: 192.168.1.0/24
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_gateway:
         type: str
         default: 192.168.1.1
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_external:
         type: bool
@@ -117,10 +126,10 @@ spec:
         type: int
         default: 3000
         needs:
-          - traefik_enabled=false
-          - initial_setup=true
-        extra: 'Only used during first-time setup without Traefik. After configuration, port becomes inactive. With Traefik,
-          access setup via container IP instead.
+        - traefik_enabled=false
+        - initial_setup=true
+        extra: 'Only used during first-time setup without Traefik. After configuration,
+          port becomes inactive. With Traefik, access setup via container IP instead.
 
           '
       ports_tls:
@@ -149,6 +158,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -159,37 +171,41 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true

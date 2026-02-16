@@ -1,12 +1,14 @@
----
 kind: compose
 metadata:
   name: Authentik
-  description: 'Integrate Authentik Single Sign-On (SSO) for secure and streamlined user authentication.
+  description: 'Integrate Authentik Single Sign-On (SSO) for secure and streamlined
+    user authentication.
 
-    Authentik is an open-source identity provider that supports various authentication protocols.
+    Authentik is an open-source identity provider that supports various authentication
+    protocols.
 
-    This configuration enables OAuth-based SSO, allowing users to log in using their Authentik
+    This configuration enables OAuth-based SSO, allowing users to log in using their
+    Authentik
 
     credentials, enhancing security and user experience.
 
@@ -45,8 +47,8 @@ metadata:
   author: Christian Lempa
   date: '2026-02-12'
   tags:
-    - traefik
-    - volume
+  - traefik
+  - volume
 schema: '1.2'
 spec:
   general:
@@ -56,10 +58,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   database:
@@ -103,6 +105,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   authentik:
     description: Configure Authentik application settings
     required: true
@@ -131,39 +136,43 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
   email:
     vars:
@@ -197,3 +206,6 @@ spec:
         type: str
         default: tls
         description: The email encryption type
+    toggle: email_enabled
+    title: Email
+    description: Configure email/SMTP integration

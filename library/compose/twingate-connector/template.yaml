@@ -1,14 +1,15 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: twingate
   name: Twingate_Connector
-  description: 'The Twingate Connector is a lightweight software component that establishes secure connections between your
-    private network and the Twingate service. It acts as a bridge, allowing authorized users to access internal resources
-    without exposing them directly to the internet. The Connector uses strong encryption and authentication mechanisms to
-    ensure that all data transmitted between users and resources remains confidential and secure.
+  description: 'The Twingate Connector is a lightweight software component that establishes
+    secure connections between your private network and the Twingate service. It acts
+    as a bridge, allowing authorized users to access internal resources without exposing
+    them directly to the internet. The Connector uses strong encryption and authentication
+    mechanisms to ensure that all data transmitted between users and resources remains
+    confidential and secure.
 
 
     Project: https://www.twingate.com/
@@ -22,7 +23,7 @@ metadata:
   author: Christian Lempa
   date: '2025-11-11'
   tags:
-    - swarm
+  - swarm
   draft: true
 schema: '1.2'
 spec:
@@ -39,10 +40,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       twingate_version:
@@ -78,7 +79,7 @@ spec:
         type: str
         default: 0.25
         needs:
-          - swarm_enabled=true
+        - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -88,6 +89,9 @@ spec:
         type: str
         default: 512M
         needs:
-          - swarm_enabled=true
+        - swarm_enabled=true
         required: true
-  swarm:
+    toggle: resources_enabled
+    title: Resource Limits
+    description: Configure container resource limits
+  swarm: null

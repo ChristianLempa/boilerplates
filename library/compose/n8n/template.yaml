@@ -1,11 +1,11 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: n8n
   name: N8N
-  description: 'N8n is a free and source-available workflow automation tool. It enables you to connect
+  description: 'N8n is a free and source-available workflow automation tool. It enables
+    you to connect
 
     various apps and services to automate repetitive tasks without coding.
 
@@ -15,15 +15,18 @@ metadata:
 
     ## Prerequisites
 
-    - :info: By default, n8n uses SQLite as its database, which is suitable for small-scale or
+    - :info: By default, n8n uses SQLite as its database, which is suitable for small-scale
+    or
 
     personal use. For production environments, it is recommended to use an external
 
-    database like PostgreSQL or MySQL for better performance and reliability. This is also
+    database like PostgreSQL or MySQL for better performance and reliability. This
+    is also
 
     required when using Queue Mode.
 
-    - :info: Queue mode allows n8n to handle a large number of workflows and tasks efficiently, by using
+    - :info: Queue mode allows n8n to handle a large number of workflows and tasks
+    efficiently, by using
 
     multiple Workers, and Redis as the queue backend. This is essential for high-availability
 
@@ -44,8 +47,8 @@ metadata:
   author: Christian Lempa
   date: '2025-12-17'
   tags:
-    - traefik
-    - database
+  - traefik
+  - database
   draft: true
 schema: '1.2'
 spec:
@@ -62,17 +65,17 @@ spec:
       container_loglevel:
         type: enum
         options:
-          - debug
-          - info
-          - warn
-          - error
+        - debug
+        - info
+        - warn
+        - error
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   queue:
@@ -106,7 +109,8 @@ spec:
         description: Include embedded worker in this deployment
         default: false
         needs: queue_enabled
-        extra: Add a worker service to this compose file. For production, use separate n8n-worker template.
+        extra: Add a worker service to this compose file. For production, use separate
+          n8n-worker template.
   database:
     title: Database
     toggle: database_enabled
@@ -120,8 +124,8 @@ spec:
         type: enum
         description: Database type
         options:
-          - postgres
-          - mysql
+        - postgres
+        - mysql
         default: postgres
         needs: database_enabled
       database_host:
@@ -197,21 +201,22 @@ spec:
         type: enum
         description: Save execution data on error
         options:
-          - all
-          - none
+        - all
+        - none
         default: all
       execution_save_on_success:
         type: enum
         description: Save execution data on success
         options:
-          - all
-          - none
+        - all
+        - none
         default: none
         extra: Set to 'none' to reduce database size
   network:
     vars:
       network_mode:
-        extra: For queue mode with workers, use 'bridge' with shared networks. Swarm only supports 'bridge'.
+        extra: For queue mode with workers, use 'bridge' with shared networks. Swarm
+          only supports 'bridge'.
       network_name:
         default: n8n_network
       network_external:
@@ -252,8 +257,8 @@ spec:
         type: int
         default: 5678
         needs:
-          - traefik_enabled=false
-          - network_mode=bridge
+        - traefik_enabled=false
+        - network_mode=bridge
   swarm:
     toggle: swarm_enabled
     vars:
@@ -284,3 +289,7 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik

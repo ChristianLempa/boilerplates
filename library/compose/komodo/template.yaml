@@ -1,21 +1,25 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: komodo
   name: Komodo
-  description: 'Build and deployment automation tool for managing software across multiple servers. Komodo provides
+  description: 'Build and deployment automation tool for managing software across
+    multiple servers. Komodo provides
 
-    unlimited server connections, flexible API access, and comprehensive management of Docker deployments,
+    unlimited server connections, flexible API access, and comprehensive management
+    of Docker deployments,
 
-    stacks, and builds. Features include real-time container monitoring, batch operations, and integration
+    stacks, and builds. Features include real-time container monitoring, batch operations,
+    and integration
 
-    with Docker, Docker Compose, and build systems. Supports both MongoDB and FerretDB as database backends.
+    with Docker, Docker Compose, and build systems. Supports both MongoDB and FerretDB
+    as database backends.
 
     ## Important Notes
 
-    * Requires MongoDB or FerretDB for data storage (database not included in this template)
+    * Requires MongoDB or FerretDB for data storage (database not included in this
+    template)
 
     * Requires Periphery agent on managed servers for remote operations
 
@@ -35,10 +39,10 @@ metadata:
   author: Christian Lempa
   date: '2025-11-13'
   tags:
-    - traefik
-    - swarm
-    - deployment
-    - automation
+  - traefik
+  - swarm
+  - deployment
+  - automation
   next_steps: '### 1. Prerequisites
 
     * Deploy MongoDB or FerretDB database
@@ -91,7 +95,8 @@ metadata:
 
     ```bash
 
-    curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | python3
+    curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py
+    | python3
 
     ```
 
@@ -117,10 +122,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   traefik:
@@ -144,6 +149,9 @@ spec:
         default: home.arpa
         type: str
         required: true
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_enabled:
@@ -159,7 +167,11 @@ spec:
         type: str
         required: true
         default: cloudflare
-  network:
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
+  network: null
   ports:
     vars:
       ports_http:
@@ -167,9 +179,9 @@ spec:
         type: int
         default: 9120
         needs:
-          - traefik_enabled=false
-          - network_mode=bridge
-  volume:
+        - traefik_enabled=false
+        - network_mode=bridge
+  volume: null
   resources:
     vars:
       resources_enabled:
@@ -183,7 +195,7 @@ spec:
         type: str
         default: 0.25
         needs:
-          - swarm_enabled=true
+        - swarm_enabled=true
         required: true
       resources_memory_limit:
         type: str
@@ -193,8 +205,11 @@ spec:
         type: str
         default: 512M
         needs:
-          - swarm_enabled=true
+        - swarm_enabled=true
         required: true
+    toggle: resources_enabled
+    title: Resource Limits
+    description: Configure container resource limits
   environment:
     title: Environment Variables
     toggle: environment_enabled
@@ -236,10 +251,10 @@ spec:
         type: enum
         default: info
         options:
-          - debug
-          - info
-          - warn
-          - error
+        - debug
+        - info
+        - warn
+        - error
         description: Log level
         needs: environment_enabled=true
   swarm:
@@ -260,3 +275,6 @@ spec:
         type: int
         default: 1
         description: The number of replicas
+    toggle: swarm_enabled
+    title: Docker Swarm
+    description: Configure Docker Swarm mode deployment

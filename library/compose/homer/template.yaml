@@ -1,12 +1,11 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: homer
   name: Homer
-  description: 'A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration
-    file.
+  description: 'A very simple static homepage for your server to keep your services
+    on hand, from a simple yaml configuration file.
 
 
     Project: https://github.com/bastienwirtz/homer
@@ -18,19 +17,23 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-    - traefik
-    - swarm
-    - authentik
+  - traefik
+  - swarm
+  - authentik
   draft: true
-  next_steps: "1. Start the Homer dashboard:\n   docker compose up -d\n\n2. Customize your dashboard:\n   - Edit assets/config.yml\
-    \ to add your services\n   - Organize services into groups (Applications, Monitoring, etc.)\n   - Add links to the navbar\
-    \ for quick access\n\n3. Optional: Add a logo:\n   - Place your logo.png file in the assets/ directory\n   - Or update\
-    \ the logo path in assets/config.yml\n   - Supported formats: PNG, SVG, JPG\n\n4. Optional: Customize the theme:\n   -\
-    \ Uncomment and modify the colors section in config.yml\n   - Available themes: default, sui\n   - See documentation for\
-    \ advanced theming options\n\n5. Access your dashboard:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{ traefik_host\
-    \ }}\n   {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{%\
-    \ endif %}\n   {%- else -%}\n   - Open http://localhost:{{ ports_http }} in your browser\n   {%- endif %}\n\nFor more\
-    \ information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md\n"
+  next_steps: "1. Start the Homer dashboard:\n   docker compose up -d\n\n2. Customize\
+    \ your dashboard:\n   - Edit assets/config.yml to add your services\n   - Organize\
+    \ services into groups (Applications, Monitoring, etc.)\n   - Add links to the\
+    \ navbar for quick access\n\n3. Optional: Add a logo:\n   - Place your logo.png\
+    \ file in the assets/ directory\n   - Or update the logo path in assets/config.yml\n\
+    \   - Supported formats: PNG, SVG, JPG\n\n4. Optional: Customize the theme:\n\
+    \   - Uncomment and modify the colors section in config.yml\n   - Available themes:\
+    \ default, sui\n   - See documentation for advanced theming options\n\n5. Access\
+    \ your dashboard:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{\
+    \ traefik_host }}\n   {% if not traefik_enabled and network_mode == 'bridge' %}-\
+    \ Direct access: http://localhost:{{ ports_http }}{% endif %}\n   {%- else -%}\n\
+    \   - Open http://localhost:{{ ports_http }} in your browser\n   {%- endif %}\n\
+    \nFor more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md\n"
 schema: '1.2'
 spec:
   general:
@@ -44,10 +47,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       homer_title:
@@ -111,33 +114,36 @@ spec:
       swarm_placement_mode:
         type: enum
         options:
-          - replicated
-          - global
+        - replicated
+        - global
         default: replicated
         required: true
       swarm_replicas:
         type: int
         default: 1
         needs:
-          - swarm_placement_mode=replicated
+        - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str
         default: ''
         needs:
-          - swarm_placement_mode=replicated
+        - swarm_placement_mode=replicated
         extra: Constrains service to run on specific node by hostname
       swarm_enabled:
         type: bool
         default: false
         description: Enable Docker Swarm mode
+    toggle: swarm_enabled
+    title: Docker Swarm
+    description: Configure Docker Swarm mode deployment
   authentik:
     vars:
       authentik_traefik_middleware:
         type: str
         default: authentik-middleware@file
         needs:
-          - traefik_enabled=true
+        - traefik_enabled=true
         required: true
       authentik_client_id:
         type: str
@@ -159,3 +165,6 @@ spec:
         type: str
         default: ''
         description: The Authentik URL
+    toggle: authentik_enabled
+    title: Authentik SSO
+    description: Configure Authentik authentication integration

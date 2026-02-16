@@ -1,11 +1,11 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: semaphore-ui
   name: Semaphore UI
-  description: 'Modern UI for Ansible automation with task scheduling and web-based management.
+  description: 'Modern UI for Ansible automation with task scheduling and web-based
+    management.
 
     Semaphore provides a beautiful web interface to run Ansible playbooks, manage
 
@@ -15,9 +15,11 @@ metadata:
 
     ## Prerequisites
 
-    - :info: SemaphoreUI supports multiple database backends. You can choose between SQLite (default),
+    - :info: SemaphoreUI supports multiple database backends. You can choose between
+    SQLite (default),
 
-    PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL and MySQL
+    PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL
+    and MySQL
 
     are recommended for larger installations.
 
@@ -32,8 +34,8 @@ metadata:
   author: Christian Lempa
   date: '2026-02-15'
   tags:
-    - traefik
-    - database
+  - traefik
+  - database
   next_steps: 'Log in with your initial admin user:
 
     ```bash
@@ -54,10 +56,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       secret_key:
@@ -110,6 +112,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -120,12 +125,16 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   database:
     vars:
       database_type:
         options:
-          - postgres
-          - mysql
+        - postgres
+        - mysql
         default: mysql
       database_name:
         default: semaphore

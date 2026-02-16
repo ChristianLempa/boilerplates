@@ -1,8 +1,8 @@
----
 kind: compose
 metadata:
   name: Gitea
-  description: 'Self-hosted Git service with web interface. Gitea is a painless, self-hosted Git service
+  description: 'Self-hosted Git service with web interface. Gitea is a painless, self-hosted
+    Git service
 
     written in Go. It''s similar to GitHub, Bitbucket, and GitLab, providing Git repository
 
@@ -10,9 +10,11 @@ metadata:
 
     ## Prerequisites
 
-    - :info: Gitea supports multiple database backends. You can choose between SQLite (default),
+    - :info: Gitea supports multiple database backends. You can choose between SQLite
+    (default),
 
-    PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL and MySQL
+    PostgreSQL, or MySQL. SQLite is suitable for small deployments, while PostgreSQL
+    and MySQL
 
     are recommended for larger installations.
 
@@ -30,7 +32,7 @@ metadata:
   author: Christian Lempa
   date: '2026-01-22'
   tags:
-    - traefik
+  - traefik
 schema: '1.2'
 spec:
   general:
@@ -48,19 +50,19 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       gitea_url:
         description: Public URL
         type: str
         needs:
-          - traefik_enabled=false
+        - traefik_enabled=false
         default: https://git.example.com
-  database:
+  database: null
   ports:
     vars:
       ports_http:
@@ -83,6 +85,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -93,3 +98,7 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik

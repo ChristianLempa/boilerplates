@@ -1,11 +1,11 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: loki
   name: Loki
-  description: 'Loki is a horizontally scalable, highly available, multi-tenant log aggregation system inspired by Prometheus.
+  description: 'Loki is a horizontally scalable, highly available, multi-tenant log
+    aggregation system inspired by Prometheus.
 
     This template sets up Loki in a Docker container using Docker Compose.
 
@@ -20,8 +20,8 @@ metadata:
   author: Christian Lempa
   date: '2026-02-06'
   tags:
-    - traefik
-    - authentik
+  - traefik
+  - authentik
 schema: '1.2'
 spec:
   general:
@@ -31,10 +31,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       data_retention_days:
@@ -61,6 +61,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -71,3 +74,7 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik

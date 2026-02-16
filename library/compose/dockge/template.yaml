@@ -1,13 +1,14 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: dockge
   name: Dockge
-  description: 'Dockge is a powerful Docker management platform that simplifies container orchestration and monitoring.
+  description: 'Dockge is a powerful Docker management platform that simplifies container
+    orchestration and monitoring.
 
-    It provides an intuitive web interface to manage Docker containers, images, networks, and volumes with ease.
+    It provides an intuitive web interface to manage Docker containers, images, networks,
+    and volumes with ease.
 
     ## Prerequisites
 
@@ -20,7 +21,7 @@ metadata:
   author: Christian Lempa
   date: '2025-09-28'
   tags:
-    - traefik
+  - traefik
 schema: '1.2'
 spec:
   general:
@@ -32,10 +33,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       stacks_path:
@@ -59,6 +60,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -69,6 +73,10 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   ports:
     vars:
       ports_http:

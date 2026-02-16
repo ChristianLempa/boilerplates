@@ -1,8 +1,8 @@
----
 kind: compose
 metadata:
   name: Homepage
-  description: 'Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations
+  description: 'Homepage is a modern, fully static, fast, secure fully customizable
+    application dashboard with integrations
 
     for over 100 services and translations into multiple languages.
 
@@ -16,9 +16,9 @@ metadata:
   author: Christian Lempa
   date: '2026-02-10'
   tags:
-    - traefik
-    - swarm
-    - volume_modes
+  - traefik
+  - swarm
+  - volume_modes
   icon:
     provider: simpleicons
     id: homepage
@@ -44,18 +44,18 @@ spec:
         description: The container log level
         type: enum
         options:
-          - debug
-          - info
-          - warn
-          - error
+        - debug
+        - info
+        - warn
+        - error
       restart_policy:
         description: The container restart policy
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         required: true
         default: unless-stopped
   ports:
@@ -64,7 +64,7 @@ spec:
         description: The HTTP port
         type: int
         needs:
-          - traefik_enabled=false
+        - traefik_enabled=false
         required: true
         default: 3000
   traefik:
@@ -88,6 +88,9 @@ spec:
         default: home.arpa
         type: str
         required: true
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_enabled:
@@ -103,21 +106,25 @@ spec:
         type: str
         required: true
         default: cloudflare
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_options:
         type: str
@@ -131,4 +138,4 @@ spec:
         type: str
         default: ''
         description: The NFS server
-  swarm:
+  swarm: null
