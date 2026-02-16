@@ -133,7 +133,7 @@ spec:
         description: OVH API endpoint
         type: str
         default: ovh-eu
-        required: true
+        required: false
         needs:
           - traefik_tls_enabled=true
           - traefik_tls_certresolver=ovh
