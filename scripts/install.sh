@@ -171,6 +171,43 @@ install_dependencies_linux() {
   fi
 }
 
+check_python_version() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    # Python not installed yet - will be handled by check_dependencies
+    return 0
+  fi
+  
+  local python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)
+  
+  if [[ -z "$python_version" ]]; then
+    log "Warning: Could not determine Python version"
+    return 0
+  fi
+  
+  local major=$(echo "$python_version" | cut -d. -f1)
+  local minor=$(echo "$python_version" | cut -d. -f2)
+  
+  if [[ "$major" -lt 3 ]] || { [[ "$major" -eq 3 ]] && [[ "$minor" -lt 10 ]]; }; then
+    error "Python 3.10 or higher is required. Found: Python $python_version
+
+Boilerplates requires Python 3.10+ for modern type hint syntax.
+Your system has Python $python_version installed.
+
+On AlmaLinux/RHEL/CentOS/Rocky Linux 9:
+  sudo dnf install python3.11
+  pipx reinstall --python python3.11 boilerplates
+
+On Debian/Ubuntu:
+  sudo apt install python3.11
+  pipx reinstall --python python3.11 boilerplates
+
+Alternatively, use pyenv to install Python 3.11+:
+  https://github.com/pyenv/pyenv#installation"
+  fi
+  
+  log "Python version: $python_version (OK)"
+}
+
 check_dependencies() {
   local missing_deps=()
   
@@ -229,6 +266,9 @@ check_dependencies() {
   fi
   
   log "All dependencies available"
+  
+  # Check Python version after dependencies are installed
+  check_python_version
 }
 
 parse_args() {
