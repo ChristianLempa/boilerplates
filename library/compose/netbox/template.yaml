@@ -39,6 +39,9 @@ metadata:
 schema: '1.2'
 spec:
   database:
+    title: Database
+    toggle: database_external
+    description: Configure external database connection
     vars:
       database_name:
         default: netbox
@@ -62,6 +65,9 @@ spec:
         default: false
         description: Use external database
   email:
+    title: Email
+    toggle: email_enabled
+    description: Configure email/SMTP integration
     vars:
       email_host:
         description: SMTP server hostname
@@ -131,6 +137,9 @@ spec:
         description: Host port for HTTP
         default: 8000
   traefik:
+    title: Traefik
+    toggle: traefik_enabled
+    description: Configure Traefik reverse proxy integration
     vars:
       traefik_host:
         default: netbox
@@ -147,6 +156,10 @@ spec:
         default: false
         description: Enable Traefik integration
   traefik_tls:
+    title: Traefik TLS
+    toggle: traefik_tls_enabled
+    needs: traefik
+    description: Configure Traefik TLS/SSL certificates
     vars:
       traefik_tls_certresolver:
         type: str

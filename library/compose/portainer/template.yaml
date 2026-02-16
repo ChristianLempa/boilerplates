@@ -1,13 +1,14 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: portainer
   name: Portainer
-  description: 'Portainer is a powerful and user-friendly management tool for Docker and Kubernetes environments.
+  description: 'Portainer is a powerful and user-friendly management tool for Docker
+    and Kubernetes environments.
 
-    It provides a simple web-based interface to manage containers, images, networks, and volumes,
+    It provides a simple web-based interface to manage containers, images, networks,
+    and volumes,
 
     making it easier to deploy and monitor applications.
 
@@ -22,9 +23,9 @@ metadata:
   author: Christian Lempa
   date: '2026-02-12'
   tags:
-    - traefik
-    - swarm
-    - volumes
+  - traefik
+  - swarm
+  - volumes
 schema: '1.2'
 spec:
   general:
@@ -36,10 +37,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -69,6 +70,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -79,39 +83,43 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
   swarm:
     vars:
@@ -132,3 +140,6 @@ spec:
         type: int
         default: 1
         description: The number of replicas
+    toggle: swarm_enabled
+    title: Docker Swarm
+    description: Configure Docker Swarm mode deployment

@@ -1,10 +1,11 @@
----
 kind: compose
 metadata:
   name: Traefik
-  description: 'Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.
+  description: 'Traefik is a modern HTTP reverse proxy and load balancer that makes
+    deploying microservices easy.
 
-    This template sets up Traefik with automatic HTTPS using Let''s Encrypt and can be integrated with Authentik for SSO.
+    This template sets up Traefik with automatic HTTPS using Let''s Encrypt and can
+    be integrated with Authentik for SSO.
 
     ## References
 
@@ -17,16 +18,17 @@ metadata:
   author: Christian Lempa
   date: '2026-02-11'
   tags:
-    - swarm
-    - volume
+  - swarm
+  - volume
   icon:
     provider: simpleicons
     id: traefikproxy
   draft: false
-  next_steps: "Start the `{{ service_name }}` project\n{% if swarm_enabled %}\n1. Deploy Traefik to Docker Swarm:\n  `docker\
-    \ stack deploy -c compose.yaml {{ service_name }}`\n{% else %}\n1. Copy the project directory for `{{ service_name\
-    \ }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`\n{% endif\
-    \ %}"
+  next_steps: "Start the `{{ service_name }}` project\n{% if swarm_enabled %}\n1.\
+    \ Deploy Traefik to Docker Swarm:\n  `docker stack deploy -c compose.yaml {{ service_name\
+    \ }}`\n{% else %}\n1. Copy the project directory for `{{ service_name }}` to the\
+    \ host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker\
+    \ compose up -d`\n{% endif %}"
 schema: '1.2'
 spec:
   general:
@@ -42,17 +44,17 @@ spec:
       container_loglevel:
         type: enum
         options:
-          - debug
-          - info
-          - warn
-          - error
+        - debug
+        - info
+        - warn
+        - error
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -63,7 +65,7 @@ spec:
         default: 8080
         required: true
         needs:
-          - dashboard_enabled=true
+        - dashboard_enabled=true
         extra: Only used when dashboard is enabled
       ports_http:
         default: 80
@@ -98,6 +100,8 @@ spec:
         description: Use existing Docker network (external)
         type: bool
         default: false
+    toggle: dashboard_enabled
+    description: Configure Traefik features and settings
   traefik_tls:
     title: TLS Settings
     toggle: traefik_tls_enabled
@@ -110,33 +114,33 @@ spec:
         description: ACME DNS challenge provider
         type: str
         options:
-          - cloudflare
-          - porkbun
-          - godaddy
-          - digitalocean
-          - route53
-          - azure
-          - namecheap
-          - ovh
+        - cloudflare
+        - porkbun
+        - godaddy
+        - digitalocean
+        - route53
+        - azure
+        - namecheap
+        - ovh
         default: cloudflare
         required: true
         needs:
-          - traefik_tls_enabled=true
+        - traefik_tls_enabled=true
         extra: DNS provider for domain validation
       traefik_tls_acme_email:
         description: Email address for ACME
         type: str
         required: true
         needs:
-          - traefik_tls_enabled=true
+        - traefik_tls_enabled=true
       traefik_tls_acme_endpoint:
         description: OVH API endpoint
         type: str
         default: ovh-eu
         required: false
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=ovh
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=ovh
         extra: Common values are ovh-eu, ovh-ca, ovh-us
       traefik_tls_acme_region:
         description: AWS Region
@@ -144,54 +148,54 @@ spec:
         default: us-east-1
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=route53
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=route53
       traefik_tls_acme_resource_group:
         description: Azure Resource Group
         type: str
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=azure
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=azure
       traefik_tls_acme_secret_key:
         description: DNS provider secret key
         type: str
         sensitive: true
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=azure,godaddy,ovh,porkbun,route53
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=azure,godaddy,ovh,porkbun,route53
         extra: AZURE_CLIENT_SECRET, GODADDY_API_SECRET, OVH_APPLICATION_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY
       traefik_tls_acme_subscription_id:
         description: Azure Subscription ID
         type: str
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=azure
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=azure
       traefik_tls_acme_tenant_id:
         description: Azure Tenant ID
         type: str
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=azure
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=azure
       traefik_tls_acme_token:
         description: DNS provider API token
         type: str
         sensitive: true
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,ovh,porkbun
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,ovh,porkbun
         extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, OVH_APPLICATION_KEY, or PORKBUN_API_KEY
       traefik_tls_acme_username:
         description: Namecheap API username
         type: str
         required: true
         needs:
-          - traefik_tls_enabled=true
-          - traefik_tls_certresolver=namecheap
+        - traefik_tls_enabled=true
+        - traefik_tls_certresolver=namecheap
       traefik_tls_acme_consumer_key:
         description: OVH Consumer Key
         type: str
@@ -205,54 +209,54 @@ spec:
         type: bool
         default: true
         needs:
-          - traefik_tls_enabled=true
+        - traefik_tls_enabled=true
       traefik_tls_secure_ciphers:
         description: Enable strict cipher suites (recommended)
         type: bool
         default: false
         needs:
-          - traefik_tls_enabled=true
+        - traefik_tls_enabled=true
         extra: Enforces modern, secure cipher suites
       traefik_tls_skipverify:
         description: Skip TLS verification for backend servers
         type: bool
         default: false
         needs:
-          - traefik_tls_enabled=true
+        - traefik_tls_enabled=true
         extra: 'WARNING: Only enable for self-signed certificates in trusted environments'
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
   swarm:
     title: Docker Swarm
@@ -261,22 +265,22 @@ spec:
       swarm_placement_mode:
         type: enum
         options:
-          - replicated
-          - global
+        - replicated
+        - global
         default: replicated
         required: true
       swarm_replicas:
         type: int
         default: 1
         needs:
-          - swarm_placement_mode=replicated
+        - swarm_placement_mode=replicated
         required: true
       swarm_placement_host:
         type: str
         description: Target hostname for placement constraint
         default: ''
         needs:
-          - swarm_placement_mode=replicated
+        - swarm_placement_mode=replicated
         extra: Constrains service to run on specific node by hostname
       swarm_enabled:
         type: bool

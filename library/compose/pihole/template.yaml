@@ -1,21 +1,25 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: pi-hole
   name: Pihole
-  description: 'Network-wide advertisement and internet tracker blocking application that functions as a DNS blackhole.
+  description: 'Network-wide advertisement and internet tracker blocking application
+    that functions as a DNS blackhole.
 
-    Provides DNS-level content filtering for all network devices, improving browsing performance, privacy, and security.
+    Provides DNS-level content filtering for all network devices, improving browsing
+    performance, privacy, and security.
 
-    Supports custom blocklists, whitelists, and seamless integration with existing network infrastructure.
+    Supports custom blocklists, whitelists, and seamless integration with existing
+    network infrastructure.
 
     ## Prerequisites
 
-    - :warning: Pi-hole uses local storage and configuration files and does NOT support running multiple replicas.
+    - :warning: Pi-hole uses local storage and configuration files and does NOT support
+    running multiple replicas.
 
-    This template enforces a single replica with node placement constraints to ensure stable DNS resolution.
+    This template enforces a single replica with node placement constraints to ensure
+    stable DNS resolution.
 
     ## References
 
@@ -30,10 +34,10 @@ metadata:
   author: Christian Lempa
   date: '2025-12-11'
   tags:
-    - traefik
-    - swarm
-    - network
-    - volume
+  - traefik
+  - swarm
+  - network
+  - volume
   next_steps: 'Log in with your initial admin user:
 
     ```bash
@@ -64,10 +68,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   admin_settings:
@@ -115,6 +119,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -125,10 +132,15 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   network:
     vars:
       network_mode:
-        extra: 'If you need DHCP functionality, use ''host'' or ''macvlan'' mode. NOTE: Swarm only supports ''bridge'' mode!"
+        extra: 'If you need DHCP functionality, use ''host'' or ''macvlan'' mode.
+          NOTE: Swarm only supports ''bridge'' mode!"
 
           '
       network_name:
@@ -137,25 +149,25 @@ spec:
         type: str
         default: 192.168.1.253
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_parent_interface:
         type: str
         default: eth0
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_subnet:
         type: str
         default: 192.168.1.0/24
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_macvlan_gateway:
         type: str
         default: 192.168.1.1
         needs:
-          - network_mode=macvlan
+        - network_mode=macvlan
         required: true
       network_external:
         type: bool
@@ -179,37 +191,40 @@ spec:
         type: str
         default: replicated
         description: The placement mode
+    toggle: swarm_enabled
+    title: Docker Swarm
+    description: Configure Docker Swarm mode deployment
   volume:
     vars:
       volume_mode:
         type: enum
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
         default: local
         required: true
       volume_mount_path:
         type: str
         default: /mnt/storage
         needs:
-          - volume_mode=mount
+        - volume_mode=mount
         required: true
       volume_nfs_server:
         type: str
         default: 192.168.1.1
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_path:
         type: str
         default: /export
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true
       volume_nfs_options:
         type: str
         default: rw,nolock,soft
         needs:
-          - volume_mode=nfs
+        - volume_mode=nfs
         required: true

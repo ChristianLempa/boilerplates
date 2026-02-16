@@ -54,7 +54,9 @@ spec:
         type: int
         default: 8443
   traefik:
+    title: Traefik
     toggle: traefik_enabled
+    description: Configure Traefik reverse proxy integration
     vars:
       traefik_enabled:
         type: bool
@@ -67,12 +69,9 @@ spec:
         default: home.arpa
       traefik_entrypoint:
         default: web
-      traefik_tls_entrypoint:
         default: websecure
-      traefik_tls_enabled:
         type: bool
         default: true
-      traefik_tls_certresolver:
         default: cloudflare
   network:
     vars:

@@ -1,15 +1,16 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: checkmk
   name: Checkmk
-  description: 'Checkmk is a comprehensive IT monitoring solution that provides real-time insights
+  description: 'Checkmk is a comprehensive IT monitoring solution that provides real-time
+    insights
 
     into the health and performance of your infrastructure, applications, and services.
 
-    It offers a wide range of monitoring capabilities, including server, network, cloud,
+    It offers a wide range of monitoring capabilities, including server, network,
+    cloud,
 
     and application monitoring, with an emphasis on ease of use and scalability.
 
@@ -33,7 +34,7 @@ metadata:
   author: Christian Lempa
   date: '2025-12-10'
   tags:
-    - traefik
+  - traefik
 schema: '1.2'
 spec:
   general:
@@ -51,10 +52,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       cmk_password:
@@ -84,6 +85,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   ports:
     vars:
       ports_http:
@@ -108,3 +112,7 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik

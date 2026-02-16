@@ -6,9 +6,9 @@ from typing import Any, Callable
 from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 
-from .collection import VariableCollection
 from .display import DisplayManager
-from .variable import Variable
+from .template.variable import Variable
+from .template.variable_collection import VariableCollection
 
 logger = logging.getLogger(__name__)
 

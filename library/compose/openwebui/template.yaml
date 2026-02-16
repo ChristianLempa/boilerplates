@@ -1,14 +1,15 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: open-webui
   name: Openwebui
-  description: 'OpenWebUI is an open-source web-based user interface for managing and interacting with AI models. It provides
-    a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as image generation, text generation,
-    and more. OpenWebUI supports integration with popular AI frameworks and offers features like model management, user authentication,
-    and real-time interaction.
+  description: 'OpenWebUI is an open-source web-based user interface for managing
+    and interacting with AI models. It provides a user-friendly platform to deploy,
+    monitor, and utilize various AI models for tasks such as image generation, text
+    generation, and more. OpenWebUI supports integration with popular AI frameworks
+    and offers features like model management, user authentication, and real-time
+    interaction.
 
 
     Project: https://openwebui.io/
@@ -22,8 +23,8 @@ metadata:
   author: Christian Lempa
   date: '2026-01-10'
   tags:
-    - traefik
-    - authentik
+  - traefik
+  - authentik
   draft: true
 schema: '1.2'
 spec:
@@ -40,10 +41,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
       ollama_base_url:
@@ -66,6 +67,9 @@ spec:
         type: bool
         default: false
         description: Enable Traefik integration
+    toggle: traefik_enabled
+    title: Traefik
+    description: Configure Traefik reverse proxy integration
   traefik_tls:
     vars:
       traefik_tls_certresolver:
@@ -76,6 +80,10 @@ spec:
         type: bool
         default: false
         description: Enable Traefik TLS
+    toggle: traefik_tls_enabled
+    title: Traefik TLS
+    description: Configure Traefik TLS/SSL certificates
+    needs: traefik
   ports:
     vars:
       ports_http:

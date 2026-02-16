@@ -1,12 +1,12 @@
----
 kind: compose
 metadata:
   icon:
     provider: selfh
     id: postgresql
   name: PostgreSQL
-  description: 'PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development
-    that has earned it a strong reputation for reliability, feature robustness, and performance.
+  description: 'PostgreSQL is a powerful, open source object-relational database system
+    with over 30 years of active development that has earned it a strong reputation
+    for reliability, feature robustness, and performance.
 
 
     Project: https://www.postgresql.org/
@@ -20,7 +20,7 @@ metadata:
   author: Christian Lempa
   date: '2026-02-13'
   tags:
-    - swarm
+  - swarm
   draft: true
 schema: '1.2'
 spec:
@@ -37,10 +37,10 @@ spec:
       restart_policy:
         type: enum
         options:
-          - unless-stopped
-          - always
-          - on-failure
-          - 'no'
+        - unless-stopped
+        - always
+        - on-failure
+        - 'no'
         default: unless-stopped
         required: true
   ports:
@@ -56,7 +56,8 @@ spec:
   network:
     vars:
       network_mode:
-        extra: 'Use ''host'' mode if you need to bind directly to port 5432. NOTE: Swarm only supports ''bridge'' mode!
+        extra: 'Use ''host'' mode if you need to bind directly to port 5432. NOTE:
+          Swarm only supports ''bridge'' mode!
 
           '
       network_name:
@@ -83,6 +84,9 @@ spec:
         type: str
         default: replicated
         description: The placement mode
+    toggle: swarm_enabled
+    title: Docker Swarm
+    description: Configure Docker Swarm mode deployment
   volume:
     vars:
       volume_mode:
@@ -90,9 +94,9 @@ spec:
         type: str
         default: local
         options:
-          - local
-          - mount
-          - nfs
+        - local
+        - mount
+        - nfs
       volume_mount_path:
         description: Path for bind mounts when volume_mode is 'mount'
         type: str
