@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/netboxcommunity/netbox:v4.5.2
+    image: docker.io/netboxcommunity/netbox:v4.5.3
     restart: {{ restart_policy }}
     environment:
       {% if container_timezone %}
@@ -77,7 +77,7 @@ services:
       - {{ service_name }}_redis-cache
 
   {{ service_name }}_worker:
-    image: docker.io/netboxcommunity/netbox:v4.5.2
+    image: docker.io/netboxcommunity/netbox:v4.5.3
     restart: {{ restart_policy }}
     command:
       - /opt/netbox/venv/bin/python
