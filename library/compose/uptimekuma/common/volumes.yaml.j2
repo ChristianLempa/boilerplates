@@ -3,7 +3,7 @@ volumes:
     driver: local
 services:
   {{ service_name }}:
-    image: docker.io/louislam/uptime-kuma:1.23.17
+    image: docker.io/louislam/uptime-kuma:2.1.3
     container_name: {{ container_name }}
     ports:
       - 3001:3001
