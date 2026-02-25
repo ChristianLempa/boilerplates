@@ -1,0 +1,73 @@
+{
+  "version": "1",
+  "slug": "docker-certs-enable",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Enable Docker TLS",
+    "description": "Ansible playbook to enable TLS on Docker daemon using existing certificates. Configures Docker to use TLS for secure remote access.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/security/protect-access/\n",
+    "author": "Christian Lempa",
+    "template_version": "1.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "docker"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts"
+    },
+    {
+      "key": "playbook_name",
+      "type": "string",
+      "label": "Playbook Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Docker Certs enable"
+    },
+    {
+      "key": "become",
+      "type": "string",
+      "label": "Become",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": true
+    },
+    {
+      "key": "certs_path",
+      "type": "string",
+      "label": "Path where certificates are stored",
+      "required": false,
+      "section": {
+        "key": "certificates",
+        "title": "Certificate Configuration",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "/root/docker-certs",
+      "description": "Path where certificates are stored"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

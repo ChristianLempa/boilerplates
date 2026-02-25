@@ -1,0 +1,198 @@
+{
+  "version": "1",
+  "slug": "core-ingressclass",
+  "kind": "kubernetes",
+  "metadata": {
+    "name": "Kubernetes IngressClass",
+    "description": "Kubernetes IngressClass for specifying which Ingress controller should handle Ingress resources.\n\nIngressClass is cluster-scoped and defines ingress controller implementations.\n\nDocumentation: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class\n",
+    "author": "Christian Lempa",
+    "template_version": "1.31.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "kubernetes"
+    },
+    "date": "2025-01-11"
+  },
+  "entrypoint": {
+    "path": "ingressclass.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "nginx"
+    },
+    {
+      "key": "controller",
+      "type": "string",
+      "label": "Ingress controller identifier (e.g., k8s.io/ingress-nginx)",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "k8s.io/ingress-nginx",
+      "description": "Ingress controller identifier (e.g., k8s.io/ingress-nginx)"
+    },
+    {
+      "key": "is_default",
+      "type": "boolean",
+      "label": "Set as default IngressClass",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Set as default IngressClass"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits and requests",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits and requests"
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "CPU limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "100m",
+      "description": "CPU limit"
+    },
+    {
+      "key": "resources_cpu_request",
+      "type": "string",
+      "label": "CPU request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "50m",
+      "description": "CPU request"
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Memory limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "128Mi",
+      "description": "Memory limit"
+    },
+    {
+      "key": "resources_memory_request",
+      "type": "string",
+      "label": "Memory request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "64Mi",
+      "description": "Memory request"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Traefik host"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Traefik domain"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "TLS certificate resolver",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "TLS certificate resolver"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

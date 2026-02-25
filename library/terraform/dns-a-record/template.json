@@ -1,0 +1,210 @@
+{
+  "version": "1",
+  "slug": "dns-a-record",
+  "kind": "terraform",
+  "metadata": {
+    "name": "DNS A Record",
+    "description": "Create DNS A record for hostname to IP address mapping.\n\nSupports single or multiple IP addresses with configurable TTL.\n\nProject: https://www.terraform.io/\nDocumentation: https://registry.terraform.io/providers/hashicorp/dns/latest/docs/resources/a_record_set",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "3.4.3",
+    "date": "2025-12-02",
+    "icon": {
+      "provider": "selfh",
+      "id": "bind-9"
+    },
+    "draft": false,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "dns_a_record_set.tf",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "additional_ips",
+      "type": "string",
+      "label": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
+      "required": false,
+      "section": {
+        "key": "addresses",
+        "title": "IP Addresses",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
+      "needs": [
+        "multiple_addresses=true"
+      ]
+    },
+    {
+      "key": "ip_address",
+      "type": "string",
+      "label": "Primary IP address",
+      "required": false,
+      "section": {
+        "key": "addresses",
+        "title": "IP Addresses",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "10.20.0.10",
+      "description": "Primary IP address"
+    },
+    {
+      "key": "multiple_addresses",
+      "type": "boolean",
+      "label": "Enable multiple IP addresses",
+      "required": false,
+      "section": {
+        "key": "addresses",
+        "title": "IP Addresses",
+        "required": true
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable multiple IP addresses"
+    },
+    {
+      "key": "record_name",
+      "type": "string",
+      "label": "Record name (hostname without domain)",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "server",
+      "description": "Record name (hostname without domain)"
+    },
+    {
+      "key": "ttl",
+      "type": "number",
+      "label": "Time to live in seconds",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration",
+        "required": true
+      },
+      "source_type": "int",
+      "default": 3600,
+      "description": "Time to live in seconds"
+    },
+    {
+      "key": "zone",
+      "type": "string",
+      "label": "DNS zone (must end with a dot)",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "home.example.com.",
+      "description": "DNS zone (must end with a dot)"
+    },
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "record"
+    },
+    {
+      "key": "depends_on_enabled",
+      "type": "boolean",
+      "label": "Enable resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource dependencies"
+    },
+    {
+      "key": "dependencies",
+      "type": "string",
+      "label": "Comma-separated list of resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of resource dependencies"
+    },
+    {
+      "key": "lifecycle_enabled",
+      "type": "boolean",
+      "label": "Enable lifecycle rules",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable lifecycle rules"
+    },
+    {
+      "key": "prevent_destroy",
+      "type": "boolean",
+      "label": "Prevent resource destruction",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Prevent resource destruction"
+    },
+    {
+      "key": "create_before_destroy",
+      "type": "boolean",
+      "label": "Create replacement before destroying",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Create replacement before destroying"
+    },
+    {
+      "key": "ignore_changes",
+      "type": "string",
+      "label": "Comma-separated list of attributes to ignore changes for",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of attributes to ignore changes for"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

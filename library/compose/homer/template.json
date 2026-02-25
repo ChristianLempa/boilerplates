@@ -1,0 +1,389 @@
+{
+  "version": "1",
+  "slug": "homer",
+  "kind": "compose",
+  "metadata": {
+    "name": "Homer",
+    "description": "A very simple static homepage for your server to keep your services on hand, from a simple yaml configuration file.\n\nProject: https://github.com/bastienwirtz/homer\nDocumentation: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md\n",
+    "tags": [
+      "traefik",
+      "swarm",
+      "authentik"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "v25.11.1",
+    "icon": {
+      "provider": "selfh",
+      "id": "homer"
+    },
+    "date": "2025-12-11",
+    "draft": true,
+    "next_steps": "1. Start the Homer dashboard:\n   docker compose up -d\n\n2. Customize your dashboard:\n   - Edit assets/config.yml to add your services\n   - Organize services into groups (Applications, Monitoring, etc.)\n   - Add links to the navbar for quick access\n\n3. Optional: Add a logo:\n   - Place your logo.png file in the assets/ directory\n   - Or update the logo path in assets/config.yml\n   - Supported formats: PNG, SVG, JPG\n\n4. Optional: Customize the theme:\n   - Uncomment and modify the colors section in config.yml\n   - Available themes: default, sui\n   - See documentation for advanced theming options\n\n5. Access your dashboard:\n   {% if traefik_enabled -%}\n   - Via Traefik: https://{{ traefik_host }}\n   {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{% endif %}\n   {%- else -%}\n   - Open http://localhost:{{ ports_http }} in your browser\n   {%- endif %}\n\nFor more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md\n"
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homer"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homer"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "homer_title",
+      "type": "string",
+      "label": "Dashboard title",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "My Dashboard",
+      "description": "Dashboard title"
+    },
+    {
+      "key": "homer_subtitle",
+      "type": "string",
+      "label": "Dashboard subtitle",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Homer",
+      "description": "Dashboard subtitle"
+    },
+    {
+      "key": "homer_logo",
+      "type": "string",
+      "label": "Logo file path (relative to assets/)",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "logo.png",
+      "description": "Logo file path (relative to assets/)"
+    },
+    {
+      "key": "ports_http",
+      "type": "number",
+      "label": "Host port for HTTP (8080)",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 8080,
+      "description": "Host port for HTTP (8080)"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_entrypoint",
+      "type": "string",
+      "label": "The Traefik entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "web",
+      "description": "The Traefik entrypoint"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "homepage"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik TLS"
+    },
+    {
+      "key": "traefik_tls_entrypoint",
+      "type": "string",
+      "label": "The Traefik TLS entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "websecure",
+      "description": "The Traefik TLS entrypoint"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik Tls Certresolver",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "cloudflare"
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "Swarm Placement Mode",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "enum",
+      "default": "replicated",
+      "options": [
+        "replicated",
+        "global"
+      ]
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "Swarm Replicas",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "int",
+      "default": 1,
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ]
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "Swarm Placement Host",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "str",
+      "default": "",
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ],
+      "extra": "Constrains service to run on specific node by hostname"
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Enable Docker Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Docker Swarm mode"
+    },
+    {
+      "key": "authentik_traefik_middleware",
+      "type": "string",
+      "label": "Authentik Traefik Middleware",
+      "required": true,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "str",
+      "default": "authentik-middleware@file",
+      "needs": [
+        "traefik_enabled=true"
+      ]
+    },
+    {
+      "key": "authentik_client_id",
+      "type": "string",
+      "label": "The Authentik client ID",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik client ID"
+    },
+    {
+      "key": "authentik_client_secret",
+      "type": "string",
+      "label": "The Authentik client secret",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik client secret"
+    },
+    {
+      "key": "authentik_enabled",
+      "type": "boolean",
+      "label": "Enable Authentik SSO integration",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Authentik SSO integration"
+    },
+    {
+      "key": "authentik_slug",
+      "type": "string",
+      "label": "The Authentik application slug",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik application slug"
+    },
+    {
+      "key": "authentik_url",
+      "type": "string",
+      "label": "The Authentik URL",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "title": "Authentik SSO",
+        "toggle": "authentik_enabled",
+        "description": "Configure Authentik authentication integration"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik URL"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

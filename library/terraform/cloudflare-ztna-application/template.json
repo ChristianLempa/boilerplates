@@ -1,0 +1,299 @@
+{
+  "version": "1",
+  "slug": "cloudflare-ztna-application",
+  "kind": "terraform",
+  "metadata": {
+    "name": "Cloudflare Zero Trust Access Application",
+    "description": "Create Cloudflare Zero Trust Access application with policies.\n\nSupports service token authentication and IP-based access policies.\n\nProject: https://www.cloudflare.com/zero-trust/\nDocumentation: https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/zero_trust_access_application",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "5.12.0",
+    "date": "2025-11-11",
+    "icon": {
+      "provider": "selfh",
+      "id": "cloudflare"
+    },
+    "draft": false,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "cloudflare_account_zone.tf",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "app_name",
+      "type": "string",
+      "label": "Application name",
+      "required": false,
+      "section": {
+        "key": "application",
+        "title": "Application",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "my_application",
+      "description": "Application name"
+    },
+    {
+      "key": "domain",
+      "type": "string",
+      "label": "Application domain",
+      "required": false,
+      "section": {
+        "key": "application",
+        "title": "Application",
+        "required": true
+      },
+      "source_type": "hostname",
+      "default": "app.example.com",
+      "description": "Application domain"
+    },
+    {
+      "key": "session_duration",
+      "type": "string",
+      "label": "Session duration (e.g., 15m, 1h, 24h)",
+      "required": false,
+      "section": {
+        "key": "application",
+        "title": "Application",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "15m",
+      "description": "Session duration (e.g., 15m, 1h, 24h)"
+    },
+    {
+      "key": "account_id_value",
+      "type": "string",
+      "label": "Cloudflare Account ID",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Cloudflare Account ID"
+    },
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Terraform resource name (alphanumeric and underscores only)",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "ztna_app",
+      "description": "Terraform resource name (alphanumeric and underscores only)"
+    },
+    {
+      "key": "zone_id_value",
+      "type": "string",
+      "label": "Cloudflare Zone ID",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Cloudflare Zone ID"
+    },
+    {
+      "key": "ip_policy_enabled",
+      "type": "boolean",
+      "label": "Enable IP-based policy",
+      "required": false,
+      "section": {
+        "key": "ip_policy",
+        "title": "IP-Based Policy",
+        "toggle": "ip_policy_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable IP-based policy"
+    },
+    {
+      "key": "ip_policy_name",
+      "type": "string",
+      "label": "Policy name for IP-based access",
+      "required": false,
+      "section": {
+        "key": "ip_policy",
+        "title": "IP-Based Policy",
+        "toggle": "ip_policy_enabled"
+      },
+      "source_type": "str",
+      "default": "ip_policy",
+      "description": "Policy name for IP-based access"
+    },
+    {
+      "key": "ip_ranges",
+      "type": "string",
+      "label": "Comma-separated list of IP ranges (CIDR notation)",
+      "required": false,
+      "section": {
+        "key": "ip_policy",
+        "title": "IP-Based Policy",
+        "toggle": "ip_policy_enabled"
+      },
+      "source_type": "str",
+      "default": "192.0.2.0/24",
+      "description": "Comma-separated list of IP ranges (CIDR notation)"
+    },
+    {
+      "key": "service_token_enabled",
+      "type": "boolean",
+      "label": "Enable service token policy",
+      "required": false,
+      "section": {
+        "key": "service_token_policy",
+        "title": "Service Token Policy",
+        "toggle": "service_token_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable service token policy"
+    },
+    {
+      "key": "service_token_id",
+      "type": "string",
+      "label": "Cloudflare service token ID",
+      "required": false,
+      "section": {
+        "key": "service_token_policy",
+        "title": "Service Token Policy",
+        "toggle": "service_token_enabled"
+      },
+      "source_type": "str",
+      "description": "Cloudflare service token ID"
+    },
+    {
+      "key": "service_token_policy_name",
+      "type": "string",
+      "label": "Policy name for service token",
+      "required": false,
+      "section": {
+        "key": "service_token_policy",
+        "title": "Service Token Policy",
+        "toggle": "service_token_enabled"
+      },
+      "source_type": "str",
+      "default": "service_token_policy",
+      "description": "Policy name for service token"
+    },
+    {
+      "key": "depends_on_enabled",
+      "type": "boolean",
+      "label": "Enable resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource dependencies"
+    },
+    {
+      "key": "dependencies",
+      "type": "string",
+      "label": "Comma-separated list of resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of resource dependencies"
+    },
+    {
+      "key": "lifecycle_enabled",
+      "type": "boolean",
+      "label": "Enable lifecycle rules",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable lifecycle rules"
+    },
+    {
+      "key": "prevent_destroy",
+      "type": "boolean",
+      "label": "Prevent resource destruction",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Prevent resource destruction"
+    },
+    {
+      "key": "create_before_destroy",
+      "type": "boolean",
+      "label": "Create replacement before destroying",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Create replacement before destroying"
+    },
+    {
+      "key": "ignore_changes",
+      "type": "string",
+      "label": "Comma-separated list of attributes to ignore changes for",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of attributes to ignore changes for"
+    },
+    {
+      "key": "tags_enabled",
+      "type": "boolean",
+      "label": "Enable tags",
+      "required": false,
+      "section": {
+        "key": "tags",
+        "title": "Tags",
+        "toggle": "tags_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable tags"
+    },
+    {
+      "key": "tags_json",
+      "type": "string",
+      "label": "Tags in JSON format",
+      "required": false,
+      "section": {
+        "key": "tags",
+        "title": "Tags",
+        "toggle": "tags_enabled"
+      },
+      "source_type": "str",
+      "default": "{}",
+      "description": "Tags in JSON format"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

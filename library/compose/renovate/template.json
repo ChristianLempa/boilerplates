@@ -1,0 +1,364 @@
+{
+  "version": "1",
+  "slug": "renovate",
+  "kind": "compose",
+  "metadata": {
+    "name": "Renovate",
+    "description": "**Renovate** is an automated dependency update tool that creates pull requests for newer versions of dependencies.\nSupports GitHub, GitLab, Bitbucket, Gitea, and more platforms with flexible configuration options.\n\n## Use Cases\n- Automated dependency updates for all your repositories\n- Security vulnerability patching\n- Multi-platform support (GitLab, GitHub, Bitbucket, etc.)\n- Customizable update schedules and rules\n- Self-hosted or cloud-based deployment\n\n## Resources\n- **Project**: https://www.mend.io/renovate/\n- **Documentation**: https://docs.renovatebot.com/\n- **GitHub**: https://github.com/renovatebot/renovate",
+    "tags": [
+      "traefik",
+      "swarm"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "13.6.0-full",
+    "icon": {
+      "provider": "selfh",
+      "id": "mend-renovate"
+    },
+    "date": "2026-02-13",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "renovate"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "renovate"
+    },
+    {
+      "key": "container_hostname",
+      "type": "string",
+      "label": "Container Hostname",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "renovate"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "UTC"
+    },
+    {
+      "key": "container_loglevel",
+      "type": "string",
+      "label": "Container Loglevel",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "options": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    {
+      "key": "renovate_platform",
+      "type": "string",
+      "label": "Git Platform Type",
+      "required": false,
+      "section": {
+        "key": "renovate_settings",
+        "title": "Renovate Settings",
+        "required": true
+      },
+      "source_type": "enum",
+      "default": "gitlab",
+      "description": "Git Platform Type",
+      "options": [
+        "gitlab",
+        "github",
+        "gitea"
+      ]
+    },
+    {
+      "key": "renovate_endpoint",
+      "type": "string",
+      "label": "Git Platform Endpoint URL",
+      "required": false,
+      "section": {
+        "key": "renovate_settings",
+        "title": "Renovate Settings",
+        "required": true
+      },
+      "source_type": "url",
+      "default": "https://gitlab.com",
+      "description": "Git Platform Endpoint URL",
+      "extra": "e.g., https://gitlab.com, https://github.com, https://selfhosted.home.arpa, ..."
+    },
+    {
+      "key": "renovate_autodiscover",
+      "type": "boolean",
+      "label": "Auto-discover repositories",
+      "required": false,
+      "section": {
+        "key": "renovate_settings",
+        "title": "Renovate Settings",
+        "required": true
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Auto-discover repositories",
+      "extra": "Automatically find and process all accessible repositories"
+    },
+    {
+      "key": "git_token",
+      "type": "string",
+      "label": "Git platform Personal Access Token",
+      "required": false,
+      "section": {
+        "key": "authentication",
+        "title": "Authentication",
+        "required": true
+      },
+      "source_type": "str",
+      "description": "Git platform Personal Access Token",
+      "extra": "Also used for public package lookups to avoid rate limiting",
+      "sensitive": true
+    },
+    {
+      "key": "license_key",
+      "type": "string",
+      "label": "Mend Renovate CE License Key",
+      "required": false,
+      "section": {
+        "key": "authentication",
+        "title": "Authentication",
+        "required": true
+      },
+      "source_type": "str",
+      "description": "Mend Renovate CE License Key",
+      "extra": "Get a FREE license key at https://www.mend.io/mend-renovate-community/#self-hosted",
+      "sensitive": true
+    },
+    {
+      "key": "webhook_secret",
+      "type": "string",
+      "label": "Webhook secret for platform integration",
+      "required": false,
+      "section": {
+        "key": "authentication",
+        "title": "Authentication",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "renovate",
+      "description": "Webhook secret for platform integration",
+      "sensitive": true
+    },
+    {
+      "key": "ports_http",
+      "type": "number",
+      "label": "External HTTP port for web interface",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 8080,
+      "description": "External HTTP port for web interface"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Traefik Enabled",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": false
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "renovate"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_entrypoint",
+      "type": "boolean",
+      "label": "Traefik Entrypoint",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": "web"
+    },
+    {
+      "key": "network_mode",
+      "type": "string",
+      "label": "Network Mode",
+      "required": false,
+      "section": {
+        "key": "network"
+      },
+      "source_type": "enum",
+      "default": "bridge",
+      "options": [
+        "bridge",
+        "host",
+        "macvlan"
+      ]
+    },
+    {
+      "key": "network_name",
+      "type": "string",
+      "label": "Network Name",
+      "required": false,
+      "section": {
+        "key": "network"
+      },
+      "source_type": "str",
+      "default": "bridge"
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Swarm Enabled",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "bool",
+      "default": false
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "Swarm Placement Mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "enum",
+      "default": "replicated",
+      "options": [
+        "replicated",
+        "global"
+      ]
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "Swarm Replicas",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "int",
+      "default": 1,
+      "needs": "swarm_placement_mode=replicated"
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "Swarm Placement Host",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "needs": "swarm_placement_mode=replicated"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

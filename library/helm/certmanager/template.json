@@ -1,0 +1,227 @@
+{
+  "version": "1",
+  "slug": "certmanager",
+  "kind": "helm",
+  "metadata": {
+    "name": "Cert-Manager",
+    "description": "Helm values template for cert-manager, a Kubernetes add-on to automate the management and issuance of TLS certificates from various sources.\n\nChart Repository: https://charts.jetstack.io\nChart Name: cert-manager\nChart Version: Compatible with cert-manager v1.18.2\n\nProject: https://cert-manager.io/\nDocumentation: https://cert-manager.io/docs/",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "1.18.2",
+    "date": "2025-01-11",
+    "icon": {
+      "provider": "selfh",
+      "id": "lets-encrypt"
+    },
+    "draft": true,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "values.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "release_name",
+      "type": "string",
+      "label": "Helm release name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "cert-manager",
+      "description": "Helm release name"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Kubernetes namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "cert-manager",
+      "description": "Kubernetes namespace"
+    },
+    {
+      "key": "network_mode",
+      "type": "string",
+      "label": "Network mode for service",
+      "required": false,
+      "section": {
+        "key": "networking",
+        "title": "Networking Configuration"
+      },
+      "source_type": "str",
+      "default": "ClusterIP",
+      "description": "Network mode for service"
+    },
+    {
+      "key": "database_enabled",
+      "type": "boolean",
+      "label": "Enable database",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable database"
+    },
+    {
+      "key": "database_type",
+      "type": "string",
+      "label": "Database type",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "enum",
+      "default": "postgres",
+      "description": "Database type",
+      "options": [
+        "postgres",
+        "mysql"
+      ]
+    },
+    {
+      "key": "database_host",
+      "type": "string",
+      "label": "Database host",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Database host"
+    },
+    {
+      "key": "database_port",
+      "type": "number",
+      "label": "Database port",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "int",
+      "default": 5432,
+      "description": "Database port"
+    },
+    {
+      "key": "database_name",
+      "type": "string",
+      "label": "Database name",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database name"
+    },
+    {
+      "key": "database_user",
+      "type": "string",
+      "label": "Database user",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database user"
+    },
+    {
+      "key": "database_password",
+      "type": "string",
+      "label": "Database password",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database password",
+      "sensitive": true
+    },
+    {
+      "key": "dns_nameserver_1",
+      "type": "string",
+      "label": "Primary DNS nameserver for DNS01 challenges",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration"
+      },
+      "source_type": "str",
+      "default": "1.1.1.1:53",
+      "description": "Primary DNS nameserver for DNS01 challenges"
+    },
+    {
+      "key": "dns_nameserver_2",
+      "type": "string",
+      "label": "Secondary DNS nameserver for DNS01 challenges",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration"
+      },
+      "source_type": "str",
+      "default": "1.0.0.1:53",
+      "description": "Secondary DNS nameserver for DNS01 challenges"
+    },
+    {
+      "key": "dns_recursive_nameservers_only",
+      "type": "boolean",
+      "label": "Use only recursive nameservers for DNS01 challenges",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Use only recursive nameservers for DNS01 challenges"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Namespace",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration"
+      },
+      "source_type": "str",
+      "default": "cert-manager"
+    },
+    {
+      "key": "release_name",
+      "type": "string",
+      "label": "Release Name",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Configuration"
+      },
+      "source_type": "str",
+      "default": "cert-manager"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

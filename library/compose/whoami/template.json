@@ -1,0 +1,195 @@
+{
+  "version": "1",
+  "slug": "whoami",
+  "kind": "compose",
+  "metadata": {
+    "name": "Whoami",
+    "description": "A **simple web application** that displays information about the HTTP request it receives.\n## Use Cases\n- Testing reverse proxy configurations\n- Debugging web server setups\n- Verifying load balancer functionality\n- Quick HTTP endpoint testing\n## Resources\n- **Project**: https://github.com/traefik/whoami\n- **Documentation**: https://traefik.io/docs/\n- **GitHub**: https://github.com/traefik/whoami\n",
+    "tags": [
+      "traefik",
+      "swarm"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "1.11.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "traefik"
+    },
+    "date": "2025-10-30"
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "whoami"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Container restart policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "description": "Container restart policy",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik"
+      },
+      "source_type": "str",
+      "default": "whoami"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik network name",
+      "required": true,
+      "section": {
+        "key": "traefik"
+      },
+      "source_type": "str",
+      "default": "traefik",
+      "description": "Traefik network name"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Base domain (e.g., example.com)",
+      "required": true,
+      "section": {
+        "key": "traefik"
+      },
+      "source_type": "str",
+      "default": "home.arpa",
+      "description": "Base domain (e.g., example.com)"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable HTTPS/TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable HTTPS/TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik certificate resolver name",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "cloudflare",
+      "description": "Traefik certificate resolver name"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits"
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Enable Docker Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Docker Swarm mode"
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "Swarm placement mode",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "enum",
+      "default": "replicated",
+      "description": "Swarm placement mode",
+      "options": [
+        "replicated",
+        "global"
+      ]
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "Number of replicas",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "int",
+      "default": 1,
+      "description": "Number of replicas",
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ]
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "Target hostname for placement constraint",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Target hostname for placement constraint",
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ],
+      "extra": "Constrains service to run on specific node by hostname"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

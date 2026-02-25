@@ -1,0 +1,239 @@
+{
+  "version": "1",
+  "slug": "certmanager-certificate",
+  "kind": "kubernetes",
+  "metadata": {
+    "name": "Cert-Manager Certificate",
+    "description": "Cert-manager Certificate resource for requesting TLS certificates from an Issuer or ClusterIssuer.\n\nThe certificate will be stored in a Kubernetes secret.\n\nRequires cert-manager to be installed in the cluster.\n\nProject: https://cert-manager.io\nDocumentation: https://cert-manager.io/docs/usage/certificate/\n",
+    "author": "Christian Lempa",
+    "template_version": "1.16.2",
+    "icon": {
+      "provider": "selfh",
+      "id": "lets-encrypt"
+    },
+    "date": "2025-01-11"
+  },
+  "entrypoint": {
+    "path": "certificate.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "tls-certificate"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "default"
+    },
+    {
+      "key": "secret_name",
+      "type": "string",
+      "label": "Name of secret to store the certificate",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "tls-secret",
+      "description": "Name of secret to store the certificate"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits and requests",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits and requests"
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "CPU limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "100m",
+      "description": "CPU limit"
+    },
+    {
+      "key": "resources_cpu_request",
+      "type": "string",
+      "label": "CPU request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "50m",
+      "description": "CPU request"
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Memory limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "128Mi",
+      "description": "Memory limit"
+    },
+    {
+      "key": "resources_memory_request",
+      "type": "string",
+      "label": "Memory request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "64Mi",
+      "description": "Memory request"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Traefik host"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Traefik domain"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "TLS certificate resolver",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "TLS certificate resolver"
+    },
+    {
+      "key": "dns_names",
+      "type": "string",
+      "label": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)",
+      "required": false,
+      "section": {
+        "key": "dns",
+        "title": "DNS Settings"
+      },
+      "source_type": "str",
+      "description": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)"
+    },
+    {
+      "key": "certmanager_issuer",
+      "type": "string",
+      "label": "Cert-manager Issuer or ClusterIssuer name",
+      "required": false,
+      "section": {
+        "key": "certmanager",
+        "title": "Cert-Manager Settings"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "Cert-manager Issuer or ClusterIssuer name"
+    },
+    {
+      "key": "certmanager_issuer_kind",
+      "type": "string",
+      "label": "Issuer type",
+      "required": false,
+      "section": {
+        "key": "certmanager",
+        "title": "Cert-Manager Settings"
+      },
+      "source_type": "enum",
+      "default": "ClusterIssuer",
+      "description": "Issuer type",
+      "options": [
+        "Issuer",
+        "ClusterIssuer"
+      ]
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

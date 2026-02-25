@@ -1,0 +1,328 @@
+{
+  "version": "1",
+  "slug": "netbox-vm",
+  "kind": "terraform",
+  "metadata": {
+    "name": "NetBox Virtual Machine",
+    "description": "Register a virtual machine in NetBox with cluster and site association.\n\nDefines VM metadata including name, cluster, site, host device, and resource allocation.\n\nProject: https://netboxlabs.com/\nDocumentation: https://registry.terraform.io/providers/e-breuninger/netbox/latest/docs/resources/virtual_machine\n",
+    "author": "Christian Lempa",
+    "template_version": "5.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "netbox"
+    },
+    "date": "2025-12-02"
+  },
+  "entrypoint": {
+    "path": "netbox_virtual_machine.tf",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "vm"
+    },
+    {
+      "key": "vm_name",
+      "type": "string",
+      "label": "Virtual machine name",
+      "required": true,
+      "section": {
+        "key": "vm",
+        "title": "Virtual Machine Configuration"
+      },
+      "source_type": "str",
+      "default": "srv-prod-1",
+      "description": "Virtual machine name"
+    },
+    {
+      "key": "cluster_ref",
+      "type": "string",
+      "label": "Cluster resource name",
+      "required": true,
+      "section": {
+        "key": "vm",
+        "title": "Virtual Machine Configuration"
+      },
+      "source_type": "str",
+      "default": "pve_prod_1",
+      "description": "Cluster resource name"
+    },
+    {
+      "key": "status",
+      "type": "string",
+      "label": "VM status",
+      "required": false,
+      "section": {
+        "key": "vm",
+        "title": "Virtual Machine Configuration"
+      },
+      "source_type": "enum",
+      "default": "active",
+      "description": "VM status",
+      "options": [
+        "active",
+        "planned",
+        "staged",
+        "offline",
+        "decommissioning"
+      ]
+    },
+    {
+      "key": "site_ref",
+      "type": "string",
+      "label": "Site data source name (leave empty to skip)",
+      "required": false,
+      "section": {
+        "key": "site",
+        "title": "Site Assignment"
+      },
+      "source_type": "str",
+      "description": "Site data source name (leave empty to skip)"
+    },
+    {
+      "key": "device_ref",
+      "type": "string",
+      "label": "Device resource name for host assignment (leave empty to skip)",
+      "required": false,
+      "section": {
+        "key": "device",
+        "title": "Host Device"
+      },
+      "source_type": "str",
+      "description": "Device resource name for host assignment (leave empty to skip)"
+    },
+    {
+      "key": "ipam_enabled",
+      "type": "boolean",
+      "label": "Enable IP address assignment",
+      "required": false,
+      "section": {
+        "key": "ipam",
+        "title": "IP Address Management",
+        "toggle": "ipam_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable IP address assignment"
+    },
+    {
+      "key": "interface_name",
+      "type": "string",
+      "label": "Network interface name",
+      "required": true,
+      "section": {
+        "key": "ipam",
+        "title": "IP Address Management",
+        "toggle": "ipam_enabled"
+      },
+      "source_type": "str",
+      "default": "eth0",
+      "description": "Network interface name"
+    },
+    {
+      "key": "primary_ip4",
+      "type": "string",
+      "label": "Primary IPv4 address resource name",
+      "required": true,
+      "section": {
+        "key": "ipam",
+        "title": "IP Address Management",
+        "toggle": "ipam_enabled"
+      },
+      "source_type": "str",
+      "description": "Primary IPv4 address resource name"
+    },
+    {
+      "key": "dns_name",
+      "type": "string",
+      "label": "DNS name for the IP address (leave empty to skip)",
+      "required": false,
+      "section": {
+        "key": "ipam",
+        "title": "IP Address Management",
+        "toggle": "ipam_enabled"
+      },
+      "source_type": "str",
+      "description": "DNS name for the IP address (leave empty to skip)"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Specify resource allocation",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Allocation",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Specify resource allocation"
+    },
+    {
+      "key": "vcpus",
+      "type": "number",
+      "label": "Number of virtual CPUs",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Allocation",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "int",
+      "default": 2,
+      "description": "Number of virtual CPUs"
+    },
+    {
+      "key": "memory_mb",
+      "type": "number",
+      "label": "Memory allocation in MB",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Allocation",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "int",
+      "default": 4096,
+      "description": "Memory allocation in MB"
+    },
+    {
+      "key": "disk_gb",
+      "type": "number",
+      "label": "Disk size in GB",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Allocation",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "int",
+      "default": 50,
+      "description": "Disk size in GB"
+    },
+    {
+      "key": "description_enabled",
+      "type": "boolean",
+      "label": "Add VM description",
+      "required": false,
+      "section": {
+        "key": "description",
+        "title": "Description",
+        "toggle": "description_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Add VM description"
+    },
+    {
+      "key": "description_text",
+      "type": "string",
+      "label": "VM description",
+      "required": false,
+      "section": {
+        "key": "description",
+        "title": "Description",
+        "toggle": "description_enabled"
+      },
+      "source_type": "str",
+      "default": "Managed by Terraform",
+      "description": "VM description"
+    },
+    {
+      "key": "depends_on_enabled",
+      "type": "boolean",
+      "label": "Enable resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource dependencies"
+    },
+    {
+      "key": "dependencies",
+      "type": "string",
+      "label": "Comma-separated list of resource dependencies",
+      "required": false,
+      "section": {
+        "key": "depends_on",
+        "title": "Dependencies",
+        "toggle": "depends_on_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of resource dependencies"
+    },
+    {
+      "key": "lifecycle_enabled",
+      "type": "boolean",
+      "label": "Enable lifecycle rules",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable lifecycle rules"
+    },
+    {
+      "key": "prevent_destroy",
+      "type": "boolean",
+      "label": "Prevent resource destruction",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Prevent resource destruction"
+    },
+    {
+      "key": "create_before_destroy",
+      "type": "boolean",
+      "label": "Create replacement before destroying",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Create replacement before destroying"
+    },
+    {
+      "key": "ignore_changes",
+      "type": "string",
+      "label": "Comma-separated list of attributes to ignore changes for",
+      "required": false,
+      "section": {
+        "key": "lifecycle",
+        "title": "Lifecycle",
+        "toggle": "lifecycle_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Comma-separated list of attributes to ignore changes for"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

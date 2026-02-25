@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "slug": "ubuntu-vm-core",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Install Ubuntu VM Core Packages",
+    "description": "Ansible playbook to install essential packages for Ubuntu virtual machines. Includes Prometheus node exporter, NFS client, and QEMU guest agent.\n\nProject: https://ubuntu.com\nDocumentation: https://ubuntu.com/server/docs\n",
+    "author": "Christian Lempa",
+    "template_version": "1.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "ansible"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts"
+    },
+    {
+      "key": "playbook_name",
+      "type": "string",
+      "label": "Playbook Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Install core packages for virtual machines"
+    },
+    {
+      "key": "become",
+      "type": "string",
+      "label": "Become",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": true
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

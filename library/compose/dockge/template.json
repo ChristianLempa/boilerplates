@@ -1,0 +1,177 @@
+{
+  "version": "1",
+  "slug": "dockge",
+  "kind": "compose",
+  "metadata": {
+    "name": "Dockge",
+    "description": "Dockge is a powerful Docker management platform that simplifies container orchestration and monitoring.\nIt provides an intuitive web interface to manage Docker containers, images, networks, and volumes with ease.\n## Prerequisites\n* **Project:** https://dockge.com/\n* **Documentation:** https://docs.dockge.com/\n* **GitHub:** https://github.com/dockge/dockge",
+    "tags": [
+      "traefik"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "1.5.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "dockge"
+    },
+    "date": "2025-09-28"
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "dockge"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "stacks_path",
+      "type": "string",
+      "label": "Docker Compose Path",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "/opt/stacks",
+      "description": "Docker Compose Path"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "dockge"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik Tls Certresolver",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "cloudflare"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik TLS"
+    },
+    {
+      "key": "ports_http",
+      "type": "string",
+      "label": "Ports Http",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "str",
+      "default": 5001
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

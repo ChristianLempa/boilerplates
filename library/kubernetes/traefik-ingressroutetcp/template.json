@@ -1,0 +1,226 @@
+{
+  "version": "1",
+  "slug": "traefik-ingressroutetcp",
+  "kind": "kubernetes",
+  "metadata": {
+    "name": "Traefik IngressRouteTCP",
+    "description": "Traefik IngressRouteTCP CRD for TCP routing (non-HTTP protocols).\n\nUse for database connections, SSH, or any TCP-based protocol.\n\nRequires Traefik to be installed as the Ingress controller.\n\nProject: https://traefik.io\nDocumentation: https://doc.traefik.io/traefik/routing/providers/kubernetes-crd/#kind-ingressroutetcp\n",
+    "author": "Christian Lempa",
+    "template_version": "3.5.3",
+    "icon": {
+      "provider": "selfh",
+      "id": "traefik"
+    },
+    "date": "2025-01-11"
+  },
+  "entrypoint": {
+    "path": "ingressroutetcp.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "app-tcp-route"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "default"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits and requests",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits and requests"
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "CPU limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "100m",
+      "description": "CPU limit"
+    },
+    {
+      "key": "resources_cpu_request",
+      "type": "string",
+      "label": "CPU request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "50m",
+      "description": "CPU request"
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Memory limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "128Mi",
+      "description": "Memory limit"
+    },
+    {
+      "key": "resources_memory_request",
+      "type": "string",
+      "label": "Memory request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "64Mi",
+      "description": "Memory request"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Traefik host"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Traefik domain"
+    },
+    {
+      "key": "traefik_entrypoint",
+      "type": "string",
+      "label": "Traefik entrypoint for TCP routing",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "tcp",
+      "description": "Traefik entrypoint for TCP routing"
+    },
+    {
+      "key": "traefik_service_name",
+      "type": "string",
+      "label": "Backend service name for TCP routing",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Backend service name for TCP routing"
+    },
+    {
+      "key": "traefik_service_port",
+      "type": "number",
+      "label": "Backend service port for TCP routing",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "int",
+      "default": 5432,
+      "description": "Backend service port for TCP routing"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "TLS certificate resolver",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "TLS certificate resolver"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "version": "1",
+  "slug": "homeassistant",
+  "kind": "compose",
+  "metadata": {
+    "name": "Homeassistant",
+    "description": "Home Assistant is an open-source platform for smart home automation that puts local control and privacy first.\nThis template sets up Home Assistant in a Docker container using Docker Compose.\n\nProject: https://www.home-assistant.io/\nDocumentation: https://www.home-assistant.io/docs/",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "2026.2.2",
+    "date": "2026-02-14",
+    "icon": {
+      "provider": "selfh",
+      "id": "home-assistant"
+    },
+    "draft": true,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homeassistant"
+    },
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homeassistant"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

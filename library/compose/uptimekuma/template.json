@@ -1,0 +1,61 @@
+{
+  "version": "1",
+  "slug": "uptimekuma",
+  "kind": "compose",
+  "metadata": {
+    "name": "Uptimekuma",
+    "description": "Uptimekuma is a self-hosted monitoring tool that allows you to keep track of the uptime and performance of your websites and services. It provides a user-friendly interface to monitor HTTP(s), TCP, ICMP (ping), and more, with customizable alerts and notifications.\n\nProject: https://uptime.kuma.pet/\nDocumentation: https://docs.uptime.kuma.pet/\nGitHub: https://github.com/louislam/uptime-kuma\n",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "1.23.17",
+    "icon": {
+      "provider": "selfh",
+      "id": "uptime-kuma"
+    },
+    "date": "2025-10-31",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "uptimekuma"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "uptimekuma"
+    },
+    {
+      "key": "volumes_version",
+      "type": "string",
+      "label": "Volumes version",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "latest",
+      "description": "Volumes version"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

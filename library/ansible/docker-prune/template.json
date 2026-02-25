@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "slug": "docker-prune",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker Prune",
+    "description": "Ansible playbook to clean up Docker resources. Prunes non-dangling images to free up disk space.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
+    "author": "Christian Lempa",
+    "template_version": "1.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "docker"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts"
+    },
+    {
+      "key": "playbook_name",
+      "type": "string",
+      "label": "Playbook Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Clean docker"
+    },
+    {
+      "key": "become",
+      "type": "string",
+      "label": "Become",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": false
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

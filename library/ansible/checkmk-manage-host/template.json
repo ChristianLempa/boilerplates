@@ -1,0 +1,139 @@
+{
+  "version": "1",
+  "slug": "checkmk-manage-host",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Manage Checkmk Host",
+    "description": "Ansible playbook to manage hosts in Checkmk monitoring. Uses the checkmk.general.host module to create or update host configuration.\n## References\n- **Project**: https://github.com/Checkmk/ansible-collection-checkmk.general\n- **Documentation**: https://docs.checkmk.com/",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "2.4.0",
+    "date": "2025-11-11",
+    "icon": {
+      "provider": "selfh",
+      "id": "checkmk"
+    },
+    "draft": false,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts or group",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts or group"
+    },
+    {
+      "key": "checkmk_server",
+      "type": "string",
+      "label": "Checkmk Server",
+      "required": true,
+      "section": {
+        "key": "checkmk",
+        "title": "Checkmk Configuration"
+      },
+      "source_type": "str",
+      "description": "Checkmk Server"
+    },
+    {
+      "key": "checkmk_protocol",
+      "type": "string",
+      "label": "Checkmk Server Protocol",
+      "required": true,
+      "section": {
+        "key": "checkmk",
+        "title": "Checkmk Configuration"
+      },
+      "source_type": "str",
+      "default": "https",
+      "description": "Checkmk Server Protocol"
+    },
+    {
+      "key": "checkmk_site",
+      "type": "string",
+      "label": "Checkmk Site",
+      "required": true,
+      "section": {
+        "key": "checkmk",
+        "title": "Checkmk Configuration"
+      },
+      "source_type": "str",
+      "default": "cmk",
+      "description": "Checkmk Site"
+    },
+    {
+      "key": "checkmk_user",
+      "type": "string",
+      "label": "Checkmk Automation User",
+      "required": true,
+      "section": {
+        "key": "checkmk",
+        "title": "Checkmk Configuration"
+      },
+      "source_type": "str",
+      "description": "Checkmk Automation User"
+    },
+    {
+      "key": "checkmk_pass",
+      "type": "string",
+      "label": "Checkmk Automation User Password",
+      "required": true,
+      "section": {
+        "key": "checkmk",
+        "title": "Checkmk Configuration"
+      },
+      "source_type": "str",
+      "description": "Checkmk Automation User Password",
+      "sensitive": true
+    },
+    {
+      "key": "host_name",
+      "type": "string",
+      "label": "Hostname to add to Checkmk",
+      "required": true,
+      "section": {
+        "key": "host",
+        "title": "Host Configuration"
+      },
+      "source_type": "str",
+      "description": "Hostname to add to Checkmk"
+    },
+    {
+      "key": "host_ip",
+      "type": "string",
+      "label": "IP address of the host",
+      "required": true,
+      "section": {
+        "key": "host",
+        "title": "Host Configuration"
+      },
+      "source_type": "str",
+      "description": "IP address of the host"
+    },
+    {
+      "key": "host_folder",
+      "type": "string",
+      "label": "Folder path in Checkmk",
+      "required": true,
+      "section": {
+        "key": "host",
+        "title": "Host Configuration"
+      },
+      "source_type": "str",
+      "default": "/",
+      "description": "Folder path in Checkmk"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

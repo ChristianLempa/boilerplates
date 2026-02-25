@@ -1,0 +1,230 @@
+{
+  "version": "1",
+  "slug": "longhorn",
+  "kind": "helm",
+  "metadata": {
+    "name": "Longhorn",
+    "description": "Helm values template for Longhorn, a distributed block storage system for Kubernetes.\nProvides persistent storage with built-in backup and disaster recovery.\n\nChart Repository: https://charts.longhorn.io\nChart Name: longhorn\nChart Version: Compatible with Longhorn v1.9.1\n\nProject: https://longhorn.io/\nDocumentation: https://longhorn.io/docs/",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "1.9.1",
+    "date": "2025-01-11",
+    "icon": {
+      "provider": "selfh",
+      "id": "rancher-longhorn"
+    },
+    "draft": true,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "values.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "release_name",
+      "type": "string",
+      "label": "Helm release name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "longhorn",
+      "description": "Helm release name"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Kubernetes namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "longhorn-system",
+      "description": "Kubernetes namespace"
+    },
+    {
+      "key": "network_mode",
+      "type": "string",
+      "label": "Network mode for service",
+      "required": false,
+      "section": {
+        "key": "networking",
+        "title": "Networking Configuration"
+      },
+      "source_type": "str",
+      "default": "ClusterIP",
+      "description": "Network mode for service"
+    },
+    {
+      "key": "database_enabled",
+      "type": "boolean",
+      "label": "Enable database",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable database"
+    },
+    {
+      "key": "database_type",
+      "type": "string",
+      "label": "Database type",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "enum",
+      "default": "postgres",
+      "description": "Database type",
+      "options": [
+        "postgres",
+        "mysql"
+      ]
+    },
+    {
+      "key": "database_host",
+      "type": "string",
+      "label": "Database host",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Database host"
+    },
+    {
+      "key": "database_port",
+      "type": "number",
+      "label": "Database port",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "int",
+      "default": 5432,
+      "description": "Database port"
+    },
+    {
+      "key": "database_name",
+      "type": "string",
+      "label": "Database name",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database name"
+    },
+    {
+      "key": "database_user",
+      "type": "string",
+      "label": "Database user",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database user"
+    },
+    {
+      "key": "database_password",
+      "type": "string",
+      "label": "Database password",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database password",
+      "sensitive": true
+    },
+    {
+      "key": "backup_enabled",
+      "type": "boolean",
+      "label": "Enable backup target configuration",
+      "required": false,
+      "section": {
+        "key": "backup",
+        "title": "Backup Configuration",
+        "toggle": "backup_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable backup target configuration"
+    },
+    {
+      "key": "backup_target",
+      "type": "string",
+      "label": "Backup target URL (e.g., s3://bucket or nfs://server/path)",
+      "required": false,
+      "section": {
+        "key": "backup",
+        "title": "Backup Configuration",
+        "toggle": "backup_enabled"
+      },
+      "source_type": "str",
+      "description": "Backup target URL (e.g., s3://bucket or nfs://server/path)"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Namespace",
+      "required": false,
+      "section": {
+        "key": "backup",
+        "title": "Backup Configuration",
+        "toggle": "backup_enabled"
+      },
+      "source_type": "str",
+      "default": "longhorn-system"
+    },
+    {
+      "key": "release_name",
+      "type": "string",
+      "label": "Release Name",
+      "required": false,
+      "section": {
+        "key": "backup",
+        "title": "Backup Configuration",
+        "toggle": "backup_enabled"
+      },
+      "source_type": "str",
+      "default": "longhorn"
+    },
+    {
+      "key": "ui_replicas",
+      "type": "number",
+      "label": "Number of Longhorn UI replicas",
+      "required": false,
+      "section": {
+        "key": "ui",
+        "title": "Longhorn UI"
+      },
+      "source_type": "int",
+      "default": 1,
+      "description": "Number of Longhorn UI replicas"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

@@ -1,0 +1,302 @@
+{
+  "version": "1",
+  "slug": "homepage",
+  "kind": "compose",
+  "metadata": {
+    "name": "Homepage",
+    "description": "Homepage is a modern, fully static, fast, secure fully customizable application dashboard with integrations\nfor over 100 services and translations into multiple languages.\n\nProject: https://gethomepage.dev/\nDocumentation: https://gethomepage.dev/latest/\nGitHub: https://github.com/gethomepage/homepage",
+    "tags": [
+      "traefik",
+      "swarm",
+      "volume_modes"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "v1.10.1",
+    "date": "2026-02-10",
+    "icon": {
+      "provider": "simpleicons",
+      "id": "homepage"
+    },
+    "draft": true,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "The service name",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homepage",
+      "description": "The service name"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "The container name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "homepage",
+      "description": "The container name"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "The container timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "The container timezone"
+    },
+    {
+      "key": "container_loglevel",
+      "type": "string",
+      "label": "The container log level",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "description": "The container log level",
+      "options": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "The container restart policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "description": "The container restart policy",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "ports_http",
+      "type": "number",
+      "label": "The HTTP port",
+      "required": true,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 3000,
+      "description": "The HTTP port",
+      "needs": [
+        "traefik_enabled=false"
+      ]
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_entrypoint",
+      "type": "string",
+      "label": "The Traefik entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "web",
+      "description": "The Traefik entrypoint"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "homepage"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik TLS"
+    },
+    {
+      "key": "traefik_tls_entrypoint",
+      "type": "string",
+      "label": "The Traefik TLS entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "websecure",
+      "description": "The Traefik TLS entrypoint"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik Tls Certresolver",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "cloudflare"
+    },
+    {
+      "key": "volume_mode",
+      "type": "string",
+      "label": "Volume Mode",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "enum",
+      "default": "local",
+      "options": [
+        "local",
+        "mount",
+        "nfs"
+      ]
+    },
+    {
+      "key": "volume_mount_path",
+      "type": "string",
+      "label": "Volume Mount Path",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "/mnt/storage",
+      "needs": [
+        "volume_mode=mount"
+      ]
+    },
+    {
+      "key": "volume_nfs_options",
+      "type": "string",
+      "label": "The NFS mount options",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "nfsvers=4,soft,timeo=180,intr",
+      "description": "The NFS mount options"
+    },
+    {
+      "key": "volume_nfs_path",
+      "type": "string",
+      "label": "The NFS path",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The NFS path"
+    },
+    {
+      "key": "volume_nfs_server",
+      "type": "string",
+      "label": "The NFS server",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The NFS server"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "version": "1",
+  "slug": "gitlab-runner",
+  "kind": "compose",
+  "metadata": {
+    "name": "Gitlab-Runner",
+    "description": "Docker compose setup for Gitlab-Runner, a build instance for Gitlab CI/CD pipelines.\nThis template configures Gitlab-Runner with Docker executor and integrates it with a Gitlab instance.\n\nProject: https://docs.gitlab.com/runner/\nDocumentation: https://docs.gitlab.com/runner/\nGitHub: https://github.com/gitlab/gitlab-runner",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "alpine-v17.9.1",
+    "date": "2025-09-28",
+    "icon": {
+      "provider": "selfh",
+      "id": "gitlab"
+    },
+    "draft": true,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "gitlab-runner"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

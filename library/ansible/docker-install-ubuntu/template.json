@@ -1,0 +1,37 @@
+{
+  "version": "1",
+  "slug": "docker-install-ubuntu",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Install Docker on Ubuntu",
+    "description": "Ansible playbook to install Docker Engine on Ubuntu systems. Includes Docker CE, Buildx plugin, and Compose plugin.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/install/ubuntu/\n",
+    "author": "Christian Lempa",
+    "template_version": "27.5.1",
+    "icon": {
+      "provider": "selfh",
+      "id": "docker"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "main.yml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts or group",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts or group"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

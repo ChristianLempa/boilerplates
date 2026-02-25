@@ -1,0 +1,645 @@
+{
+  "version": "1",
+  "slug": "traefik",
+  "kind": "compose",
+  "metadata": {
+    "name": "Traefik",
+    "description": "Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.\nThis template sets up Traefik with automatic HTTPS using Let's Encrypt and can be integrated with Authentik for SSO.\n## References\n- **Project:** https://traefik.io/\n- **Documentation:** https://doc.traefik.io/traefik/\n- **GitHub:** https://github.com/traefik/traefik",
+    "tags": [
+      "swarm",
+      "volume"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "v3.6.8",
+    "date": "2026-02-11",
+    "icon": {
+      "provider": "simpleicons",
+      "id": "traefikproxy"
+    },
+    "draft": false,
+    "next_steps": "Start the `{{ service_name }}` project\n{% if swarm_enabled %}\n1. Deploy Traefik to Docker Swarm:\n  `docker stack deploy -c compose.yaml {{ service_name }}`\n{% else %}\n1. Copy the project directory for `{{ service_name }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`\n{% endif %}"
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "container_hostname",
+      "type": "string",
+      "label": "Container Hostname",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "container_loglevel",
+      "type": "string",
+      "label": "Container Loglevel",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "options": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "ports_dashboard",
+      "type": "number",
+      "label": "Dashboard port (external)",
+      "required": true,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 8080,
+      "description": "Dashboard port (external)",
+      "needs": [
+        "dashboard_enabled=true"
+      ],
+      "extra": "Only used when dashboard is enabled"
+    },
+    {
+      "key": "ports_http",
+      "type": "string",
+      "label": "Ports Http",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "str",
+      "default": 80,
+      "extra": "Maps to entrypoint 'web'"
+    },
+    {
+      "key": "ports_https",
+      "type": "string",
+      "label": "Ports Https",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "str",
+      "default": 443,
+      "extra": "Maps to entrypoint 'websecure'"
+    },
+    {
+      "key": "accesslog_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik access log",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik access log"
+    },
+    {
+      "key": "dashboard_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik dashboard",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik dashboard",
+      "extra": "WARNING: Don't use in production!"
+    },
+    {
+      "key": "prometheus_enabled",
+      "type": "boolean",
+      "label": "Enable Prometheus metrics",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Prometheus metrics"
+    },
+    {
+      "key": "security_enabled",
+      "type": "boolean",
+      "label": "Create production-ready security headers middleware",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Create production-ready security headers middleware",
+      "extra": "Enables HSTS, XSS protection, frame denial, etc."
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "str",
+      "extra": "Network that Traefik uses to connect to services"
+    },
+    {
+      "key": "traefik_network_external",
+      "type": "boolean",
+      "label": "Use existing Docker network (external)",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Settings",
+        "toggle": "dashboard_enabled",
+        "description": "Configure Traefik features and settings"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Use existing Docker network (external)"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable HTTPS/TLS with ACME",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable HTTPS/TLS with ACME"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "ACME DNS challenge provider",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "cloudflare",
+      "description": "ACME DNS challenge provider",
+      "needs": [
+        "traefik_tls_enabled=true"
+      ],
+      "extra": "DNS provider for domain validation",
+      "options": [
+        "cloudflare",
+        "porkbun",
+        "godaddy",
+        "digitalocean",
+        "route53",
+        "azure",
+        "namecheap",
+        "ovh"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_email",
+      "type": "string",
+      "label": "Email address for ACME",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "Email address for ACME",
+      "needs": [
+        "traefik_tls_enabled=true"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_endpoint",
+      "type": "string",
+      "label": "OVH API endpoint",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "ovh-eu",
+      "description": "OVH API endpoint",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=ovh"
+      ],
+      "extra": "Common values are ovh-eu, ovh-ca, ovh-us"
+    },
+    {
+      "key": "traefik_tls_acme_region",
+      "type": "string",
+      "label": "AWS Region",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "default": "us-east-1",
+      "description": "AWS Region",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=route53"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_resource_group",
+      "type": "string",
+      "label": "Azure Resource Group",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "Azure Resource Group",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=azure"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_secret_key",
+      "type": "string",
+      "label": "DNS provider secret key",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "DNS provider secret key",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=azure,godaddy,ovh,porkbun,route53"
+      ],
+      "extra": "AZURE_CLIENT_SECRET, GODADDY_API_SECRET, OVH_APPLICATION_SECRET, PORKBUN_SECRET_API_KEY, or AWS_SECRET_ACCESS_KEY",
+      "sensitive": true
+    },
+    {
+      "key": "traefik_tls_acme_subscription_id",
+      "type": "string",
+      "label": "Azure Subscription ID",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "Azure Subscription ID",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=azure"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_tenant_id",
+      "type": "string",
+      "label": "Azure Tenant ID",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "Azure Tenant ID",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=azure"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_token",
+      "type": "string",
+      "label": "DNS provider API token",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "DNS provider API token",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,ovh,porkbun"
+      ],
+      "extra": "CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, OVH_APPLICATION_KEY, or PORKBUN_API_KEY",
+      "sensitive": true
+    },
+    {
+      "key": "traefik_tls_acme_username",
+      "type": "string",
+      "label": "Namecheap API username",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "Namecheap API username",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=namecheap"
+      ]
+    },
+    {
+      "key": "traefik_tls_acme_consumer_key",
+      "type": "string",
+      "label": "OVH Consumer Key",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "str",
+      "description": "OVH Consumer Key",
+      "needs": [
+        "traefik_tls_enabled=true",
+        "traefik_tls_certresolver=ovh"
+      ],
+      "sensitive": true
+    },
+    {
+      "key": "traefik_tls_redirect",
+      "type": "boolean",
+      "label": "Redirect all HTTP traffic to HTTPS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Redirect all HTTP traffic to HTTPS",
+      "needs": [
+        "traefik_tls_enabled=true"
+      ]
+    },
+    {
+      "key": "traefik_tls_secure_ciphers",
+      "type": "boolean",
+      "label": "Enable strict cipher suites (recommended)",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable strict cipher suites (recommended)",
+      "needs": [
+        "traefik_tls_enabled=true"
+      ],
+      "extra": "Enforces modern, secure cipher suites"
+    },
+    {
+      "key": "traefik_tls_skipverify",
+      "type": "boolean",
+      "label": "Skip TLS verification for backend servers",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "TLS Settings",
+        "toggle": "traefik_tls_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Skip TLS verification for backend servers",
+      "needs": [
+        "traefik_tls_enabled=true"
+      ],
+      "extra": "WARNING: Only enable for self-signed certificates in trusted environments"
+    },
+    {
+      "key": "volume_mode",
+      "type": "string",
+      "label": "Volume Mode",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "enum",
+      "default": "local",
+      "options": [
+        "local",
+        "mount",
+        "nfs"
+      ]
+    },
+    {
+      "key": "volume_mount_path",
+      "type": "string",
+      "label": "Volume Mount Path",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "/mnt/storage",
+      "needs": [
+        "volume_mode=mount"
+      ]
+    },
+    {
+      "key": "volume_nfs_server",
+      "type": "string",
+      "label": "Volume Nfs Server",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "192.168.1.1",
+      "needs": [
+        "volume_mode=nfs"
+      ]
+    },
+    {
+      "key": "volume_nfs_path",
+      "type": "string",
+      "label": "Volume Nfs Path",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "/export",
+      "needs": [
+        "volume_mode=nfs"
+      ]
+    },
+    {
+      "key": "volume_nfs_options",
+      "type": "string",
+      "label": "Volume Nfs Options",
+      "required": true,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "rw,nolock,soft",
+      "needs": [
+        "volume_mode=nfs"
+      ]
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "Swarm Placement Mode",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "enum",
+      "default": "replicated",
+      "options": [
+        "replicated",
+        "global"
+      ]
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "Swarm Replicas",
+      "required": true,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "int",
+      "default": 1,
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ]
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "Target hostname for placement constraint",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Target hostname for placement constraint",
+      "needs": [
+        "swarm_placement_mode=replicated"
+      ],
+      "extra": "Constrains service to run on specific node by hostname"
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Enable Docker Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Docker Swarm mode"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

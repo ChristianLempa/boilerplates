@@ -1,0 +1,247 @@
+{
+  "version": "1",
+  "slug": "portainer",
+  "kind": "helm",
+  "metadata": {
+    "name": "Portainer CE",
+    "description": "Helm values template for Portainer Community Edition, a container management platform that simplifies Docker and Kubernetes management.\n\nChart Repository: https://portainer.github.io/k8s/\nChart Name: portainer\nChart Version: Compatible with Portainer CE 2.34.0\n\nProject: https://www.portainer.io/\nDocumentation: https://docs.portainer.io/\n",
+    "author": "Christian Lempa",
+    "template_version": "2.34.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "portainer"
+    },
+    "date": "2025-01-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "values.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "release_name",
+      "type": "string",
+      "label": "Helm release name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "portainer",
+      "description": "Helm release name"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Kubernetes namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "portainer",
+      "description": "Kubernetes namespace"
+    },
+    {
+      "key": "network_mode",
+      "type": "string",
+      "label": "Network mode for service",
+      "required": false,
+      "section": {
+        "key": "networking"
+      },
+      "source_type": "str",
+      "default": "ClusterIP",
+      "description": "Network mode for service"
+    },
+    {
+      "key": "database_enabled",
+      "type": "boolean",
+      "label": "Enable database",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable database"
+    },
+    {
+      "key": "database_type",
+      "type": "string",
+      "label": "Database type",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "enum",
+      "default": "postgres",
+      "description": "Database type",
+      "options": [
+        "postgres",
+        "mysql"
+      ]
+    },
+    {
+      "key": "database_host",
+      "type": "string",
+      "label": "Database host",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Database host"
+    },
+    {
+      "key": "database_port",
+      "type": "number",
+      "label": "Database port",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "int",
+      "default": 5432,
+      "description": "Database port"
+    },
+    {
+      "key": "database_name",
+      "type": "string",
+      "label": "Database name",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database name"
+    },
+    {
+      "key": "database_user",
+      "type": "string",
+      "label": "Database user",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database user"
+    },
+    {
+      "key": "database_password",
+      "type": "string",
+      "label": "Database password",
+      "required": false,
+      "section": {
+        "key": "database",
+        "title": "Database Configuration",
+        "toggle": "database_enabled"
+      },
+      "source_type": "str",
+      "description": "Database password",
+      "sensitive": true
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik ingress",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik ingress"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik hostname",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "default": "portainer.home.arpa",
+      "description": "Traefik hostname"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS for Traefik ingress",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable TLS for Traefik ingress"
+    },
+    {
+      "key": "traefik_tls_secret",
+      "type": "string",
+      "label": "TLS secret name for Traefik ingress",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Configuration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "portainer-tls",
+      "description": "TLS secret name for Traefik ingress"
+    },
+    {
+      "key": "volumes_mode",
+      "type": "string",
+      "label": "Volume storage mode",
+      "required": false,
+      "section": {
+        "key": "volumes",
+        "title": "Volume Configuration"
+      },
+      "source_type": "enum",
+      "default": "pvc",
+      "description": "Volume storage mode",
+      "options": [
+        "pvc",
+        "hostPath"
+      ]
+    },
+    {
+      "key": "volumes_pvc_name",
+      "type": "string",
+      "label": "PVC name for volumes",
+      "required": false,
+      "section": {
+        "key": "volumes",
+        "title": "Volume Configuration"
+      },
+      "source_type": "str",
+      "default": "portainer",
+      "description": "PVC name for volumes"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

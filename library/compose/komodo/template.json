@@ -1,0 +1,474 @@
+{
+  "version": "1",
+  "slug": "komodo",
+  "kind": "compose",
+  "metadata": {
+    "name": "Komodo",
+    "description": "Build and deployment automation tool for managing software across multiple servers. Komodo provides\nunlimited server connections, flexible API access, and comprehensive management of Docker deployments,\nstacks, and builds. Features include real-time container monitoring, batch operations, and integration\nwith Docker, Docker Compose, and build systems. Supports both MongoDB and FerretDB as database backends.\n## Important Notes\n* Requires MongoDB or FerretDB for data storage (database not included in this template)\n* Requires Periphery agent on managed servers for remote operations\n* Web interface and API accessible through configured ports\n## References\n* **Project:** https://github.com/moghtech/komodo\n* **Documentation:** https://github.com/moghtech/komodo/tree/main/docsite/docs\n* **Docker Hub:** https://hub.docker.com/r/moghtech/komodo\n",
+    "tags": [
+      "traefik",
+      "swarm",
+      "deployment",
+      "automation"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "latest",
+    "icon": {
+      "provider": "selfh",
+      "id": "komodo"
+    },
+    "draft": true,
+    "date": "2025-11-13",
+    "next_steps": "### 1. Prerequisites\n* Deploy MongoDB or FerretDB database\n* Configure database connection in environment variables\n* Install Periphery agent on servers you want to manage\n### 2. Deploy the Service\n{% if swarm_enabled -%}\nDeploy to Docker Swarm:\n```bash\ndocker stack deploy -c compose.yaml komodo\n```\n{% else -%}\nStart Komodo using Docker Compose:\n```bash\ndocker compose up -d\n```\n{% endif -%}\n### 3. Access the Web Interface\n{% if traefik_enabled -%}\n* Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**\n{% else -%}\n* Navigate to: **http://localhost:{{ ports_http }}**\n{% endif -%}\n* Complete initial setup and create admin user\n### 4. Install Periphery Agent\nOn each server you want to manage:\n```bash\ncurl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | python3\n```\n### 5. Configure Servers\n* Add servers to Komodo through the web interface\n* Configure API keys for programmatic access\n* Start managing deployments, stacks, and builds\n"
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "komodo"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "komodo"
+    },
+    {
+      "key": "container_hostname",
+      "type": "string",
+      "label": "Container Hostname",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "komodo"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_entrypoint",
+      "type": "string",
+      "label": "The Traefik entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "web",
+      "description": "The Traefik entrypoint"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "homepage"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik TLS"
+    },
+    {
+      "key": "traefik_tls_entrypoint",
+      "type": "string",
+      "label": "The Traefik TLS entrypoint",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "websecure",
+      "description": "The Traefik TLS entrypoint"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik Tls Certresolver",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "cloudflare"
+    },
+    {
+      "key": "ports_http",
+      "type": "number",
+      "label": "External HTTP port (web interface and API)",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 9120,
+      "description": "External HTTP port (web interface and API)",
+      "needs": [
+        "traefik_enabled=false",
+        "network_mode=bridge"
+      ]
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Resources Enabled",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled",
+        "description": "Configure container resource limits"
+      },
+      "source_type": "bool",
+      "default": false
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "Resources Cpu Limit",
+      "required": true,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled",
+        "description": "Configure container resource limits"
+      },
+      "source_type": "str",
+      "default": 1.0
+    },
+    {
+      "key": "resources_cpu_reservation",
+      "type": "string",
+      "label": "Resources Cpu Reservation",
+      "required": true,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled",
+        "description": "Configure container resource limits"
+      },
+      "source_type": "str",
+      "default": 0.25,
+      "needs": [
+        "swarm_enabled=true"
+      ]
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Resources Memory Limit",
+      "required": true,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled",
+        "description": "Configure container resource limits"
+      },
+      "source_type": "str",
+      "default": "1G"
+    },
+    {
+      "key": "resources_memory_reservation",
+      "type": "string",
+      "label": "Resources Memory Reservation",
+      "required": true,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled",
+        "description": "Configure container resource limits"
+      },
+      "source_type": "str",
+      "default": "512M",
+      "needs": [
+        "swarm_enabled=true"
+      ]
+    },
+    {
+      "key": "environment_enabled",
+      "type": "boolean",
+      "label": "Configure environment variables (required)",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Configure environment variables (required)"
+    },
+    {
+      "key": "environment_database_address",
+      "type": "string",
+      "label": "Database connection address (MongoDB or FerretDB)",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "mongodb://mongo:27017",
+      "description": "Database connection address (MongoDB or FerretDB)",
+      "needs": "environment_enabled=true"
+    },
+    {
+      "key": "environment_database_name",
+      "type": "string",
+      "label": "Database name",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "komodo",
+      "description": "Database name",
+      "needs": "environment_enabled=true"
+    },
+    {
+      "key": "environment_database_username",
+      "type": "string",
+      "label": "Database username (optional)",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Database username (optional)",
+      "needs": "environment_enabled=true"
+    },
+    {
+      "key": "environment_database_password",
+      "type": "string",
+      "label": "Database password (optional)",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Database password (optional)",
+      "needs": "environment_enabled=true",
+      "sensitive": true
+    },
+    {
+      "key": "environment_jwt_secret",
+      "type": "string",
+      "label": "JWT secret for authentication (auto-generated if empty)",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "JWT secret for authentication (auto-generated if empty)",
+      "needs": "environment_enabled=true",
+      "sensitive": true,
+      "autogenerated": true
+    },
+    {
+      "key": "environment_log_level",
+      "type": "string",
+      "label": "Log level",
+      "required": false,
+      "section": {
+        "key": "environment",
+        "title": "Environment Variables",
+        "toggle": "environment_enabled",
+        "required": true
+      },
+      "source_type": "enum",
+      "default": "info",
+      "description": "Log level",
+      "needs": "environment_enabled=true",
+      "options": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Enable Docker Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Docker Swarm mode"
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "The placement host",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The placement host"
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "The placement mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "str",
+      "default": "replicated",
+      "description": "The placement mode"
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "The number of replicas",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "int",
+      "default": 1,
+      "description": "The number of replicas"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

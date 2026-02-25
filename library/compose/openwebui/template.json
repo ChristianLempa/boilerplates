@@ -1,0 +1,315 @@
+{
+  "version": "1",
+  "slug": "openwebui",
+  "kind": "compose",
+  "metadata": {
+    "name": "Openwebui",
+    "description": "OpenWebUI is an open-source web-based user interface for managing and interacting with AI models. It provides a user-friendly platform to deploy, monitor, and utilize various AI models for tasks such as image generation, text generation, and more. OpenWebUI supports integration with popular AI frameworks and offers features like model management, user authentication, and real-time interaction.\n\nProject: https://openwebui.io/\nDocumentation: https://docs.openwebui.io/\nGitHub: https://github.com/openwebui/openwebui\n",
+    "tags": [
+      "traefik",
+      "authentik"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "0.7.2",
+    "icon": {
+      "provider": "selfh",
+      "id": "open-webui"
+    },
+    "date": "2026-01-10",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "openwebui"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "openwebui"
+    },
+    {
+      "key": "container_hostname",
+      "type": "string",
+      "label": "Container Hostname",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "ollama_base_url",
+      "type": "string",
+      "label": "Ollama API base URL",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "http://ollama:11434",
+      "description": "Ollama API base URL"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "openwebui.home.arpa"
+    },
+    {
+      "key": "traefik_network",
+      "type": "string",
+      "label": "Traefik Network",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "traefik"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik Domain",
+      "required": true,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "str",
+      "default": "home.arpa"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik",
+        "toggle": "traefik_enabled",
+        "description": "Configure Traefik reverse proxy integration"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "Traefik Tls Certresolver",
+      "required": true,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "str",
+      "default": "cloudflare"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik TLS",
+      "required": false,
+      "section": {
+        "key": "traefik_tls",
+        "title": "Traefik TLS",
+        "toggle": "traefik_tls_enabled",
+        "needs": "traefik",
+        "description": "Configure Traefik TLS/SSL certificates"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik TLS"
+    },
+    {
+      "key": "ports_http",
+      "type": "number",
+      "label": "Web UI port",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 8080,
+      "description": "Web UI port"
+    },
+    {
+      "key": "authentik_enabled",
+      "type": "string",
+      "label": "Authentik Enabled",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": false
+    },
+    {
+      "key": "openid_provider_url",
+      "type": "string",
+      "label": "OpenID provider configuration URL",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": "https://authentik.example.com/application/o/openwebui/.well-known/openid-configuration",
+      "description": "OpenID provider configuration URL"
+    },
+    {
+      "key": "openid_redirect_uri",
+      "type": "string",
+      "label": "OAuth redirect URI",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": "https://openwebui.example.com/oauth/oidc/callback",
+      "description": "OAuth redirect URI"
+    },
+    {
+      "key": "oauth_scopes",
+      "type": "string",
+      "label": "OAuth scopes (space-separated)",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": "openid email profile",
+      "description": "OAuth scopes (space-separated)"
+    },
+    {
+      "key": "oauth_merge_accounts",
+      "type": "boolean",
+      "label": "Merge OAuth accounts by email",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Merge OAuth accounts by email"
+    },
+    {
+      "key": "authentik_client_id",
+      "type": "string",
+      "label": "Authentik Client Id",
+      "required": true,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "sensitive": true
+    },
+    {
+      "key": "authentik_client_secret",
+      "type": "string",
+      "label": "Authentik Client Secret",
+      "required": true,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "sensitive": true
+    },
+    {
+      "key": "authentik_slug",
+      "type": "string",
+      "label": "The Authentik application slug",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik application slug"
+    },
+    {
+      "key": "authentik_url",
+      "type": "string",
+      "label": "The Authentik URL",
+      "required": false,
+      "section": {
+        "key": "authentik",
+        "toggle": "authentik_enabled"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The Authentik URL"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

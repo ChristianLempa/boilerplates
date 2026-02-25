@@ -1,0 +1,301 @@
+{
+  "version": "1",
+  "slug": "postgres",
+  "kind": "compose",
+  "metadata": {
+    "name": "PostgreSQL",
+    "description": "PostgreSQL is a powerful, open source object-relational database system with over 30 years of active development that has earned it a strong reputation for reliability, feature robustness, and performance.\n\nProject: https://www.postgresql.org/\nDocumentation: https://www.postgresql.org/docs/\nGitHub: https://github.com/postgres/postgres\n",
+    "tags": [
+      "swarm"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "18.2",
+    "icon": {
+      "provider": "selfh",
+      "id": "postgresql"
+    },
+    "date": "2026-02-13",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "postgres"
+    },
+    {
+      "key": "container_name",
+      "type": "string",
+      "label": "Container Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "postgres"
+    },
+    {
+      "key": "container_hostname",
+      "type": "string",
+      "label": "Container Hostname",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "restart_policy",
+      "type": "string",
+      "label": "Restart Policy",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "unless-stopped",
+      "options": [
+        "unless-stopped",
+        "always",
+        "on-failure",
+        "no"
+      ]
+    },
+    {
+      "key": "ports_postgres",
+      "type": "number",
+      "label": "PostgreSQL port",
+      "required": false,
+      "section": {
+        "key": "ports"
+      },
+      "source_type": "int",
+      "default": 5432,
+      "description": "PostgreSQL port"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik"
+      },
+      "source_type": "str",
+      "default": "postgres"
+    },
+    {
+      "key": "network_mode",
+      "type": "string",
+      "label": "Network Mode",
+      "required": false,
+      "section": {
+        "key": "network"
+      },
+      "source_type": "str",
+      "extra": "Use 'host' mode if you need to bind directly to port 5432. NOTE: Swarm only supports 'bridge' mode!\n"
+    },
+    {
+      "key": "network_name",
+      "type": "string",
+      "label": "Network Name",
+      "required": false,
+      "section": {
+        "key": "network"
+      },
+      "source_type": "str",
+      "default": "postgres_network"
+    },
+    {
+      "key": "network_external",
+      "type": "boolean",
+      "label": "Whether the network is external",
+      "required": false,
+      "section": {
+        "key": "network"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Whether the network is external"
+    },
+    {
+      "key": "swarm_replicas",
+      "type": "number",
+      "label": "Number of replicas for Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "int",
+      "default": 1,
+      "description": "Number of replicas for Swarm mode"
+    },
+    {
+      "key": "swarm_enabled",
+      "type": "boolean",
+      "label": "Enable Docker Swarm mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Docker Swarm mode"
+    },
+    {
+      "key": "swarm_placement_host",
+      "type": "string",
+      "label": "The placement host",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "The placement host"
+    },
+    {
+      "key": "swarm_placement_mode",
+      "type": "string",
+      "label": "The placement mode",
+      "required": false,
+      "section": {
+        "key": "swarm",
+        "title": "Docker Swarm",
+        "toggle": "swarm_enabled",
+        "description": "Configure Docker Swarm mode deployment"
+      },
+      "source_type": "str",
+      "default": "replicated",
+      "description": "The placement mode"
+    },
+    {
+      "key": "volume_mode",
+      "type": "string",
+      "label": "Volume mounting mode (local, mount, nfs)",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "local",
+      "description": "Volume mounting mode (local, mount, nfs)",
+      "options": [
+        "local",
+        "mount",
+        "nfs"
+      ]
+    },
+    {
+      "key": "volume_mount_path",
+      "type": "string",
+      "label": "Path for bind mounts when volume_mode is 'mount'",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "/var/lib/postgresql/data",
+      "description": "Path for bind mounts when volume_mode is 'mount'"
+    },
+    {
+      "key": "volume_nfs_server",
+      "type": "string",
+      "label": "NFS server address when volume_mode is 'nfs'",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "NFS server address when volume_mode is 'nfs'"
+    },
+    {
+      "key": "volume_nfs_path",
+      "type": "string",
+      "label": "NFS path when volume_mode is 'nfs'",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "NFS path when volume_mode is 'nfs'"
+    },
+    {
+      "key": "volume_nfs_options",
+      "type": "string",
+      "label": "NFS mount options when volume_mode is 'nfs'",
+      "required": false,
+      "section": {
+        "key": "volume"
+      },
+      "source_type": "str",
+      "default": "rw",
+      "description": "NFS mount options when volume_mode is 'nfs'"
+    },
+    {
+      "key": "database_port",
+      "type": "number",
+      "label": "Database Port",
+      "required": true,
+      "section": {
+        "key": "database"
+      },
+      "source_type": "int",
+      "default": 5432
+    },
+    {
+      "key": "database_name",
+      "type": "string",
+      "label": "Database Name",
+      "required": true,
+      "section": {
+        "key": "database"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "database_user",
+      "type": "string",
+      "label": "Database User",
+      "required": true,
+      "section": {
+        "key": "database"
+      },
+      "source_type": "str"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

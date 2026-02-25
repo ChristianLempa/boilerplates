@@ -1,0 +1,84 @@
+{
+  "version": "1",
+  "slug": "passbolt",
+  "kind": "compose",
+  "metadata": {
+    "name": "Passbolt",
+    "description": "Passbolt is an open-source password manager designed for teams and businesses. It provides a secure way to store,\nshare, and manage passwords and sensitive information collaboratively.\n## References\n- **Project:** https://www.passbolt.com/\n- **Documentation:** https://help.passbolt.com/\n- **GitHub:** https://github.com/passbolt/passbolt",
+    "tags": [
+      "traefik",
+      "database"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "5.9.0-1-ce",
+    "icon": {
+      "provider": "selfh",
+      "id": "passbolt"
+    },
+    "date": "2026-02-10",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "compose.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "service_name",
+      "type": "string",
+      "label": "Service Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "passbolt"
+    },
+    {
+      "key": "container_timezone",
+      "type": "string",
+      "label": "Container Timezone",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik Host",
+      "required": false,
+      "section": {
+        "key": "traefik"
+      },
+      "source_type": "str",
+      "default": "passbolt"
+    },
+    {
+      "key": "database_name",
+      "type": "string",
+      "label": "Database Name",
+      "required": false,
+      "section": {
+        "key": "database"
+      },
+      "source_type": "str",
+      "default": "passbolt"
+    },
+    {
+      "key": "database_user",
+      "type": "string",
+      "label": "Database User",
+      "required": false,
+      "section": {
+        "key": "database"
+      },
+      "source_type": "str",
+      "default": "passbolt"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

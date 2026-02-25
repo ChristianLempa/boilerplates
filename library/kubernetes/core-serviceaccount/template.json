@@ -1,0 +1,185 @@
+{
+  "version": "1",
+  "slug": "core-serviceaccount",
+  "kind": "kubernetes",
+  "metadata": {
+    "name": "Kubernetes ServiceAccount",
+    "description": "Kubernetes ServiceAccount for providing an identity for processes that run in Pods.\n\nServiceAccounts are used to control permissions and access to the Kubernetes API.\n\nDocumentation: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/\n",
+    "author": "Christian Lempa",
+    "template_version": "1.31.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "kubernetes"
+    },
+    "date": "2025-01-11"
+  },
+  "entrypoint": {
+    "path": "serviceaccount.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "app-serviceaccount"
+    },
+    {
+      "key": "namespace",
+      "type": "string",
+      "label": "Namespace",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "default"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits and requests",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits and requests"
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "CPU limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "100m",
+      "description": "CPU limit"
+    },
+    {
+      "key": "resources_cpu_request",
+      "type": "string",
+      "label": "CPU request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "50m",
+      "description": "CPU request"
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Memory limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "128Mi",
+      "description": "Memory limit"
+    },
+    {
+      "key": "resources_memory_request",
+      "type": "string",
+      "label": "Memory request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "64Mi",
+      "description": "Memory request"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Traefik host"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Traefik domain"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "TLS certificate resolver",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "TLS certificate resolver"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

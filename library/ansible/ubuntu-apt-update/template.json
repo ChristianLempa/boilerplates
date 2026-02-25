@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "slug": "ubuntu-apt-update",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Update and Upgrade Ubuntu Packages",
+    "description": "Ansible playbook to update and upgrade APT packages on Ubuntu systems. Performs apt update and dist-upgrade.\n\nProject: https://ubuntu.com\nDocumentation: https://ubuntu.com/server/docs\n",
+    "author": "Christian Lempa",
+    "template_version": "1.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "ansible"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "playbook_name",
+      "type": "string",
+      "label": "Playbook Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Update and upgrade apt packages"
+    },
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target Hosts",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "all"
+    },
+    {
+      "key": "become",
+      "type": "string",
+      "label": "Become",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": false
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

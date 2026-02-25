@@ -1,0 +1,245 @@
+{
+  "version": "1",
+  "slug": "core-persistentvolume",
+  "kind": "kubernetes",
+  "metadata": {
+    "name": "Kubernetes PersistentVolume",
+    "description": "Kubernetes PersistentVolume for cluster-wide storage resources.\n\nPVs are cluster-scoped and typically provisioned by administrators.\n\nDocumentation: https://kubernetes.io/docs/concepts/storage/persistent-volumes/\n",
+    "author": "Christian Lempa",
+    "template_version": "1.31.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "kubernetes"
+    },
+    "date": "2025-01-11"
+  },
+  "entrypoint": {
+    "path": "pv.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "resource_name",
+      "type": "string",
+      "label": "Resource Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "pv-nfs"
+    },
+    {
+      "key": "storage_class",
+      "type": "string",
+      "label": "Storage class name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "",
+      "description": "Storage class name"
+    },
+    {
+      "key": "storage_size",
+      "type": "string",
+      "label": "Storage capacity (e.g., 10Gi, 1Ti)",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "10Gi",
+      "description": "Storage capacity (e.g., 10Gi, 1Ti)"
+    },
+    {
+      "key": "access_mode",
+      "type": "string",
+      "label": "Access mode",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "ReadWriteMany",
+      "description": "Access mode",
+      "options": [
+        "ReadWriteOnce",
+        "ReadOnlyMany",
+        "ReadWriteMany",
+        "ReadWriteOncePod"
+      ]
+    },
+    {
+      "key": "reclaim_policy",
+      "type": "string",
+      "label": "Reclaim policy",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "enum",
+      "default": "Retain",
+      "description": "Reclaim policy",
+      "options": [
+        "Retain",
+        "Recycle",
+        "Delete"
+      ]
+    },
+    {
+      "key": "host_path",
+      "type": "string",
+      "label": "Host path for local storage (e.g., /mnt/data)",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "/mnt/data",
+      "description": "Host path for local storage (e.g., /mnt/data)"
+    },
+    {
+      "key": "resources_enabled",
+      "type": "boolean",
+      "label": "Enable resource limits and requests",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable resource limits and requests"
+    },
+    {
+      "key": "resources_cpu_limit",
+      "type": "string",
+      "label": "CPU limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "100m",
+      "description": "CPU limit"
+    },
+    {
+      "key": "resources_cpu_request",
+      "type": "string",
+      "label": "CPU request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "50m",
+      "description": "CPU request"
+    },
+    {
+      "key": "resources_memory_limit",
+      "type": "string",
+      "label": "Memory limit",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "128Mi",
+      "description": "Memory limit"
+    },
+    {
+      "key": "resources_memory_request",
+      "type": "string",
+      "label": "Memory request",
+      "required": false,
+      "section": {
+        "key": "resources",
+        "title": "Resource Limits",
+        "toggle": "resources_enabled"
+      },
+      "source_type": "str",
+      "default": "64Mi",
+      "description": "Memory request"
+    },
+    {
+      "key": "traefik_enabled",
+      "type": "boolean",
+      "label": "Enable Traefik integration",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": false,
+      "description": "Enable Traefik integration"
+    },
+    {
+      "key": "traefik_host",
+      "type": "string",
+      "label": "Traefik host",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "hostname",
+      "description": "Traefik host"
+    },
+    {
+      "key": "traefik_domain",
+      "type": "string",
+      "label": "Traefik domain",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "description": "Traefik domain"
+    },
+    {
+      "key": "traefik_tls_enabled",
+      "type": "boolean",
+      "label": "Enable TLS",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "bool",
+      "default": true,
+      "description": "Enable TLS"
+    },
+    {
+      "key": "traefik_tls_certresolver",
+      "type": "string",
+      "label": "TLS certificate resolver",
+      "required": false,
+      "section": {
+        "key": "traefik",
+        "title": "Traefik Integration",
+        "toggle": "traefik_enabled"
+      },
+      "source_type": "str",
+      "default": "letsencrypt-prod",
+      "description": "TLS certificate resolver"
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}

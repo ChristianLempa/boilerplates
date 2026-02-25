@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "slug": "ubuntu-add-sshkey",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Add SSH Key and Configure Sudoers",
+    "description": "Ansible playbook to add SSH public key to authorized_keys. Also configures passwordless sudo for sudo group.\n\nProject: https://www.openssh.com\nDocumentation: https://www.openssh.com/manual.html\n",
+    "author": "Christian Lempa",
+    "template_version": "1.0.0",
+    "icon": {
+      "provider": "selfh",
+      "id": "ansible"
+    },
+    "date": "2025-11-11",
+    "draft": true
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "target_hosts",
+      "type": "string",
+      "label": "Target hosts",
+      "required": true,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "description": "Target hosts"
+    },
+    {
+      "key": "playbook_name",
+      "type": "string",
+      "label": "Playbook Name",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": "Add ssh key"
+    },
+    {
+      "key": "become",
+      "type": "string",
+      "label": "Become",
+      "required": false,
+      "section": {
+        "key": "general"
+      },
+      "source_type": "str",
+      "default": true
+    }
+  ],
+  "legacy": {
+    "schema": "1.2"
+  }
+}
