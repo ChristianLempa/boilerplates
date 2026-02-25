@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ resource_name }}
+  namespace: {{ namespace }}
+type: {{ secret_type }}
+stringData:
+  api-token: {{ api_token }}

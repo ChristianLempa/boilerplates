@@ -51,7 +51,7 @@ services:
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}/data:/app/data:rw
       - {{ volume_mount_path }}/repos:/app/repos:rw
-      {% elif volume_mode in ['local', 'nfs'] %}
+      {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
       - {{ service_name }}-data:/app/data
       - {{ service_name }}-repos:/app/repos
       {% endif %}

@@ -129,7 +129,7 @@
           "default": false,
           "description": "Use external Redis instance",
           "needs": [
-            "queue_enabled"
+            "queue_enabled=true"
           ]
         },
         {
@@ -140,7 +140,7 @@
           "default": "redis",
           "description": "Redis host",
           "needs": [
-            "queue_enabled"
+            "queue_enabled=true"
           ]
         },
         {
@@ -151,7 +151,7 @@
           "default": 6379,
           "description": "Redis port",
           "needs": [
-            "queue_enabled"
+            "queue_enabled=true"
           ]
         },
         {
@@ -162,7 +162,7 @@
           "default": false,
           "description": "Include embedded worker in this deployment",
           "needs": [
-            "queue_enabled"
+            "queue_enabled=true"
           ]
         }
       ]
@@ -191,7 +191,7 @@
             "mysql"
           ],
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -202,7 +202,7 @@
           "default": "postgres",
           "description": "Database host",
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -213,7 +213,7 @@
           "default": 5432,
           "description": "Database port",
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -224,7 +224,7 @@
           "default": "n8n",
           "description": "Database name",
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -235,7 +235,7 @@
           "default": "n8n",
           "description": "Database username",
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -246,7 +246,7 @@
           "description": "Database password",
           "sensitive": true,
           "needs": [
-            "database_enabled"
+            "database_enabled=true"
           ]
         },
         {
@@ -316,7 +316,7 @@
           "default": false,
           "description": "Include detailed metrics (workflows, nodes, API endpoints)",
           "needs": [
-            "metrics_enabled"
+            "metrics_enabled=true"
           ]
         }
       ]
@@ -406,7 +406,7 @@
           "default": "",
           "description": "Separate hostname for webhooks (optional)",
           "needs": [
-            "traefik_enabled"
+            "traefik_enabled=true"
           ]
         },
         {
@@ -417,7 +417,7 @@
           "default": "traefik",
           "description": "Traefik network name",
           "needs": [
-            "traefik_enabled"
+            "traefik_enabled=true"
           ]
         },
         {
@@ -428,7 +428,7 @@
           "default": true,
           "description": "Use external Traefik network",
           "needs": [
-            "traefik_enabled"
+            "traefik_enabled=true"
           ]
         },
         {
@@ -479,7 +479,7 @@
           "default": 1,
           "description": "Number of server replicas",
           "needs": [
-            "swarm_enabled"
+            "swarm_enabled=true"
           ]
         },
         {

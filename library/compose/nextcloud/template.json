@@ -124,6 +124,17 @@
       "title": "Network",
       "variables": [
         {
+          "name": "network_mode",
+          "type": "str",
+          "title": "Network Mode",
+          "required": false,
+          "default": "bridge",
+          "options": [
+            "bridge",
+            "macvlan"
+          ]
+        },
+        {
           "name": "network_macvlan_ipv4_address_db",
           "type": "str",
           "title": "Static IP address for database container (macvlan only)",

@@ -82,6 +82,14 @@
           "default": 1
         },
         {
+          "name": "swarm_enabled",
+          "type": "bool",
+          "title": "Enable Docker Swarm mode",
+          "required": false,
+          "default": false,
+          "description": "Enable Docker Swarm mode"
+        },
+        {
           "name": "swarm_placement_host",
           "type": "str",
           "title": "Swarm Placement Host",

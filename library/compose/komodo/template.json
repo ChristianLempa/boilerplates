@@ -65,6 +65,18 @@
           ]
         },
         {
+          "name": "network_mode",
+          "type": "str",
+          "title": "Network Mode",
+          "required": false,
+          "default": "bridge",
+          "options": [
+            "bridge",
+            "macvlan",
+            "host"
+          ]
+        },
+        {
           "name": "network_macvlan_ipv4_address",
           "type": "str",
           "title": "Network Macvlan Ipv4 Address",

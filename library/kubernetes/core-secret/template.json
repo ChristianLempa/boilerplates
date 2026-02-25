@@ -14,7 +14,7 @@
     "date": "2025-01-11"
   },
   "entrypoint": {
-    "path": "secret.yaml",
+    "path": "manifest.yaml",
     "type": "file"
   },
   "variables": [
