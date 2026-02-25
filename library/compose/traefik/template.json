@@ -351,7 +351,7 @@
       "variables": [
         {
           "name": "volume_mode",
-          "type": "str",
+          "type": "enum",
           "title": "Volume Mode",
           "required": true,
           "default": "local",
