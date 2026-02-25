@@ -11,7 +11,7 @@
     "author": "Christian Lempa",
     "template_version": "1.80.0",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "twingate"
     },
     "date": "2025-11-11",
@@ -23,193 +23,147 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "twingate"
-    },
-    {
-      "key": "container_name",
-      "type": "string",
-      "label": "Container Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "twingate_connector"
-    },
-    {
-      "key": "container_hostname",
-      "type": "string",
-      "label": "Container Hostname",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "twingate_connector"
-    },
-    {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "Container Timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "twingate"
+        },
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": false,
+          "default": "twingate_connector"
+        },
+        {
+          "name": "container_hostname",
+          "type": "str",
+          "title": "Container Hostname",
+          "required": false,
+          "default": "twingate_connector"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "Container Timezone",
+          "required": false
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": true,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        },
+        {
+          "name": "twingate_version",
+          "type": "str",
+          "title": "Twingate Connector version",
+          "required": false,
+          "default": "1.79.0",
+          "description": "Twingate Connector version"
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "Swarm Replicas",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "swarm_placement_host",
+          "type": "str",
+          "title": "Swarm Placement Host",
+          "required": false,
+          "default": ""
+        }
       ]
     },
     {
-      "key": "twingate_version",
-      "type": "string",
-      "label": "Twingate Connector version",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "1.79.0",
-      "description": "Twingate Connector version"
-    },
-    {
-      "key": "twingate_network",
-      "type": "string",
-      "label": "Enter your Twingate network name",
-      "required": false,
-      "section": {
-        "key": "twingate",
-        "title": "Twingate Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "description": "Your Twingate network name",
-      "prompt": "Enter your Twingate network name"
-    },
-    {
-      "key": "twingate_log_level",
-      "type": "number",
-      "label": "Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)",
-      "required": false,
-      "section": {
-        "key": "twingate",
-        "title": "Twingate Configuration",
-        "required": true
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)"
-    },
-    {
-      "key": "twingate_dns",
-      "type": "string",
-      "label": "Local DNS server IP (optional, leave empty to use default)",
-      "required": false,
-      "section": {
-        "key": "twingate",
-        "title": "Twingate Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Local DNS server IP (optional, leave empty to use default)"
-    },
-    {
-      "key": "resources_enabled",
-      "type": "boolean",
-      "label": "Resources Enabled",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled",
-        "description": "Configure container resource limits"
-      },
-      "source_type": "bool",
-      "default": false
-    },
-    {
-      "key": "resources_cpu_limit",
-      "type": "string",
-      "label": "Resources Cpu Limit",
-      "required": true,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled",
-        "description": "Configure container resource limits"
-      },
-      "source_type": "str",
-      "default": 1.0
-    },
-    {
-      "key": "resources_cpu_reservation",
-      "type": "string",
-      "label": "Resources Cpu Reservation",
-      "required": true,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled",
-        "description": "Configure container resource limits"
-      },
-      "source_type": "str",
-      "default": 0.25,
-      "needs": [
-        "swarm_enabled=true"
+      "key": "twingate",
+      "title": "Twingate Configuration",
+      "variables": [
+        {
+          "name": "twingate_network",
+          "type": "str",
+          "title": "Enter your Twingate network name",
+          "required": false,
+          "description": "Your Twingate network name"
+        },
+        {
+          "name": "twingate_log_level",
+          "type": "int",
+          "title": "Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)",
+          "required": false,
+          "default": 1,
+          "description": "Log level (1=ERROR, 2=WARN, 3=INFO, 4=DEBUG)"
+        },
+        {
+          "name": "twingate_dns",
+          "type": "str",
+          "title": "Local DNS server IP (optional, leave empty to use default)",
+          "required": false,
+          "default": "",
+          "description": "Local DNS server IP (optional, leave empty to use default)"
+        }
       ]
     },
     {
-      "key": "resources_memory_limit",
-      "type": "string",
-      "label": "Resources Memory Limit",
-      "required": true,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled",
-        "description": "Configure container resource limits"
-      },
-      "source_type": "str",
-      "default": "1G"
-    },
-    {
-      "key": "resources_memory_reservation",
-      "type": "string",
-      "label": "Resources Memory Reservation",
-      "required": true,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled",
-        "description": "Configure container resource limits"
-      },
-      "source_type": "str",
-      "default": "512M",
-      "needs": [
-        "swarm_enabled=true"
+      "key": "resources",
+      "title": "Resource Limits",
+      "variables": [
+        {
+          "name": "resources_enabled",
+          "type": "bool",
+          "title": "Resources Enabled",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "resources_cpu_limit",
+          "type": "str",
+          "title": "Resources Cpu Limit",
+          "required": true,
+          "default": 1.0
+        },
+        {
+          "name": "resources_cpu_reservation",
+          "type": "str",
+          "title": "Resources Cpu Reservation",
+          "required": true,
+          "default": 0.25,
+          "needs": [
+            "swarm_enabled=true"
+          ]
+        },
+        {
+          "name": "resources_memory_limit",
+          "type": "str",
+          "title": "Resources Memory Limit",
+          "required": true,
+          "default": "1G"
+        },
+        {
+          "name": "resources_memory_reservation",
+          "type": "str",
+          "title": "Resources Memory Reservation",
+          "required": true,
+          "default": "512M",
+          "needs": [
+            "swarm_enabled=true"
+          ]
+        }
       ]
     }
   ],

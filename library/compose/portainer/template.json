@@ -13,7 +13,7 @@
     "author": "Christian Lempa",
     "template_version": "2.38.1-alpine",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "portainer"
     },
     "date": "2026-02-12"
@@ -24,297 +24,216 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "portainer"
-    },
-    {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "Container Timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "portainer"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "Container Timezone",
+          "required": false
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": true,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        }
       ]
     },
     {
-      "key": "ports_http",
-      "type": "string",
-      "label": "Ports Http",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "str",
-      "default": 9000
-    },
-    {
-      "key": "ports_https",
-      "type": "string",
-      "label": "Ports Https",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "str",
-      "default": 9443
-    },
-    {
-      "key": "ports_edge",
-      "type": "number",
-      "label": "Host port for Edge agent (8000)",
-      "required": true,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "int",
-      "default": 8000,
-      "description": "Host port for Edge agent (8000)"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "portainer"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik Tls Certresolver",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "cloudflare"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik TLS"
-    },
-    {
-      "key": "volume_mode",
-      "type": "string",
-      "label": "Volume Mode",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "enum",
-      "default": "local",
-      "options": [
-        "local",
-        "mount",
-        "nfs"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "str",
+          "title": "Ports Http",
+          "required": false,
+          "default": 9000
+        },
+        {
+          "name": "ports_https",
+          "type": "str",
+          "title": "Ports Https",
+          "required": false,
+          "default": 9443
+        },
+        {
+          "name": "ports_edge",
+          "type": "int",
+          "title": "Host port for Edge agent (8000)",
+          "required": true,
+          "default": 8000,
+          "description": "Host port for Edge agent (8000)"
+        }
       ]
     },
     {
-      "key": "volume_mount_path",
-      "type": "string",
-      "label": "Volume Mount Path",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "/mnt/storage",
-      "needs": [
-        "volume_mode=mount"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "portainer"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": true,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": true,
+          "default": "home.arpa"
+        },
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        }
       ]
     },
     {
-      "key": "volume_nfs_server",
-      "type": "string",
-      "label": "Volume Nfs Server",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "192.168.1.1",
-      "needs": [
-        "volume_mode=nfs"
+      "key": "traefik-tls",
+      "title": "Traefik TLS",
+      "variables": [
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": true,
+          "default": "cloudflare"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable Traefik TLS",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik TLS"
+        }
       ]
     },
     {
-      "key": "volume_nfs_path",
-      "type": "string",
-      "label": "Volume Nfs Path",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "/export",
-      "needs": [
-        "volume_mode=nfs"
+      "key": "volume",
+      "title": "Volume",
+      "variables": [
+        {
+          "name": "volume_mode",
+          "type": "str",
+          "title": "Volume Mode",
+          "required": true,
+          "default": "local",
+          "options": [
+            "local",
+            "mount",
+            "nfs"
+          ]
+        },
+        {
+          "name": "volume_mount_path",
+          "type": "str",
+          "title": "Volume Mount Path",
+          "required": true,
+          "default": "/mnt/storage",
+          "needs": [
+            "volume_mode=mount"
+          ]
+        },
+        {
+          "name": "volume_nfs_server",
+          "type": "str",
+          "title": "Volume Nfs Server",
+          "required": true,
+          "default": "192.168.1.1",
+          "needs": [
+            "volume_mode=nfs"
+          ]
+        },
+        {
+          "name": "volume_nfs_path",
+          "type": "str",
+          "title": "Volume Nfs Path",
+          "required": true,
+          "default": "/export",
+          "needs": [
+            "volume_mode=nfs"
+          ]
+        },
+        {
+          "name": "volume_nfs_options",
+          "type": "str",
+          "title": "Volume Nfs Options",
+          "required": true,
+          "default": "rw,nolock,soft",
+          "needs": [
+            "volume_mode=nfs"
+          ]
+        }
       ]
     },
     {
-      "key": "volume_nfs_options",
-      "type": "string",
-      "label": "Volume Nfs Options",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "rw,nolock,soft",
-      "needs": [
-        "volume_mode=nfs"
+      "key": "swarm",
+      "title": "Docker Swarm",
+      "variables": [
+        {
+          "name": "swarm_placement_host",
+          "type": "str",
+          "title": "Target hostname for placement constraint",
+          "required": false,
+          "default": "",
+          "description": "Target hostname for placement constraint"
+        },
+        {
+          "name": "swarm_enabled",
+          "type": "bool",
+          "title": "Enable Docker Swarm mode",
+          "required": false,
+          "default": false,
+          "description": "Enable Docker Swarm mode"
+        },
+        {
+          "name": "swarm_placement_mode",
+          "type": "str",
+          "title": "The placement mode",
+          "required": false,
+          "default": "replicated",
+          "description": "The placement mode"
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "The number of replicas",
+          "required": false,
+          "default": 1,
+          "description": "The number of replicas"
+        }
       ]
-    },
-    {
-      "key": "swarm_placement_host",
-      "type": "string",
-      "label": "Target hostname for placement constraint",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "title": "Docker Swarm",
-        "toggle": "swarm_enabled",
-        "description": "Configure Docker Swarm mode deployment"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Target hostname for placement constraint",
-      "extra": "Constrains service to run on specific node by hostname"
-    },
-    {
-      "key": "swarm_enabled",
-      "type": "boolean",
-      "label": "Enable Docker Swarm mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "title": "Docker Swarm",
-        "toggle": "swarm_enabled",
-        "description": "Configure Docker Swarm mode deployment"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Docker Swarm mode"
-    },
-    {
-      "key": "swarm_placement_mode",
-      "type": "string",
-      "label": "The placement mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "title": "Docker Swarm",
-        "toggle": "swarm_enabled",
-        "description": "Configure Docker Swarm mode deployment"
-      },
-      "source_type": "str",
-      "default": "replicated",
-      "description": "The placement mode"
-    },
-    {
-      "key": "swarm_replicas",
-      "type": "number",
-      "label": "The number of replicas",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "title": "Docker Swarm",
-        "toggle": "swarm_enabled",
-        "description": "Configure Docker Swarm mode deployment"
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "The number of replicas"
     }
   ],
   "legacy": {

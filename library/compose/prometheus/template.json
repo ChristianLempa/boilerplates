@@ -13,7 +13,7 @@
     "author": "Christian Lempa",
     "template_version": "v3.9.1",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "prometheus"
     },
     "date": "2026-01-07",
@@ -25,176 +25,129 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "prometheus"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "prometheus"
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": true,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        }
       ]
     },
     {
-      "key": "metrics_retention_time",
-      "type": "string",
-      "label": "How long to retain samples (e.g., 15d, 30d, 1y)",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics & Storage",
-        "description": "Configure data retention and storage settings"
-      },
-      "source_type": "str",
-      "default": "15d",
-      "description": "How long to retain samples (e.g., 15d, 30d, 1y)",
-      "extra": "Older data will be deleted. Use 'h', 'd', 'w', 'y' for time units."
+      "key": "metrics",
+      "title": "Metrics & Storage",
+      "variables": [
+        {
+          "name": "metrics_retention_time",
+          "type": "str",
+          "title": "How long to retain samples (e.g., 15d, 30d, 1y)",
+          "required": false,
+          "default": "15d",
+          "description": "How long to retain samples (e.g., 15d, 30d, 1y)"
+        },
+        {
+          "name": "metrics_retention_size",
+          "type": "str",
+          "title": "Maximum storage size (e.g., 5GB, 10GB, 1TB)",
+          "required": false,
+          "default": "0",
+          "description": "Maximum storage size (e.g., 5GB, 10GB, 1TB)"
+        },
+        {
+          "name": "metrics_enable_remote_write",
+          "type": "bool",
+          "title": "Enable remote write receiver (allows pushing metrics via /api/v1/write)",
+          "required": false,
+          "default": false,
+          "description": "Enable remote write receiver (allows pushing metrics via /api/v1/write)"
+        }
+      ]
     },
     {
-      "key": "metrics_retention_size",
-      "type": "string",
-      "label": "Maximum storage size (e.g., 5GB, 10GB, 1TB)",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics & Storage",
-        "description": "Configure data retention and storage settings"
-      },
-      "source_type": "str",
-      "default": "0",
-      "description": "Maximum storage size (e.g., 5GB, 10GB, 1TB)",
-      "extra": "Set to 0 for unlimited. Triggers deletion when exceeded."
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "str",
+          "title": "Ports Http",
+          "required": false,
+          "default": 9090
+        }
+      ]
     },
     {
-      "key": "metrics_enable_remote_write",
-      "type": "boolean",
-      "label": "Enable remote write receiver (allows pushing metrics via /api/v1/write)",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics & Storage",
-        "description": "Configure data retention and storage settings"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable remote write receiver (allows pushing metrics via /api/v1/write)",
-      "extra": "Caution: Intended for low-volume use cases only. Not efficient for general ingestion."
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "prometheus"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": true,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": true,
+          "default": "home.arpa"
+        },
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        }
+      ]
     },
     {
-      "key": "ports_http",
-      "type": "string",
-      "label": "Ports Http",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "str",
-      "default": 9090
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "prometheus"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik Tls Certresolver",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "cloudflare"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik TLS"
+      "key": "traefik-tls",
+      "title": "Traefik TLS",
+      "variables": [
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": true,
+          "default": "cloudflare"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable Traefik TLS",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik TLS"
+        }
+      ]
     }
   ],
   "legacy": {

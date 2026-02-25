@@ -12,7 +12,7 @@
     "author": "Christian Lempa",
     "template_version": "1.28.2-alpine",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "nginx"
     },
     "date": "2026-02-05",
@@ -24,226 +24,183 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "nginx"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "nginx"
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": false,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        },
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": false,
+          "default": "nginx"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "Container Timezone",
+          "required": false,
+          "default": "UTC"
+        },
+        {
+          "name": "traefik_tls_entrypoint",
+          "type": "str",
+          "title": "Traefik Tls Entrypoint",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": false,
+          "default": ""
+        }
       ]
     },
     {
-      "key": "container_name",
-      "type": "string",
-      "label": "Container Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "nginx"
-    },
-    {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "Container Timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "UTC"
-    },
-    {
-      "key": "ports_http",
-      "type": "number",
-      "label": "HTTP port for nginx service",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "int",
-      "default": 8080,
-      "description": "HTTP port for nginx service"
-    },
-    {
-      "key": "ports_https",
-      "type": "number",
-      "label": "HTTPS port for nginx service",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "int",
-      "default": 8443,
-      "description": "HTTPS port for nginx service"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Traefik Enabled",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "nginx"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_entrypoint",
-      "type": "boolean",
-      "label": "Traefik Entrypoint",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": "web"
-    },
-    {
-      "key": "network_mode",
-      "type": "string",
-      "label": "Network Mode",
-      "required": false,
-      "section": {
-        "key": "network"
-      },
-      "source_type": "enum",
-      "default": "bridge",
-      "options": [
-        "bridge",
-        "host",
-        "macvlan"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "int",
+          "title": "HTTP port for nginx service",
+          "required": false,
+          "default": 8080,
+          "description": "HTTP port for nginx service"
+        },
+        {
+          "name": "ports_https",
+          "type": "int",
+          "title": "HTTPS port for nginx service",
+          "required": false,
+          "default": 8443,
+          "description": "HTTPS port for nginx service"
+        }
       ]
     },
     {
-      "key": "network_name",
-      "type": "string",
-      "label": "Network Name",
-      "required": false,
-      "section": {
-        "key": "network"
-      },
-      "source_type": "str",
-      "default": "bridge"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Traefik Enabled",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": false,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "nginx"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": false,
+          "default": "home.arpa"
+        },
+        {
+          "name": "traefik_entrypoint",
+          "type": "bool",
+          "title": "Traefik Entrypoint",
+          "required": false,
+          "default": "web"
+        }
+      ]
     },
     {
-      "key": "swarm_enabled",
-      "type": "boolean",
-      "label": "Swarm Enabled",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "bool",
-      "default": false
+      "key": "network",
+      "title": "Network",
+      "variables": [
+        {
+          "name": "network_mode",
+          "type": "str",
+          "title": "Network Mode",
+          "required": false,
+          "default": "bridge",
+          "options": [
+            "bridge",
+            "host",
+            "macvlan"
+          ]
+        },
+        {
+          "name": "network_name",
+          "type": "str",
+          "title": "Network Name",
+          "required": false,
+          "default": "bridge"
+        }
+      ]
     },
     {
-      "key": "swarm_replicas",
-      "type": "number",
-      "label": "Number of replicas for Swarm mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "Number of replicas for Swarm mode"
-    },
-    {
-      "key": "swarm_placement_host",
-      "type": "string",
-      "label": "The placement host",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "The placement host"
-    },
-    {
-      "key": "swarm_placement_mode",
-      "type": "string",
-      "label": "The placement mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "str",
-      "default": "replicated",
-      "description": "The placement mode"
+      "key": "swarm",
+      "title": "Swarm",
+      "variables": [
+        {
+          "name": "swarm_enabled",
+          "type": "bool",
+          "title": "Swarm Enabled",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "Number of replicas for Swarm mode",
+          "required": false,
+          "default": 1,
+          "description": "Number of replicas for Swarm mode"
+        },
+        {
+          "name": "swarm_placement_host",
+          "type": "str",
+          "title": "The placement host",
+          "required": false,
+          "default": "",
+          "description": "The placement host"
+        },
+        {
+          "name": "swarm_placement_mode",
+          "type": "str",
+          "title": "The placement mode",
+          "required": false,
+          "default": "replicated",
+          "description": "The placement mode"
+        }
+      ]
     }
   ],
   "legacy": {

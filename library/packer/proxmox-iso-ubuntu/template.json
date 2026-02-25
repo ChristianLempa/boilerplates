@@ -8,7 +8,7 @@
     "author": "Christian Lempa",
     "template_version": "1.11.2",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "proxmox"
     },
     "date": "2024-11-11"
@@ -19,451 +19,318 @@
   },
   "variables": [
     {
-      "key": "playbook_name",
-      "type": "string",
-      "label": "Name of the playbook",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Name of the playbook"
-    },
-    {
-      "key": "image_name",
-      "type": "string",
-      "label": "Image Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "ubuntu-server-noble"
-    },
-    {
-      "key": "vm_id",
-      "type": "number",
-      "label": "Proxmox VM ID for the template",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "int",
-      "default": 100,
-      "description": "Proxmox VM ID for the template"
-    },
-    {
-      "key": "vm_description",
-      "type": "string",
-      "label": "VM template description",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "Ubuntu Server Noble (24.04) Image",
-      "description": "VM template description"
-    },
-    {
-      "key": "proxmox_node",
-      "type": "string",
-      "label": "Proxmox node name where the VM will be created",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "pve",
-      "description": "Proxmox node name where the VM will be created"
-    },
-    {
-      "key": "proxmox_api_url",
-      "type": "string",
-      "label": "Proxmox API URL (e.g., https://proxmox.example.com:8006/api2/json)",
-      "required": false,
-      "section": {
-        "key": "proxmox",
-        "title": "Proxmox Connection",
-        "required": true
-      },
-      "source_type": "url",
-      "default": "https://proxmox.local:8006/api2/json",
-      "description": "Proxmox API URL (e.g., https://proxmox.example.com:8006/api2/json)"
-    },
-    {
-      "key": "proxmox_api_token_id",
-      "type": "string",
-      "label": "Proxmox API token ID (e.g., root@pam!packer)",
-      "required": false,
-      "section": {
-        "key": "proxmox",
-        "title": "Proxmox Connection",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "root@pam!packer",
-      "description": "Proxmox API token ID (e.g., root@pam!packer)"
-    },
-    {
-      "key": "proxmox_api_token_secret",
-      "type": "string",
-      "label": "Proxmox API token secret",
-      "required": false,
-      "section": {
-        "key": "proxmox",
-        "title": "Proxmox Connection",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Proxmox API token secret",
-      "sensitive": true
-    },
-    {
-      "key": "skip_tls_verify",
-      "type": "boolean",
-      "label": "Skip TLS certificate verification",
-      "required": false,
-      "section": {
-        "key": "proxmox",
-        "title": "Proxmox Connection",
-        "required": true
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Skip TLS certificate verification"
-    },
-    {
-      "key": "iso_source",
-      "type": "string",
-      "label": "ISO source type",
-      "required": false,
-      "section": {
-        "key": "iso",
-        "title": "ISO Configuration",
-        "required": true
-      },
-      "source_type": "enum",
-      "default": "local",
-      "description": "ISO source type",
-      "options": [
-        "local",
-        "download"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "playbook_name",
+          "type": "str",
+          "title": "Name of the playbook",
+          "required": false,
+          "description": "Name of the playbook"
+        },
+        {
+          "name": "image_name",
+          "type": "str",
+          "title": "Image Name",
+          "required": false,
+          "default": "ubuntu-server-noble"
+        },
+        {
+          "name": "vm_id",
+          "type": "int",
+          "title": "Proxmox VM ID for the template",
+          "required": false,
+          "default": 100,
+          "description": "Proxmox VM ID for the template"
+        },
+        {
+          "name": "vm_description",
+          "type": "str",
+          "title": "VM template description",
+          "required": false,
+          "default": "Ubuntu Server Noble (24.04) Image",
+          "description": "VM template description"
+        },
+        {
+          "name": "proxmox_node",
+          "type": "str",
+          "title": "Proxmox node name where the VM will be created",
+          "required": false,
+          "default": "pve",
+          "description": "Proxmox node name where the VM will be created"
+        }
       ]
     },
     {
-      "key": "iso_file",
-      "type": "string",
-      "label": "Local ISO file path (for local source)",
-      "required": false,
-      "section": {
-        "key": "iso",
-        "title": "ISO Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "local:iso/ubuntu-24.04-live-server-amd64.iso",
-      "description": "Local ISO file path (for local source)"
-    },
-    {
-      "key": "iso_url",
-      "type": "string",
-      "label": "ISO download URL (for download source)",
-      "required": false,
-      "section": {
-        "key": "iso",
-        "title": "ISO Configuration",
-        "required": true
-      },
-      "source_type": "url",
-      "default": "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso",
-      "description": "ISO download URL (for download source)"
-    },
-    {
-      "key": "iso_storage",
-      "type": "string",
-      "label": "Proxmox storage for downloaded ISO",
-      "required": false,
-      "section": {
-        "key": "iso",
-        "title": "ISO Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "local",
-      "description": "Proxmox storage for downloaded ISO"
-    },
-    {
-      "key": "iso_checksum",
-      "type": "string",
-      "label": "ISO checksum (SHA256 or checksum file URL)",
-      "required": false,
-      "section": {
-        "key": "iso",
-        "title": "ISO Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9",
-      "description": "ISO checksum (SHA256 or checksum file URL)"
-    },
-    {
-      "key": "cpu_cores",
-      "type": "number",
-      "label": "Number of CPU cores",
-      "required": false,
-      "section": {
-        "key": "hardware",
-        "title": "Hardware Configuration"
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "Number of CPU cores"
-    },
-    {
-      "key": "memory_mb",
-      "type": "number",
-      "label": "Memory in MB",
-      "required": false,
-      "section": {
-        "key": "hardware",
-        "title": "Hardware Configuration"
-      },
-      "source_type": "int",
-      "default": 2048,
-      "description": "Memory in MB"
-    },
-    {
-      "key": "disk_size",
-      "type": "string",
-      "label": "Disk size (e.g., 25G, 50G)",
-      "required": false,
-      "section": {
-        "key": "hardware",
-        "title": "Hardware Configuration"
-      },
-      "source_type": "str",
-      "default": "25G",
-      "description": "Disk size (e.g., 25G, 50G)"
-    },
-    {
-      "key": "disk_storage",
-      "type": "string",
-      "label": "Proxmox storage pool for disk",
-      "required": false,
-      "section": {
-        "key": "hardware",
-        "title": "Hardware Configuration"
-      },
-      "source_type": "str",
-      "default": "local-lvm",
-      "description": "Proxmox storage pool for disk"
-    },
-    {
-      "key": "network_bridge",
-      "type": "string",
-      "label": "Network bridge",
-      "required": false,
-      "section": {
-        "key": "hardware",
-        "title": "Hardware Configuration"
-      },
-      "source_type": "str",
-      "default": "vmbr0",
-      "description": "Network bridge"
-    },
-    {
-      "key": "cloudinit_storage",
-      "type": "string",
-      "label": "Proxmox storage pool for cloud-init disk",
-      "required": false,
-      "section": {
-        "key": "cloudinit",
-        "title": "Cloud-Init Configuration"
-      },
-      "source_type": "str",
-      "default": "local-lvm",
-      "description": "Proxmox storage pool for cloud-init disk"
-    },
-    {
-      "key": "locale",
-      "type": "string",
-      "label": "System locale",
-      "required": false,
-      "section": {
-        "key": "cloudinit",
-        "title": "Cloud-Init Configuration"
-      },
-      "source_type": "str",
-      "default": "en_US",
-      "description": "System locale"
-    },
-    {
-      "key": "keyboard_layout",
-      "type": "string",
-      "label": "Keyboard layout",
-      "required": false,
-      "section": {
-        "key": "cloudinit",
-        "title": "Cloud-Init Configuration"
-      },
-      "source_type": "str",
-      "default": "us",
-      "description": "Keyboard layout"
-    },
-    {
-      "key": "timezone",
-      "type": "string",
-      "label": "System timezone",
-      "required": false,
-      "section": {
-        "key": "cloudinit",
-        "title": "Cloud-Init Configuration"
-      },
-      "source_type": "str",
-      "default": "UTC",
-      "description": "System timezone"
-    },
-    {
-      "key": "ssh_username",
-      "type": "string",
-      "label": "SSH username for provisioning",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "ubuntu",
-      "description": "SSH username for provisioning"
-    },
-    {
-      "key": "ssh_auth_method",
-      "type": "string",
-      "label": "SSH authentication method",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "enum",
-      "default": "password",
-      "description": "SSH authentication method",
-      "options": [
-        "password",
-        "key"
+      "key": "proxmox",
+      "title": "Proxmox Connection",
+      "variables": [
+        {
+          "name": "proxmox_api_url",
+          "type": "str",
+          "title": "Proxmox API URL (e.g., https://proxmox.example.com:8006/api2/json)",
+          "required": false,
+          "default": "https://proxmox.local:8006/api2/json",
+          "description": "Proxmox API URL (e.g., https://proxmox.example.com:8006/api2/json)"
+        },
+        {
+          "name": "proxmox_api_token_id",
+          "type": "str",
+          "title": "Proxmox API token ID (e.g., root@pam!packer)",
+          "required": false,
+          "default": "root@pam!packer",
+          "description": "Proxmox API token ID (e.g., root@pam!packer)"
+        },
+        {
+          "name": "proxmox_api_token_secret",
+          "type": "str",
+          "title": "Proxmox API token secret",
+          "required": false,
+          "default": "",
+          "description": "Proxmox API token secret",
+          "sensitive": true
+        },
+        {
+          "name": "skip_tls_verify",
+          "type": "bool",
+          "title": "Skip TLS certificate verification",
+          "required": false,
+          "default": false,
+          "description": "Skip TLS certificate verification"
+        }
       ]
     },
     {
-      "key": "ssh_password",
-      "type": "string",
-      "label": "SSH password (for password auth)",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "SSH password (for password auth)",
-      "sensitive": true
+      "key": "iso",
+      "title": "ISO Configuration",
+      "variables": [
+        {
+          "name": "iso_source",
+          "type": "str",
+          "title": "ISO source type",
+          "required": false,
+          "default": "local",
+          "description": "ISO source type",
+          "options": [
+            "local",
+            "download"
+          ]
+        },
+        {
+          "name": "iso_file",
+          "type": "str",
+          "title": "Local ISO file path (for local source)",
+          "required": false,
+          "default": "local:iso/ubuntu-24.04-live-server-amd64.iso",
+          "description": "Local ISO file path (for local source)"
+        },
+        {
+          "name": "iso_url",
+          "type": "str",
+          "title": "ISO download URL (for download source)",
+          "required": false,
+          "default": "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso",
+          "description": "ISO download URL (for download source)"
+        },
+        {
+          "name": "iso_storage",
+          "type": "str",
+          "title": "Proxmox storage for downloaded ISO",
+          "required": false,
+          "default": "local",
+          "description": "Proxmox storage for downloaded ISO"
+        },
+        {
+          "name": "iso_checksum",
+          "type": "str",
+          "title": "ISO checksum (SHA256 or checksum file URL)",
+          "required": false,
+          "default": "e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9",
+          "description": "ISO checksum (SHA256 or checksum file URL)"
+        }
+      ]
     },
     {
-      "key": "ssh_private_key_file",
-      "type": "string",
-      "label": "SSH private key file path (for key auth)",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "~/.ssh/id_rsa",
-      "description": "SSH private key file path (for key auth)"
+      "key": "hardware",
+      "title": "Hardware Configuration",
+      "variables": [
+        {
+          "name": "cpu_cores",
+          "type": "int",
+          "title": "Number of CPU cores",
+          "required": false,
+          "default": 1,
+          "description": "Number of CPU cores"
+        },
+        {
+          "name": "memory_mb",
+          "type": "int",
+          "title": "Memory in MB",
+          "required": false,
+          "default": 2048,
+          "description": "Memory in MB"
+        },
+        {
+          "name": "disk_size",
+          "type": "str",
+          "title": "Disk size (e.g., 25G, 50G)",
+          "required": false,
+          "default": "25G",
+          "description": "Disk size (e.g., 25G, 50G)"
+        },
+        {
+          "name": "disk_storage",
+          "type": "str",
+          "title": "Proxmox storage pool for disk",
+          "required": false,
+          "default": "local-lvm",
+          "description": "Proxmox storage pool for disk"
+        },
+        {
+          "name": "network_bridge",
+          "type": "str",
+          "title": "Network bridge",
+          "required": false,
+          "default": "vmbr0",
+          "description": "Network bridge"
+        }
+      ]
     },
     {
-      "key": "ssh_public_key",
-      "type": "string",
-      "label": "SSH public key (for key auth in cloud-init)",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "SSH public key (for key auth in cloud-init)"
+      "key": "cloudinit",
+      "title": "Cloud-Init Configuration",
+      "variables": [
+        {
+          "name": "cloudinit_storage",
+          "type": "str",
+          "title": "Proxmox storage pool for cloud-init disk",
+          "required": false,
+          "default": "local-lvm",
+          "description": "Proxmox storage pool for cloud-init disk"
+        },
+        {
+          "name": "locale",
+          "type": "str",
+          "title": "System locale",
+          "required": false,
+          "default": "en_US",
+          "description": "System locale"
+        },
+        {
+          "name": "keyboard_layout",
+          "type": "str",
+          "title": "Keyboard layout",
+          "required": false,
+          "default": "us",
+          "description": "Keyboard layout"
+        },
+        {
+          "name": "timezone",
+          "type": "str",
+          "title": "System timezone",
+          "required": false,
+          "default": "UTC",
+          "description": "System timezone"
+        }
+      ]
     },
     {
-      "key": "ssh_timeout",
-      "type": "string",
-      "label": "SSH connection timeout",
-      "required": false,
-      "section": {
-        "key": "ssh",
-        "title": "SSH Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "30m",
-      "description": "SSH connection timeout"
+      "key": "ssh",
+      "title": "SSH Configuration",
+      "variables": [
+        {
+          "name": "ssh_username",
+          "type": "str",
+          "title": "SSH username for provisioning",
+          "required": false,
+          "default": "ubuntu",
+          "description": "SSH username for provisioning"
+        },
+        {
+          "name": "ssh_auth_method",
+          "type": "str",
+          "title": "SSH authentication method",
+          "required": false,
+          "default": "password",
+          "description": "SSH authentication method",
+          "options": [
+            "password",
+            "key"
+          ]
+        },
+        {
+          "name": "ssh_password",
+          "type": "str",
+          "title": "SSH password (for password auth)",
+          "required": false,
+          "default": "",
+          "description": "SSH password (for password auth)",
+          "sensitive": true
+        },
+        {
+          "name": "ssh_private_key_file",
+          "type": "str",
+          "title": "SSH private key file path (for key auth)",
+          "required": false,
+          "default": "~/.ssh/id_rsa",
+          "description": "SSH private key file path (for key auth)"
+        },
+        {
+          "name": "ssh_public_key",
+          "type": "str",
+          "title": "SSH public key (for key auth in cloud-init)",
+          "required": false,
+          "default": "",
+          "description": "SSH public key (for key auth in cloud-init)"
+        },
+        {
+          "name": "ssh_timeout",
+          "type": "str",
+          "title": "SSH connection timeout",
+          "required": false,
+          "default": "30m",
+          "description": "SSH connection timeout"
+        }
+      ]
     },
     {
-      "key": "boot_wait",
-      "type": "string",
-      "label": "Time to wait before typing boot command",
-      "required": false,
-      "section": {
-        "key": "boot",
-        "title": "Boot Configuration"
-      },
-      "source_type": "str",
-      "default": "10s",
-      "description": "Time to wait before typing boot command"
-    },
-    {
-      "key": "http_bind_address",
-      "type": "string",
-      "label": "HTTP server bind address for autoinstall",
-      "required": false,
-      "section": {
-        "key": "boot",
-        "title": "Boot Configuration"
-      },
-      "source_type": "str",
-      "default": "0.0.0.0",
-      "description": "HTTP server bind address for autoinstall"
-    },
-    {
-      "key": "http_port_min",
-      "type": "number",
-      "label": "HTTP server minimum port",
-      "required": false,
-      "section": {
-        "key": "boot",
-        "title": "Boot Configuration"
-      },
-      "source_type": "int",
-      "default": 8802,
-      "description": "HTTP server minimum port"
-    },
-    {
-      "key": "http_port_max",
-      "type": "number",
-      "label": "HTTP server maximum port",
-      "required": false,
-      "section": {
-        "key": "boot",
-        "title": "Boot Configuration"
-      },
-      "source_type": "int",
-      "default": 8802,
-      "description": "HTTP server maximum port"
+      "key": "boot",
+      "title": "Boot Configuration",
+      "variables": [
+        {
+          "name": "boot_wait",
+          "type": "str",
+          "title": "Time to wait before typing boot command",
+          "required": false,
+          "default": "10s",
+          "description": "Time to wait before typing boot command"
+        },
+        {
+          "name": "http_bind_address",
+          "type": "str",
+          "title": "HTTP server bind address for autoinstall",
+          "required": false,
+          "default": "0.0.0.0",
+          "description": "HTTP server bind address for autoinstall"
+        },
+        {
+          "name": "http_port_min",
+          "type": "int",
+          "title": "HTTP server minimum port",
+          "required": false,
+          "default": 8802,
+          "description": "HTTP server minimum port"
+        },
+        {
+          "name": "http_port_max",
+          "type": "int",
+          "title": "HTTP server maximum port",
+          "required": false,
+          "default": 8802,
+          "description": "HTTP server maximum port"
+        }
+      ]
     }
   ],
   "legacy": {

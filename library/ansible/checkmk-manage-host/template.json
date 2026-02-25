@@ -10,7 +10,7 @@
     "template_version": "2.4.0",
     "date": "2025-11-11",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "checkmk"
     },
     "draft": false,
@@ -22,115 +22,89 @@
   },
   "variables": [
     {
-      "key": "target_hosts",
-      "type": "string",
-      "label": "Target hosts or group",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Target hosts or group"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "target_hosts",
+          "type": "str",
+          "title": "Target hosts or group",
+          "required": true,
+          "description": "Target hosts or group"
+        }
+      ]
     },
     {
-      "key": "checkmk_server",
-      "type": "string",
-      "label": "Checkmk Server",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Server"
+      "key": "checkmk",
+      "title": "Checkmk Configuration",
+      "variables": [
+        {
+          "name": "checkmk_server",
+          "type": "str",
+          "title": "Checkmk Server",
+          "required": true,
+          "description": "Checkmk Server"
+        },
+        {
+          "name": "checkmk_protocol",
+          "type": "str",
+          "title": "Checkmk Server Protocol",
+          "required": true,
+          "default": "https",
+          "description": "Checkmk Server Protocol"
+        },
+        {
+          "name": "checkmk_site",
+          "type": "str",
+          "title": "Checkmk Site",
+          "required": true,
+          "default": "cmk",
+          "description": "Checkmk Site"
+        },
+        {
+          "name": "checkmk_user",
+          "type": "str",
+          "title": "Checkmk Automation User",
+          "required": true,
+          "description": "Checkmk Automation User"
+        },
+        {
+          "name": "checkmk_pass",
+          "type": "str",
+          "title": "Checkmk Automation User Password",
+          "required": true,
+          "description": "Checkmk Automation User Password",
+          "sensitive": true
+        }
+      ]
     },
     {
-      "key": "checkmk_protocol",
-      "type": "string",
-      "label": "Checkmk Server Protocol",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "default": "https",
-      "description": "Checkmk Server Protocol"
-    },
-    {
-      "key": "checkmk_site",
-      "type": "string",
-      "label": "Checkmk Site",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "default": "cmk",
-      "description": "Checkmk Site"
-    },
-    {
-      "key": "checkmk_user",
-      "type": "string",
-      "label": "Checkmk Automation User",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Automation User"
-    },
-    {
-      "key": "checkmk_pass",
-      "type": "string",
-      "label": "Checkmk Automation User Password",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Automation User Password",
-      "sensitive": true
-    },
-    {
-      "key": "host_name",
-      "type": "string",
-      "label": "Hostname to add to Checkmk",
-      "required": true,
-      "section": {
-        "key": "host",
-        "title": "Host Configuration"
-      },
-      "source_type": "str",
-      "description": "Hostname to add to Checkmk"
-    },
-    {
-      "key": "host_ip",
-      "type": "string",
-      "label": "IP address of the host",
-      "required": true,
-      "section": {
-        "key": "host",
-        "title": "Host Configuration"
-      },
-      "source_type": "str",
-      "description": "IP address of the host"
-    },
-    {
-      "key": "host_folder",
-      "type": "string",
-      "label": "Folder path in Checkmk",
-      "required": true,
-      "section": {
-        "key": "host",
-        "title": "Host Configuration"
-      },
-      "source_type": "str",
-      "default": "/",
-      "description": "Folder path in Checkmk"
+      "key": "host",
+      "title": "Host Configuration",
+      "variables": [
+        {
+          "name": "host_name",
+          "type": "str",
+          "title": "Hostname to add to Checkmk",
+          "required": true,
+          "description": "Hostname to add to Checkmk"
+        },
+        {
+          "name": "host_ip",
+          "type": "str",
+          "title": "IP address of the host",
+          "required": true,
+          "description": "IP address of the host"
+        },
+        {
+          "name": "host_folder",
+          "type": "str",
+          "title": "Folder path in Checkmk",
+          "required": true,
+          "default": "/",
+          "description": "Folder path in Checkmk"
+        }
+      ]
     }
   ],
   "legacy": {

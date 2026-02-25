@@ -12,7 +12,7 @@
     "author": "Christian Lempa",
     "template_version": "12.3.3",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "grafana"
     },
     "next_steps": "Log in with the initial admin user:\n```bash\nUsername: admin\nPassword: admin\n```",
@@ -24,333 +24,250 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "grafana"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "grafana"
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": true,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        }
       ]
     },
     {
-      "key": "ports_http",
-      "type": "string",
-      "label": "Ports Http",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "str",
-      "default": 3000
-    },
-    {
-      "key": "authentik_enabled",
-      "type": "boolean",
-      "label": "Enable Authentik SSO integration",
-      "required": false,
-      "section": {
-        "key": "authentik",
-        "toggle": "authentik_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Authentik SSO integration"
-    },
-    {
-      "key": "authentik_url",
-      "type": "string",
-      "label": "Authentik Url",
-      "required": true,
-      "section": {
-        "key": "authentik",
-        "toggle": "authentik_enabled"
-      },
-      "source_type": "url",
-      "default": "https://auth.home.arpa",
-      "needs": "authentik_enabled=true"
-    },
-    {
-      "key": "authentik_slug",
-      "type": "string",
-      "label": "Authentik Slug",
-      "required": true,
-      "section": {
-        "key": "authentik",
-        "toggle": "authentik_enabled"
-      },
-      "source_type": "hostname",
-      "default": "grafana",
-      "needs": "authentik_enabled=true"
-    },
-    {
-      "key": "authentik_client_id",
-      "type": "string",
-      "label": "Authentik Client Id",
-      "required": true,
-      "section": {
-        "key": "authentik",
-        "toggle": "authentik_enabled"
-      },
-      "source_type": "str",
-      "needs": "authentik_enabled=true",
-      "sensitive": true
-    },
-    {
-      "key": "authentik_client_secret",
-      "type": "string",
-      "label": "Authentik Client Secret",
-      "required": true,
-      "section": {
-        "key": "authentik",
-        "toggle": "authentik_enabled"
-      },
-      "source_type": "str",
-      "needs": "authentik_enabled=true",
-      "sensitive": true
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "grafana"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik Tls Certresolver",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "cloudflare"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik TLS"
-    },
-    {
-      "key": "database_type",
-      "type": "string",
-      "label": "Database Type",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "enum",
-      "options": [
-        "sqlite",
-        "postgres"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "str",
+          "title": "Ports Http",
+          "required": false,
+          "default": 3000
+        }
       ]
     },
     {
-      "key": "database_external",
-      "type": "boolean",
-      "label": "Use external database",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Use external database",
-      "needs": "database_type=postgres"
-    },
-    {
-      "key": "database_name",
-      "type": "string",
-      "label": "Database Name",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "default": "grafana",
-      "needs": "database_type=postgres"
-    },
-    {
-      "key": "database_user",
-      "type": "string",
-      "label": "Database User",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "default": "grafana",
-      "needs": "database_type=postgres"
-    },
-    {
-      "key": "database_password",
-      "type": "string",
-      "label": "Database Password",
-      "required": true,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "needs": "database_type=postgres",
-      "sensitive": true
-    },
-    {
-      "key": "database_host",
-      "type": "string",
-      "label": "Database Host",
-      "required": true,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "needs": [
-        "database_type=postgres",
-        "database_external=true"
+      "key": "authentik",
+      "title": "Authentik",
+      "variables": [
+        {
+          "name": "authentik_enabled",
+          "type": "bool",
+          "title": "Enable Authentik SSO integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Authentik SSO integration"
+        },
+        {
+          "name": "authentik_url",
+          "type": "str",
+          "title": "Authentik Url",
+          "required": true,
+          "default": "https://auth.home.arpa",
+          "needs": "authentik_enabled=true"
+        },
+        {
+          "name": "authentik_slug",
+          "type": "str",
+          "title": "Authentik Slug",
+          "required": true,
+          "default": "grafana",
+          "needs": "authentik_enabled=true"
+        },
+        {
+          "name": "authentik_client_id",
+          "type": "str",
+          "title": "Authentik Client Id",
+          "required": true,
+          "sensitive": true,
+          "needs": "authentik_enabled=true"
+        },
+        {
+          "name": "authentik_client_secret",
+          "type": "str",
+          "title": "Authentik Client Secret",
+          "required": true,
+          "sensitive": true,
+          "needs": "authentik_enabled=true"
+        }
       ]
     },
     {
-      "key": "swarm_enabled",
-      "type": "boolean",
-      "label": "Enable Docker Swarm mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Docker Swarm mode"
-    },
-    {
-      "key": "swarm_placement_mode",
-      "type": "string",
-      "label": "The placement mode",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "str",
-      "default": "replicated",
-      "description": "The placement mode",
-      "needs": [
-        "swarm_enabled=true"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "grafana"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": true,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": true,
+          "default": "home.arpa"
+        },
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        }
       ]
     },
     {
-      "key": "swarm_replicas",
-      "type": "number",
-      "label": "The number of replicas",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "The number of replicas",
-      "needs": [
-        "swarm_placement_mode=replicated"
+      "key": "traefik-tls",
+      "title": "Traefik TLS",
+      "variables": [
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": true,
+          "default": "cloudflare"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable Traefik TLS",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik TLS"
+        }
       ]
     },
     {
-      "key": "swarm_placement_host",
-      "type": "string",
-      "label": "The placement host",
-      "required": false,
-      "section": {
-        "key": "swarm",
-        "toggle": "swarm_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "The placement host",
-      "needs": [
-        "swarm_placement_mode=replicated"
+      "key": "database",
+      "title": "Database",
+      "variables": [
+        {
+          "name": "database_type",
+          "type": "str",
+          "title": "Database Type",
+          "required": false,
+          "options": [
+            "sqlite",
+            "postgres"
+          ]
+        },
+        {
+          "name": "database_external",
+          "type": "bool",
+          "title": "Use external database",
+          "required": false,
+          "default": false,
+          "description": "Use external database",
+          "needs": "database_type=postgres"
+        },
+        {
+          "name": "database_name",
+          "type": "str",
+          "title": "Database Name",
+          "required": false,
+          "default": "grafana",
+          "needs": "database_type=postgres"
+        },
+        {
+          "name": "database_user",
+          "type": "str",
+          "title": "Database User",
+          "required": false,
+          "default": "grafana",
+          "needs": "database_type=postgres"
+        },
+        {
+          "name": "database_password",
+          "type": "str",
+          "title": "Database Password",
+          "required": true,
+          "sensitive": true,
+          "needs": "database_type=postgres"
+        },
+        {
+          "name": "database_host",
+          "type": "str",
+          "title": "Database Host",
+          "required": true,
+          "needs": [
+            "database_type=postgres",
+            "database_external=true"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "swarm",
+      "title": "Swarm",
+      "variables": [
+        {
+          "name": "swarm_enabled",
+          "type": "bool",
+          "title": "Enable Docker Swarm mode",
+          "required": false,
+          "default": false,
+          "description": "Enable Docker Swarm mode"
+        },
+        {
+          "name": "swarm_placement_mode",
+          "type": "str",
+          "title": "The placement mode",
+          "required": false,
+          "default": "replicated",
+          "description": "The placement mode",
+          "needs": [
+            "swarm_enabled=true"
+          ]
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "The number of replicas",
+          "required": false,
+          "default": 1,
+          "description": "The number of replicas",
+          "needs": [
+            "swarm_placement_mode=replicated"
+          ]
+        },
+        {
+          "name": "swarm_placement_host",
+          "type": "str",
+          "title": "The placement host",
+          "required": false,
+          "default": "",
+          "description": "The placement host",
+          "needs": [
+            "swarm_placement_mode=replicated"
+          ]
+        }
       ]
     }
   ],

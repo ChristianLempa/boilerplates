@@ -10,8 +10,8 @@
     "template_version": "2026.2.2",
     "date": "2026-02-14",
     "icon": {
-      "provider": "selfh",
-      "id": "home-assistant"
+      "provider": "simple-icons",
+      "id": "homeassistant"
     },
     "draft": true,
     "next_steps": ""
@@ -22,26 +22,24 @@
   },
   "variables": [
     {
-      "key": "container_name",
-      "type": "string",
-      "label": "Container Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "homeassistant"
-    },
-    {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "homeassistant"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": false,
+          "default": "homeassistant"
+        },
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "homeassistant"
+        }
+      ]
     }
   ],
   "legacy": {

@@ -12,7 +12,7 @@
     "template_version": "v1.13.1",
     "date": "2026-02-16",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "grafana"
     },
     "next_steps": null
@@ -23,252 +23,187 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "alloy"
-    },
-    {
-      "key": "container_hostname",
-      "type": "string",
-      "label": "Container internal hostname",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Container internal hostname"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Container restart policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "description": "Container restart policy",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "alloy"
+        },
+        {
+          "name": "container_hostname",
+          "type": "str",
+          "title": "Container internal hostname",
+          "required": false,
+          "description": "Container internal hostname"
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Container restart policy",
+          "required": true,
+          "default": "unless-stopped",
+          "description": "Container restart policy",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        }
       ]
     },
     {
-      "key": "logs_docker",
-      "type": "boolean",
-      "label": "Enable Docker container log collection",
-      "required": false,
-      "section": {
-        "key": "logs",
-        "title": "Log Collection",
-        "toggle": "logs_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable Docker container log collection"
+      "key": "logs",
+      "title": "Log Collection",
+      "variables": [
+        {
+          "name": "logs_docker",
+          "type": "bool",
+          "title": "Enable Docker container log collection",
+          "required": false,
+          "default": true,
+          "description": "Enable Docker container log collection"
+        },
+        {
+          "name": "logs_enabled",
+          "type": "bool",
+          "title": "Enable log collection",
+          "required": false,
+          "default": false,
+          "description": "Enable log collection"
+        },
+        {
+          "name": "logs_loki_url",
+          "type": "str",
+          "title": "Loki endpoint URL for sending logs",
+          "required": true,
+          "default": "http://loki:3100/loki/api/v1/push",
+          "description": "Loki endpoint URL for sending logs"
+        },
+        {
+          "name": "logs_system",
+          "type": "bool",
+          "title": "Enable system and journalctl log collection",
+          "required": false,
+          "default": true,
+          "description": "Enable system and journalctl log collection"
+        }
+      ]
     },
     {
-      "key": "logs_enabled",
-      "type": "boolean",
-      "label": "Enable log collection",
-      "required": false,
-      "section": {
-        "key": "logs",
-        "title": "Log Collection",
-        "toggle": "logs_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable log collection"
+      "key": "metrics",
+      "title": "Metrics Collection",
+      "variables": [
+        {
+          "name": "metrics_docker",
+          "type": "bool",
+          "title": "Enable Docker container metrics collection (cAdvisor)",
+          "required": false,
+          "default": true,
+          "description": "Enable Docker container metrics collection (cAdvisor)"
+        },
+        {
+          "name": "metrics_enabled",
+          "type": "bool",
+          "title": "Enable metrics collection",
+          "required": false,
+          "default": false,
+          "description": "Enable metrics collection"
+        },
+        {
+          "name": "metrics_prometheus_url",
+          "type": "str",
+          "title": "Prometheus remote write endpoint",
+          "required": true,
+          "default": "http://prometheus:9090/api/v1/write",
+          "description": "Prometheus remote write endpoint"
+        },
+        {
+          "name": "metrics_system",
+          "type": "bool",
+          "title": "Enable system (node) metrics collection",
+          "required": false,
+          "default": true,
+          "description": "Enable system (node) metrics collection"
+        }
+      ]
     },
     {
-      "key": "logs_loki_url",
-      "type": "string",
-      "label": "Loki endpoint URL for sending logs",
-      "required": true,
-      "section": {
-        "key": "logs",
-        "title": "Log Collection",
-        "toggle": "logs_enabled"
-      },
-      "source_type": "url",
-      "default": "http://loki:3100/loki/api/v1/push",
-      "description": "Loki endpoint URL for sending logs"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_webui",
+          "type": "int",
+          "title": "Port for Alloy web UI",
+          "required": false,
+          "default": 12345,
+          "description": "Port for Alloy web UI"
+        }
+      ]
     },
     {
-      "key": "logs_system",
-      "type": "boolean",
-      "label": "Enable system and journalctl log collection",
-      "required": false,
-      "section": {
-        "key": "logs",
-        "title": "Log Collection",
-        "toggle": "logs_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable system and journalctl log collection"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik reverse proxy integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik reverse proxy integration"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik network name",
+          "required": true,
+          "default": "traefik",
+          "description": "Traefik network name"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "alloy"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Base domain (e.g., example.com)",
+          "required": true,
+          "default": "home.arpa",
+          "description": "Base domain (e.g., example.com)"
+        }
+      ]
     },
     {
-      "key": "metrics_docker",
-      "type": "boolean",
-      "label": "Enable Docker container metrics collection (cAdvisor)",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics Collection",
-        "toggle": "metrics_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable Docker container metrics collection (cAdvisor)"
-    },
-    {
-      "key": "metrics_enabled",
-      "type": "boolean",
-      "label": "Enable metrics collection",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics Collection",
-        "toggle": "metrics_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable metrics collection"
-    },
-    {
-      "key": "metrics_prometheus_url",
-      "type": "string",
-      "label": "Prometheus remote write endpoint",
-      "required": true,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics Collection",
-        "toggle": "metrics_enabled"
-      },
-      "source_type": "url",
-      "default": "http://prometheus:9090/api/v1/write",
-      "description": "Prometheus remote write endpoint"
-    },
-    {
-      "key": "metrics_system",
-      "type": "boolean",
-      "label": "Enable system (node) metrics collection",
-      "required": false,
-      "section": {
-        "key": "metrics",
-        "title": "Metrics Collection",
-        "toggle": "metrics_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable system (node) metrics collection"
-    },
-    {
-      "key": "ports_webui",
-      "type": "number",
-      "label": "Port for Alloy web UI",
-      "required": false,
-      "section": {
-        "key": "ports",
-        "title": "Ports"
-      },
-      "source_type": "int",
-      "default": 12345,
-      "description": "Port for Alloy web UI"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik reverse proxy integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik reverse proxy integration"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik network name",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "traefik",
-      "description": "Traefik network name"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "alloy"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Base domain (e.g., example.com)",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "home.arpa",
-      "description": "Base domain (e.g., example.com)"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable HTTPS/TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS/SSL",
-        "toggle": "traefik_tls_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable HTTPS/TLS"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik certificate resolver name",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS/SSL",
-        "toggle": "traefik_tls_enabled"
-      },
-      "source_type": "str",
-      "default": "cloudflare",
-      "description": "Traefik certificate resolver name"
+      "key": "traefik-tls",
+      "title": "Traefik TLS/SSL",
+      "variables": [
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable HTTPS/TLS",
+          "required": false,
+          "default": true,
+          "description": "Enable HTTPS/TLS"
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik certificate resolver name",
+          "required": true,
+          "default": "cloudflare",
+          "description": "Traefik certificate resolver name"
+        }
+      ]
     }
   ],
   "legacy": {

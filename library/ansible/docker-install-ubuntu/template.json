@@ -8,7 +8,7 @@
     "author": "Christian Lempa",
     "template_version": "27.5.1",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "docker"
     },
     "date": "2025-11-11",
@@ -20,15 +20,24 @@
   },
   "variables": [
     {
-      "key": "target_hosts",
-      "type": "string",
-      "label": "Target hosts or group",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Target hosts or group"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "target_hosts",
+          "type": "str",
+          "title": "Target hosts or group",
+          "required": true,
+          "description": "Target hosts or group"
+        },
+        {
+          "name": "ansible_distribution_release",
+          "type": "str",
+          "title": "Ansible Distribution Release",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ],
   "legacy": {

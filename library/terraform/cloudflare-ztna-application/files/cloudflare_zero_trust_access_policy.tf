@@ -22,7 +22,10 @@ resource "cloudflare_zero_trust_access_policy" "{{ resource_name }}_ip" {
       ip = {
         ip = "{{ ip_range.strip() }}"
       }
-    }{{ "," if not loop.last else "" }}
+    }
+{% if not loop.last %}
+    ,
+{% endif %}
 {% endfor %}
   ]
   session_duration = "{{ session_duration }}"

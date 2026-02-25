@@ -78,10 +78,7 @@ services:
       - {{ service_name }}_postgres
     {% endif %}
 
-  {#
-    Authentik Worker: Background task processor
-    Handles long-running tasks like email sending, cleanup jobs, and scheduled tasks
-  #}
+  
   {{ service_name }}_worker:
     image: ghcr.io/goauthentik/server:2025.12.4
     restart: {{ restart_policy }}
@@ -112,7 +109,7 @@ services:
     networks:
       - {{ service_name }}_backend
     volumes:
-      {# the embedded outpost uses the docker socket to manage containers #}
+      
       - /run/docker.sock:/run/docker.sock
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}/data:/data
@@ -128,9 +125,7 @@ services:
       - {{ service_name }}_postgres
     {% endif %}
 
-  {#
-    PostgreSQL database service
-  #}
+  
   {% if not database_external %}
   {{ service_name }}_postgres:
     image: docker.io/library/postgres:17.8
@@ -155,11 +150,7 @@ services:
       {% endif %}
   {% endif %}
 
-{#
-  Network definitions:
-  - Backend network: Internal communication between services
-  - Traefik network: External access via reverse proxy (always external)
-#}
+
 networks:
   {{ service_name }}_backend:
     driver: bridge
@@ -168,12 +159,7 @@ networks:
     external: true
   {% endif %}
 
-{#
-  Volume definitions:
-  - When volume_mode is 'local' (default): use docker-managed local volumes
-  - When volume_mode is 'nfs': configure NFS-backed volumes
-  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
-#}
+
 {% if volume_mode == 'local' %}
 volumes:
   {% if not database_external %}

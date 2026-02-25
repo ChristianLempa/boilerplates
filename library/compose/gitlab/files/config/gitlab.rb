@@ -91,4 +91,4 @@ gitlab_rails['gitlab_default_theme'] = {{ default_theme }}
 gitlab_rails['gitlab_default_color_mode'] = {{ default_color_mode }}
 
 # Product usage data
-gitlab_rails['initial_gitlab_product_usage_data'] = {{ 'false' if disable_usage_data else 'true' }}
+gitlab_rails['initial_gitlab_product_usage_data'] = {% if disable_usage_data %}false{% else %}true{% endif %}

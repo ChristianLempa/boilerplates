@@ -8,7 +8,10 @@ resource "cloudflare_zero_trust_access_application" "{{ resource_name }}" {
 {% if service_token_enabled %}
     {
       id = cloudflare_zero_trust_access_policy.{{ resource_name }}_service_token.id
-    }{{ "," if ip_policy_enabled else "" }}
+    }
+{% if ip_policy_enabled %}
+    ,
+{% endif %}
 {% endif %}
 {% if ip_policy_enabled %}
     {

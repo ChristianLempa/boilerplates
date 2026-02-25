@@ -8,8 +8,8 @@
     "author": "Christian Lempa",
     "template_version": "1.16.2",
     "icon": {
-      "provider": "selfh",
-      "id": "lets-encrypt"
+      "provider": "simple-icons",
+      "id": "letsencrypt"
     },
     "date": "2025-01-11"
   },
@@ -19,224 +19,154 @@
   },
   "variables": [
     {
-      "key": "resource_name",
-      "type": "string",
-      "label": "Resource Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "cloudflare-clusterissuer"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "resource_name",
+          "type": "str",
+          "title": "Resource Name",
+          "required": false,
+          "default": "cloudflare-clusterissuer"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Namespace (ClusterIssuer is cluster-scoped, but needed for schema)",
+          "required": false,
+          "default": "cert-manager",
+          "description": "Namespace (ClusterIssuer is cluster-scoped, but needed for schema)"
+        },
+        {
+          "name": "acme_email",
+          "type": "str",
+          "title": "Email address for ACME account registration",
+          "required": false,
+          "description": "Email address for ACME account registration"
+        },
+        {
+          "name": "acme_server",
+          "type": "str",
+          "title": "ACME server URL",
+          "required": false,
+          "default": "https://acme-v02.api.letsencrypt.org/directory",
+          "description": "ACME server URL"
+        },
+        {
+          "name": "privatekey_secret_name",
+          "type": "str",
+          "title": "Name of secret to store ACME account private key",
+          "required": false,
+          "default": "cloudflare-clusterissuer-account-key",
+          "description": "Name of secret to store ACME account private key"
+        },
+        {
+          "name": "api_token_secret_name",
+          "type": "str",
+          "title": "Name of secret containing Cloudflare API token",
+          "required": false,
+          "default": "cloudflare-api-token-secret",
+          "description": "Name of secret containing Cloudflare API token"
+        },
+        {
+          "name": "api_token_secret_key",
+          "type": "str",
+          "title": "Key name in secret containing Cloudflare API token",
+          "required": false,
+          "default": "api-token",
+          "description": "Key name in secret containing Cloudflare API token"
+        }
+      ]
     },
     {
-      "key": "namespace",
-      "type": "string",
-      "label": "Namespace (ClusterIssuer is cluster-scoped, but needed for schema)",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "cert-manager",
-      "description": "Namespace (ClusterIssuer is cluster-scoped, but needed for schema)"
+      "key": "resources",
+      "title": "Resource Limits",
+      "variables": [
+        {
+          "name": "resources_enabled",
+          "type": "bool",
+          "title": "Enable resource limits and requests",
+          "required": false,
+          "default": false,
+          "description": "Enable resource limits and requests"
+        },
+        {
+          "name": "resources_cpu_limit",
+          "type": "str",
+          "title": "CPU limit",
+          "required": false,
+          "default": "100m",
+          "description": "CPU limit"
+        },
+        {
+          "name": "resources_cpu_request",
+          "type": "str",
+          "title": "CPU request",
+          "required": false,
+          "default": "50m",
+          "description": "CPU request"
+        },
+        {
+          "name": "resources_memory_limit",
+          "type": "str",
+          "title": "Memory limit",
+          "required": false,
+          "default": "128Mi",
+          "description": "Memory limit"
+        },
+        {
+          "name": "resources_memory_request",
+          "type": "str",
+          "title": "Memory request",
+          "required": false,
+          "default": "64Mi",
+          "description": "Memory request"
+        }
+      ]
     },
     {
-      "key": "acme_email",
-      "type": "string",
-      "label": "Email address for ACME account registration",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "email",
-      "description": "Email address for ACME account registration"
-    },
-    {
-      "key": "acme_server",
-      "type": "string",
-      "label": "ACME server URL",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "url",
-      "default": "https://acme-v02.api.letsencrypt.org/directory",
-      "description": "ACME server URL"
-    },
-    {
-      "key": "privatekey_secret_name",
-      "type": "string",
-      "label": "Name of secret to store ACME account private key",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "cloudflare-clusterissuer-account-key",
-      "description": "Name of secret to store ACME account private key"
-    },
-    {
-      "key": "api_token_secret_name",
-      "type": "string",
-      "label": "Name of secret containing Cloudflare API token",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "cloudflare-api-token-secret",
-      "description": "Name of secret containing Cloudflare API token"
-    },
-    {
-      "key": "api_token_secret_key",
-      "type": "string",
-      "label": "Key name in secret containing Cloudflare API token",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "api-token",
-      "description": "Key name in secret containing Cloudflare API token"
-    },
-    {
-      "key": "resources_enabled",
-      "type": "boolean",
-      "label": "Enable resource limits and requests",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable resource limits and requests"
-    },
-    {
-      "key": "resources_cpu_limit",
-      "type": "string",
-      "label": "CPU limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "100m",
-      "description": "CPU limit"
-    },
-    {
-      "key": "resources_cpu_request",
-      "type": "string",
-      "label": "CPU request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "50m",
-      "description": "CPU request"
-    },
-    {
-      "key": "resources_memory_limit",
-      "type": "string",
-      "label": "Memory limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "128Mi",
-      "description": "Memory limit"
-    },
-    {
-      "key": "resources_memory_request",
-      "type": "string",
-      "label": "Memory request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "64Mi",
-      "description": "Memory request"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "hostname",
-      "description": "Traefik host"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik domain",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "description": "Traefik domain"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable TLS",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable TLS"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "TLS certificate resolver",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "letsencrypt-prod",
-      "description": "TLS certificate resolver"
+      "key": "traefik",
+      "title": "Traefik Integration",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik host",
+          "required": false,
+          "description": "Traefik host"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik domain",
+          "required": false,
+          "description": "Traefik domain"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable TLS",
+          "required": false,
+          "default": true,
+          "description": "Enable TLS"
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "TLS certificate resolver",
+          "required": false,
+          "default": "letsencrypt-prod",
+          "description": "TLS certificate resolver"
+        }
+      ]
     }
   ],
   "legacy": {

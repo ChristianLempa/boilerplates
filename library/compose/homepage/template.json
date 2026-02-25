@@ -14,7 +14,7 @@
     "template_version": "v1.10.1",
     "date": "2026-02-10",
     "icon": {
-      "provider": "simpleicons",
+      "provider": "simple-icons",
       "id": "homepage"
     },
     "draft": true,
@@ -26,274 +26,215 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "The service name",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "homepage",
-      "description": "The service name"
-    },
-    {
-      "key": "container_name",
-      "type": "string",
-      "label": "The container name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "homepage",
-      "description": "The container name"
-    },
-    {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "The container timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "The container timezone"
-    },
-    {
-      "key": "container_loglevel",
-      "type": "string",
-      "label": "The container log level",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "description": "The container log level",
-      "options": [
-        "debug",
-        "info",
-        "warn",
-        "error"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "The service name",
+          "required": true,
+          "default": "homepage",
+          "description": "The service name"
+        },
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "The container name",
+          "required": false,
+          "default": "homepage",
+          "description": "The container name"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "The container timezone",
+          "required": false,
+          "description": "The container timezone"
+        },
+        {
+          "name": "container_loglevel",
+          "type": "str",
+          "title": "The container log level",
+          "required": false,
+          "description": "The container log level",
+          "options": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "The container restart policy",
+          "required": true,
+          "default": "unless-stopped",
+          "description": "The container restart policy",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "Swarm Replicas",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "swarm_placement_host",
+          "type": "str",
+          "title": "Swarm Placement Host",
+          "required": false,
+          "default": ""
+        }
       ]
     },
     {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "The container restart policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "description": "The container restart policy",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "int",
+          "title": "The HTTP port",
+          "required": true,
+          "default": 3000,
+          "description": "The HTTP port",
+          "needs": [
+            "traefik_enabled=false"
+          ]
+        }
       ]
     },
     {
-      "key": "ports_http",
-      "type": "number",
-      "label": "The HTTP port",
-      "required": true,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "int",
-      "default": 3000,
-      "description": "The HTTP port",
-      "needs": [
-        "traefik_enabled=false"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        },
+        {
+          "name": "traefik_entrypoint",
+          "type": "str",
+          "title": "The Traefik entrypoint",
+          "required": true,
+          "default": "web",
+          "description": "The Traefik entrypoint"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "homepage"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": true,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": true,
+          "default": "home.arpa"
+        }
       ]
     },
     {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_entrypoint",
-      "type": "string",
-      "label": "The Traefik entrypoint",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "web",
-      "description": "The Traefik entrypoint"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "homepage"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik TLS"
-    },
-    {
-      "key": "traefik_tls_entrypoint",
-      "type": "string",
-      "label": "The Traefik TLS entrypoint",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "websecure",
-      "description": "The Traefik TLS entrypoint"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik Tls Certresolver",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "cloudflare"
-    },
-    {
-      "key": "volume_mode",
-      "type": "string",
-      "label": "Volume Mode",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "enum",
-      "default": "local",
-      "options": [
-        "local",
-        "mount",
-        "nfs"
+      "key": "traefik-tls",
+      "title": "Traefik TLS",
+      "variables": [
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable Traefik TLS",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik TLS"
+        },
+        {
+          "name": "traefik_tls_entrypoint",
+          "type": "str",
+          "title": "The Traefik TLS entrypoint",
+          "required": true,
+          "default": "websecure",
+          "description": "The Traefik TLS entrypoint"
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": true,
+          "default": "cloudflare"
+        }
       ]
     },
     {
-      "key": "volume_mount_path",
-      "type": "string",
-      "label": "Volume Mount Path",
-      "required": true,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "/mnt/storage",
-      "needs": [
-        "volume_mode=mount"
+      "key": "volume",
+      "title": "Volume",
+      "variables": [
+        {
+          "name": "volume_mode",
+          "type": "str",
+          "title": "Volume Mode",
+          "required": true,
+          "default": "local",
+          "options": [
+            "local",
+            "mount",
+            "nfs"
+          ]
+        },
+        {
+          "name": "volume_mount_path",
+          "type": "str",
+          "title": "Volume Mount Path",
+          "required": true,
+          "default": "/mnt/storage",
+          "needs": [
+            "volume_mode=mount"
+          ]
+        },
+        {
+          "name": "volume_nfs_options",
+          "type": "str",
+          "title": "The NFS mount options",
+          "required": false,
+          "default": "nfsvers=4,soft,timeo=180,intr",
+          "description": "The NFS mount options"
+        },
+        {
+          "name": "volume_nfs_path",
+          "type": "str",
+          "title": "The NFS path",
+          "required": false,
+          "default": "",
+          "description": "The NFS path"
+        },
+        {
+          "name": "volume_nfs_server",
+          "type": "str",
+          "title": "The NFS server",
+          "required": false,
+          "default": "",
+          "description": "The NFS server"
+        }
       ]
-    },
-    {
-      "key": "volume_nfs_options",
-      "type": "string",
-      "label": "The NFS mount options",
-      "required": false,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "nfsvers=4,soft,timeo=180,intr",
-      "description": "The NFS mount options"
-    },
-    {
-      "key": "volume_nfs_path",
-      "type": "string",
-      "label": "The NFS path",
-      "required": false,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "The NFS path"
-    },
-    {
-      "key": "volume_nfs_server",
-      "type": "string",
-      "label": "The NFS server",
-      "required": false,
-      "section": {
-        "key": "volume"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "The NFS server"
     }
   ],
   "legacy": {

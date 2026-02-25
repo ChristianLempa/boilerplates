@@ -10,7 +10,7 @@
     "template_version": "5.12.0",
     "date": "2025-11-11",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "cloudflare"
     },
     "draft": false,
@@ -22,272 +22,204 @@
   },
   "variables": [
     {
-      "key": "comment_enabled",
-      "type": "boolean",
-      "label": "Add comment to DNS record",
-      "required": false,
-      "section": {
-        "key": "comment",
-        "title": "Comment",
-        "toggle": "comment_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Add comment to DNS record"
-    },
-    {
-      "key": "comment_text",
-      "type": "string",
-      "label": "Comment for the DNS record",
-      "required": false,
-      "section": {
-        "key": "comment",
-        "title": "Comment",
-        "toggle": "comment_enabled"
-      },
-      "source_type": "str",
-      "default": "Managed by Terraform",
-      "description": "Comment for the DNS record"
-    },
-    {
-      "key": "resource_name",
-      "type": "string",
-      "label": "Terraform resource name (alphanumeric and underscores only)",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "dns_record",
-      "description": "Terraform resource name (alphanumeric and underscores only)"
-    },
-    {
-      "key": "zone_id_value",
-      "type": "string",
-      "label": "Cloudflare Zone ID",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Cloudflare Zone ID"
-    },
-    {
-      "key": "mx_enabled",
-      "type": "boolean",
-      "label": "Configure MX record priority",
-      "required": false,
-      "section": {
-        "key": "mx",
-        "title": "MX Record Settings",
-        "toggle": "mx_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Configure MX record priority"
-    },
-    {
-      "key": "priority",
-      "type": "number",
-      "label": "MX record priority (lower = higher priority)",
-      "required": false,
-      "section": {
-        "key": "mx",
-        "title": "MX Record Settings",
-        "toggle": "mx_enabled"
-      },
-      "source_type": "int",
-      "default": 10,
-      "description": "MX record priority (lower = higher priority)"
-    },
-    {
-      "key": "content",
-      "type": "string",
-      "label": "DNS record content (IP, hostname, or text)",
-      "required": false,
-      "section": {
-        "key": "record",
-        "title": "DNS Record",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "192.0.2.1",
-      "description": "DNS record content (IP, hostname, or text)"
-    },
-    {
-      "key": "name",
-      "type": "string",
-      "label": "DNS record name (use @ for root domain)",
-      "required": false,
-      "section": {
-        "key": "record",
-        "title": "DNS Record",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "www",
-      "description": "DNS record name (use @ for root domain)"
-    },
-    {
-      "key": "proxied",
-      "type": "boolean",
-      "label": "Enable Cloudflare proxy (orange cloud)",
-      "required": false,
-      "section": {
-        "key": "record",
-        "title": "DNS Record",
-        "required": true
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable Cloudflare proxy (orange cloud)"
-    },
-    {
-      "key": "record_type",
-      "type": "string",
-      "label": "DNS record type",
-      "required": false,
-      "section": {
-        "key": "record",
-        "title": "DNS Record",
-        "required": true
-      },
-      "source_type": "enum",
-      "default": "A",
-      "description": "DNS record type",
-      "options": [
-        "A",
-        "AAAA",
-        "CNAME",
-        "TXT",
-        "MX"
+      "key": "comment",
+      "title": "Comment",
+      "variables": [
+        {
+          "name": "comment_enabled",
+          "type": "bool",
+          "title": "Add comment to DNS record",
+          "required": false,
+          "default": false,
+          "description": "Add comment to DNS record"
+        },
+        {
+          "name": "comment_text",
+          "type": "str",
+          "title": "Comment for the DNS record",
+          "required": false,
+          "default": "Managed by Terraform",
+          "description": "Comment for the DNS record"
+        }
       ]
     },
     {
-      "key": "ttl",
-      "type": "number",
-      "label": "Time to live (1 = automatic, or 60-86400 seconds)",
-      "required": false,
-      "section": {
-        "key": "record",
-        "title": "DNS Record",
-        "required": true
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "Time to live (1 = automatic, or 60-86400 seconds)"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "resource_name",
+          "type": "str",
+          "title": "Terraform resource name (alphanumeric and underscores only)",
+          "required": false,
+          "default": "dns_record",
+          "description": "Terraform resource name (alphanumeric and underscores only)"
+        },
+        {
+          "name": "zone_id_value",
+          "type": "str",
+          "title": "Cloudflare Zone ID",
+          "required": false,
+          "description": "Cloudflare Zone ID"
+        }
+      ]
     },
     {
-      "key": "depends_on_enabled",
-      "type": "boolean",
-      "label": "Enable resource dependencies",
-      "required": false,
-      "section": {
-        "key": "depends_on",
-        "title": "Dependencies",
-        "toggle": "depends_on_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable resource dependencies"
+      "key": "mx",
+      "title": "MX Record Settings",
+      "variables": [
+        {
+          "name": "mx_enabled",
+          "type": "bool",
+          "title": "Configure MX record priority",
+          "required": false,
+          "default": false,
+          "description": "Configure MX record priority"
+        },
+        {
+          "name": "priority",
+          "type": "int",
+          "title": "MX record priority (lower = higher priority)",
+          "required": false,
+          "default": 10,
+          "description": "MX record priority (lower = higher priority)"
+        }
+      ]
     },
     {
-      "key": "dependencies",
-      "type": "string",
-      "label": "Comma-separated list of resource dependencies",
-      "required": false,
-      "section": {
-        "key": "depends_on",
-        "title": "Dependencies",
-        "toggle": "depends_on_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Comma-separated list of resource dependencies"
+      "key": "record",
+      "title": "DNS Record",
+      "variables": [
+        {
+          "name": "content",
+          "type": "str",
+          "title": "DNS record content (IP, hostname, or text)",
+          "required": false,
+          "default": "192.0.2.1",
+          "description": "DNS record content (IP, hostname, or text)"
+        },
+        {
+          "name": "name",
+          "type": "str",
+          "title": "DNS record name (use @ for root domain)",
+          "required": false,
+          "default": "www",
+          "description": "DNS record name (use @ for root domain)"
+        },
+        {
+          "name": "proxied",
+          "type": "bool",
+          "title": "Enable Cloudflare proxy (orange cloud)",
+          "required": false,
+          "default": true,
+          "description": "Enable Cloudflare proxy (orange cloud)"
+        },
+        {
+          "name": "record_type",
+          "type": "str",
+          "title": "DNS record type",
+          "required": false,
+          "default": "A",
+          "description": "DNS record type",
+          "options": [
+            "A",
+            "AAAA",
+            "CNAME",
+            "TXT",
+            "MX"
+          ]
+        },
+        {
+          "name": "ttl",
+          "type": "int",
+          "title": "Time to live (1 = automatic, or 60-86400 seconds)",
+          "required": false,
+          "default": 1,
+          "description": "Time to live (1 = automatic, or 60-86400 seconds)"
+        }
+      ]
     },
     {
-      "key": "lifecycle_enabled",
-      "type": "boolean",
-      "label": "Enable lifecycle rules",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable lifecycle rules"
+      "key": "depends-on",
+      "title": "Dependencies",
+      "variables": [
+        {
+          "name": "depends_on_enabled",
+          "type": "bool",
+          "title": "Enable resource dependencies",
+          "required": false,
+          "default": false,
+          "description": "Enable resource dependencies"
+        },
+        {
+          "name": "dependencies",
+          "type": "str",
+          "title": "Comma-separated list of resource dependencies",
+          "required": false,
+          "default": "",
+          "description": "Comma-separated list of resource dependencies"
+        }
+      ]
     },
     {
-      "key": "prevent_destroy",
-      "type": "boolean",
-      "label": "Prevent resource destruction",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Prevent resource destruction"
+      "key": "lifecycle",
+      "title": "Lifecycle",
+      "variables": [
+        {
+          "name": "lifecycle_enabled",
+          "type": "bool",
+          "title": "Enable lifecycle rules",
+          "required": false,
+          "default": false,
+          "description": "Enable lifecycle rules"
+        },
+        {
+          "name": "prevent_destroy",
+          "type": "bool",
+          "title": "Prevent resource destruction",
+          "required": false,
+          "default": false,
+          "description": "Prevent resource destruction"
+        },
+        {
+          "name": "create_before_destroy",
+          "type": "bool",
+          "title": "Create replacement before destroying",
+          "required": false,
+          "default": false,
+          "description": "Create replacement before destroying"
+        },
+        {
+          "name": "ignore_changes",
+          "type": "str",
+          "title": "Comma-separated list of attributes to ignore changes for",
+          "required": false,
+          "default": "",
+          "description": "Comma-separated list of attributes to ignore changes for"
+        }
+      ]
     },
     {
-      "key": "create_before_destroy",
-      "type": "boolean",
-      "label": "Create replacement before destroying",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Create replacement before destroying"
-    },
-    {
-      "key": "ignore_changes",
-      "type": "string",
-      "label": "Comma-separated list of attributes to ignore changes for",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Comma-separated list of attributes to ignore changes for"
-    },
-    {
-      "key": "tags_enabled",
-      "type": "boolean",
-      "label": "Enable tags",
-      "required": false,
-      "section": {
-        "key": "tags",
-        "title": "Tags",
-        "toggle": "tags_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable tags"
-    },
-    {
-      "key": "tags_json",
-      "type": "string",
-      "label": "Tags in JSON format",
-      "required": false,
-      "section": {
-        "key": "tags",
-        "title": "Tags",
-        "toggle": "tags_enabled"
-      },
-      "source_type": "str",
-      "default": "{}",
-      "description": "Tags in JSON format"
+      "key": "tags",
+      "title": "Tags",
+      "variables": [
+        {
+          "name": "tags_enabled",
+          "type": "bool",
+          "title": "Enable tags",
+          "required": false,
+          "default": false,
+          "description": "Enable tags"
+        },
+        {
+          "name": "tags_json",
+          "type": "str",
+          "title": "Tags in JSON format",
+          "required": false,
+          "default": "{}",
+          "description": "Tags in JSON format"
+        }
+      ]
     }
   ],
   "legacy": {

@@ -8,8 +8,8 @@
     "author": "Christian Lempa",
     "template_version": "1.16.2",
     "icon": {
-      "provider": "selfh",
-      "id": "lets-encrypt"
+      "provider": "simple-icons",
+      "id": "letsencrypt"
     },
     "date": "2025-01-11"
   },
@@ -19,217 +19,167 @@
   },
   "variables": [
     {
-      "key": "resource_name",
-      "type": "string",
-      "label": "Resource Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "tls-certificate"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "resource_name",
+          "type": "str",
+          "title": "Resource Name",
+          "required": false,
+          "default": "tls-certificate"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Namespace",
+          "required": false,
+          "default": "default"
+        },
+        {
+          "name": "secret_name",
+          "type": "str",
+          "title": "Name of secret to store the certificate",
+          "required": false,
+          "default": "tls-secret",
+          "description": "Name of secret to store the certificate"
+        },
+        {
+          "name": "dns_name",
+          "type": "str",
+          "title": "Dns Name",
+          "required": false,
+          "default": ""
+        }
+      ]
     },
     {
-      "key": "namespace",
-      "type": "string",
-      "label": "Namespace",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "default"
+      "key": "resources",
+      "title": "Resource Limits",
+      "variables": [
+        {
+          "name": "resources_enabled",
+          "type": "bool",
+          "title": "Enable resource limits and requests",
+          "required": false,
+          "default": false,
+          "description": "Enable resource limits and requests"
+        },
+        {
+          "name": "resources_cpu_limit",
+          "type": "str",
+          "title": "CPU limit",
+          "required": false,
+          "default": "100m",
+          "description": "CPU limit"
+        },
+        {
+          "name": "resources_cpu_request",
+          "type": "str",
+          "title": "CPU request",
+          "required": false,
+          "default": "50m",
+          "description": "CPU request"
+        },
+        {
+          "name": "resources_memory_limit",
+          "type": "str",
+          "title": "Memory limit",
+          "required": false,
+          "default": "128Mi",
+          "description": "Memory limit"
+        },
+        {
+          "name": "resources_memory_request",
+          "type": "str",
+          "title": "Memory request",
+          "required": false,
+          "default": "64Mi",
+          "description": "Memory request"
+        }
+      ]
     },
     {
-      "key": "secret_name",
-      "type": "string",
-      "label": "Name of secret to store the certificate",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "tls-secret",
-      "description": "Name of secret to store the certificate"
+      "key": "traefik",
+      "title": "Traefik Integration",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik host",
+          "required": false,
+          "description": "Traefik host"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik domain",
+          "required": false,
+          "description": "Traefik domain"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable TLS",
+          "required": false,
+          "default": true,
+          "description": "Enable TLS"
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "TLS certificate resolver",
+          "required": false,
+          "default": "letsencrypt-prod",
+          "description": "TLS certificate resolver"
+        }
+      ]
     },
     {
-      "key": "resources_enabled",
-      "type": "boolean",
-      "label": "Enable resource limits and requests",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable resource limits and requests"
+      "key": "dns",
+      "title": "DNS Settings",
+      "variables": [
+        {
+          "name": "dns_names",
+          "type": "str",
+          "title": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)",
+          "required": false,
+          "description": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)"
+        }
+      ]
     },
     {
-      "key": "resources_cpu_limit",
-      "type": "string",
-      "label": "CPU limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "100m",
-      "description": "CPU limit"
-    },
-    {
-      "key": "resources_cpu_request",
-      "type": "string",
-      "label": "CPU request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "50m",
-      "description": "CPU request"
-    },
-    {
-      "key": "resources_memory_limit",
-      "type": "string",
-      "label": "Memory limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "128Mi",
-      "description": "Memory limit"
-    },
-    {
-      "key": "resources_memory_request",
-      "type": "string",
-      "label": "Memory request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "64Mi",
-      "description": "Memory request"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "hostname",
-      "description": "Traefik host"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik domain",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "description": "Traefik domain"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable TLS",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable TLS"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "TLS certificate resolver",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Integration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "letsencrypt-prod",
-      "description": "TLS certificate resolver"
-    },
-    {
-      "key": "dns_names",
-      "type": "string",
-      "label": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)",
-      "required": false,
-      "section": {
-        "key": "dns",
-        "title": "DNS Settings"
-      },
-      "source_type": "str",
-      "description": "DNS names for certificate (comma-separated, e.g., example.com,*.example.com)"
-    },
-    {
-      "key": "certmanager_issuer",
-      "type": "string",
-      "label": "Cert-manager Issuer or ClusterIssuer name",
-      "required": false,
-      "section": {
-        "key": "certmanager",
-        "title": "Cert-Manager Settings"
-      },
-      "source_type": "str",
-      "default": "letsencrypt-prod",
-      "description": "Cert-manager Issuer or ClusterIssuer name"
-    },
-    {
-      "key": "certmanager_issuer_kind",
-      "type": "string",
-      "label": "Issuer type",
-      "required": false,
-      "section": {
-        "key": "certmanager",
-        "title": "Cert-Manager Settings"
-      },
-      "source_type": "enum",
-      "default": "ClusterIssuer",
-      "description": "Issuer type",
-      "options": [
-        "Issuer",
-        "ClusterIssuer"
+      "key": "certmanager",
+      "title": "Cert-Manager Settings",
+      "variables": [
+        {
+          "name": "certmanager_issuer",
+          "type": "str",
+          "title": "Cert-manager Issuer or ClusterIssuer name",
+          "required": false,
+          "default": "letsencrypt-prod",
+          "description": "Cert-manager Issuer or ClusterIssuer name"
+        },
+        {
+          "name": "certmanager_issuer_kind",
+          "type": "str",
+          "title": "Issuer type",
+          "required": false,
+          "default": "ClusterIssuer",
+          "description": "Issuer type",
+          "options": [
+            "Issuer",
+            "ClusterIssuer"
+          ]
+        }
       ]
     }
   ],

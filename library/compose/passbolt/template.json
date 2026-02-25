@@ -12,7 +12,7 @@
     "author": "Christian Lempa",
     "template_version": "5.9.0-1-ce",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "passbolt"
     },
     "date": "2026-02-10",
@@ -24,58 +24,56 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "passbolt"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "passbolt"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "Container Timezone",
+          "required": false
+        }
+      ]
     },
     {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "Container Timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str"
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "passbolt"
+        }
+      ]
     },
     {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik"
-      },
-      "source_type": "str",
-      "default": "passbolt"
-    },
-    {
-      "key": "database_name",
-      "type": "string",
-      "label": "Database Name",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "default": "passbolt"
-    },
-    {
-      "key": "database_user",
-      "type": "string",
-      "label": "Database User",
-      "required": false,
-      "section": {
-        "key": "database"
-      },
-      "source_type": "str",
-      "default": "passbolt"
+      "key": "database",
+      "title": "Database",
+      "variables": [
+        {
+          "name": "database_name",
+          "type": "str",
+          "title": "Database Name",
+          "required": false,
+          "default": "passbolt"
+        },
+        {
+          "name": "database_user",
+          "type": "str",
+          "title": "Database User",
+          "required": false,
+          "default": "passbolt"
+        }
+      ]
     }
   ],
   "legacy": {

@@ -9,8 +9,8 @@
     "author": "Christian Lempa",
     "template_version": "1.23.17",
     "icon": {
-      "provider": "selfh",
-      "id": "uptime-kuma"
+      "provider": "simple-icons",
+      "id": "uptimekuma"
     },
     "date": "2025-10-31",
     "draft": true
@@ -21,38 +21,32 @@
   },
   "variables": [
     {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "uptimekuma"
-    },
-    {
-      "key": "container_name",
-      "type": "string",
-      "label": "Container Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "uptimekuma"
-    },
-    {
-      "key": "volumes_version",
-      "type": "string",
-      "label": "Volumes version",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "latest",
-      "description": "Volumes version"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "uptimekuma"
+        },
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": false,
+          "default": "uptimekuma"
+        },
+        {
+          "name": "volumes_version",
+          "type": "str",
+          "title": "Volumes version",
+          "required": false,
+          "default": "latest",
+          "description": "Volumes version"
+        }
+      ]
     }
   ],
   "legacy": {

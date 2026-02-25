@@ -11,7 +11,7 @@
     "author": "Christian Lempa",
     "template_version": "32.0.6-apache",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "nextcloud"
     },
     "date": "2026-02-13",
@@ -23,245 +23,210 @@
   },
   "variables": [
     {
-      "key": "database_type",
-      "type": "string",
-      "label": "Database type (Nextcloud supports PostgreSQL or MySQL/MariaDB)",
-      "required": false,
-      "section": {
-        "key": "database",
-        "required": true
-      },
-      "source_type": "enum",
-      "default": "postgres",
-      "description": "Database type (Nextcloud supports PostgreSQL or MySQL/MariaDB)",
-      "options": [
-        "postgres",
-        "mysql"
+      "key": "database",
+      "title": "Database",
+      "variables": [
+        {
+          "name": "database_type",
+          "type": "str",
+          "title": "Database type (Nextcloud supports PostgreSQL or MySQL/MariaDB)",
+          "required": false,
+          "default": "postgres",
+          "description": "Database type (Nextcloud supports PostgreSQL or MySQL/MariaDB)",
+          "options": [
+            "postgres",
+            "mysql"
+          ]
+        },
+        {
+          "name": "database_name",
+          "type": "str",
+          "title": "Database Name",
+          "required": true
+        },
+        {
+          "name": "database_user",
+          "type": "str",
+          "title": "Database User",
+          "required": true
+        },
+        {
+          "name": "database_password",
+          "type": "str",
+          "title": "Database Password",
+          "required": true,
+          "sensitive": true
+        }
       ]
     },
     {
-      "key": "database_name",
-      "type": "string",
-      "label": "Database Name",
-      "required": true,
-      "section": {
-        "key": "database",
-        "required": true
-      },
-      "source_type": "str"
-    },
-    {
-      "key": "database_user",
-      "type": "string",
-      "label": "Database User",
-      "required": true,
-      "section": {
-        "key": "database",
-        "required": true
-      },
-      "source_type": "str"
-    },
-    {
-      "key": "database_password",
-      "type": "string",
-      "label": "Database Password",
-      "required": true,
-      "section": {
-        "key": "database",
-        "required": true
-      },
-      "source_type": "str",
-      "sensitive": true
-    },
-    {
-      "key": "service_name",
-      "type": "string",
-      "label": "Service Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "nextcloud"
-    },
-    {
-      "key": "container_name",
-      "type": "string",
-      "label": "Container Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "nextcloud"
-    },
-    {
-      "key": "container_timezone",
-      "type": "string",
-      "label": "Container Timezone",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str"
-    },
-    {
-      "key": "restart_policy",
-      "type": "string",
-      "label": "Restart Policy",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "enum",
-      "default": "unless-stopped",
-      "options": [
-        "unless-stopped",
-        "always",
-        "on-failure",
-        "no"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service Name",
+          "required": false,
+          "default": "nextcloud"
+        },
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": false,
+          "default": "nextcloud"
+        },
+        {
+          "name": "container_timezone",
+          "type": "str",
+          "title": "Container Timezone",
+          "required": false
+        },
+        {
+          "name": "restart_policy",
+          "type": "str",
+          "title": "Restart Policy",
+          "required": true,
+          "default": "unless-stopped",
+          "options": [
+            "unless-stopped",
+            "always",
+            "on-failure",
+            "no"
+          ]
+        },
+        {
+          "name": "traefik_entrypoint",
+          "type": "str",
+          "title": "Traefik Entrypoint",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "traefik_tls_entrypoint",
+          "type": "str",
+          "title": "Traefik Tls Entrypoint",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "swarm_replicas",
+          "type": "int",
+          "title": "Swarm Replicas",
+          "required": false,
+          "default": 1
+        }
       ]
     },
     {
-      "key": "network_macvlan_ipv4_address_db",
-      "type": "string",
-      "label": "Static IP address for database container (macvlan only)",
-      "required": false,
-      "section": {
-        "key": "network"
-      },
-      "source_type": "str",
-      "default": "192.168.1.252",
-      "description": "Static IP address for database container (macvlan only)",
-      "needs": "network_mode=macvlan"
+      "key": "network",
+      "title": "Network",
+      "variables": [
+        {
+          "name": "network_macvlan_ipv4_address_db",
+          "type": "str",
+          "title": "Static IP address for database container (macvlan only)",
+          "required": false,
+          "default": "192.168.1.252",
+          "description": "Static IP address for database container (macvlan only)",
+          "needs": "network_mode=macvlan"
+        }
+      ]
     },
     {
-      "key": "ports_http",
-      "type": "number",
-      "label": "Host port for HTTP",
-      "required": false,
-      "section": {
-        "key": "ports"
-      },
-      "source_type": "int",
-      "default": 80,
-      "description": "Host port for HTTP"
+      "key": "ports",
+      "title": "Ports",
+      "variables": [
+        {
+          "name": "ports_http",
+          "type": "int",
+          "title": "Host port for HTTP",
+          "required": false,
+          "default": 80,
+          "description": "Host port for HTTP"
+        }
+      ]
     },
     {
-      "key": "admin_user",
-      "type": "string",
-      "label": "Nextcloud admin username",
-      "required": false,
-      "section": {
-        "key": "nextcloud",
-        "description": "Configure Nextcloud application settings"
-      },
-      "source_type": "str",
-      "default": "admin",
-      "description": "Nextcloud admin username"
+      "key": "nextcloud",
+      "title": "Nextcloud",
+      "variables": [
+        {
+          "name": "admin_user",
+          "type": "str",
+          "title": "Nextcloud admin username",
+          "required": false,
+          "default": "admin",
+          "description": "Nextcloud admin username"
+        },
+        {
+          "name": "admin_password",
+          "type": "str",
+          "title": "Nextcloud admin password",
+          "required": false,
+          "default": "",
+          "description": "Nextcloud admin password",
+          "sensitive": true,
+          "autogenerated": true
+        }
+      ]
     },
     {
-      "key": "admin_password",
-      "type": "string",
-      "label": "Nextcloud admin password",
-      "required": false,
-      "section": {
-        "key": "nextcloud",
-        "description": "Configure Nextcloud application settings"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Nextcloud admin password",
-      "sensitive": true,
-      "autogenerated": true
+      "key": "traefik",
+      "title": "Traefik",
+      "variables": [
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Traefik Host",
+          "required": false,
+          "default": "nextcloud"
+        },
+        {
+          "name": "traefik_network",
+          "type": "str",
+          "title": "Traefik Network",
+          "required": true,
+          "default": "traefik"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik Domain",
+          "required": true,
+          "default": "home.arpa"
+        },
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik integration"
+        }
+      ]
     },
     {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Traefik Host",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "nextcloud"
-    },
-    {
-      "key": "traefik_network",
-      "type": "string",
-      "label": "Traefik Network",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik Domain",
-      "required": true,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "str",
-      "default": "home.arpa"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik",
-        "toggle": "traefik_enabled",
-        "description": "Configure Traefik reverse proxy integration"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "Traefik Tls Certresolver",
-      "required": true,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "str",
-      "default": "cloudflare"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik TLS",
-      "required": false,
-      "section": {
-        "key": "traefik_tls",
-        "title": "Traefik TLS",
-        "toggle": "traefik_tls_enabled",
-        "needs": "traefik",
-        "description": "Configure Traefik TLS/SSL certificates"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik TLS"
+      "key": "traefik-tls",
+      "title": "Traefik TLS",
+      "variables": [
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "Traefik Tls Certresolver",
+          "required": true,
+          "default": "cloudflare"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable Traefik TLS",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik TLS"
+        }
+      ]
     }
   ],
   "legacy": {

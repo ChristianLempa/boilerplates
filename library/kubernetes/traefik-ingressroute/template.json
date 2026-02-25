@@ -8,8 +8,8 @@
     "author": "Christian Lempa",
     "template_version": "3.5.3",
     "icon": {
-      "provider": "selfh",
-      "id": "traefik"
+      "provider": "simple-icons",
+      "id": "traefikproxy"
     },
     "date": "2025-01-11"
   },
@@ -19,211 +19,145 @@
   },
   "variables": [
     {
-      "key": "resource_name",
-      "type": "string",
-      "label": "Resource Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "app-ingressroute"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "resource_name",
+          "type": "str",
+          "title": "Resource Name",
+          "required": false,
+          "default": "app-ingressroute"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Namespace",
+          "required": false,
+          "default": "default"
+        },
+        {
+          "name": "traefik_entrypoint",
+          "type": "str",
+          "title": "Traefik entrypoint for HTTP (e.g., web)",
+          "required": false,
+          "default": "web",
+          "description": "Traefik entrypoint for HTTP (e.g., web)"
+        },
+        {
+          "name": "traefik_tls_entrypoint",
+          "type": "str",
+          "title": "Traefik entrypoint for HTTPS (e.g., websecure)",
+          "required": false,
+          "default": "websecure",
+          "description": "Traefik entrypoint for HTTPS (e.g., websecure)"
+        },
+        {
+          "name": "traefik_service_name",
+          "type": "str",
+          "title": "Kubernetes service name to route traffic to",
+          "required": false,
+          "description": "Kubernetes service name to route traffic to"
+        },
+        {
+          "name": "traefik_service_port",
+          "type": "int",
+          "title": "Kubernetes service port",
+          "required": false,
+          "default": 80,
+          "description": "Kubernetes service port"
+        }
+      ]
     },
     {
-      "key": "namespace",
-      "type": "string",
-      "label": "Namespace",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "default"
+      "key": "resources",
+      "title": "Resource Limits",
+      "variables": [
+        {
+          "name": "resources_enabled",
+          "type": "bool",
+          "title": "Enable resource limits and requests",
+          "required": false,
+          "default": false,
+          "description": "Enable resource limits and requests"
+        },
+        {
+          "name": "resources_cpu_limit",
+          "type": "str",
+          "title": "CPU limit",
+          "required": false,
+          "default": "100m",
+          "description": "CPU limit"
+        },
+        {
+          "name": "resources_cpu_request",
+          "type": "str",
+          "title": "CPU request",
+          "required": false,
+          "default": "50m",
+          "description": "CPU request"
+        },
+        {
+          "name": "resources_memory_limit",
+          "type": "str",
+          "title": "Memory limit",
+          "required": false,
+          "default": "128Mi",
+          "description": "Memory limit"
+        },
+        {
+          "name": "resources_memory_request",
+          "type": "str",
+          "title": "Memory request",
+          "required": false,
+          "default": "64Mi",
+          "description": "Memory request"
+        }
+      ]
     },
     {
-      "key": "traefik_entrypoint",
-      "type": "string",
-      "label": "Traefik entrypoint for HTTP (e.g., web)",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "web",
-      "description": "Traefik entrypoint for HTTP (e.g., web)"
-    },
-    {
-      "key": "traefik_tls_entrypoint",
-      "type": "string",
-      "label": "Traefik entrypoint for HTTPS (e.g., websecure)",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "websecure",
-      "description": "Traefik entrypoint for HTTPS (e.g., websecure)"
-    },
-    {
-      "key": "traefik_service_name",
-      "type": "string",
-      "label": "Kubernetes service name to route traffic to",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Kubernetes service name to route traffic to"
-    },
-    {
-      "key": "traefik_service_port",
-      "type": "number",
-      "label": "Kubernetes service port",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "int",
-      "default": 80,
-      "description": "Kubernetes service port"
-    },
-    {
-      "key": "resources_enabled",
-      "type": "boolean",
-      "label": "Enable resource limits and requests",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable resource limits and requests"
-    },
-    {
-      "key": "resources_cpu_limit",
-      "type": "string",
-      "label": "CPU limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "100m",
-      "description": "CPU limit"
-    },
-    {
-      "key": "resources_cpu_request",
-      "type": "string",
-      "label": "CPU request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "50m",
-      "description": "CPU request"
-    },
-    {
-      "key": "resources_memory_limit",
-      "type": "string",
-      "label": "Memory limit",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "128Mi",
-      "description": "Memory limit"
-    },
-    {
-      "key": "resources_memory_request",
-      "type": "string",
-      "label": "Memory request",
-      "required": false,
-      "section": {
-        "key": "resources",
-        "title": "Resource Limits",
-        "toggle": "resources_enabled"
-      },
-      "source_type": "str",
-      "default": "64Mi",
-      "description": "Memory request"
-    },
-    {
-      "key": "traefik_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik integration",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Configuration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable Traefik integration"
-    },
-    {
-      "key": "traefik_host",
-      "type": "string",
-      "label": "Domain name for the IngressRoute",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Configuration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "hostname",
-      "description": "Domain name for the IngressRoute"
-    },
-    {
-      "key": "traefik_domain",
-      "type": "string",
-      "label": "Traefik domain",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Configuration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "description": "Traefik domain"
-    },
-    {
-      "key": "traefik_tls_enabled",
-      "type": "boolean",
-      "label": "Enable TLS",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Configuration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Enable TLS"
-    },
-    {
-      "key": "traefik_tls_certresolver",
-      "type": "string",
-      "label": "TLS certificate resolver",
-      "required": false,
-      "section": {
-        "key": "traefik",
-        "title": "Traefik Configuration",
-        "toggle": "traefik_enabled"
-      },
-      "source_type": "str",
-      "default": "letsencrypt-prod",
-      "description": "TLS certificate resolver"
+      "key": "traefik",
+      "title": "Traefik Configuration",
+      "variables": [
+        {
+          "name": "traefik_enabled",
+          "type": "bool",
+          "title": "Enable Traefik integration",
+          "required": false,
+          "default": true,
+          "description": "Enable Traefik integration"
+        },
+        {
+          "name": "traefik_host",
+          "type": "str",
+          "title": "Domain name for the IngressRoute",
+          "required": false,
+          "description": "Domain name for the IngressRoute"
+        },
+        {
+          "name": "traefik_domain",
+          "type": "str",
+          "title": "Traefik domain",
+          "required": false,
+          "description": "Traefik domain"
+        },
+        {
+          "name": "traefik_tls_enabled",
+          "type": "bool",
+          "title": "Enable TLS",
+          "required": false,
+          "default": true,
+          "description": "Enable TLS"
+        },
+        {
+          "name": "traefik_tls_certresolver",
+          "type": "str",
+          "title": "TLS certificate resolver",
+          "required": false,
+          "default": "letsencrypt-prod",
+          "description": "TLS certificate resolver"
+        }
+      ]
     }
   ],
   "legacy": {

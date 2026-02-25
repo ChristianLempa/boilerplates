@@ -10,8 +10,8 @@
     "template_version": "3.4.3",
     "date": "2025-12-02",
     "icon": {
-      "provider": "selfh",
-      "id": "bind-9"
+      "provider": "simple-icons",
+      "id": "iscbind"
     },
     "draft": false,
     "next_steps": ""
@@ -22,186 +22,147 @@
   },
   "variables": [
     {
-      "key": "additional_ips",
-      "type": "string",
-      "label": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
-      "required": false,
-      "section": {
-        "key": "addresses",
-        "title": "IP Addresses",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
-      "needs": [
-        "multiple_addresses=true"
+      "key": "addresses",
+      "title": "IP Addresses",
+      "variables": [
+        {
+          "name": "additional_ips",
+          "type": "str",
+          "title": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
+          "required": false,
+          "default": "",
+          "description": "Additional IP addresses (comma-separated, e.g., 10.20.0.11,10.20.0.12)",
+          "needs": [
+            "multiple_addresses=true"
+          ]
+        },
+        {
+          "name": "ip_address",
+          "type": "str",
+          "title": "Primary IP address",
+          "required": false,
+          "default": "10.20.0.10",
+          "description": "Primary IP address"
+        },
+        {
+          "name": "multiple_addresses",
+          "type": "bool",
+          "title": "Enable multiple IP addresses",
+          "required": false,
+          "default": false,
+          "description": "Enable multiple IP addresses"
+        }
       ]
     },
     {
-      "key": "ip_address",
-      "type": "string",
-      "label": "Primary IP address",
-      "required": false,
-      "section": {
-        "key": "addresses",
-        "title": "IP Addresses",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "10.20.0.10",
-      "description": "Primary IP address"
+      "key": "dns",
+      "title": "DNS Configuration",
+      "variables": [
+        {
+          "name": "record_name",
+          "type": "str",
+          "title": "Record name (hostname without domain)",
+          "required": false,
+          "default": "server",
+          "description": "Record name (hostname without domain)"
+        },
+        {
+          "name": "ttl",
+          "type": "int",
+          "title": "Time to live in seconds",
+          "required": false,
+          "default": 3600,
+          "description": "Time to live in seconds"
+        },
+        {
+          "name": "zone",
+          "type": "str",
+          "title": "DNS zone (must end with a dot)",
+          "required": false,
+          "default": "home.example.com.",
+          "description": "DNS zone (must end with a dot)"
+        }
+      ]
     },
     {
-      "key": "multiple_addresses",
-      "type": "boolean",
-      "label": "Enable multiple IP addresses",
-      "required": false,
-      "section": {
-        "key": "addresses",
-        "title": "IP Addresses",
-        "required": true
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable multiple IP addresses"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "resource_name",
+          "type": "str",
+          "title": "Resource Name",
+          "required": false,
+          "default": "record"
+        },
+        {
+          "name": "ip",
+          "type": "str",
+          "title": "Ip",
+          "required": false,
+          "default": ""
+        }
+      ]
     },
     {
-      "key": "record_name",
-      "type": "string",
-      "label": "Record name (hostname without domain)",
-      "required": false,
-      "section": {
-        "key": "dns",
-        "title": "DNS Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "server",
-      "description": "Record name (hostname without domain)"
+      "key": "depends-on",
+      "title": "Dependencies",
+      "variables": [
+        {
+          "name": "depends_on_enabled",
+          "type": "bool",
+          "title": "Enable resource dependencies",
+          "required": false,
+          "default": false,
+          "description": "Enable resource dependencies"
+        },
+        {
+          "name": "dependencies",
+          "type": "str",
+          "title": "Comma-separated list of resource dependencies",
+          "required": false,
+          "default": "",
+          "description": "Comma-separated list of resource dependencies"
+        }
+      ]
     },
     {
-      "key": "ttl",
-      "type": "number",
-      "label": "Time to live in seconds",
-      "required": false,
-      "section": {
-        "key": "dns",
-        "title": "DNS Configuration",
-        "required": true
-      },
-      "source_type": "int",
-      "default": 3600,
-      "description": "Time to live in seconds"
-    },
-    {
-      "key": "zone",
-      "type": "string",
-      "label": "DNS zone (must end with a dot)",
-      "required": false,
-      "section": {
-        "key": "dns",
-        "title": "DNS Configuration",
-        "required": true
-      },
-      "source_type": "str",
-      "default": "home.example.com.",
-      "description": "DNS zone (must end with a dot)"
-    },
-    {
-      "key": "resource_name",
-      "type": "string",
-      "label": "Resource Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "record"
-    },
-    {
-      "key": "depends_on_enabled",
-      "type": "boolean",
-      "label": "Enable resource dependencies",
-      "required": false,
-      "section": {
-        "key": "depends_on",
-        "title": "Dependencies",
-        "toggle": "depends_on_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable resource dependencies"
-    },
-    {
-      "key": "dependencies",
-      "type": "string",
-      "label": "Comma-separated list of resource dependencies",
-      "required": false,
-      "section": {
-        "key": "depends_on",
-        "title": "Dependencies",
-        "toggle": "depends_on_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Comma-separated list of resource dependencies"
-    },
-    {
-      "key": "lifecycle_enabled",
-      "type": "boolean",
-      "label": "Enable lifecycle rules",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable lifecycle rules"
-    },
-    {
-      "key": "prevent_destroy",
-      "type": "boolean",
-      "label": "Prevent resource destruction",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Prevent resource destruction"
-    },
-    {
-      "key": "create_before_destroy",
-      "type": "boolean",
-      "label": "Create replacement before destroying",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Create replacement before destroying"
-    },
-    {
-      "key": "ignore_changes",
-      "type": "string",
-      "label": "Comma-separated list of attributes to ignore changes for",
-      "required": false,
-      "section": {
-        "key": "lifecycle",
-        "title": "Lifecycle",
-        "toggle": "lifecycle_enabled"
-      },
-      "source_type": "str",
-      "default": "",
-      "description": "Comma-separated list of attributes to ignore changes for"
+      "key": "lifecycle",
+      "title": "Lifecycle",
+      "variables": [
+        {
+          "name": "lifecycle_enabled",
+          "type": "bool",
+          "title": "Enable lifecycle rules",
+          "required": false,
+          "default": false,
+          "description": "Enable lifecycle rules"
+        },
+        {
+          "name": "prevent_destroy",
+          "type": "bool",
+          "title": "Prevent resource destruction",
+          "required": false,
+          "default": false,
+          "description": "Prevent resource destruction"
+        },
+        {
+          "name": "create_before_destroy",
+          "type": "bool",
+          "title": "Create replacement before destroying",
+          "required": false,
+          "default": false,
+          "description": "Create replacement before destroying"
+        },
+        {
+          "name": "ignore_changes",
+          "type": "str",
+          "title": "Comma-separated list of attributes to ignore changes for",
+          "required": false,
+          "default": "",
+          "description": "Comma-separated list of attributes to ignore changes for"
+        }
+      ]
     }
   ],
   "legacy": {

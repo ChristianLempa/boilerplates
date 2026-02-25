@@ -8,7 +8,7 @@
     "author": "Christian Lempa",
     "template_version": "1.0.0",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "ansible"
     },
     "date": "2025-11-11",
@@ -20,37 +20,38 @@
   },
   "variables": [
     {
-      "key": "playbook_name",
-      "type": "string",
-      "label": "Playbook Name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "Update and upgrade apt packages"
-    },
-    {
-      "key": "target_hosts",
-      "type": "string",
-      "label": "Target Hosts",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "all"
-    },
-    {
-      "key": "become",
-      "type": "string",
-      "label": "Become",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": false
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "playbook_name",
+          "type": "str",
+          "title": "Playbook Name",
+          "required": false,
+          "default": "Update and upgrade apt packages"
+        },
+        {
+          "name": "target_hosts",
+          "type": "str",
+          "title": "Target Hosts",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "become",
+          "type": "str",
+          "title": "Become",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "secrets_file",
+          "type": "str",
+          "title": "Secrets File",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ],
   "legacy": {

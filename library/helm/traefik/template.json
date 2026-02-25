@@ -10,7 +10,7 @@
     "template_version": "3.5.3",
     "date": "2025-01-11",
     "icon": {
-      "provider": "simpleicons",
+      "provider": "simple-icons",
       "id": "traefikproxy"
     },
     "draft": true,
@@ -22,276 +22,199 @@
   },
   "variables": [
     {
-      "key": "release_name",
-      "type": "string",
-      "label": "Helm release name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "traefik",
-      "description": "Helm release name"
-    },
-    {
-      "key": "namespace",
-      "type": "string",
-      "label": "Kubernetes namespace",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "traefik",
-      "description": "Kubernetes namespace"
-    },
-    {
-      "key": "network_mode",
-      "type": "string",
-      "label": "Network mode for service",
-      "required": false,
-      "section": {
-        "key": "networking",
-        "title": "Networking Configuration"
-      },
-      "source_type": "str",
-      "default": "LoadBalancer",
-      "description": "Network mode for service"
-    },
-    {
-      "key": "database_enabled",
-      "type": "boolean",
-      "label": "Enable database",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable database"
-    },
-    {
-      "key": "database_type",
-      "type": "string",
-      "label": "Database type",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "enum",
-      "default": "postgres",
-      "description": "Database type",
-      "options": [
-        "postgres",
-        "mysql"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "release_name",
+          "type": "str",
+          "title": "Helm release name",
+          "required": false,
+          "default": "traefik",
+          "description": "Helm release name"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Kubernetes namespace",
+          "required": false,
+          "default": "traefik",
+          "description": "Kubernetes namespace"
+        }
       ]
     },
     {
-      "key": "database_host",
-      "type": "string",
-      "label": "Database host",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "hostname",
-      "description": "Database host"
+      "key": "networking",
+      "title": "Networking Configuration",
+      "variables": [
+        {
+          "name": "network_mode",
+          "type": "str",
+          "title": "Network mode for service",
+          "required": false,
+          "default": "LoadBalancer",
+          "description": "Network mode for service"
+        }
+      ]
     },
     {
-      "key": "database_port",
-      "type": "number",
-      "label": "Database port",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "int",
-      "default": 5432,
-      "description": "Database port"
+      "key": "database",
+      "title": "Database Configuration",
+      "variables": [
+        {
+          "name": "database_enabled",
+          "type": "bool",
+          "title": "Enable database",
+          "required": false,
+          "default": false,
+          "description": "Enable database"
+        },
+        {
+          "name": "database_type",
+          "type": "str",
+          "title": "Database type",
+          "required": false,
+          "default": "postgres",
+          "description": "Database type",
+          "options": [
+            "postgres",
+            "mysql"
+          ]
+        },
+        {
+          "name": "database_host",
+          "type": "str",
+          "title": "Database host",
+          "required": false,
+          "description": "Database host"
+        },
+        {
+          "name": "database_port",
+          "type": "int",
+          "title": "Database port",
+          "required": false,
+          "default": 5432,
+          "description": "Database port"
+        },
+        {
+          "name": "database_name",
+          "type": "str",
+          "title": "Database name",
+          "required": false,
+          "description": "Database name"
+        },
+        {
+          "name": "database_user",
+          "type": "str",
+          "title": "Database user",
+          "required": false,
+          "description": "Database user"
+        },
+        {
+          "name": "database_password",
+          "type": "str",
+          "title": "Database password",
+          "required": false,
+          "description": "Database password",
+          "sensitive": true
+        }
+      ]
     },
     {
-      "key": "database_name",
-      "type": "string",
-      "label": "Database name",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database name"
+      "key": "dashboard",
+      "title": "Dashboard IngressRoute",
+      "variables": [
+        {
+          "name": "dashboard_host",
+          "type": "str",
+          "title": "FQDN for the Traefik dashboard",
+          "required": false,
+          "description": "FQDN for the Traefik dashboard"
+        },
+        {
+          "name": "dashboard_ingressroute_enabled",
+          "type": "bool",
+          "title": "Create IngressRoute for Traefik dashboard",
+          "required": false,
+          "default": false,
+          "description": "Create IngressRoute for Traefik dashboard"
+        },
+        {
+          "name": "dashboard_middleware",
+          "type": "str",
+          "title": "Authentication middleware name for dashboard protection",
+          "required": false,
+          "default": "traefik-dashboard-auth",
+          "description": "Authentication middleware name for dashboard protection"
+        },
+        {
+          "name": "dashboard_tls_secret",
+          "type": "str",
+          "title": "TLS secret name for dashboard",
+          "required": false,
+          "default": "traefik-dashboard-tls",
+          "description": "TLS secret name for dashboard"
+        },
+        {
+          "name": "release_name",
+          "type": "str",
+          "title": "Release Name",
+          "required": false,
+          "default": "traefik"
+        }
+      ]
     },
     {
-      "key": "database_user",
-      "type": "string",
-      "label": "Database user",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database user"
+      "key": "http-redirect",
+      "title": "HTTP to HTTPS Redirect",
+      "variables": [
+        {
+          "name": "http_redirect_enabled",
+          "type": "bool",
+          "title": "Automatically redirect HTTP traffic to HTTPS",
+          "required": false,
+          "default": true,
+          "description": "Automatically redirect HTTP traffic to HTTPS"
+        },
+        {
+          "name": "http_redirect_permanent",
+          "type": "bool",
+          "title": "Use permanent redirect (301) instead of temporary (302)",
+          "required": false,
+          "default": true,
+          "description": "Use permanent redirect (301) instead of temporary (302)"
+        }
+      ]
     },
     {
-      "key": "database_password",
-      "type": "string",
-      "label": "Database password",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database password",
-      "sensitive": true
-    },
-    {
-      "key": "dashboard_host",
-      "type": "string",
-      "label": "FQDN for the Traefik dashboard",
-      "required": false,
-      "section": {
-        "key": "dashboard",
-        "title": "Dashboard IngressRoute",
-        "toggle": "dashboard_ingressroute_enabled"
-      },
-      "source_type": "hostname",
-      "description": "FQDN for the Traefik dashboard"
-    },
-    {
-      "key": "dashboard_ingressroute_enabled",
-      "type": "boolean",
-      "label": "Create IngressRoute for Traefik dashboard",
-      "required": false,
-      "section": {
-        "key": "dashboard",
-        "title": "Dashboard IngressRoute",
-        "toggle": "dashboard_ingressroute_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Create IngressRoute for Traefik dashboard"
-    },
-    {
-      "key": "dashboard_middleware",
-      "type": "string",
-      "label": "Authentication middleware name for dashboard protection",
-      "required": false,
-      "section": {
-        "key": "dashboard",
-        "title": "Dashboard IngressRoute",
-        "toggle": "dashboard_ingressroute_enabled"
-      },
-      "source_type": "str",
-      "default": "traefik-dashboard-auth",
-      "description": "Authentication middleware name for dashboard protection"
-    },
-    {
-      "key": "dashboard_tls_secret",
-      "type": "string",
-      "label": "TLS secret name for dashboard",
-      "required": false,
-      "section": {
-        "key": "dashboard",
-        "title": "Dashboard IngressRoute",
-        "toggle": "dashboard_ingressroute_enabled"
-      },
-      "source_type": "str",
-      "default": "traefik-dashboard-tls",
-      "description": "TLS secret name for dashboard"
-    },
-    {
-      "key": "release_name",
-      "type": "string",
-      "label": "Release Name",
-      "required": false,
-      "section": {
-        "key": "dashboard",
-        "title": "Dashboard IngressRoute",
-        "toggle": "dashboard_ingressroute_enabled"
-      },
-      "source_type": "str",
-      "default": "traefik"
-    },
-    {
-      "key": "http_redirect_enabled",
-      "type": "boolean",
-      "label": "Automatically redirect HTTP traffic to HTTPS",
-      "required": false,
-      "section": {
-        "key": "http_redirect",
-        "title": "HTTP to HTTPS Redirect",
-        "toggle": "http_redirect_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Automatically redirect HTTP traffic to HTTPS"
-    },
-    {
-      "key": "http_redirect_permanent",
-      "type": "boolean",
-      "label": "Use permanent redirect (301) instead of temporary (302)",
-      "required": false,
-      "section": {
-        "key": "http_redirect",
-        "title": "HTTP to HTTPS Redirect",
-        "toggle": "http_redirect_enabled"
-      },
-      "source_type": "bool",
-      "default": true,
-      "description": "Use permanent redirect (301) instead of temporary (302)"
-    },
-    {
-      "key": "accesslog_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik access log",
-      "required": false,
-      "section": {
-        "key": "traefik_config",
-        "title": "Traefik Settings"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik access log"
-    },
-    {
-      "key": "dashboard_enabled",
-      "type": "boolean",
-      "label": "Enable Traefik dashboard",
-      "required": false,
-      "section": {
-        "key": "traefik_config",
-        "title": "Traefik Settings"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Traefik dashboard",
-      "extra": "WARNING: Don't use in production!"
-    },
-    {
-      "key": "prometheus_enabled",
-      "type": "boolean",
-      "label": "Enable Prometheus metrics",
-      "required": false,
-      "section": {
-        "key": "traefik_config",
-        "title": "Traefik Settings"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable Prometheus metrics"
+      "key": "traefik-config",
+      "title": "Traefik Settings",
+      "variables": [
+        {
+          "name": "accesslog_enabled",
+          "type": "bool",
+          "title": "Enable Traefik access log",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik access log"
+        },
+        {
+          "name": "dashboard_enabled",
+          "type": "bool",
+          "title": "Enable Traefik dashboard",
+          "required": false,
+          "default": false,
+          "description": "Enable Traefik dashboard"
+        },
+        {
+          "name": "prometheus_enabled",
+          "type": "bool",
+          "title": "Enable Prometheus metrics",
+          "required": false,
+          "default": false,
+          "description": "Enable Prometheus metrics"
+        }
+      ]
     }
   ],
   "legacy": {

@@ -10,7 +10,7 @@
     "template_version": "2.4.0",
     "date": "2025-11-11",
     "icon": {
-      "provider": "selfh",
+      "provider": "simple-icons",
       "id": "checkmk"
     },
     "draft": false,
@@ -22,114 +22,82 @@
   },
   "variables": [
     {
-      "key": "target_hosts",
-      "type": "string",
-      "label": "Target hosts",
-      "required": true,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "description": "Target hosts"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "target_hosts",
+          "type": "str",
+          "title": "Target hosts",
+          "required": true,
+          "description": "Target hosts"
+        }
+      ]
     },
     {
-      "key": "checkmk_server",
-      "type": "string",
-      "label": "Checkmk Server",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Server"
-    },
-    {
-      "key": "checkmk_protocol",
-      "type": "string",
-      "label": "Checkmk Server Protocol",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "default": "https",
-      "description": "Checkmk Server Protocol"
-    },
-    {
-      "key": "checkmk_site",
-      "type": "string",
-      "label": "Checkmk Site",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "default": "cmk",
-      "description": "Checkmk Site"
-    },
-    {
-      "key": "checkmk_auto_activate",
-      "type": "boolean",
-      "label": "Auto Activate Agent",
-      "required": false,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "bool",
-      "description": "Auto Activate Agent"
-    },
-    {
-      "key": "checkmk_tls",
-      "type": "boolean",
-      "label": "Use TLS for Agent Communication",
-      "required": false,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "bool",
-      "description": "Use TLS for Agent Communication"
-    },
-    {
-      "key": "checkmk_user",
-      "type": "string",
-      "label": "Checkmk Automation User",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Automation User"
-    },
-    {
-      "key": "checkmk_pass",
-      "type": "string",
-      "label": "Checkmk Automation User Password",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Automation User Password",
-      "sensitive": true
-    },
-    {
-      "key": "checkmk_host",
-      "type": "string",
-      "label": "Checkmk Host Name",
-      "required": true,
-      "section": {
-        "key": "checkmk",
-        "title": "Checkmk Configuration"
-      },
-      "source_type": "str",
-      "description": "Checkmk Host Name"
+      "key": "checkmk",
+      "title": "Checkmk Configuration",
+      "variables": [
+        {
+          "name": "checkmk_server",
+          "type": "str",
+          "title": "Checkmk Server",
+          "required": true,
+          "description": "Checkmk Server"
+        },
+        {
+          "name": "checkmk_protocol",
+          "type": "str",
+          "title": "Checkmk Server Protocol",
+          "required": true,
+          "default": "https",
+          "description": "Checkmk Server Protocol"
+        },
+        {
+          "name": "checkmk_site",
+          "type": "str",
+          "title": "Checkmk Site",
+          "required": true,
+          "default": "cmk",
+          "description": "Checkmk Site"
+        },
+        {
+          "name": "checkmk_auto_activate",
+          "type": "bool",
+          "title": "Auto Activate Agent",
+          "required": false,
+          "description": "Auto Activate Agent"
+        },
+        {
+          "name": "checkmk_tls",
+          "type": "bool",
+          "title": "Use TLS for Agent Communication",
+          "required": false,
+          "description": "Use TLS for Agent Communication"
+        },
+        {
+          "name": "checkmk_user",
+          "type": "str",
+          "title": "Checkmk Automation User",
+          "required": true,
+          "description": "Checkmk Automation User"
+        },
+        {
+          "name": "checkmk_pass",
+          "type": "str",
+          "title": "Checkmk Automation User Password",
+          "required": true,
+          "description": "Checkmk Automation User Password",
+          "sensitive": true
+        },
+        {
+          "name": "checkmk_host",
+          "type": "str",
+          "title": "Checkmk Host Name",
+          "required": true,
+          "description": "Checkmk Host Name"
+        }
+      ]
     }
   ],
   "legacy": {

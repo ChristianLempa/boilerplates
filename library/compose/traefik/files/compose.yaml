@@ -71,12 +71,7 @@ services:
       {% if dashboard_enabled %}
       - "{{ ports_dashboard }}:8080"
       {% endif %}
-    {#
-      We always need volumes, because of the docker socket and certs storage
-      - certs storage for ACME
-      - docker socket for automatic service discovery
-      - Traefik configuration in non-swarm mode
-    #}
+    
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       {% if volume_mode == 'mount' %}
@@ -188,9 +183,7 @@ services:
     restart: {{ restart_policy }}
     {% endif %}
 
-{#
-  If Traefik TLS is enabled in swarm mode, define the necessary secrets for ACME DNS challenge.
-#}
+
 {% if swarm_enabled and traefik_tls_enabled %}
 secrets:
   {{ service_name }}_token:
@@ -205,10 +198,7 @@ secrets:
   {% endif %}
 {% endif %}
 
-{#
-  Always define the traefik network, but if it's not external, set it up according to
-  swarm mode or bridge mode.
-#}
+
 networks:
   {{ traefik_network }}:
     {% if traefik_network_external %}
@@ -223,9 +213,7 @@ networks:
     name: {{ traefik_network }}
     {% endif %}
 
-{#
-  Always define volumes for certs based on volume_mode
-#}
+
 {% if volume_mode == 'local' %}
 volumes:
   {{ service_name }}_certs:

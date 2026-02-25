@@ -10,8 +10,8 @@
     "template_version": "1.9.1",
     "date": "2025-01-11",
     "icon": {
-      "provider": "selfh",
-      "id": "rancher-longhorn"
+      "provider": "mdi",
+      "id": "database-cog-outline"
     },
     "draft": true,
     "next_steps": ""
@@ -22,206 +22,152 @@
   },
   "variables": [
     {
-      "key": "release_name",
-      "type": "string",
-      "label": "Helm release name",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "longhorn",
-      "description": "Helm release name"
-    },
-    {
-      "key": "namespace",
-      "type": "string",
-      "label": "Kubernetes namespace",
-      "required": false,
-      "section": {
-        "key": "general"
-      },
-      "source_type": "str",
-      "default": "longhorn-system",
-      "description": "Kubernetes namespace"
-    },
-    {
-      "key": "network_mode",
-      "type": "string",
-      "label": "Network mode for service",
-      "required": false,
-      "section": {
-        "key": "networking",
-        "title": "Networking Configuration"
-      },
-      "source_type": "str",
-      "default": "ClusterIP",
-      "description": "Network mode for service"
-    },
-    {
-      "key": "database_enabled",
-      "type": "boolean",
-      "label": "Enable database",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable database"
-    },
-    {
-      "key": "database_type",
-      "type": "string",
-      "label": "Database type",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "enum",
-      "default": "postgres",
-      "description": "Database type",
-      "options": [
-        "postgres",
-        "mysql"
+      "key": "general",
+      "title": "General",
+      "variables": [
+        {
+          "name": "release_name",
+          "type": "str",
+          "title": "Helm release name",
+          "required": false,
+          "default": "longhorn",
+          "description": "Helm release name"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Kubernetes namespace",
+          "required": false,
+          "default": "longhorn-system",
+          "description": "Kubernetes namespace"
+        }
       ]
     },
     {
-      "key": "database_host",
-      "type": "string",
-      "label": "Database host",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "hostname",
-      "description": "Database host"
+      "key": "networking",
+      "title": "Networking Configuration",
+      "variables": [
+        {
+          "name": "network_mode",
+          "type": "str",
+          "title": "Network mode for service",
+          "required": false,
+          "default": "ClusterIP",
+          "description": "Network mode for service"
+        }
+      ]
     },
     {
-      "key": "database_port",
-      "type": "number",
-      "label": "Database port",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "int",
-      "default": 5432,
-      "description": "Database port"
+      "key": "database",
+      "title": "Database Configuration",
+      "variables": [
+        {
+          "name": "database_enabled",
+          "type": "bool",
+          "title": "Enable database",
+          "required": false,
+          "default": false,
+          "description": "Enable database"
+        },
+        {
+          "name": "database_type",
+          "type": "str",
+          "title": "Database type",
+          "required": false,
+          "default": "postgres",
+          "description": "Database type",
+          "options": [
+            "postgres",
+            "mysql"
+          ]
+        },
+        {
+          "name": "database_host",
+          "type": "str",
+          "title": "Database host",
+          "required": false,
+          "description": "Database host"
+        },
+        {
+          "name": "database_port",
+          "type": "int",
+          "title": "Database port",
+          "required": false,
+          "default": 5432,
+          "description": "Database port"
+        },
+        {
+          "name": "database_name",
+          "type": "str",
+          "title": "Database name",
+          "required": false,
+          "description": "Database name"
+        },
+        {
+          "name": "database_user",
+          "type": "str",
+          "title": "Database user",
+          "required": false,
+          "description": "Database user"
+        },
+        {
+          "name": "database_password",
+          "type": "str",
+          "title": "Database password",
+          "required": false,
+          "description": "Database password",
+          "sensitive": true
+        }
+      ]
     },
     {
-      "key": "database_name",
-      "type": "string",
-      "label": "Database name",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database name"
+      "key": "backup",
+      "title": "Backup Configuration",
+      "variables": [
+        {
+          "name": "backup_enabled",
+          "type": "bool",
+          "title": "Enable backup target configuration",
+          "required": false,
+          "default": false,
+          "description": "Enable backup target configuration"
+        },
+        {
+          "name": "backup_target",
+          "type": "str",
+          "title": "Backup target URL (e.g., s3://bucket or nfs://server/path)",
+          "required": false,
+          "description": "Backup target URL (e.g., s3://bucket or nfs://server/path)"
+        },
+        {
+          "name": "namespace",
+          "type": "str",
+          "title": "Namespace",
+          "required": false,
+          "default": "longhorn-system"
+        },
+        {
+          "name": "release_name",
+          "type": "str",
+          "title": "Release Name",
+          "required": false,
+          "default": "longhorn"
+        }
+      ]
     },
     {
-      "key": "database_user",
-      "type": "string",
-      "label": "Database user",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database user"
-    },
-    {
-      "key": "database_password",
-      "type": "string",
-      "label": "Database password",
-      "required": false,
-      "section": {
-        "key": "database",
-        "title": "Database Configuration",
-        "toggle": "database_enabled"
-      },
-      "source_type": "str",
-      "description": "Database password",
-      "sensitive": true
-    },
-    {
-      "key": "backup_enabled",
-      "type": "boolean",
-      "label": "Enable backup target configuration",
-      "required": false,
-      "section": {
-        "key": "backup",
-        "title": "Backup Configuration",
-        "toggle": "backup_enabled"
-      },
-      "source_type": "bool",
-      "default": false,
-      "description": "Enable backup target configuration"
-    },
-    {
-      "key": "backup_target",
-      "type": "string",
-      "label": "Backup target URL (e.g., s3://bucket or nfs://server/path)",
-      "required": false,
-      "section": {
-        "key": "backup",
-        "title": "Backup Configuration",
-        "toggle": "backup_enabled"
-      },
-      "source_type": "str",
-      "description": "Backup target URL (e.g., s3://bucket or nfs://server/path)"
-    },
-    {
-      "key": "namespace",
-      "type": "string",
-      "label": "Namespace",
-      "required": false,
-      "section": {
-        "key": "backup",
-        "title": "Backup Configuration",
-        "toggle": "backup_enabled"
-      },
-      "source_type": "str",
-      "default": "longhorn-system"
-    },
-    {
-      "key": "release_name",
-      "type": "string",
-      "label": "Release Name",
-      "required": false,
-      "section": {
-        "key": "backup",
-        "title": "Backup Configuration",
-        "toggle": "backup_enabled"
-      },
-      "source_type": "str",
-      "default": "longhorn"
-    },
-    {
-      "key": "ui_replicas",
-      "type": "number",
-      "label": "Number of Longhorn UI replicas",
-      "required": false,
-      "section": {
-        "key": "ui",
-        "title": "Longhorn UI"
-      },
-      "source_type": "int",
-      "default": 1,
-      "description": "Number of Longhorn UI replicas"
+      "key": "ui",
+      "title": "Longhorn UI",
+      "variables": [
+        {
+          "name": "ui_replicas",
+          "type": "int",
+          "title": "Number of Longhorn UI replicas",
+          "required": false,
+          "default": 1,
+          "description": "Number of Longhorn UI replicas"
+        }
+      ]
     }
   ],
   "legacy": {
