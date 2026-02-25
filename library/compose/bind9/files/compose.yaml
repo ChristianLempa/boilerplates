@@ -35,12 +35,6 @@ services:
       - {{ service_name }}_cache:/var/cache/bind
       {% endif %}
 
-{#
-  Network definitions (only when needed):
-  - When network_mode is empty: no definition needed (uses Docker's default bridge)
-  - When network_mode is 'bridge': define custom bridge network
-  - When network_mode is 'macvlan': configure macvlan with static IP (for Compose mode)
-#}
 {% if network_mode == 'bridge' or network_mode == 'macvlan' %}
 networks:
   {{ network_name }}:
@@ -62,12 +56,6 @@ networks:
   {% endif %}
 {% endif %}
 
-{#
-  Volume definitions:
-  - When volume_mode is 'local' (default): use docker-managed local volumes
-  - When volume_mode is 'nfs': configure NFS-backed volumes
-  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
-#}
 {% if volume_mode == 'local' %}
 volumes:
   {{ service_name }}_config:

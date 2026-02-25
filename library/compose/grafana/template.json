@@ -80,7 +80,9 @@
           "title": "Authentik Url",
           "required": true,
           "default": "https://auth.home.arpa",
-          "needs": "authentik_enabled=true"
+          "needs": [
+            "authentik_enabled=true"
+          ]
         },
         {
           "name": "authentik_slug",
@@ -88,7 +90,9 @@
           "title": "Authentik Slug",
           "required": true,
           "default": "grafana",
-          "needs": "authentik_enabled=true"
+          "needs": [
+            "authentik_enabled=true"
+          ]
         },
         {
           "name": "authentik_client_id",
@@ -96,7 +100,9 @@
           "title": "Authentik Client Id",
           "required": true,
           "sensitive": true,
-          "needs": "authentik_enabled=true"
+          "needs": [
+            "authentik_enabled=true"
+          ]
         },
         {
           "name": "authentik_client_secret",
@@ -104,7 +110,9 @@
           "title": "Authentik Client Secret",
           "required": true,
           "sensitive": true,
-          "needs": "authentik_enabled=true"
+          "needs": [
+            "authentik_enabled=true"
+          ]
         }
       ]
     },
@@ -185,7 +193,9 @@
           "required": false,
           "default": false,
           "description": "Use external database",
-          "needs": "database_type=postgres"
+          "needs": [
+            "database_type=postgres"
+          ]
         },
         {
           "name": "database_name",
@@ -193,7 +203,9 @@
           "title": "Database Name",
           "required": false,
           "default": "grafana",
-          "needs": "database_type=postgres"
+          "needs": [
+            "database_type=postgres"
+          ]
         },
         {
           "name": "database_user",
@@ -201,7 +213,9 @@
           "title": "Database User",
           "required": false,
           "default": "grafana",
-          "needs": "database_type=postgres"
+          "needs": [
+            "database_type=postgres"
+          ]
         },
         {
           "name": "database_password",
@@ -209,7 +223,9 @@
           "title": "Database Password",
           "required": true,
           "sensitive": true,
-          "needs": "database_type=postgres"
+          "needs": [
+            "database_type=postgres"
+          ]
         },
         {
           "name": "database_host",

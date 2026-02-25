@@ -2,40 +2,22 @@
 services:
   {{ service_name }}:
     image: ghcr.io/mend/renovate-ce:13.6.0-full
-    {#
-      If not in swarm mode, apply container name and restart policy
-    #}
-    {% if not swarm_enabled %}
+        {% if not swarm_enabled %}
     container_name: {{ container_name }}
     restart: {{ restart_policy }}
     {% endif %}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
-    {% if traefik_enabled %}
+        hostname: {{ container_hostname }}
+        {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-    #}
-    {% if not traefik_enabled %}
+        {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:8080"
     {% endif %}
-    {#
-      Environment file containing Renovate configuration
-    #}
-    env_file:
+        env_file:
       - ./.env
-    {#
-      When swarm_enabled is set, use Docker secrets for sensitive data
-    #}
-    {% if swarm_enabled %}
+        {% if swarm_enabled %}
     secrets:
       - source: {{ service_name }}_license_key
         target: /run/secrets/{{ service_name }}_license_key
@@ -48,12 +30,7 @@ services:
         target: /run/secrets/{{ service_name }}_webhook_secret
         mode: 0400
       {% endif %}
-    {#
-      Deploy configuration for Swarm mode:
-      - Configure replicas, placement constraints
-      - Traefik: Labels for reverse proxy integration (Swarm mode)
-    #}
-    deploy:
+        deploy:
       mode: {{ swarm_placement_mode }}
       {% if swarm_placement_mode == 'replicated' %}
       replicas: {{ swarm_replicas }}
@@ -63,11 +40,7 @@ services:
         constraints:
           - node.hostname == {{ swarm_placement_host }}
       {% endif %}
-      {#
-        When traefik_enabled is set in swarm mode, add traefik labels
-        (optionally enable TLS if traefik_tls_enabled is set)
-      #}
-      {% if traefik_enabled %}
+            {% if traefik_enabled %}
       labels:
         - traefik.enable=true
         - traefik.http.services.{{ service_name }}.loadbalancer.server.port=8080
@@ -81,11 +54,7 @@ services:
         {% endif %}
       {% endif %}
     {% else %}
-    {#
-      When traefik_enabled is set, and not running in swarm mode, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
-    {% if traefik_enabled %}
+        {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.http.services.{{ service_name }}.loadbalancer.server.port=8080
@@ -99,20 +68,13 @@ services:
       {% endif %}
     {% endif %}
     {% endif %}
-    {#
-      Health check: Verify Renovate service is responding
-    #}
-    healthcheck:
+        healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-{#
-  Docker Swarm secrets (only when swarm_enabled is set):
-  - License key, Git token, and webhook secret
-#}
 {% if swarm_enabled %}
 secrets:
   {{ service_name }}_license_key:
@@ -125,10 +87,6 @@ secrets:
   {% endif %}
 {% endif %}
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

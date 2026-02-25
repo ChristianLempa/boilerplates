@@ -1,28 +1,12 @@
 services:
   {{ service_name }}:
     image: docker.io/twingate/connector:{{ twingate_version }}
-    {#
-      If not in swarm mode, apply restart policy and container_name,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
-    {% if not swarm_enabled %}
+        {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
-    {#
-      Set container hostname (Twingate connector uses this for identification)
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for Twingate Connector configuration
-      - TZ: Timezone
-      - TWINGATE_NETWORK: Your Twingate network name
-      - TWINGATE_ACCESS_TOKEN: Access token (from env or secret)
-      - TWINGATE_REFRESH_TOKEN: Refresh token (from env or secret)
-      - TWINGATE_LOG_LEVEL: Log verbosity level
-      - TWINGATE_DNS: Optional local DNS server override
-    #}
-    environment:
+        hostname: {{ container_hostname }}
+        environment:
       - TZ={{ container_timezone }}
       - TWINGATE_NETWORK={{ twingate_network }}
       {% if swarm_enabled %}
@@ -36,18 +20,9 @@ services:
       {% if twingate_dns %}
       - TWINGATE_DNS={{ twingate_dns }}
       {% endif %}
-    {#
-      Required sysctls for Twingate connector networking
-    #}
-    sysctls:
+        sysctls:
       net.ipv4.ping_group_range: "0 2147483647"
-    {#
-      Deploy configuration for Swarm mode:
-      - Supports both replicated and global deployment modes
-      - Uses Docker secrets for sensitive credentials
-      - Optional resource limits and reservations
-    #}
-    {% if swarm_enabled %}
+        {% if swarm_enabled %}
     secrets:
       - twingate_access_token
       - twingate_refresh_token
@@ -73,9 +48,6 @@ services:
       {% endif %}
     {% endif %}
 
-{#
-  Docker Swarm secrets (external secrets managed via docker secret create)
-#}
 {% if swarm_enabled %}
 secrets:
   twingate_access_token:

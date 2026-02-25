@@ -130,7 +130,9 @@
           "required": false,
           "default": "192.168.1.252",
           "description": "Static IP address for database container (macvlan only)",
-          "needs": "network_mode=macvlan"
+          "needs": [
+            "network_mode=macvlan"
+          ]
         }
       ]
     },

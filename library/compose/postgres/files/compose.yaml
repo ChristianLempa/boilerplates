@@ -1,28 +1,12 @@
 services:
   {{ service_name }}:
     image: docker.io/library/postgres:18.2
-    {#
-      If not in swarm mode, apply restart policy and container_name,
-      else swarm mode handles restarts via deploy.restart_policy
-    #}
-    {% if not swarm_enabled %}
+        {% if not swarm_enabled %}
     restart: {{ restart_policy }}
     container_name: {{ container_name }}
     {% endif %}
-    {#
-      Set container hostname
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for PostgreSQL configuration
-      - POSTGRES_INITDB_ARGS: Database initialization arguments (e.g., --data-checksums)
-      - POSTGRES_HOST_AUTH_METHOD: Authentication method (optional)
-      - POSTGRES_USER: Database superuser name
-      - POSTGRES_PASSWORD: Database password (from env or secret file)
-      - POSTGRES_DB: Default database name
-      - TZ: Timezone
-    #}
-    environment:
+        hostname: {{ container_hostname }}
+        environment:
       - POSTGRES_INITDB_ARGS={{ postgres_initdb_args }}
       {% if postgres_host_auth_method %}
       - POSTGRES_HOST_AUTH_METHOD={{ postgres_host_auth_method }}
@@ -35,21 +19,11 @@ services:
       {% endif %}
       - POSTGRES_DB={{ database_name }}
       - TZ={{ container_timezone }}
-    {#
-      Network configuration:
-      - Databases typically use bridge networking for internal communication
-      - Port exposure controlled separately for security
-    #}
-    {% if network_mode == 'bridge' or network_mode == '' %}
+        {% if network_mode == 'bridge' or network_mode == '' %}
     networks:
       {{ network_name }}:
     {% endif %}
-    {#
-      Port mappings (only expose if needed):
-      - PostgreSQL default port 5432
-      Note: Swarm mode uses 'host' mode for port publishing
-    #}
-    {% if network_mode == 'bridge' or network_mode == '' %}
+        {% if network_mode == 'bridge' or network_mode == '' %}
     ports:
       {% if swarm_enabled %}
       - target: 5432
@@ -60,39 +34,23 @@ services:
       - "{{ database_port }}:5432"
       {% endif %}
     {% endif %}
-    {#
-      Volume configuration for persistent data
-      - When volume_mode is 'mount': bind mount from host path
-      - When volume_mode is 'local', 'nfs', or empty: use docker-managed volumes
-    #}
-    volumes:
+        volumes:
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}:/var/lib/postgresql/data:rw
       {% else %}
       - {{ service_name }}-data:/var/lib/postgresql/data
       {% endif %}
-    {#
-      Use Docker secrets for password management (Swarm or Compose with secrets enabled)
-    #}
-    {% if postgres_secrets_enabled %}
+        {% if postgres_secrets_enabled %}
     secrets:
       - postgres_password
     {% endif %}
-    {#
-      Health check to monitor PostgreSQL availability
-    #}
-    healthcheck:
+        healthcheck:
       test: ["CMD-SHELL", "pg_isready -U {{ database_user }}"]
       start_period: 30s
       interval: 10s
       timeout: 10s
       retries: 5
-    {#
-      Deploy configuration for Swarm mode:
-      - Single replica (PostgreSQL doesn't support multi-replica without replication setup)
-      - For HA, use external replication tools or PostgreSQL streaming replication
-    #}
-    {% if swarm_enabled %}
+        {% if swarm_enabled %}
     deploy:
       mode: replicated
       replicas: 1
@@ -100,21 +58,12 @@ services:
         condition: on-failure
     {% endif %}
 
-{#
-  Docker secrets definition (when secrets are enabled)
-#}
 {% if postgres_secrets_enabled %}
 secrets:
   postgres_password:
     file: secret.postgres_password.txt
 {% endif %}
 
-{#
-  Volume definitions:
-  - When volume_mode is 'local' (default): use docker-managed local volumes
-  - When volume_mode is 'nfs': configure NFS-backed volumes
-  - When volume_mode is 'mount': no volume definition needed (bind mounts used directly)
-#}
 {% if volume_mode == 'local' %}
 volumes:
   {{ service_name }}-data:
@@ -129,11 +78,6 @@ volumes:
       device: ":{{ volume_nfs_path }}"
 {% endif %}
 
-{#
-  Network definitions:
-  - Bridge network for service communication
-  - Use overlay network in Swarm mode for multi-host communication
-#}
 {% if network_mode == 'bridge' or network_mode == '' %}
 networks:
   {{ network_name }}:

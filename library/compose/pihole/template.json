@@ -269,7 +269,7 @@
           "type": "str",
           "title": "Swarm Placement Host",
           "required": true,
-          "needs": null
+          "needs": []
         },
         {
           "name": "swarm_replicas",

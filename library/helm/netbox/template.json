@@ -272,7 +272,9 @@
           "required": false,
           "default": "letsencrypt-prod",
           "description": "Cert-manager issuer name",
-          "needs": "traefik_tls_certmanager=true"
+          "needs": [
+            "traefik_tls_certmanager=true"
+          ]
         }
       ]
     },
@@ -380,7 +382,9 @@
           "required": false,
           "default": "https://example.com",
           "description": "Allowed CORS origins",
-          "needs": "netbox_cors_enabled=true"
+          "needs": [
+            "netbox_cors_enabled=true"
+          ]
         }
       ]
     }

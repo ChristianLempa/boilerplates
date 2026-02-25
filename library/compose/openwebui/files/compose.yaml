@@ -2,16 +2,8 @@ services:
   {{ service_name }}:
     image: ghcr.io/open-webui/open-webui:v0.8.2
     container_name: {{ container_name }}
-    {#
-      Set container hostname for identification
-    #}
-    hostname: {{ container_hostname }}
-    {#
-      Environment variables for OpenWebUI configuration:
-      - Ollama API URL
-      - OAuth/OpenID configuration (if Authentik is enabled)
-    #}
-    environment:
+        hostname: {{ container_hostname }}
+        environment:
       - TZ={{ container_timezone }}
       - OLLAMA_BASE_URL={{ ollama_base_url }}
       {% if authentik_enabled %}
@@ -24,30 +16,17 @@ services:
       - OAUTH_SCOPES={{ oauth_scopes }}
       - OPENID_REDIRECT_URI={{ openid_redirect_uri }}
       {% endif %}
-    {#
-      Volume configuration for persistent data
-    #}
-    volumes:
+        volumes:
       - data:/app/backend/data:rw
-    {#
-      When traefik is enabled, add traefik network for reverse proxy access
-    #}
-    {% if traefik_enabled %}
+        {% if traefik_enabled %}
     networks:
       {{ traefik_network }}:
     {% endif %}
-    {#
-      Port mappings for web interface (only when Traefik is disabled)
-    #}
-    {% if not traefik_enabled %}
+        {% if not traefik_enabled %}
     ports:
       - "{{ ports_http }}:8080"
     {% endif %}
-    {#
-      When traefik_enabled is set, add traefik labels
-      (optionally enable TLS if traefik_tls_enabled is set)
-    #}
-    {% if traefik_enabled %}
+        {% if traefik_enabled %}
     labels:
       - traefik.enable=true
       - traefik.docker.network={{ traefik_network }}
@@ -65,18 +44,10 @@ services:
     {% endif %}
     restart: {{ restart_policy }}
 
-{#
-  Volume definitions:
-  - data: Persistent storage for OpenWebUI data
-#}
 volumes:
   data:
     driver: local
 
-{#
-  Network definitions (only when Traefik is enabled):
-  - Traefik network: always external (managed by Traefik)
-#}
 {% if traefik_enabled %}
 networks:
   {{ traefik_network }}:

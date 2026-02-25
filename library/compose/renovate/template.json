@@ -270,7 +270,9 @@
           "title": "Swarm Replicas",
           "required": false,
           "default": 1,
-          "needs": "swarm_placement_mode=replicated"
+          "needs": [
+            "swarm_placement_mode=replicated"
+          ]
         },
         {
           "name": "swarm_placement_host",
@@ -278,7 +280,9 @@
           "title": "Swarm Placement Host",
           "required": false,
           "default": "",
-          "needs": "swarm_placement_mode=replicated"
+          "needs": [
+            "swarm_placement_mode=replicated"
+          ]
         }
       ]
     }
