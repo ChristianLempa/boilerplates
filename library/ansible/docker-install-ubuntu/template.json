@@ -16,5 +16,32 @@
   "entrypoint": {
     "path": "main.yml",
     "type": "file"
-  }
+  },
+  "variables": [
+    {
+      "key": "postinstall",
+      "title": "Post-Install",
+      "variables": [
+        {
+          "name": "add_user_to_docker",
+          "type": "bool",
+          "title": "Add User To Docker Group",
+          "required": false,
+          "default": false,
+          "description": "Add a user to the docker group"
+        },
+        {
+          "name": "user",
+          "type": "str",
+          "title": "User",
+          "required": false,
+          "default": "",
+          "description": "Username to add to docker group",
+          "needs": [
+            "add_user_to_docker=true"
+          ]
+        }
+      ]
+    }
+  ]
 }

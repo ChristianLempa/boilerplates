@@ -75,6 +75,14 @@
         enabled: true
         state: started
 
+{% if add_user_to_docker == true %}
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: docker
+        append: true
+{% endif %}
+
     - name: Verify Docker CLI is available
       ansible.builtin.command: docker --version
       changed_when: false
