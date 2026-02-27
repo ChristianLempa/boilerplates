@@ -16,7 +16,6 @@ services:
       - traefik.http.routers.whoami-https.tls=true
       - traefik.http.routers.whoami-https.tls.certresolver={{ traefik_tls_certresolver }}
       {% endif %}
-    {% endif %}
     networks:
       - {{ traefik_network }}
 
