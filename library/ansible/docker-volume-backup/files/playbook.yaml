@@ -1,0 +1,77 @@
+---
+- name: Docker volume backup
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    backup_root: "/opt/docker-volume-backups"
+    backup_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    backup_archive_name: "backup_{{ container_name }}_{{ backup_timestamp }}.tar.gz"
+
+  tasks:
+    - name: Ensure backup root exists
+      ansible.builtin.file:
+        path: "{{ backup_root }}"
+        state: directory
+        mode: "0750"
+
+    - name: Get container information
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+
+    - name: Fail if container does not exist
+      ansible.builtin.fail:
+        msg: "Container '{{ container_name }}' does not exist"
+      when: not container_info.exists
+
+    - name: Record container running state
+      ansible.builtin.set_fact:
+        container_was_running: "{{ (container_info.container.State.Status | default('')) == 'running' }}"
+
+    - name: Stop container for consistent backup
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      when:
+        - stop_containers_during_backup | default(false)
+        - container_was_running
+
+    - name: Back up container path using all attached volumes
+      ansible.builtin.shell: |
+        set -eu
+        docker run --rm \
+          --volumes-from "{{ container_name }}" \
+          -v "{{ backup_root }}":/backup \
+          busybox sh -c '
+            test -e "{{ backup_container_path }}"
+            tar -czf "/backup/{{ backup_archive_name }}" \
+              -C / "{{ backup_container_path | regex_replace('^/', '') }}"
+          '
+      args:
+        executable: /bin/sh
+      changed_when: true
+
+    - name: Start container after backup
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+      when:
+        - stop_containers_during_backup | default(false)
+        - container_was_running
+
+    - name: Remove old backup archives
+      ansible.builtin.find:
+        paths: "{{ backup_root }}"
+        patterns: "backup_{{ container_name }}_*.tar.gz"
+        age: "{{ backup_retention_days | default(14) }}d"
+        recurse: true
+      register: old_backups
+
+    - name: Delete old backup archives
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+

@@ -1,0 +1,96 @@
+{
+  "version": "1",
+  "slug": "docker-mysql-backup",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker MySQL Backup",
+    "description": "Ansible playbook to connect to a named MySQL container and create compressed SQL dumps with retention support.\n\nProject: https://www.mysql.com\nDocumentation: https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html\n",
+    "tags": [
+      "docker",
+      "backup",
+      "mysql",
+      "database"
+    ],
+    "author": "Christian Lempa",
+    "icon": {
+      "provider": "simple-icons",
+      "id": "mysql",
+      "color": "emerald"
+    },
+    "date": "2026-02-27"
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "backup",
+      "title": "Backup",
+      "variables": [
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": true,
+          "description": "Name of the MySQL container"
+        },
+        {
+          "name": "mysql_user",
+          "type": "str",
+          "title": "MySQL User",
+          "required": false,
+          "default": "root",
+          "description": "Database user for mysqldump"
+        },
+        {
+          "name": "mysql_password",
+          "type": "str",
+          "title": "MySQL Password",
+          "required": false,
+          "default": "",
+          "description": "Optional database password"
+        },
+        {
+          "name": "mysql_database",
+          "type": "str",
+          "title": "Database Name",
+          "required": false,
+          "default": "all",
+          "description": "Database to dump, or 'all' for all databases"
+        },
+        {
+          "name": "backup_retention_days",
+          "type": "int",
+          "title": "Retention Days",
+          "required": false,
+          "default": 14,
+          "description": "Delete backup archives older than this many days"
+        }
+      ]
+    },
+    {
+      "key": "notification",
+      "title": "Notification",
+      "variables": [
+        {
+          "name": "send_discord_notification",
+          "type": "bool",
+          "title": "Send Discord Notification",
+          "required": false,
+          "default": false,
+          "description": "Send success/failure status to Discord webhook"
+        },
+        {
+          "name": "discord_webhook",
+          "type": "str",
+          "title": "Discord Webhook",
+          "required": false,
+          "default": "",
+          "sensitive": true,
+          "description": "Discord webhook URL for notifications"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "version": "1",
+  "slug": "docker-orphan-detection",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker Orphan Detection",
+    "description": "Ansible playbook to detect orphaned Docker resources and optionally push the report to Discord via webhook.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/reference/cli/docker/system/\n",
+    "tags": [
+      "docker",
+      "audit",
+      "orphan",
+      "report"
+    ],
+    "author": "Christian Lempa",
+    "icon": {
+      "provider": "mdi",
+      "id": "magnify",
+      "color": "teal"
+    },
+    "date": "2026-02-27"
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "discord",
+      "title": "Discord Webhook",
+      "variables": [
+        {
+          "name": "discord_enabled",
+          "type": "bool",
+          "title": "Enable Discord Webhook",
+          "required": false,
+          "default": false,
+          "description": "Send orphan detection summary to Discord webhook"
+        },
+        {
+          "name": "discord_webhook_url",
+          "type": "str",
+          "title": "Discord Webhook URL",
+          "required": false,
+          "default": "",
+          "description": "Discord webhook endpoint URL"
+        },
+        {
+          "name": "discord_username",
+          "type": "str",
+          "title": "Discord Username",
+          "required": false,
+          "default": "Docker Reporter",
+          "description": "Sender name for webhook message"
+        },
+        {
+          "name": "discord_message_prefix",
+          "type": "str",
+          "title": "Discord Message Prefix",
+          "required": false,
+          "default": "Docker Orphan Detection Report",
+          "description": "Prefix line sent before report content"
+        }
+      ]
+    }
+  ]
+}

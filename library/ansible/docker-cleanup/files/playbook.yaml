@@ -1,16 +1,18 @@
 ---
-- name: Docker cleanup
+- name: Docker prune safe
   hosts: all
   become: true
   gather_facts: false
 
   tasks:
-    - name: Docker cleanup
+    - name: Prune Docker resources with safe defaults
       community.docker.docker_prune:
-        containers: "{{ cleanup_containers | default(false) | bool }}"
+        containers: "{{ prune_stopped_containers | default(false) }}"
         images: true
         images_filters:
-          dangling: "{{ false if (cleanup_nondangling | default(false) | bool) else true }}"
-        networks: "{{ cleanup_networks | default(false) | bool }}"
-        volumes: "{{ cleanup_volumes | default(false) | bool }}"
-        builder_cache: false
+          dangling: "{{ not (prune_include_unused_tagged_images | default(false)) }}"
+        networks: "{{ prune_unused_networks | default(false) }}"
+        volumes: "{{ prune_unused_volumes | default(false) }}"
+        builder_cache: "{{ prune_builder_cache | default(false) }}"
+        builder_cache_filters:
+          keep_storage: "{{ prune_keep_storage_mb | default(1024) }}m"

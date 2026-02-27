@@ -1,0 +1,64 @@
+{
+  "version": "1",
+  "slug": "docker-volume-backup",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker Volume Backup",
+    "description": "Ansible playbook to back up data from a Docker container path by auto-attaching all container volumes into a temporary backup container. Creates timestamped tar.gz archives and supports retention.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/storage/volumes/\n",
+    "tags": [
+      "docker",
+      "backup",
+      "volume",
+      "container"
+    ],
+    "author": "Christian Lempa",
+    "icon": {
+      "provider": "mdi",
+      "id": "harddisk",
+      "color": "emerald"
+    },
+    "date": "2026-02-27"
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "backup",
+      "title": "Backup",
+      "variables": [
+        {
+          "name": "container_name",
+          "type": "str",
+          "title": "Container Name",
+          "required": true,
+          "description": "Name of the Docker container to back up"
+        },
+        {
+          "name": "backup_retention_days",
+          "type": "int",
+          "title": "Retention Days",
+          "required": false,
+          "default": 14,
+          "description": "Delete backup archives older than this many days"
+        },
+        {
+          "name": "backup_container_path",
+          "type": "str",
+          "title": "Container Path To Backup",
+          "required": true,
+          "description": "Path inside the container that should be archived"
+        },
+        {
+          "name": "stop_containers_during_backup",
+          "type": "bool",
+          "title": "Stop Container During Backup",
+          "required": false,
+          "default": false,
+          "description": "If enabled, stop the container before backup and start it again afterwards if it was running"
+        }
+      ]
+    }
+  ]
+}

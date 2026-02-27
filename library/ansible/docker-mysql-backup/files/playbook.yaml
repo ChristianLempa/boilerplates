@@ -1,0 +1,158 @@
+---
+- name: Docker mysql backup
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    backup_root: "/opt/docker-db-backups/mysql"
+    backup_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    backup_file_name: "backup_mysql_{{ container_name }}_{{ backup_timestamp }}.sql.gz"
+    backup_file_path: "{{ backup_root }}/{{ backup_file_name }}"
+
+  tasks:
+    - name: Ensure backup root exists
+      ansible.builtin.file:
+        path: "{{ backup_root }}"
+        state: directory
+        mode: "0750"
+
+    - name: Get container information
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+
+    - name: Fail if container does not exist
+      ansible.builtin.fail:
+        msg: "Container '{{ container_name }}' does not exist"
+      when: not container_info.exists
+
+    - name: Run backup and validation
+      block:
+        - name: Dump all databases with password
+          ansible.builtin.shell: |
+            set -euo pipefail
+            docker exec -e MYSQL_PWD={{ mysql_password | quote }} "{{ container_name }}" \
+              mysqldump --single-transaction --routines --events --triggers \
+              --all-databases -u "{{ mysql_user | default('root') }}" \
+              | gzip > "{{ backup_file_path }}"
+          args:
+            executable: /bin/bash
+          changed_when: true
+          when:
+            - mysql_database | default('all') == 'all'
+            - (mysql_password | default('')) | length > 0
+
+        - name: Dump all databases without password
+          ansible.builtin.shell: |
+            set -euo pipefail
+            docker exec "{{ container_name }}" \
+              mysqldump --single-transaction --routines --events --triggers \
+              --all-databases -u "{{ mysql_user | default('root') }}" \
+              | gzip > "{{ backup_file_path }}"
+          args:
+            executable: /bin/bash
+          changed_when: true
+          when:
+            - mysql_database | default('all') == 'all'
+            - (mysql_password | default('')) | length == 0
+
+        - name: Dump selected database with password
+          ansible.builtin.shell: |
+            set -euo pipefail
+            docker exec -e MYSQL_PWD={{ mysql_password | quote }} "{{ container_name }}" \
+              mysqldump --single-transaction --routines --events --triggers \
+              -u "{{ mysql_user | default('root') }}" "{{ mysql_database }}" \
+              | gzip > "{{ backup_file_path }}"
+          args:
+            executable: /bin/bash
+          changed_when: true
+          when:
+            - mysql_database | default('all') != 'all'
+            - (mysql_password | default('')) | length > 0
+
+        - name: Dump selected database without password
+          ansible.builtin.shell: |
+            set -euo pipefail
+            docker exec "{{ container_name }}" \
+              mysqldump --single-transaction --routines --events --triggers \
+              -u "{{ mysql_user | default('root') }}" "{{ mysql_database }}" \
+              | gzip > "{{ backup_file_path }}"
+          args:
+            executable: /bin/bash
+          changed_when: true
+          when:
+            - mysql_database | default('all') != 'all'
+            - (mysql_password | default('')) | length == 0
+
+        - name: Validate backup file exists
+          ansible.builtin.stat:
+            path: "{{ backup_file_path }}"
+          register: backup_archive_stat
+
+        - name: Fail if backup file is missing or empty
+          ansible.builtin.fail:
+            msg: "Backup file missing or empty: {{ backup_file_path }}"
+          when:
+            - not (backup_archive_stat.stat.exists | default(false))
+              or (backup_archive_stat.stat.size | default(0) | int) == 0
+
+        - name: Validate gzip archive integrity
+          ansible.builtin.command: gzip -t "{{ backup_file_path }}"
+          changed_when: false
+
+        - name: Validate mysql dump signature
+          ansible.builtin.shell: |
+            set -euo pipefail
+            gzip -dc "{{ backup_file_path }}" \
+              | head -n 50 \
+              | grep -Eq 'MySQL dump'
+          args:
+            executable: /bin/bash
+          changed_when: false
+
+        - name: Remove old mysql backup archives
+          ansible.builtin.find:
+            paths: "{{ backup_root }}"
+            patterns: "backup_mysql_{{ container_name }}_*.sql.gz"
+            age: "{{ backup_retention_days | default(14) }}d"
+            recurse: true
+          register: old_backups
+
+        - name: Delete old mysql backup archives
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ old_backups.files }}"
+
+        - name: Mark backup status success
+          ansible.builtin.set_fact:
+            backup_status: "success"
+            backup_status_message: "Backup and validation succeeded"
+      rescue:
+        - name: Mark backup status failed
+          ansible.builtin.set_fact:
+            backup_status: "failed"
+            backup_status_message: "{{ ansible_failed_result.msg | default('Backup or validation failed') }}"
+      always:
+        - name: Send mysql backup status to Discord
+          ansible.builtin.uri:
+            url: "{{ discord_webhook | default('') }}"
+            method: POST
+            body_format: json
+            body:
+              content: |
+                MySQL Backup {{ backup_status | default('failed') | upper }}
+                Host: {{ inventory_hostname }}
+                Container: {{ container_name }}
+                File: {{ backup_file_path }}
+                Message: {{ backup_status_message | default('n/a') }}
+            status_code: 204
+          when:
+            - send_discord_notification | default(false)
+            - (discord_webhook | default('')) | length > 0
+
+        - name: Fail play if backup failed
+          ansible.builtin.fail:
+            msg: "{{ backup_status_message | default('Backup failed') }}"
+          when: backup_status | default('failed') == 'failed'

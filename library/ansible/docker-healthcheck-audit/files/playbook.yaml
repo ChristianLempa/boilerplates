@@ -1,0 +1,51 @@
+---
+- name: Docker healthcheck audit
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Collect Docker containers
+      community.docker.docker_host_info:
+        containers: true
+      register: docker_host_info
+
+    - name: Build list of containers missing healthcheck
+      ansible.builtin.set_fact:
+        containers_missing_healthcheck: "{{ (containers_missing_healthcheck | default([])) + [item.Names[0] | default(item.Id)] }}"
+      when:
+        - item.Config is defined
+        - item.Config.Healthcheck is not defined
+      loop: "{{ docker_host_info.containers | default([]) }}"
+
+    - name: Ensure missing-healthcheck list exists
+      ansible.builtin.set_fact:
+        containers_missing_healthcheck: []
+      when: containers_missing_healthcheck is not defined
+
+    - name: Build audit report
+      ansible.builtin.set_fact:
+        docker_healthcheck_audit_report:
+          checked_containers: "{{ docker_host_info.containers | default([]) | length }}"
+          missing_healthcheck_count: "{{ containers_missing_healthcheck | length }}"
+          missing_healthcheck_containers: "{{ containers_missing_healthcheck }}"
+
+    - name: Save healthcheck audit report
+      ansible.builtin.copy:
+        dest: "{{ audit_report_path | default('/tmp/docker-healthcheck-audit.json') }}"
+        content: "{{ docker_healthcheck_audit_report | to_nice_json }}"
+        mode: "0640"
+      when: audit_save_report | default(true)
+
+    - name: Print audit summary
+      ansible.builtin.debug:
+        msg: >-
+          Checked {{ docker_healthcheck_audit_report.checked_containers }} containers,
+          found {{ docker_healthcheck_audit_report.missing_healthcheck_count }} without healthcheck.
+
+    - name: Fail when missing healthchecks are found
+      ansible.builtin.fail:
+        msg: "Containers missing healthcheck: {{ containers_missing_healthcheck | join(', ') }}"
+      when:
+        - audit_fail_on_missing | default(false)
+        - containers_missing_healthcheck | length > 0

@@ -1,0 +1,72 @@
+---
+- name: Docker disk usage report
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    report_root: "/opt/docker-reports"
+    report_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    report_file_name: "docker_disk_usage_{{ inventory_hostname }}_{{ report_timestamp }}.txt"
+
+  tasks:
+    - name: Ensure report root exists
+      ansible.builtin.file:
+        path: "{{ report_root }}"
+        state: directory
+        mode: "0750"
+
+    - name: Collect docker system df summary
+      ansible.builtin.command: docker system df
+      register: docker_df_summary
+      changed_when: false
+
+    - name: Collect docker system df verbose report
+      ansible.builtin.command: docker system df -v
+      register: docker_df_verbose
+      changed_when: false
+      when: include_verbose_report | default(false)
+
+    - name: Build report body
+      ansible.builtin.set_fact:
+        docker_disk_usage_report_body: |
+          Host: {{ inventory_hostname }}
+          Timestamp: {{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}
+
+          Docker system df:
+          {{ docker_df_summary.stdout }}
+          {% if include_verbose_report | default(false) %}
+
+          Docker system df -v:
+          {{ docker_df_verbose.stdout }}
+          {% endif %}
+
+    - name: Save local disk usage report
+      ansible.builtin.copy:
+        dest: "{{ report_root }}/{{ report_file_name }}"
+        content: "{{ docker_disk_usage_report_body }}"
+        mode: "0640"
+
+    - name: Build Discord report content
+      ansible.builtin.set_fact:
+        discord_disk_report_content: |
+          {{ discord_message_prefix | default('Docker Disk Usage Report') }}
+          ```text
+          {{ docker_disk_usage_report_body | truncate(1700, true, '...') }}
+          ```
+      when:
+        - discord_enabled | default(false)
+        - (discord_webhook_url | default('')) | length > 0
+
+    - name: Send disk usage report to Discord webhook
+      ansible.builtin.uri:
+        url: "{{ discord_webhook_url | default('') }}"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ discord_username | default('Docker Reporter') }}"
+          content: "{{ discord_disk_report_content }}"
+        status_code: 204
+      when:
+        - discord_enabled | default(false)
+        - (discord_webhook_url | default('')) | length > 0

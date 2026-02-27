@@ -4,13 +4,18 @@
   "kind": "ansible",
   "metadata": {
     "name": "Docker Cleanup",
-    "description": "Ansible playbook to clean up Docker resources. Removes dangling images by default, with optional cleanup of non-dangling images, containers, volumes, and networks.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
+    "description": "Ansible playbook to safely prune Docker resources. Keeps a conservative default and only removes resources that are explicitly enabled.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
+    "tags": [
+      "docker",
+      "cleanup",
+      "prune",
+      "maintenance"
+    ],
     "author": "Christian Lempa",
-    "template_version": "1.0.0",
     "icon": {
       "provider": "mdi",
       "id": "broom",
-      "color": "blue"
+      "color": "teal"
     },
     "date": "2025-11-11"
   },
@@ -20,40 +25,56 @@
   },
   "variables": [
     {
-      "key": "cleanup",
-      "title": "Cleanup Options",
+      "key": "prune",
+      "title": "Prune Options",
       "variables": [
         {
-          "name": "cleanup_nondangling",
+          "name": "prune_include_unused_tagged_images",
           "type": "bool",
-          "title": "Also Prune Non-Dangling Images",
+          "title": "Prune Unused Tagged Images",
           "required": false,
           "default": false,
-          "description": "Also prune non-dangling images (unused tagged images), in addition to always cleaning dangling images"
+          "description": "Enable pruning of unused tagged images in addition to dangling images"
         },
         {
-          "name": "cleanup_containers",
+          "name": "prune_stopped_containers",
           "type": "bool",
           "title": "Prune Stopped Containers",
           "required": false,
           "default": false,
-          "description": "Also prune stopped containers"
+          "description": "Remove stopped containers"
         },
         {
-          "name": "cleanup_volumes",
+          "name": "prune_unused_volumes",
           "type": "bool",
           "title": "Prune Unused Volumes",
           "required": false,
           "default": false,
-          "description": "Also prune unused volumes"
+          "description": "Remove unused volumes"
         },
         {
-          "name": "cleanup_networks",
+          "name": "prune_unused_networks",
           "type": "bool",
           "title": "Prune Unused Networks",
           "required": false,
           "default": false,
-          "description": "Also prune unused networks"
+          "description": "Remove unused networks"
+        },
+        {
+          "name": "prune_builder_cache",
+          "type": "bool",
+          "title": "Prune Builder Cache",
+          "required": false,
+          "default": false,
+          "description": "Remove unused build cache"
+        },
+        {
+          "name": "prune_keep_storage_mb",
+          "type": "int",
+          "title": "Keep Storage (MB)",
+          "required": false,
+          "default": 1024,
+          "description": "Minimum amount of cache/storage to keep when pruning (where supported)"
         }
       ]
     }

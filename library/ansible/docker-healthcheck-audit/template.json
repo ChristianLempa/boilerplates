@@ -1,0 +1,58 @@
+{
+  "version": "1",
+  "slug": "docker-healthcheck-audit",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker Healthcheck Audit",
+    "description": "Ansible playbook to audit Docker containers for missing healthchecks and optionally fail when violations are found.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/builder/#healthcheck\n",
+    "tags": [
+      "docker",
+      "audit",
+      "healthcheck",
+      "compliance"
+    ],
+    "author": "Christian Lempa",
+    "icon": {
+      "provider": "mdi",
+      "id": "stethoscope",
+      "color": "blue"
+    },
+    "date": "2026-02-27"
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "audit",
+      "title": "Audit",
+      "variables": [
+        {
+          "name": "audit_fail_on_missing",
+          "type": "bool",
+          "title": "Fail When Missing Healthchecks",
+          "required": false,
+          "default": false,
+          "description": "Fail the play if one or more containers are missing a healthcheck"
+        },
+        {
+          "name": "audit_save_report",
+          "type": "bool",
+          "title": "Save JSON Report",
+          "required": false,
+          "default": true,
+          "description": "Save audit report to a JSON file on the target host"
+        },
+        {
+          "name": "audit_report_path",
+          "type": "str",
+          "title": "Audit Report Path",
+          "required": false,
+          "default": "/tmp/docker-healthcheck-audit.json",
+          "description": "Path to store the generated JSON report"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "version": "1",
+  "slug": "docker-disk-usage-report",
+  "kind": "ansible",
+  "metadata": {
+    "name": "Docker Disk Usage Report",
+    "description": "Ansible playbook to generate a Docker disk usage report and optionally push the report to Discord via webhook.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/reference/cli/docker/system/df/\n",
+    "tags": [
+      "docker",
+      "report",
+      "disk",
+      "monitoring"
+    ],
+    "author": "Christian Lempa",
+    "icon": {
+      "provider": "mdi",
+      "id": "chart-box",
+      "color": "blue"
+    },
+    "date": "2026-02-27"
+  },
+  "entrypoint": {
+    "path": "playbook.yaml",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "report",
+      "title": "Report",
+      "variables": [
+        {
+          "name": "include_verbose_report",
+          "type": "bool",
+          "title": "Include Verbose Report",
+          "required": false,
+          "default": false,
+          "description": "Include docker system df -v output in local report"
+        }
+      ]
+    },
+    {
+      "key": "discord",
+      "title": "Discord Webhook",
+      "variables": [
+        {
+          "name": "discord_enabled",
+          "type": "bool",
+          "title": "Enable Discord Webhook",
+          "required": false,
+          "default": false,
+          "description": "Send a short report to Discord webhook"
+        },
+        {
+          "name": "discord_webhook_url",
+          "type": "str",
+          "title": "Discord Webhook URL",
+          "required": false,
+          "default": "",
+          "description": "Discord webhook endpoint URL"
+        },
+        {
+          "name": "discord_username",
+          "type": "str",
+          "title": "Discord Username",
+          "required": false,
+          "default": "Docker Reporter",
+          "description": "Sender name for webhook message"
+        },
+        {
+          "name": "discord_message_prefix",
+          "type": "str",
+          "title": "Discord Message Prefix",
+          "required": false,
+          "default": "Docker Disk Usage Report",
+          "description": "Prefix line sent before report content"
+        }
+      ]
+    }
+  ]
+}
