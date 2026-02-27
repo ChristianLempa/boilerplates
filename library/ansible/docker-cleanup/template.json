@@ -1,15 +1,15 @@
 {
   "version": "1",
-  "slug": "docker-prune",
+  "slug": "docker-cleanup",
   "kind": "ansible",
   "metadata": {
-    "name": "Docker Prune",
+    "name": "Docker Cleanup",
     "description": "Ansible playbook to clean up Docker resources. Prunes non-dangling images to free up disk space.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
     "author": "Christian Lempa",
     "template_version": "1.0.0",
     "icon": {
-      "provider": "simple-icons",
-      "id": "docker"
+      "provider": "mdi",
+      "id": "broom"
     },
     "date": "2025-11-11",
     "draft": true

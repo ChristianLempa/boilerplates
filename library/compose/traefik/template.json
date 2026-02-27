@@ -6,7 +6,6 @@
     "name": "Traefik",
     "description": "Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.\nThis template sets up Traefik with automatic HTTPS using Let's Encrypt and can be integrated with Authentik for SSO.\n## References\n- **Project:** https://traefik.io/\n- **Documentation:** https://doc.traefik.io/traefik/\n- **GitHub:** https://github.com/traefik/traefik",
     "tags": [
-      "swarm",
       "volume"
     ],
     "author": "Christian Lempa",
@@ -17,7 +16,7 @@
       "id": "traefikproxy"
     },
     "draft": false,
-    "next_steps": "Start the `{{ service_name }}` project\n{% if swarm_enabled %}\n1. Deploy Traefik to Docker Swarm:\n  `docker stack deploy -c compose.yaml {{ service_name }}`\n{% else %}\n1. Copy the project directory for `{{ service_name }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`\n{% endif %}"
+    "next_steps": "Start the `{{ service_name }}` project\n1. Copy the project directory for `{{ service_name }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`"
   },
   "entrypoint": {
     "path": "compose.yaml",
@@ -400,52 +399,6 @@
           "needs": [
             "volume_mode=nfs"
           ]
-        }
-      ]
-    },
-    {
-      "key": "swarm",
-      "title": "Docker Swarm",
-      "variables": [
-        {
-          "name": "swarm_placement_mode",
-          "type": "str",
-          "title": "Swarm Placement Mode",
-          "required": true,
-          "default": "replicated",
-          "options": [
-            "replicated",
-            "global"
-          ]
-        },
-        {
-          "name": "swarm_replicas",
-          "type": "int",
-          "title": "Swarm Replicas",
-          "required": true,
-          "default": 1,
-          "needs": [
-            "swarm_placement_mode=replicated"
-          ]
-        },
-        {
-          "name": "swarm_placement_host",
-          "type": "str",
-          "title": "Target hostname for placement constraint",
-          "required": false,
-          "default": "",
-          "description": "Target hostname for placement constraint",
-          "needs": [
-            "swarm_placement_mode=replicated"
-          ]
-        },
-        {
-          "name": "swarm_enabled",
-          "type": "bool",
-          "title": "Enable Docker Swarm mode",
-          "required": false,
-          "default": false,
-          "description": "Enable Docker Swarm mode"
         }
       ]
     }

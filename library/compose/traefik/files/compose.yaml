@@ -2,13 +2,11 @@
 services:
   {{ service_name }}:
     image: docker.io/library/traefik:v3.6.8
-    {% if not swarm_enabled %}
     {% if container_name %}
     container_name: {{ container_name }}
     {% endif %}
     security_opt:
       - no-new-privileges:true
-    {% endif %}
     {% if container_hostname %}
     hostname: {{ container_hostname }}
     {% endif %}
@@ -56,15 +54,9 @@ services:
       {% if traefik_tls_skipverify %}
       - "--serversTransport.insecureSkipVerify=true"
       {% endif %}
-      {% if swarm_enabled %}
-      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
-      - "--providers.swarm.exposedByDefault=false"
-      - "--providers.swarm.network={{ traefik_network }}"
-      {% else %}
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
       - "--providers.docker.network={{ traefik_network }}"
-      {% endif %}
     ports:
       - "{{ ports_http }}:80"
       - "{{ ports_https }}:443"
@@ -83,71 +75,33 @@ services:
       - TZ={{ container_timezone }}
       {% if traefik_tls_enabled %}
       {% if traefik_tls_certresolver == 'cloudflare' %}
-      {% if swarm_enabled %}
-      - CF_DNS_API_TOKEN_FILE=/run/secrets/{{ service_name }}_token
-      {% else %}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
-      {% endif %}
       {% elif traefik_tls_certresolver == 'porkbun' %}
-      {% if swarm_enabled %}
-      - PORKBUN_API_KEY_FILE=/run/secrets/{{ service_name }}_token
-      - PORKBUN_SECRET_API_KEY_FILE=/run/secrets/{{ service_name }}_token_key
-      {% else %}
       - PORKBUN_API_KEY=${PORKBUN_API_KEY}
       - PORKBUN_SECRET_API_KEY=${PORKBUN_SECRET_API_KEY}
-      {% endif %}
       {% elif traefik_tls_certresolver == 'route53' %}
-      {% if swarm_enabled %}
-      - AWS_ACCESS_KEY_ID_FILE=/run/secrets/{{ service_name }}_token
-      - AWS_SECRET_ACCESS_KEY_FILE=/run/secrets/{{ service_name }}_token_key
-      {% else %}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      {% endif %}
       - AWS_REGION={{ traefik_tls_acme_region }}
       {% elif traefik_tls_certresolver == 'digitalocean' %}
-      {% if swarm_enabled %}
-      - DO_AUTH_TOKEN_FILE=/run/secrets/{{ service_name }}_token
-      {% else %}
       - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
-      {% endif %}
       {% elif traefik_tls_certresolver == 'godaddy' %}
-      {% if swarm_enabled %}
-      - GODADDY_API_KEY_FILE=/run/secrets/{{ service_name }}_token
-      - GODADDY_API_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
-      {% else %}
       - GODADDY_API_KEY=${GODADDY_API_KEY}
       - GODADDY_API_SECRET=${GODADDY_API_SECRET}
-      {% endif %}
       {% elif traefik_tls_certresolver == 'azure' %}
-      {% if swarm_enabled %}
-      - AZURE_CLIENT_ID_FILE=/run/secrets/{{ service_name }}_token
-      - AZURE_CLIENT_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
-      {% else %}
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-      {% endif %}
       - AZURE_TENANT_ID={{ traefik_tls_acme_tenant_id }}
       - AZURE_SUBSCRIPTION_ID={{ traefik_tls_acme_subscription_id }}
       - AZURE_RESOURCE_GROUP={{ traefik_tls_acme_resource_group }}
       {% elif traefik_tls_certresolver == 'namecheap' %}
-      {% if swarm_enabled %}
-      - NAMECHEAP_API_KEY_FILE=/run/secrets/{{ service_name }}_token
-      {% else %}
       - NAMECHEAP_API_KEY=${NAMECHEAP_API_KEY}
-      {% endif %}
       - NAMECHEAP_API_USER={{ traefik_tls_acme_username }}
       {% elif traefik_tls_certresolver == 'ovh' %}
       - OVH_ENDPOINT={{ traefik_tls_acme_endpoint }}
-      {% if swarm_enabled %}
-      - OVH_APPLICATION_KEY_FILE=/run/secrets/{{ service_name }}_token
-      - OVH_APPLICATION_SECRET_FILE=/run/secrets/{{ service_name }}_token_key
-      - OVH_CONSUMER_KEY_FILE=/run/secrets/{{ service_name }}_consumer_key
-      {% else %}
       - OVH_APPLICATION_KEY=${OVH_APPLICATION_KEY}
       - OVH_APPLICATION_SECRET=${OVH_APPLICATION_SECRET}
       - OVH_CONSUMER_KEY=${OVH_CONSUMER_KEY}
-      {% endif %}
       {% endif %}
       {% endif %}
     healthcheck:
@@ -158,45 +112,7 @@ services:
       start_period: 10s
     networks:
       - {{ traefik_network }}
-    {% if swarm_enabled %}
-    {% if traefik_tls_enabled %}
-    secrets:
-      - {{ service_name }}_token
-      {% if traefik_tls_acme_secret_key %}
-      - {{ service_name }}_token_key
-      {% endif %}
-      {% if traefik_tls_certresolver == 'ovh' %}
-      - {{ service_name }}_consumer_key
-      {% endif %}
-    {% endif %}
-    deploy:
-      mode: {{ swarm_placement_mode }}
-      {% if swarm_placement_mode == 'replicated' %}
-      replicas: {{ swarm_replicas }}
-      {% endif %}
-      {% if swarm_placement_host %}
-      placement:
-        constraints:
-          - node.hostname == {{ swarm_placement_host }}
-      {% endif %}
-    {% else %}
     restart: {{ restart_policy }}
-    {% endif %}
-
-
-{% if swarm_enabled and traefik_tls_enabled %}
-secrets:
-  {{ service_name }}_token:
-    file: ./.env.secret.token
-  {% if traefik_tls_acme_secret_key %}
-  {{ service_name }}_token_key:
-    file: ./.env.secret.token_key
-  {% endif %}
-  {% if traefik_tls_certresolver == 'ovh' %}
-  {{ service_name }}_consumer_key:
-    file: ./.env.secret.consumer_key
-  {% endif %}
-{% endif %}
 
 
 networks:
@@ -204,12 +120,7 @@ networks:
     {% if traefik_network_external %}
     external: true
     {% else %}
-    {% if swarm_enabled %}
-    driver: overlay
-    attachable: true
-    {% else %}
     driver: bridge
-    {% endif %}
     name: {{ traefik_network }}
     {% endif %}
 
