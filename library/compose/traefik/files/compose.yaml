@@ -63,7 +63,7 @@ services:
       {% if volume_mode == 'mount' %}
       - {{ volume_mount_path }}:/var/traefik/certs/:rw
       {% elif volume_mode == 'local' or volume_mode == 'nfs' %}
-      - {{ service_name }}_certs:/var/traefik/certs/:rw
+      - traefik_certs:/var/traefik/certs/:rw
       {% endif %}
     environment:
       - TZ={{ container_timezone }}
@@ -121,11 +121,11 @@ networks:
 
 {% if volume_mode == 'local' %}
 volumes:
-  {{ service_name }}_certs:
+  traefik_certs:
     driver: local
 {% elif volume_mode == 'nfs' %}
 volumes:
-  {{ service_name }}_certs:
+  traefik_certs:
     driver: local
     driver_opts:
       type: nfs
