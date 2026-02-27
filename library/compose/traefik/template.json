@@ -39,7 +39,7 @@
           "title": "Container Timezone",
           "required": true,
           "default": "UTC"
-        }
+        },
         {
           "name": "container_loglevel",
           "type": "enum",
