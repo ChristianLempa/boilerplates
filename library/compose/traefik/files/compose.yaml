@@ -1,7 +1,7 @@
 ---
 services:
   traefik:
-    image: docker.io/library/traefik:v3.6.8
+    image: docker.io/library/traefik:v3.6.9
     security_opt:
       - no-new-privileges:true
     command:
