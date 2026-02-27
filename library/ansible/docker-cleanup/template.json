@@ -4,16 +4,15 @@
   "kind": "ansible",
   "metadata": {
     "name": "Docker Cleanup",
-    "description": "Ansible playbook to clean up Docker resources. Prunes non-dangling images to free up disk space.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
+    "description": "Ansible playbook to clean up Docker resources. Removes dangling images by default, with optional cleanup of non-dangling images, containers, volumes, and networks.\n\nProject: https://www.docker.com\nDocumentation: https://docs.docker.com/engine/reference/commandline/system_prune/\n",
     "author": "Christian Lempa",
     "template_version": "1.0.0",
     "icon": {
       "provider": "mdi",
-      "id": "broom"
+      "id": "broom",
+      "color": "blue"
     },
-    "icon_color": "blue",
-    "date": "2025-11-11",
-    "draft": true
+    "date": "2025-11-11"
   },
   "entrypoint": {
     "path": "playbook.yaml",
@@ -21,41 +20,42 @@
   },
   "variables": [
     {
-      "key": "general",
-      "title": "General",
+      "key": "cleanup",
+      "title": "Cleanup Options",
       "variables": [
         {
-          "name": "target_hosts",
-          "type": "str",
-          "title": "Target hosts",
-          "required": true,
-          "description": "Target hosts"
+          "name": "cleanup_nondangling",
+          "type": "bool",
+          "title": "Also Prune Non-Dangling Images",
+          "required": false,
+          "default": false,
+          "description": "Also prune non-dangling images (unused tagged images), in addition to always cleaning dangling images"
         },
         {
-          "name": "playbook_name",
-          "type": "str",
-          "title": "Playbook Name",
+          "name": "cleanup_containers",
+          "type": "bool",
+          "title": "Prune Stopped Containers",
           "required": false,
-          "default": "Clean docker"
+          "default": false,
+          "description": "Also prune stopped containers"
         },
         {
-          "name": "become",
-          "type": "str",
-          "title": "Become",
+          "name": "cleanup_volumes",
+          "type": "bool",
+          "title": "Prune Unused Volumes",
           "required": false,
-          "default": false
+          "default": false,
+          "description": "Also prune unused volumes"
         },
         {
-          "name": "secrets_file",
-          "type": "str",
-          "title": "Secrets File",
+          "name": "cleanup_networks",
+          "type": "bool",
+          "title": "Prune Unused Networks",
           "required": false,
-          "default": ""
+          "default": false,
+          "description": "Also prune unused networks"
         }
       ]
     }
-  ],
-  "legacy": {
-    "schema": "1.2"
-  }
+  ]
 }

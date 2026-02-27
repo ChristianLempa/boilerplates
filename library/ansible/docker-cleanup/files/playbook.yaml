@@ -1,24 +1,16 @@
 ---
-- name: {{ playbook_name }}
-  hosts: {{ target_hosts }}
-{% if become %}
+- name: Docker cleanup
+  hosts: all
   become: true
-{% endif %}
-{% if options_enabled and not gather_facts %}
   gather_facts: false
-{% endif %}
-{% if secrets_enabled %}
-  vars_files:
-    - {{ secrets_file }}
-{% endif %}
 
   tasks:
-    - name: Prune non-dangling images
+    - name: Docker cleanup
       community.docker.docker_prune:
-        containers: false
+        containers: "{{ cleanup_containers | default(false) | bool }}"
         images: true
         images_filters:
-          dangling: false
-        networks: false
-        volumes: false
+          dangling: "{{ false if (cleanup_nondangling | default(false) | bool) else true }}"
+        networks: "{{ cleanup_networks | default(false) | bool }}"
+        volumes: "{{ cleanup_volumes | default(false) | bool }}"
         builder_cache: false
