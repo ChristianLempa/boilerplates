@@ -20,7 +20,7 @@
     "date": "2026-02-27"
   },
   "entrypoint": {
-    "path": "playbook.yaml",
+    "path": "playbook.yml",
     "type": "file"
   },
   "variables": [
