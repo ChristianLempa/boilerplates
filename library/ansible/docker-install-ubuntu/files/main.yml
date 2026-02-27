@@ -47,16 +47,12 @@
         mode: "0644"
         force: true
 
-    - name: Add Docker apt repository
-      ansible.builtin.deb822_repository:
-        name: docker
-        types: deb
-        uris: https://download.docker.com/linux/ubuntu
-        suites: "{{ '{{' }} ansible_distribution_release {{ '}}' }}"
-        components: stable
-        architectures: "{{ '{{' }} docker_apt_arch {{ '}}' }}"
-        signed_by: /etc/apt/keyrings/docker.asc
-        state: present
+    - name: Add Docker apt repository list file
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        mode: "0644"
+        content: |
+          deb [arch={{ '{{' }} docker_apt_arch {{ '}}' }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ '{{' }} ansible_distribution_release {{ '}}' }} stable
 
     - name: Install Docker Engine packages
       ansible.builtin.apt:
