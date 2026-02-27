@@ -11,6 +11,7 @@
       "provider": "mdi",
       "id": "broom"
     },
+    "icon_color": "blue",
     "date": "2025-11-11",
     "draft": true
   },
