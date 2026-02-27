@@ -20,7 +20,7 @@
     "icon": {
       "provider": "simple-icons",
       "id": "traefikproxy",
-      "color": "purple"
+      "color": "blue"
     },
     "next_steps": "Start the `{{ service_name }}` project\n1. Copy the project directory for `{{ service_name }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`"
   },
