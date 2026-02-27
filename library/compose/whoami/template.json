@@ -7,13 +7,15 @@
     "description": "A **simple web application** that displays information about the HTTP request it receives.\n## Use Cases\n- Testing reverse proxy configurations\n- Debugging web server setups\n- Verifying load balancer functionality\n- Quick HTTP endpoint testing\n## Resources\n- **Project**: https://github.com/traefik/whoami\n- **Documentation**: https://traefik.io/docs/\n- **GitHub**: https://github.com/traefik/whoami\n",
     "tags": [
       "traefik",
-      "swarm"
+      "testing",
+      "http"
     ],
     "author": "Christian Lempa",
     "template_version": "1.11.0",
     "icon": {
       "provider": "simple-icons",
-      "id": "traefikproxy"
+      "id": "traefikproxy",
+      "color": "rose"
     },
     "date": "2025-10-30"
   },
@@ -26,13 +28,6 @@
       "key": "general",
       "title": "General",
       "variables": [
-        {
-          "name": "service_name",
-          "type": "str",
-          "title": "Service Name",
-          "required": false,
-          "default": "whoami"
-        },
         {
           "name": "restart_policy",
           "type": "str",
@@ -99,71 +94,6 @@
           "description": "Traefik certificate resolver name"
         }
       ]
-    },
-    {
-      "key": "resources",
-      "title": "Resources",
-      "variables": [
-        {
-          "name": "resources_enabled",
-          "type": "bool",
-          "title": "Enable resource limits",
-          "required": false,
-          "default": false,
-          "description": "Enable resource limits"
-        }
-      ]
-    },
-    {
-      "key": "swarm",
-      "title": "Swarm",
-      "variables": [
-        {
-          "name": "swarm_enabled",
-          "type": "bool",
-          "title": "Enable Docker Swarm mode",
-          "required": false,
-          "default": false,
-          "description": "Enable Docker Swarm mode"
-        },
-        {
-          "name": "swarm_placement_mode",
-          "type": "str",
-          "title": "Swarm placement mode",
-          "required": true,
-          "default": "replicated",
-          "description": "Swarm placement mode",
-          "options": [
-            "replicated",
-            "global"
-          ]
-        },
-        {
-          "name": "swarm_replicas",
-          "type": "int",
-          "title": "Number of replicas",
-          "required": true,
-          "default": 1,
-          "description": "Number of replicas",
-          "needs": [
-            "swarm_placement_mode=replicated"
-          ]
-        },
-        {
-          "name": "swarm_placement_host",
-          "type": "str",
-          "title": "Target hostname for placement constraint",
-          "required": false,
-          "default": "",
-          "description": "Target hostname for placement constraint",
-          "needs": [
-            "swarm_placement_mode=replicated"
-          ]
-        }
-      ]
     }
-  ],
-  "legacy": {
-    "schema": "1.2"
-  }
+  ]
 }
