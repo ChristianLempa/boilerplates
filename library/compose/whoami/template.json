@@ -41,6 +41,14 @@
             "on-failure",
             "no"
           ]
+        },
+        {
+          "name": "container_hostname",
+          "type": "str",
+          "title": "Container hostname",
+          "required": false,
+          "default": "whoami",
+          "description": "Container hostname (optional)"
         }
       ]
     },
