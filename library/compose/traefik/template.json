@@ -4,18 +4,24 @@
   "kind": "compose",
   "metadata": {
     "name": "Traefik",
-    "description": "Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.\nThis template sets up Traefik with automatic HTTPS using Let's Encrypt and can be integrated with Authentik for SSO.\n## References\n- **Project:** https://traefik.io/\n- **Documentation:** https://doc.traefik.io/traefik/\n- **GitHub:** https://github.com/traefik/traefik",
+    "description": "Traefik is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.",
     "tags": [
-      "volume"
+      "traefik",
+      "reverse-proxy",
+      "load-balancer",
+      "http",
+      "https",
+      "acme",
+      "letsencrypt"
     ],
     "author": "Christian Lempa",
     "template_version": "v3.6.8",
     "date": "2026-02-11",
     "icon": {
       "provider": "simple-icons",
-      "id": "traefikproxy"
+      "id": "traefikproxy",
+      "color": "purple"
     },
-    "draft": false,
     "next_steps": "Start the `{{ service_name }}` project\n1. Copy the project directory for `{{ service_name }}` to the host.\n2. Start Traefik with Docker Compose from the project directory:\n  `docker compose up -d`"
   },
   "entrypoint": {
@@ -28,33 +34,8 @@
       "title": "General",
       "variables": [
         {
-          "name": "service_name",
-          "type": "str",
-          "title": "Service Name",
-          "required": false,
-          "default": "traefik"
-        },
-        {
-          "name": "container_name",
-          "type": "str",
-          "title": "Container Name",
-          "required": false
-        },
-        {
-          "name": "container_hostname",
-          "type": "str",
-          "title": "Container Hostname",
-          "required": false
-        },
-        {
-          "name": "container_timezone",
-          "type": "str",
-          "title": "Container Timezone",
-          "required": false
-        },
-        {
           "name": "container_loglevel",
-          "type": "str",
+          "type": "enum",
           "title": "Container Loglevel",
           "required": false,
           "options": [
@@ -66,7 +47,7 @@
         },
         {
           "name": "restart_policy",
-          "type": "str",
+          "type": "enum",
           "title": "Restart Policy",
           "required": true,
           "default": "unless-stopped",
@@ -176,7 +157,7 @@
         },
         {
           "name": "traefik_tls_certresolver",
-          "type": "str",
+          "type": "enum",
           "title": "ACME DNS challenge provider",
           "required": true,
           "default": "cloudflare",
@@ -242,11 +223,10 @@
         },
         {
           "name": "traefik_tls_acme_secret_key",
-          "type": "str",
+          "type": "secret",
           "title": "DNS provider secret key",
           "required": true,
           "description": "DNS provider secret key",
-          "sensitive": true,
           "needs": [
             "traefik_tls_enabled=true",
             "traefik_tls_certresolver=azure,godaddy,ovh,porkbun,route53"
@@ -276,11 +256,10 @@
         },
         {
           "name": "traefik_tls_acme_token",
-          "type": "str",
+          "type": "secret",
           "title": "DNS provider API token",
           "required": true,
           "description": "DNS provider API token",
-          "sensitive": true,
           "needs": [
             "traefik_tls_enabled=true",
             "traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,ovh,porkbun"
@@ -299,11 +278,10 @@
         },
         {
           "name": "traefik_tls_acme_consumer_key",
-          "type": "str",
+          "type": "secret",
           "title": "OVH Consumer Key",
           "required": true,
           "description": "OVH Consumer Key",
-          "sensitive": true,
           "needs": [
             "traefik_tls_enabled=true",
             "traefik_tls_certresolver=ovh"

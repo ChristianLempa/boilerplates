@@ -1,15 +1,9 @@
 ---
 services:
-  {{ service_name }}:
+  traefik:
     image: docker.io/library/traefik:v3.6.8
-    {% if container_name %}
-    container_name: {{ container_name }}
-    {% endif %}
     security_opt:
       - no-new-privileges:true
-    {% if container_hostname %}
-    hostname: {{ container_hostname }}
-    {% endif %}
     command:
       - "--global.checkNewVersion=false"
       - "--global.sendAnonymousUsage=false"
@@ -75,33 +69,33 @@ services:
       - TZ={{ container_timezone }}
       {% if traefik_tls_enabled %}
       {% if traefik_tls_certresolver == 'cloudflare' %}
-      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+      - CF_DNS_API_TOKEN={{ traefik_tls_acme_token }}
       {% elif traefik_tls_certresolver == 'porkbun' %}
-      - PORKBUN_API_KEY=${PORKBUN_API_KEY}
-      - PORKBUN_SECRET_API_KEY=${PORKBUN_SECRET_API_KEY}
+      - PORKBUN_API_KEY={{ traefik_tls_acme_token }}
+      - PORKBUN_SECRET_API_KEY={{ traefik_tls_acme_secret_key }}
       {% elif traefik_tls_certresolver == 'route53' %}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ACCESS_KEY_ID={{ traefik_tls_acme_token }}
+      - AWS_SECRET_ACCESS_KEY={{ traefik_tls_acme_secret_key }}
       - AWS_REGION={{ traefik_tls_acme_region }}
       {% elif traefik_tls_certresolver == 'digitalocean' %}
-      - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
+      - DO_AUTH_TOKEN={{ traefik_tls_acme_token }}
       {% elif traefik_tls_certresolver == 'godaddy' %}
-      - GODADDY_API_KEY=${GODADDY_API_KEY}
-      - GODADDY_API_SECRET=${GODADDY_API_SECRET}
+      - GODADDY_API_KEY={{ traefik_tls_acme_token }}
+      - GODADDY_API_SECRET={{ traefik_tls_acme_secret_key }}
       {% elif traefik_tls_certresolver == 'azure' %}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_CLIENT_ID={{ traefik_tls_acme_token }}
+      - AZURE_CLIENT_SECRET={{ traefik_tls_acme_secret_key }}
       - AZURE_TENANT_ID={{ traefik_tls_acme_tenant_id }}
       - AZURE_SUBSCRIPTION_ID={{ traefik_tls_acme_subscription_id }}
       - AZURE_RESOURCE_GROUP={{ traefik_tls_acme_resource_group }}
       {% elif traefik_tls_certresolver == 'namecheap' %}
-      - NAMECHEAP_API_KEY=${NAMECHEAP_API_KEY}
+      - NAMECHEAP_API_KEY={{ traefik_tls_acme_token }}
       - NAMECHEAP_API_USER={{ traefik_tls_acme_username }}
       {% elif traefik_tls_certresolver == 'ovh' %}
       - OVH_ENDPOINT={{ traefik_tls_acme_endpoint }}
-      - OVH_APPLICATION_KEY=${OVH_APPLICATION_KEY}
-      - OVH_APPLICATION_SECRET=${OVH_APPLICATION_SECRET}
-      - OVH_CONSUMER_KEY=${OVH_CONSUMER_KEY}
+      - OVH_APPLICATION_KEY={{ traefik_tls_acme_token }}
+      - OVH_APPLICATION_SECRET={{ traefik_tls_acme_secret_key }}
+      - OVH_CONSUMER_KEY={{ traefik_tls_acme_consumer_key }}
       {% endif %}
       {% endif %}
     healthcheck:
