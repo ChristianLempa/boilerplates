@@ -1,7 +1,7 @@
 ---
 services:
   whoami:
-    hostname: {{ container_hostname }}
+    hostname: new-whoami-bp
     image: traefik/whoami:v1.11.0
     restart: {{ restart_policy }}
     labels:
