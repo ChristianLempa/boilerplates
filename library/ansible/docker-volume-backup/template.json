@@ -59,6 +59,47 @@
           "description": "If enabled, stop the container before backup and start it again afterwards if it was running"
         }
       ]
+    },
+    {
+      "key": "internal",
+      "title": "Internal",
+      "variables": [
+        {
+          "name": "backup_timestamp",
+          "type": "str",
+          "title": "Backup Timestamp",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_root",
+          "type": "str",
+          "title": "Backup Root",
+          "required": false,
+          "default": "/opt/docker-volume-backups"
+        },
+        {
+          "name": "backup_archive_name",
+          "type": "str",
+          "title": "Backup Archive Name",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "item",
+          "type": "str",
+          "title": "Loop Item",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "old_backups",
+          "type": "str",
+          "title": "Old Backups",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ]
 }

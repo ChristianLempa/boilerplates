@@ -75,6 +75,68 @@
           "description": "Prefix line sent before report content"
         }
       ]
+    },
+    {
+      "key": "internal",
+      "title": "Internal",
+      "variables": [
+        {
+          "name": "docker_df_verbose",
+          "type": "str",
+          "title": "Docker DF Verbose",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "report_file_name",
+          "type": "str",
+          "title": "Report File Name",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "report_root",
+          "type": "str",
+          "title": "Report Root",
+          "required": false,
+          "default": "/opt/docker-reports"
+        },
+        {
+          "name": "docker_disk_usage_report_body",
+          "type": "str",
+          "title": "Disk Usage Report Body",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "discord_disk_report_content",
+          "type": "str",
+          "title": "Discord Disk Report Content",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "inventory_hostname",
+          "type": "str",
+          "title": "Inventory Hostname",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "report_timestamp",
+          "type": "str",
+          "title": "Report Timestamp",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "docker_df_summary",
+          "type": "str",
+          "title": "Docker DF Summary",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ]
 }

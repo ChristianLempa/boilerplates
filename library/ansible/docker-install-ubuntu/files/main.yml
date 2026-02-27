@@ -1,8 +1,17 @@
 ---
 - name: Install Docker on Ubuntu
-  hosts: {{ target_hosts }}
+  hosts: all
   become: true
   gather_facts: true
+
+  vars:
+    docker_apt_arch_map:
+      x86_64: amd64
+      aarch64: arm64
+      armv7l: armhf
+      ppc64le: ppc64el
+      s390x: s390x
+    docker_apt_arch: "{{ '{{' }} docker_apt_arch_map[ansible_architecture] | default('amd64') {{ '}}' }}"
 
   tasks:
     - name: Remove conflicting packages
@@ -17,25 +26,39 @@
           - runc
         state: absent
 
-    - name: Install docker/ansible dependencies
+    - name: Install prerequisite packages
       ansible.builtin.apt:
         name:
           - ca-certificates
           - curl
-          - python3-debian
         update_cache: true
+        state: present
 
-    - name: Add docker repository with docker key from URL
+    - name: Create apt keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+        force: true
+
+    - name: Add Docker apt repository
       ansible.builtin.deb822_repository:
         name: docker
         types: deb
         uris: https://download.docker.com/linux/ubuntu
-        suites: '{{ ansible_distribution_release }}'
+        suites: "{{ '{{' }} ansible_distribution_release {{ '}}' }}"
         components: stable
-        architectures: amd64
-        signed_by: https://download.docker.com/linux/ubuntu/gpg 
+        architectures: "{{ '{{' }} docker_apt_arch {{ '}}' }}"
+        signed_by: /etc/apt/keyrings/docker.asc
+        state: present
 
-    - name: Install docker engine
+    - name: Install Docker Engine packages
       ansible.builtin.apt:
         name:
           - docker-ce
@@ -44,3 +67,14 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         update_cache: true
+        state: present
+
+    - name: Ensure Docker service is enabled and started
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Verify Docker CLI is available
+      ansible.builtin.command: docker --version
+      changed_when: false

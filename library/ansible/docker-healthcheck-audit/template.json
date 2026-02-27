@@ -53,6 +53,33 @@
           "description": "Path to store the generated JSON report"
         }
       ]
+    },
+    {
+      "key": "internal",
+      "title": "Internal",
+      "variables": [
+        {
+          "name": "containers_missing_healthcheck",
+          "type": "str",
+          "title": "Containers Missing Healthcheck",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "docker_healthcheck_audit_report",
+          "type": "str",
+          "title": "Healthcheck Audit Report",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "docker_host_info",
+          "type": "str",
+          "title": "Docker Host Info",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ]
 }

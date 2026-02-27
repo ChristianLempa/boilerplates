@@ -91,6 +91,82 @@
           "description": "Discord webhook URL for notifications"
         }
       ]
+    },
+    {
+      "key": "internal",
+      "title": "Internal",
+      "variables": [
+        {
+          "name": "backup_file_name",
+          "type": "str",
+          "title": "Backup File Name",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_root",
+          "type": "str",
+          "title": "Backup Root",
+          "required": false,
+          "default": "/opt/docker-db-backups/mysql"
+        },
+        {
+          "name": "ansible_failed_result",
+          "type": "str",
+          "title": "Failed Result",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_timestamp",
+          "type": "str",
+          "title": "Backup Timestamp",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "old_backups",
+          "type": "str",
+          "title": "Old Backups",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_status",
+          "type": "str",
+          "title": "Backup Status",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "inventory_hostname",
+          "type": "str",
+          "title": "Inventory Hostname",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_file_path",
+          "type": "str",
+          "title": "Backup File Path",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "item",
+          "type": "str",
+          "title": "Loop Item",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "backup_status_message",
+          "type": "str",
+          "title": "Backup Status Message",
+          "required": false,
+          "default": ""
+        }
+      ]
     }
   ]
 }
