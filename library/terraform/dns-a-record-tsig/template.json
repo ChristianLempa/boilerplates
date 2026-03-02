@@ -1,4 +1,5 @@
 {
+  "version": "1",
   "slug": "dns-a-record-tsig",
   "kind": "terraform",
   "metadata": {
