@@ -1,0 +1,72 @@
+{
+  "slug": "dns-a-record-tsig",
+  "kind": "terraform",
+  "metadata": {
+    "name": "DNS A Record (TSIG)",
+    "description": "Create DNS A record for hostname to IP address mapping",
+    "tags": [],
+    "author": "Christian Lempa",
+    "template_version": "3.4.3",
+    "date": "2025-12-02",
+    "icon": {
+      "provider": "simple-icons",
+      "id": "iscbind"
+    },
+    "draft": false,
+    "next_steps": ""
+  },
+  "entrypoint": {
+    "path": "main.tf",
+    "type": "file"
+  },
+  "variables": [
+    {
+      "key": "provider",
+      "title": "Provider Configuration",
+      "variables": [
+        {
+          "name": "provider_server",
+          "type": "str",
+          "title": "DNS server address",
+          "required": true
+        },
+        {
+          "name": "provider_tsig_key_secret",
+          "type": "secret",
+          "title": "TSIG key secret",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "record",
+      "title": "DNS A Record Configuration",
+      "variables": [
+        {
+          "name": "hostname",
+          "type": "str",
+          "title": "Hostname for the A record",
+          "required": true
+        },
+        {
+          "name": "zone",
+          "type": "str",
+          "title": "DNS zone for the A record",
+          "required": true
+        },
+        {
+          "name": "ip_address",
+          "type": "str",
+          "title": "IP address to map to the hostname",
+          "required": true
+        },
+        {
+          "name": "dns_ttl",
+          "type": "int",
+          "title": "Time to live (TTL) for the DNS record in seconds (default: 3600)",
+          "required": false
+        }
+      ]
+    }
+  ]
+}
