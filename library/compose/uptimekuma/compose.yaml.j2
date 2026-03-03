@@ -1,6 +1,99 @@
-{#
-  uptimekuma Docker Compose Configuration
-#}
-include:
-  - services/uptimekuma.yaml
-  - common/volumes.yaml
+---
+services:
+  {{ service_name }}:
+    image: docker.io/louislam/uptime-kuma:2.1.3
+    environment:
+      - TZ={{ container_timezone }}
+    {% if database_type == 'sqlite' %}
+      - UPTIME_KUMA_DB_TYPE=sqlite
+    {% elif database_type == 'mariadb' %}
+      - UPTIME_KUMA_DB_TYPE=mariadb
+      {% if database_external %}
+      - UPTIME_KUMA_DB_HOSTNAME={{ database_host }}
+      {% else %}
+      - UPTIME_KUMA_DB_HOSTNAME={{ service_name }}_db
+      {% endif %}
+      - UPTIME_KUMA_DB_PORT={{ database_port }}
+      - UPTIME_KUMA_DB_USERNAME={{ database_user }}
+      - UPTIME_KUMA_DB_PASSWORD=${DATABASE_PASSWORD}
+      - UPTIME_KUMA_DB_NAME={{ database_name }}
+    {% endif %}
+    {% if (not database_external and database_type == 'mariadb') or traefik_enabled %}
+    networks:
+      {% if not database_external and database_type == 'mariadb' %}
+      - {{ service_name }}_backend
+      {% endif %}
+      {% if traefik_enabled %}
+      - {{ traefik_network }}
+      {% endif %}
+    {% endif %}
+    {% if traefik_enabled %}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network={{ traefik_network }}
+      - traefik.http.services.{{ service_name }}_web.loadBalancer.server.port=9000
+      - traefik.http.routers.{{ service_name }}_http.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_http.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_http.entrypoints=web
+      {% if traefik_tls_enabled %}
+      - traefik.http.routers.{{ service_name }}_https.service={{ service_name }}_web
+      - traefik.http.routers.{{ service_name }}_https.rule=Host(`{{ traefik_host }}.{{ traefik_domain }}`)
+      - traefik.http.routers.{{ service_name }}_https.entrypoints=websecure
+      - traefik.http.routers.{{ service_name }}_https.tls=true
+      - traefik.http.routers.{{ service_name }}_https.tls.certresolver={{ traefik_tls_certresolver }}
+      {% endif %}
+    {% else %}
+    ports:
+      - {{ ports_http }}:3001
+    {% endif %}
+    volumes:
+      - {{ service_name }}-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+    restart: {{ restart_policy }}
+
+  {% if not database_external and database_type == "mariadb" %}
+  {{ service_name }}_db:
+    image: docker.io/library/mariadb:10.5
+    restart: {{ restart_policy }}
+    environment:
+      - TZ={{ container_timezone }}
+      - MYSQL_USER={{ database_user }}
+      - MYSQL_PASSWORD=${DATABASE_PASSWORD}
+      - MYSQL_DATABASE={{ database_name }}
+      - MYSQL_ROOT_PASSWORD=${DATABASE_PASSWORD}
+    networks:
+      - {{ service_name }}_backend
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u {{ database_user }} -p${DATABASE_PASSWORD}"]
+      start_period: 30s
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - {{ service_name }}_db:/var/lib/mysql
+  {% endif %}
+
+volumes:
+  {{ service_name }}-data:
+    driver: local
+  {% if not database_external and database_type == "mariadb" %}
+  {{ service_name }}_db:
+    driver: local
+  {% endif %}
+
+{% if (not database_external and database_type == "mariadb") or traefik_enabled %}
+networks:
+  {% if not database_external and database_type == "mariadb" %}
+  {{ service_name }}_backend:
+    driver: bridge
+  {% endif %}
+  {% if traefik_enabled %}
+  {{ traefik_network }}:
+    external: true
+  {% endif %}
+{% endif %}
