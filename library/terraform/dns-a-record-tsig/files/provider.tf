@@ -7,8 +7,6 @@ terraform {
       version = "3.5.0"
     }
   }
-
-  backend "http" {}
 }
 
 provider "dns" {
