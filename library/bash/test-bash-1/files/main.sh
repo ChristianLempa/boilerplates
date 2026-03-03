@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "Hello {{ text | default:80 }}!"
+echo "Hello {{ text }}!"
