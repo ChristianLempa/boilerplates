@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "Hello {{ text }}!"
+echo "Hello you {{ text }}!"
