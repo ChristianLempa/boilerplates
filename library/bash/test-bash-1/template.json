@@ -26,14 +26,6 @@
         "key": "general",
         "title": "General",
         "variables": [
-            {
-                "name": "text",
-                "type": "str",
-                "title": "Text to display",
-                "required": true,
-                "default": "World",
-                "description": "The text that will be displayed in the greeting message."
-            }
         ]
     }
   ]
