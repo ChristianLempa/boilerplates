@@ -1,0 +1,40 @@
+{
+  "version": "1",
+  "slug": "test-bash-1",
+  "kind": "bash",
+  "metadata": {
+    "name": "Test Bash 1",
+    "description": "Example Bash Script",
+    "tags": [
+      "demo"
+    ],
+    "author": "Christian Lempa",
+    "template_version": "1",
+    "date": "2026-02-16",
+    "icon": {
+      "provider": "simple-icons",
+      "id": "bash"
+    },
+    "next_steps": null
+  },
+  "entrypoint": {
+    "path": "main.sh",
+    "type": "file"
+  },
+  "variables": [
+    {
+        "key": "general",
+        "title": "General",
+        "variables": [
+            {
+                "name": "text",
+                "type": "str",
+                "title": "Text to display",
+                "required": true,
+                "default": "World",
+                "description": "The text that will be displayed in the greeting message."
+            }
+        ]
+    }
+  ]
+}
