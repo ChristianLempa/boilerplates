@@ -79,7 +79,9 @@ spec:
     toggle: traefik_tls_enabled
     title: Traefik TLS
     description: Configure Traefik TLS/SSL certificates
-    needs: traefik
+    needs: [
+      "traefik_enabled=true"
+    ]
   database:
     vars:
       database_type:
