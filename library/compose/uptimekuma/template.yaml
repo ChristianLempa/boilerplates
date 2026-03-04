@@ -76,12 +76,12 @@ spec:
         default: false
         description: Enable Traefik TLS
         required: false
-        needs: [
-          "traefik_enabled=true"
-        ]
     toggle: traefik_tls_enabled
     title: Traefik TLS
     description: Configure Traefik TLS/SSL certificates
+    needs: [
+      "traefik_enabled=true"
+    ]
   database:
     vars:
       database_type:
