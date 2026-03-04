@@ -1,7 +1,7 @@
 ---
 services:
   {{ service_name }}:
-    image: docker.io/grafana/loki:3.6.5
+    image: docker.io/grafana/loki:3.6.7
     restart: {{ restart_policy }}
     command: "-config.file=/etc/loki/config.yaml"
     {% if not traefik_enabled %}
