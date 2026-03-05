@@ -30,3 +30,6 @@ dist/
 
 # Test outputs
 config.yaml
+
+# Remove CLI
+**/cli
