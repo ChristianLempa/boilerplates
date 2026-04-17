@@ -8,7 +8,7 @@ services:
       - TZ={{ container_timezone }}
     {% if traefik_enabled %}
     networks:
-      {{ traefik_network }}:
+      - {{ traefik_network }}
     {% endif %}
     ports:
     {% if not traefik_enabled %}
