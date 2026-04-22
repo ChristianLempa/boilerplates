@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-22
+
 ### Added
 - `template.json` runtime support with required `files/` directories, custom `<< >>` / `<% %>` / `<# #>` delimiters, and legacy-format rejection for `0.2.0` (#1768)
 - Remote generation destinations via `generate --remote` and `--remote-path`, including SSH host discovery and SCP upload flow (#1765)
@@ -122,7 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release with core CLI functionality.
 
-[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.1.2...HEAD
+[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/christianlempa/boilerplates/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/christianlempa/boilerplates/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/christianlempa/boilerplates/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/christianlempa/boilerplates/compare/v0.0.7...v0.1.0
