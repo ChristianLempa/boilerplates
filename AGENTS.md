@@ -29,7 +29,6 @@ For detailed information about testing boilerplates in a production-like environ
 
 Should **always** happen before pushing anything to the repository.
 
-- Use `yamllint` for YAML files
 - Use `ruff` for Python code:
   - `ruff check --fix .` - Check and auto-fix linting errors (including unused imports)
   - `ruff format .` - Format code according to style guidelines
