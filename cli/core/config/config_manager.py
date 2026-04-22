@@ -5,13 +5,28 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 
 from ..exceptions import ConfigError, ConfigValidationError, YAMLParseError
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_LIBRARY_NAME = "default"
+DEFAULT_LIBRARY_DIRECTORY = "."
+DEFAULT_LIBRARY_BRANCH = "main"
+DEFAULT_LIBRARY_URL = "https://github.com/christianlempa/boilerplates-library.git"
+LEGACY_DEFAULT_LIBRARY_DIRECTORY = "library"
+LEGACY_DEFAULT_LIBRARY_URL = "https://github.com/christianlempa/boilerplates.git"
+
+
+@dataclass
+class MigrationNotice:
+    """Represents a user-visible config migration notice."""
+
+    kind: str
+    message: str
 
 
 @dataclass
@@ -29,6 +44,8 @@ class LibraryConfig:
 
 class ConfigManager:
     """Manages configuration for the CLI application."""
+
+    _pending_migration_notices: ClassVar[list[MigrationNotice]] = []
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         """Initialize the configuration manager.
@@ -72,11 +89,11 @@ class ConfigManager:
             "preferences": {"editor": "vim", "output_dir": None, "library_paths": []},
             "libraries": [
                 {
-                    "name": "default",
+                    "name": DEFAULT_LIBRARY_NAME,
                     "type": "git",
-                    "url": "https://github.com/christianlempa/boilerplates.git",
-                    "branch": "main",
-                    "directory": "library",
+                    "url": DEFAULT_LIBRARY_URL,
+                    "branch": DEFAULT_LIBRARY_BRANCH,
+                    "directory": DEFAULT_LIBRARY_DIRECTORY,
                     "enabled": True,
                 }
             ],
@@ -95,11 +112,11 @@ class ConfigManager:
                 logger.info("Migrating config: adding libraries section")
                 config["libraries"] = [
                     {
-                        "name": "default",
+                        "name": DEFAULT_LIBRARY_NAME,
                         "type": "git",
-                        "url": "https://github.com/christianlempa/boilerplates.git",
-                        "branch": "refactor/boilerplates-v2",
-                        "directory": "library",
+                        "url": DEFAULT_LIBRARY_URL,
+                        "branch": DEFAULT_LIBRARY_BRANCH,
+                        "directory": DEFAULT_LIBRARY_DIRECTORY,
                         "enabled": True,
                     }
                 ]
@@ -116,12 +133,80 @@ class ConfigManager:
                         library["type"] = "git"
                         needs_migration = True
 
+            default_library_migrated = self._migrate_default_library(config)
+            needs_migration = needs_migration or default_library_migrated
+
             # Write back if migration was needed
             if needs_migration:
                 self._write_config(config)
                 logger.info("Config migration completed successfully")
+        except (ConfigError, ConfigValidationError, YAMLParseError):
+            raise
         except Exception as e:
-            logger.warning(f"Config migration failed: {e}")
+            logger.error(f"Config migration failed: {e}")
+            raise ConfigError(f"Failed to migrate configuration '{self.config_path}': {e}") from e
+
+    def _migrate_default_library(self, config: dict[str, Any]) -> bool:
+        """Rewrite the built-in default git library entry to the 0.2.0 library repo."""
+        libraries = config.get("libraries", [])
+        migrated = False
+
+        for library in libraries:
+            if library.get("name") != DEFAULT_LIBRARY_NAME:
+                continue
+
+            if library.get("type", "git") != "git":
+                continue
+
+            if library.get("url") != LEGACY_DEFAULT_LIBRARY_URL:
+                continue
+
+            if library.get("directory", LEGACY_DEFAULT_LIBRARY_DIRECTORY) != LEGACY_DEFAULT_LIBRARY_DIRECTORY:
+                continue
+
+            target_state = {
+                "url": DEFAULT_LIBRARY_URL,
+                "directory": DEFAULT_LIBRARY_DIRECTORY,
+            }
+
+            changed = any(library.get(key) != value for key, value in target_state.items())
+            if not changed:
+                break
+
+            previous_location = library.get("url") or library.get("path") or "<unknown>"
+            library.update(target_state)
+            migrated = True
+            logger.info(
+                "Migrated default library from %s to %s (%s)",
+                previous_location,
+                DEFAULT_LIBRARY_URL,
+                DEFAULT_LIBRARY_DIRECTORY,
+            )
+            self._add_migration_notice(
+                kind="default_library_repo",
+                message=(
+                    "Your default template library was migrated to "
+                    "christianlempa/boilerplates-library. "
+                    "Run 'boilerplates repo update' to sync the new templates."
+                ),
+            )
+            break
+
+        return migrated
+
+    @classmethod
+    def _add_migration_notice(cls, kind: str, message: str) -> None:
+        """Queue a migration notice for later display in the CLI layer."""
+        if any(notice.kind == kind and notice.message == message for notice in cls._pending_migration_notices):
+            return
+        cls._pending_migration_notices.append(MigrationNotice(kind=kind, message=message))
+
+    @classmethod
+    def consume_migration_notices(cls) -> list[MigrationNotice]:
+        """Return and clear pending migration notices."""
+        notices = cls._pending_migration_notices.copy()
+        cls._pending_migration_notices.clear()
+        return notices
 
     def _read_config(self) -> dict[str, Any]:
         """Read configuration from file.

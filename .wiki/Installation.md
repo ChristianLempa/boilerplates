@@ -6,7 +6,7 @@ This guide covers installing the Boilerplates CLI on various platforms.
 
 Before installing, ensure you have:
 
-- **Python 3.10 or higher** - Check with `python3 --version`
+- **Python 3.9 or higher** - Check with `python3 --version`
 - **Git** - Required for syncing template libraries
 - **Internet connection** - For downloading dependencies and templates
 
@@ -16,7 +16,7 @@ Before installing, ensure you have:
 python3 --version
 ```
 
-If you see version 3.10 or higher, you're ready to proceed. If not, see the platform-specific instructions below for installing Python.
+If you see version 3.9 or higher, you're ready to proceed. If not, see the platform-specific instructions below for installing Python.
 
 ## Quick Install (Recommended)
 
@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/sc
 ### Install Specific Version
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash -s -- --version v0.1.0
+curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash -s -- --version v0.2.0
 ```
 
 The installer will:
@@ -61,7 +61,7 @@ python3 -m pipx ensurepath
 3. **Install Boilerplates:**
 
 ```bash
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 4. **Verify installation:**
@@ -88,7 +88,7 @@ python3 -m pipx ensurepath
 3. **Install Boilerplates:**
 
 ```bash
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 #### Arch Linux
@@ -109,7 +109,7 @@ python3 -m pipx ensurepath
 3. **Install Boilerplates:**
 
 ```bash
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 ### MacOS
@@ -132,12 +132,12 @@ pipx ensurepath
 3. **Install Boilerplates:**
 
 ```bash
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 #### Using Python from python.org
 
-1. Download and install Python 3.10+ from [python.org](https://www.python.org/downloads/macos/)
+1. Download and install Python 3.9+ from [python.org](https://www.python.org/downloads/macos/)
 
 2. **Install pipx:**
 
@@ -149,7 +149,7 @@ python3 -m pipx ensurepath
 3. **Install Boilerplates:**
 
 ```bash
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 ### NixOS
@@ -207,7 +207,7 @@ wsl --install
 
 #### Native Windows (Not Recommended)
 
-1. Install Python 3.10+ from [python.org](https://www.python.org/downloads/windows/)
+1. Install Python 3.9+ from [python.org](https://www.python.org/downloads/windows/)
 
 2. Install pipx:
 
@@ -219,7 +219,7 @@ python -m pipx ensurepath
 3. Install Boilerplates:
 
 ```powershell
-pipx install boilerplates-cli
+pipx install boilerplates
 ```
 
 ## Manual Installation
@@ -229,7 +229,7 @@ For development or custom installations:
 ### Using pip (Not Recommended for End Users)
 
 ```bash
-pip install --user boilerplates-cli
+pip install --user boilerplates
 ```
 
 Note: This installs globally and may conflict with system packages. Use pipx instead.
@@ -272,7 +272,7 @@ boilerplates --version
 
 Expected output:
 ```
-Boilerplates CLI v0.1.0
+boilerplates version 0.2.0
 ```
 
 ### Initialize Template Library
@@ -317,7 +317,7 @@ echo '_BOILERPLATES_COMPLETE=fish_source boilerplates | source' >> ~/.config/fis
 ### Update to Latest Version
 
 ```bash
-pipx upgrade boilerplates-cli
+pipx upgrade boilerplates
 ```
 
 ### Update Template Library
@@ -331,7 +331,7 @@ boilerplates repo update
 ### Remove the CLI
 
 ```bash
-pipx uninstall boilerplates-cli
+pipx uninstall boilerplates
 ```
 
 ### Remove Configuration and Templates
@@ -358,7 +358,7 @@ source ~/.bashrc  # or ~/.zshrc
 
 ### Python Version Too Old
 
-If you have Python < 3.10, install a newer version:
+If you have Python < 3.9, install a newer version:
 
 **Ubuntu/Debian:**
 ```bash
@@ -388,7 +388,7 @@ python3 -m pip install --user pipx
 # Or use virtual environments
 python3 -m venv ~/venvs/boilerplates
 source ~/venvs/boilerplates/bin/activate
-pip install boilerplates-cli
+pip install boilerplates
 ```
 
 ### SSL Certificate Errors

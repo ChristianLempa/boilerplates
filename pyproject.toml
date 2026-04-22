@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boilerplates"
-version = "0.1.2"
+version = "0.2.0"
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -31,9 +31,6 @@ boilerplates = "cli.__main__:run"
 [tool.setuptools.packages.find]
 include = ["cli*"]
 exclude = ["tests*", "scripts*"]
-
-[tool.setuptools.package-data]
-cli = ["core/schema/**/*.json"]
 
 [tool.ruff]
 # Extended line length for better readability

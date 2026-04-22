@@ -1,305 +1,136 @@
 # Getting Started
 
-Welcome to Boilerplates! This guide will help you get up and running in just a few minutes.
-
-## Overview
-
-Boilerplates provides two main components:
-
-### Template Library
-
-A collection of ready-to-use templates for common infrastructure components:
-- **Docker Compose**: Containerized applications (Nginx, Traefik, Grafana, etc.)
-- **Terraform**: Cloud infrastructure (AWS, Azure, GCP)
-- **Ansible**: Configuration management and automation
-- **Kubernetes**: Container orchestration deployments
-- **Packer**: Machine image builders
-
-Templates include:
-- Pre-configured defaults for common use cases
-- Documentation and usage examples
-- Variable specifications for customization
-- Best practices baked in
-
-### Management CLI
-
-A Python-based command-line tool to work with templates:
-- Browse and search the template library
-- Interactive configuration with validation
-- Generate customized templates
-- Manage multiple template libraries (official + custom)
-- Sync updates from repositories
+This guide walks through the current Boilerplates workflow: install the CLI, sync a library, inspect a template, and generate files from a `template.json` manifest.
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+- Python 3.9 or newer
+- Git
+- network access for Git-based libraries
 
-- Python 3.10 or higher installed
-- Git installed (for syncing template libraries)
-- Basic command-line knowledge
-- Internet connection (for downloading templates)
+## Install the CLI
 
-## Installation
-
-The quickest way to install the management CLI is using the automated installer:
+Use the installer script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/christianlempa/boilerplates/main/scripts/install.sh | bash
 ```
 
-This installs the `boilerplates` command and configures access to the official template library.
+For platform-specific instructions, see [Installation](Installation).
 
-For detailed installation instructions including platform-specific guidance, see the [Installation](Installation) page.
-
-## Your First Template
-
-Once installed, let's generate your first template!
-
-### 1. Sync the Template Library
-
-Download the latest templates from the library:
+## Sync the Default Library
 
 ```bash
 boilerplates repo update
 ```
 
-This syncs the official template library to `~/.config/boilerplates/libraries/default/`.
+This syncs the official default library configuration, which points to `christianlempa/boilerplates-library`.
 
-### 2. Browse the Template Library
+## Browse Templates
 
-Explore available Docker Compose templates:
+List available templates for a module:
 
 ```bash
 boilerplates compose list
 ```
 
-You'll see a table showing available templates from the library with their descriptions.
+Search by ID:
 
-### 3. Inspect a Template
+```bash
+boilerplates compose search nginx
+```
 
-Before generating, preview a template's structure and variables:
+## Inspect a Template
+
+Before generating, inspect the template:
 
 ```bash
 boilerplates compose show nginx
 ```
 
 This shows:
-- Template metadata (name, version, author, description)
-- Available configuration variables and defaults
-- Template file structure
-- Variable dependencies and sections
+- template metadata
+- the visible version label from `metadata.version.name` when present
+- file structure under `files/`
+- the actual variable groups and items exposed by the template
 
-### 4. Generate Files from Template
+## Generate Files
 
-Now, let's use the CLI to generate customized files from a template! You have two options:
-
-**Interactive Mode** (Recommended for beginners):
+Interactive mode:
 
 ```bash
-boilerplates compose generate nginx
+boilerplates compose generate nginx --output ./my-nginx
 ```
 
-The tool prompts you for each variable. You can:
-- Press Enter to accept defaults from the template
-- Type custom values
-- Navigate with arrow keys for selections
-- Skip optional sections
-
-**Non-Interactive Mode** (For automation):
+Non-interactive mode:
 
 ```bash
-boilerplates compose generate nginx my-nginx \
+boilerplates compose generate nginx \
+  --output ./my-nginx \
   --var service_name=my-nginx \
-  --var container_port=8080 \
   --no-interactive
 ```
 
-This uses template defaults and provided variables without prompts.
-
-### 5. Review Generated Files
-
-After generation, you'll find:
-
-```
-my-nginx/
-├── docker-compose.yml
-└── .env
-```
-
-Review the files and adjust as needed for your environment.
-
-## Basic Commands
-
-Here are the essential commands you'll use regularly:
-
-### Library Management
-
-Manage template library repositories:
+Preview only:
 
 ```bash
-# Sync official template library
-boilerplates repo update
-
-# List all configured libraries
-boilerplates repo list
-
-# Add a custom template library
-boilerplates repo add my-templates https://github.com/user/templates \
-  --directory library \
-  --branch main
+boilerplates compose generate nginx --dry-run --show-files
 ```
 
-### Working with Templates
+## Override Variables
 
-Discover and use templates from the library:
+Direct overrides:
 
 ```bash
-# Browse available templates
-boilerplates compose list
+boilerplates compose generate traefik \
+  --output ./proxy \
+  --var service_name=traefik \
+  --var traefik_enabled=true \
+  --var traefik_host=proxy.example.com
+```
 
-# Search the library
-boilerplates compose search nginx
+Variable file:
 
-# Inspect template structure
-boilerplates compose show nginx
+```bash
+boilerplates compose generate traefik \
+  --output ./proxy \
+  --var-file ./vars.yaml \
+  --no-interactive
+```
 
-# Generate files from template
-boilerplates compose generate nginx ./output
+## Save Reusable Defaults
 
-# Validate template syntax
+```bash
+boilerplates compose defaults set container_timezone="Europe/Berlin"
+boilerplates compose defaults set restart_policy="unless-stopped"
+```
+
+List defaults:
+
+```bash
+boilerplates compose defaults list
+```
+
+## Validate Templates
+
+Validate one template:
+
+```bash
+boilerplates compose validate nginx
+```
+
+Validate all templates in a module:
+
+```bash
 boilerplates compose validate
 ```
 
-### Working with Defaults
+## What Changed in the Current Format
 
-Save frequently used values to avoid repetitive typing:
+The current runtime uses:
+- `template.json` instead of `template.yaml`
+- `files/` instead of top-level `.j2` render files
+- custom delimiters instead of default Jinja delimiters
+- structured optional `metadata.version` objects
 
-```bash
-# Set a default value
-boilerplates compose defaults set container_timezone="America/New_York"
-
-# View all defaults
-boilerplates compose defaults list
-
-# Remove a default
-boilerplates compose defaults rm container_timezone
-
-# Clear all defaults
-boilerplates compose defaults clear
-```
-
-## Common Workflows
-
-### Workflow 1: Quick Generation with Defaults
-
-Use template defaults without customization:
-
-```bash
-boilerplates compose generate portainer --no-interactive
-```
-
-### Workflow 2: Interactive Customization
-
-Customize template variables interactively:
-
-```bash
-boilerplates compose show traefik         # Review template structure
-boilerplates compose generate traefik     # Customize via prompts
-```
-
-### Workflow 3: Automation
-
-For scripts and CI/CD pipelines:
-
-```bash
-boilerplates compose generate authentik ./auth \
-  --var service_name=authentik \
-  --var traefik_enabled=true \
-  --var traefik_host=auth.example.com \
-  --no-interactive \
-  --dry-run  # Preview first
-```
-
-## Advanced Features
-
-### Dry Run
-
-Preview generated files without writing them:
-
-```bash
-boilerplates compose generate nginx --dry-run
-```
-
-### Debug Mode
-
-Enable detailed logging for troubleshooting:
-
-```bash
-boilerplates --log-level DEBUG compose generate nginx
-```
-
-### Variable Override
-
-Override specific variables without interactive prompts:
-
-```bash
-boilerplates compose generate grafana \
-  --var service_name=monitoring-grafana \
-  --var grafana_port=3000
-```
-
-## Next Steps
-
-Now that you know the basics, explore more:
-
-- [Templates](Core-Concepts-Templates) - Learn how templates work
-- [Variables](Core-Concepts-Variables) - Understand variable types and dependencies
-- [Configuration](Core-Concepts-Libraries) - Customize your setup
-- [Variable Reference](Variables-Compose) - Complete variable documentation
-
-## Troubleshooting
-
-### CLI Command Not Found
-
-If the `boilerplates` command is not found after installation:
-
-```bash
-# Ensure pipx binaries are in PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# Add to your shell profile (.bashrc, .zshrc, etc.)
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-```
-
-### Templates Not Available
-
-If templates aren't showing up after installation:
-
-```bash
-# Sync the template library
-boilerplates repo update
-
-# Verify library is configured
-boilerplates repo list
-```
-
-### Permission Issues
-
-If you encounter permission errors:
-
-```bash
-# Ensure output directory is writable
-chmod +w ./output-directory
-
-# Or generate to a different location
-boilerplates compose generate nginx ~/my-projects/nginx
-```
-
-## Getting Help
-
-- **Documentation:** Browse the [Wiki](Home) for comprehensive guides
-- **Discord:** Join the [community](https://christianlempa.de/discord) for real-time help
-- **GitHub Issues:** Report bugs or request features
-- **YouTube:** Watch [video tutorials](https://www.youtube.com/@christianlempa)
-
-Happy templating!
+If you are reading older examples that use `template.yaml`, `.j2`, or positional output arguments for `generate`, treat them as outdated.

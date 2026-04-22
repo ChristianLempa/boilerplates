@@ -11,7 +11,9 @@
   "labels": [
     "renovate"
   ],
-  "ignorePaths": [],
+  "ignorePaths": [
+    "library/**"
+  ],
   "useBaseBranchConfig": "merge",
   "packageRules": [
     {

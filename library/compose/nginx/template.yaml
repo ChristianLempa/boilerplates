@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -29,7 +28,8 @@ spec:
         default: "nginx"
       restart_policy:
         type: enum
-        options: ["unless-stopped", "always", "on-failure", "no"]
+        config:
+          options: ["unless-stopped", "always", "on-failure", "no"]
         default: "unless-stopped"
       container_name:
         default: "nginx"
@@ -69,7 +69,8 @@ spec:
     vars:
       network_mode:
         type: enum
-        options: ["bridge", "host", "macvlan"]
+        config:
+          options: ["bridge", "host", "macvlan"]
         default: "bridge"
       network_name:
         default: "bridge"

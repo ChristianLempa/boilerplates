@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `template.json` runtime support with required `files/` directories, custom `<< >>` / `<% %>` / `<# #>` delimiters, and legacy-format rejection for `0.2.0` (#1768)
+- Remote generation destinations via `generate --remote` and `--remote-path`, including SSH host discovery and SCP upload flow (#1765)
+- Initial dedicated `swarm` module and validation flow as groundwork for the `compose` / `swarm` split in `0.2.0` (#1766)
+
+### Changed
+- Default library migration now rewrites the built-in repository from `christianlempa/boilerplates` to `christianlempa/boilerplates-library`, with startup notices and legacy `/library` path fallback (#1762)
+- Variable definitions now use the `secret` type and nested `config` metadata for options, placeholders, sliders, and secret autogeneration across the runtime, schemas, and migrated template specs (#1767)
+
 ## [0.1.2] - 2025-12-11
 
 ### Fixed

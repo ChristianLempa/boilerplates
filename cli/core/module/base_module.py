@@ -45,9 +45,6 @@ class Module(ABC):
     name: str
     description: str
 
-    # Schema version supported by this module (override in subclasses)
-    schema_version: str = "1.0"
-
     def __init__(self) -> None:
         # Validate required class attributes
         if not hasattr(self.__class__, "name") or not hasattr(self.__class__, "description"):
@@ -78,9 +75,6 @@ class Module(ABC):
                 library_type = library.library_type if library else "git"
 
                 template = Template(template_dir, library_name=library_name, library_type=library_type)
-
-                # Validate schema version compatibility
-                template._validate_schema_version(self.schema_version, self.name)
 
                 # If template ID needs qualification, set qualified ID
                 if needs_qualification:
@@ -114,9 +108,6 @@ class Module(ABC):
 
         try:
             template = Template(template_dir, library_name=library_name, library_type=library_type)
-
-            # Validate schema version compatibility
-            template._validate_schema_version(self.schema_version, self.name)
 
             # If the original ID was qualified, preserve it
             if "." in id:
@@ -167,16 +158,28 @@ class Module(ABC):
     def generate(
         self,
         id: Annotated[str, Argument(help="Template ID")],
-        directory: Annotated[
-            str | None, Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
-        ] = None,
         *,
         output: Annotated[
             str | None,
             Option(
                 "--output",
                 "-o",
-                help="Output directory (defaults to template ID)",
+                help="Local output directory",
+            ),
+        ] = None,
+        remote: Annotated[
+            str | None,
+            Option(
+                "--remote",
+                "-r",
+                help="Upload generated files to this SSH host instead of a local directory",
+            ),
+        ] = None,
+        remote_path: Annotated[
+            str | None,
+            Option(
+                "--remote-path",
+                help="Remote target directory (defaults to ~/<slug> when --remote is used)",
             ),
         ] = None,
         interactive: Annotated[
@@ -219,16 +222,16 @@ class Module(ABC):
         """Generate from template.
 
         Variable precedence chain (lowest to highest):
-        1. Module spec (defined in cli/modules/*.py)
-        2. Template spec (from template.yaml)
-        3. Config defaults (from ~/.config/boilerplates/config.yaml)
-        4. Variable file (from --var-file)
-        5. CLI overrides (--var flags)
+        1. Template defaults (from template.json)
+        2. Config defaults (from ~/.config/boilerplates/config.yaml)
+        3. Variable file (from --var-file)
+        4. CLI overrides (--var flags)
         """
         config = GenerationConfig(
             id=id,
-            directory=directory,
             output=output,
+            remote=remote,
+            remote_path=remote_path,
             interactive=interactive,
             var=var,
             var_file=var_file,
@@ -254,7 +257,7 @@ class Module(ABC):
             bool,
             Option(
                 "--semantic/--no-semantic",
-                help="Enable semantic validation (Docker Compose schema, etc.)",
+                help="Enable semantic validation (Docker Compose config, YAML structure, etc.)",
             ),
         ] = True,
     ) -> None:

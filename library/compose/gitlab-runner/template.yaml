@@ -17,6 +17,4 @@ metadata:
     provider: selfh
     id: gitlab
   draft: true
-  next_steps: ""
-schema: "1.2"
 spec: {}

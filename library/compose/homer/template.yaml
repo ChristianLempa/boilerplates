@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -21,34 +20,6 @@ metadata:
     - swarm
     - authentik
   draft: true
-  next_steps: |
-    1. Start the Homer dashboard:
-       docker compose up -d
-
-    2. Customize your dashboard:
-       - Edit assets/config.yml to add your services
-       - Organize services into groups (Applications, Monitoring, etc.)
-       - Add links to the navbar for quick access
-
-    3. Optional: Add a logo:
-       - Place your logo.png file in the assets/ directory
-       - Or update the logo path in assets/config.yml
-       - Supported formats: PNG, SVG, JPG
-
-    4. Optional: Customize the theme:
-       - Uncomment and modify the colors section in config.yml
-       - Available themes: default, sui
-       - See documentation for advanced theming options
-
-    5. Access your dashboard:
-       {% if traefik_enabled -%}
-       - Via Traefik: https://{{ traefik_host }}
-       {% if not traefik_enabled and network_mode == 'bridge' %}- Direct access: http://localhost:{{ ports_http }}{% endif %}
-       {%- else -%}
-       - Open http://localhost:{{ ports_http }} in your browser
-       {%- endif %}
-
-    For more information, visit: https://github.com/bastienwirtz/homer/blob/main/docs/configuration.md
 spec:
   general:
     vars:

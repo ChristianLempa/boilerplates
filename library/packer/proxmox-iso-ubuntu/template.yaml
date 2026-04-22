@@ -1,6 +1,5 @@
 ---
 kind: packer
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -56,9 +55,9 @@ spec:
         description: Proxmox API token ID (e.g., root@pam!packer)
         default: root@pam!packer
       proxmox_api_token_secret:
-        type: str
+        type: secret
         description: Proxmox API token secret
-        sensitive: true
+
         default: ""
       skip_tls_verify:
         type: bool
@@ -72,9 +71,10 @@ spec:
       iso_source:
         type: enum
         description: ISO source type
-        options:
-          - local
-          - download
+        config:
+          options:
+            - local
+            - download
         default: local
       iso_file:
         type: str
@@ -148,14 +148,15 @@ spec:
       ssh_auth_method:
         type: enum
         description: SSH authentication method
-        options:
-          - password
-          - key
+        config:
+          options:
+            - password
+            - key
         default: password
       ssh_password:
-        type: str
+        type: secret
         description: SSH password (for password auth)
-        sensitive: true
+
         default: ""
       ssh_private_key_file:
         type: str

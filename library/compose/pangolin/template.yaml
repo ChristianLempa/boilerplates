@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -24,35 +23,6 @@ metadata:
     - proxy
     - wireguard
   draft: true
-  next_steps: |
-    ### 1. Configure Database
-    {% if postgres_enabled -%}
-    Make sure PostgreSQL is running and accessible at:
-    * Connection string: {{ postgres_connection_string }}
-    {% else -%}
-    Pangolin will use SQLite database stored in the data volume.
-    {% endif -%}
-    ### 2. Deploy the Service
-    {% if swarm_enabled -%}
-    Deploy to Docker Swarm:
-    ```bash
-    docker stack deploy -c compose.yaml pangolin
-    ```
-    {% else -%}
-    Start Pangolin using Docker Compose:
-    ```bash
-    docker compose up -d
-    ```
-    {% endif -%}
-    ### 3. Access the Web Interface
-    {% if traefik_enabled -%}
-    * Navigate to: **https://{{ traefik_host }}.{{ traefik_domain }}**
-    {% else -%}
-    * Navigate to: **http://localhost:{{ ports_http }}**
-    {% endif -%}
-    ### 4. Configure WireGuard Clients
-    * Use the Pangolin web interface to create and manage WireGuard tunnels
-    * Deploy Newt client on remote machines to establish secure connections
 spec:
   general:
     vars:
@@ -112,6 +82,7 @@ spec:
       environment_log_level:
         type: enum
         default: "info"
-        options: ["debug", "info", "warn", "error"]
+        config:
+          options: ["debug", "info", "warn", "error"]
         description: "Log level"
         needs: "environment_enabled=true"

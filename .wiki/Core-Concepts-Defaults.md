@@ -13,12 +13,13 @@ Save time by setting default values for variables you use frequently. This page 
 
 Variables are resolved in this order (lowest to highest priority):
 
-1. Module spec (module-wide defaults)
-2. Template spec (template-specific defaults)
+1. Module runtime defaults
+2. Template defaults from `template.json`
 3. **User config** (your saved defaults) ← This page
-4. CLI arguments (`--var` flags)
+4. `--var-file`
+5. CLI arguments (`--var`)
 
-Your defaults override module and template values but can be overridden by CLI arguments.
+Your saved defaults override module and template defaults, but they can still be overridden at generation time.
 
 ## Managing Defaults
 
@@ -132,9 +133,9 @@ Example content:
 libraries:
   - name: default
     type: git
-    url: https://github.com/christianlempa/boilerplates
+    url: https://github.com/christianlempa/boilerplates-library.git
     branch: main
-    directory: library
+    directory: .
 
 defaults:
   compose:

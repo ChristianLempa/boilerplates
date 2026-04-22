@@ -300,7 +300,7 @@ class BaseDisplay:
         return icon_map.get(icon_type, "")
 
     def get_lock_icon(self) -> str:
-        """Get the lock icon for sensitive variables.
+        """Get the lock icon for secret variables.
 
         Returns:
             Lock icon unicode character

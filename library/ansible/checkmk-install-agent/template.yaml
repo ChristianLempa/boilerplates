@@ -15,8 +15,6 @@ metadata:
     provider: selfh
     id: checkmk
   draft: false
-  next_steps: ""
-schema: "1.0"
 spec:
   checkmk:
     title: Checkmk Configuration
@@ -49,10 +47,10 @@ spec:
         description: Checkmk Automation User
         required: true
       checkmk_pass:
-        type: str
+        type: secret
         description: Checkmk Automation User Password
         required: true
-        sensitive: true
+
       checkmk_host:
         type: str
         description: Checkmk Host Name

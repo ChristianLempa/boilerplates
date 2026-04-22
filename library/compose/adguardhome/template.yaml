@@ -27,9 +27,7 @@ metadata:
     - traefik
     - network
     - volume
-  next_steps:
   draft: true
-schema: 1.2
 spec:
   general:
     vars:

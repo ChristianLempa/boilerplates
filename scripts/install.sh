@@ -3,8 +3,9 @@ set -euo pipefail
 
 REPO_OWNER="christianlempa"
 REPO_NAME="boilerplates"
-VERSION="${VERSION:-latest}"
+INSTALL_VERSION="${VERSION:-${INSTALL_VERSION:-latest}}"
 AUTO_INSTALL="${AUTO_INSTALL:-true}"
+OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
 
 usage() {
   cat <<USAGE
@@ -32,9 +33,9 @@ error() { printf '[boilerplates][error] %s\n' "$*" >&2; exit 1; }
 detect_os() {
   if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TYPE="macos"
-  elif [[ -f /etc/os-release ]]; then
+  elif [[ -f "$OS_RELEASE_FILE" ]]; then
     OS_TYPE="linux"
-    . /etc/os-release
+    . "$OS_RELEASE_FILE"
     DISTRO_ID="$ID"
     DISTRO_VERSION="${VERSION_ID:-}"
   else
@@ -237,7 +238,7 @@ parse_args() {
       --version)
         [[ $# -lt 2 ]] && error "--version requires an argument"
         [[ "$2" =~ ^- ]] && error "--version requires a version string, not an option"
-        VERSION="$2"
+        INSTALL_VERSION="$2"
         shift 2
         ;;
       --no-auto-install)
@@ -345,8 +346,9 @@ main() {
   log "Checking dependencies..."
   check_dependencies
   
-  local package_path=$(download_and_extract "$VERSION")
-  install_cli "$package_path" "$VERSION"
+  local package_path
+  package_path=$(download_and_extract "$INSTALL_VERSION")
+  install_cli "$package_path" "$INSTALL_VERSION"
   
   # Get installed version
   local installed_version=$(boilerplates --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
@@ -369,4 +371,6 @@ Uninstall:
 EOF
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

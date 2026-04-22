@@ -79,30 +79,6 @@ class TemplateValidationError(TemplateError):
     pass
 
 
-class IncompatibleSchemaVersionError(TemplateError):
-    """Raised when a template uses a schema version not supported by the module."""
-
-    def __init__(
-        self,
-        template_id: str,
-        template_schema: str,
-        module_schema: str,
-        module_name: str,
-    ):
-        self.template_id = template_id
-        self.template_schema = template_schema
-        self.module_schema = module_schema
-        self.module_name = module_name
-        msg = (
-            f"Template '{template_id}' uses schema version {template_schema}, "
-            f"but module '{module_name}' only supports up to version {module_schema}.\n\n"
-            f"This template requires features not available in your current CLI version.\n"
-            f"Please upgrade the boilerplates CLI.\n\n"
-            f"Run: pip install --upgrade boilerplates"
-        )
-        super().__init__(msg)
-
-
 @dataclass
 class RenderErrorContext:
     """Context information for template rendering errors."""
@@ -196,17 +172,6 @@ class ModuleLoadError(ModuleError):
     """Raised when a module fails to load."""
 
     pass
-
-
-class SchemaError(BoilerplatesError):
-    """Raised when schema operations fail."""
-
-    def __init__(self, message: str, details: str | None = None):
-        self.details = details
-        msg = message
-        if details:
-            msg += f" ({details})"
-        super().__init__(msg)
 
 
 class FileOperationError(BoilerplatesError):

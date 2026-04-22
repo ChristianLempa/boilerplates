@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -33,19 +32,21 @@ spec:
       access_mode:
         type: enum
         description: Access mode
-        options:
-          - ReadWriteOnce
-          - ReadOnlyMany
-          - ReadWriteMany
-          - ReadWriteOncePod
+        config:
+          options:
+            - ReadWriteOnce
+            - ReadOnlyMany
+            - ReadWriteMany
+            - ReadWriteOncePod
         default: ReadWriteMany
       reclaim_policy:
         type: enum
         description: Reclaim policy
-        options:
-          - Retain
-          - Recycle
-          - Delete
+        config:
+          options:
+            - Retain
+            - Recycle
+            - Delete
         default: Retain
       host_path:
         type: str

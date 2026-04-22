@@ -1,6 +1,5 @@
 ---
 kind: terraform
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -40,12 +39,13 @@ spec:
       status:
         type: enum
         description: VM status
-        options:
-          - active
-          - planned
-          - staged
-          - offline
-          - decommissioning
+        config:
+          options:
+            - active
+            - planned
+            - staged
+            - offline
+            - decommissioning
         default: active
   site:
     title: Site Assignment

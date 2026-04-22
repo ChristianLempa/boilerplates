@@ -252,7 +252,9 @@ def _get_library_path_for_git(lib: dict, libraries_path: Path, name: str) -> Pat
     directory = lib.get("directory", "library")
     library_base = libraries_path / name
     if directory and directory != ".":
-        return library_base / directory
+        configured_path = library_base / directory
+        fallback_path = _fallback_template_root(configured_path)
+        return fallback_path or configured_path
     return library_base
 
 
@@ -262,7 +264,33 @@ def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
     library_path = Path(url_or_path).expanduser()
     if not library_path.is_absolute():
         library_path = (config.config_path.parent / library_path).resolve()
-    return library_path
+    fallback_path = _fallback_template_root(library_path)
+    return fallback_path or library_path
+
+
+def _looks_like_template_root(path: Path) -> bool:
+    """Check whether a path looks like the root of a templates repository."""
+    if not path.is_dir():
+        return False
+    try:
+        return any(item.is_dir() for item in path.iterdir())
+    except OSError:
+        return False
+
+
+def _fallback_template_root(path: Path) -> Path | None:
+    """Resolve old-style /library paths to the actual template repo root."""
+    if path.exists():
+        if _looks_like_template_root(path):
+            return path
+        if path.name == "library" and _looks_like_template_root(path.parent):
+            return path.parent
+        return None
+
+    if path.name == "library" and _looks_like_template_root(path.parent):
+        return path.parent
+
+    return None
 
 
 def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, str, str]:

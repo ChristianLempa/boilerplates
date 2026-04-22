@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -35,9 +34,10 @@ spec:
       access_mode:
         type: enum
         description: Access mode
-        options:
-          - ReadWriteOnce
-          - ReadOnlyMany
-          - ReadWriteMany
-          - ReadWriteOncePod
+        config:
+          options:
+            - ReadWriteOnce
+            - ReadOnlyMany
+            - ReadWriteMany
+            - ReadWriteOncePod
         default: ReadWriteOnce

@@ -1,27 +1,24 @@
-# Christian's `Boilerplates`
+![Welcome](./.assets/banner.jpg)
 
-[![Welcome](https://cnd-prod-1.s3.us-west-004.backblazeb2.com/new-banner4-scaled-for-github.jpg)](https://youtu.be/apgp9egIKK8)
+Create reusable templates and turn them into configurable workloads for homelabs and self-hosted infrastructure. *Free and Open-Source.*
 
-**Hey, there!**
+## How it works
 
-**I'm Christian, and I'm passionate about creating educational tech content for IT Pros and Homelab nerds.**
+Create reusable templates for infrastructure expertise like Docker, Kubernetes, Terraform, Ansible, Python, and more. Use the built-in *Jinja2-like* templating syntax with `<< >>` variables, `<% %>` blocks, and `<# #>` comments to keep configuration modular and conditional. Sync with Git in both directions or manage everything locally. Render templates, configure variables through a guided wizard, and wire up secrets. Copy them to remote servers and environments or any local directory.
 
-## What are Boilerplates?
-
-**Boilerplates** is a curated collection of production-ready templates for your homelab and infrastructure projects. Stop copying configurations from random GitHub repos or starting from scratch every time you spin up a new service!
+*Don't want to start from scratch?*
+> Explore 100+ template presets for homelabs and self-hosted infrastructure: https://github.com/ChristianLempa/boilerplates-library
 
 ## Boilerplates CLI
 
-The Boilerplates CLI tool gives you instant access to battle-tested templates for Docker, Terraform, Ansible, Kubernetes, and more.
+The Boilerplates CLI is the main interface for working with template libraries locally. It lets you discover available templates, inspect their metadata and variables, validate them, and generate ready-to-use files.
 
-Each template includes sensible defaults, best practices, and common configuration patterns—so you can focus on customizing for your environment.
+It combines template-defined variables and defaults, guided interactive prompts, CLI variable overrides, and git-backed template libraries into one workflow. In practice, that means you can keep reusable boilerplates in a repository and turn them into concrete, environment-specific configurations with a single command.
 
-**Key Features:**
-- 🚀 **Quick Setup** - Generate complete project structures in seconds
-- 🔧 **Fully Customizable** - Interactive prompts or non-interactive mode with variable overrides
-- 💾 **Smart Defaults** - Save your preferred values and reuse across projects
-
-> **Note:** Technologies evolve rapidly. While I actively maintain these templates, always review generated configurations before deploying to production.
+> **WARNING**
+> Boilerplates `0.2.0` introduced the new template format. Legacy `template.yaml` / `template.yml` manifests and `.j2` template files are no longer supported.
+>
+> New templates must use `template.json`, keep renderable content under `files/`, and use the custom *Jinja2*-like delimiters `<< >>`, `<% %>`, and `<# #>` instead of default *Jinja2* syntax.
 
 ### Installation
 
@@ -82,10 +79,10 @@ boilerplates compose show nginx
 boilerplates compose generate authentik
 
 # Generate with custom output directory
-boilerplates compose generate nginx my-nginx-server
+boilerplates compose generate nginx --output my-nginx-server
 
 # Non-interactive mode with variable overrides
-boilerplates compose generate traefik my-proxy \
+boilerplates compose generate traefik --output my-proxy \
   --var service_name=traefik \
   --var traefik_enabled=true \
   --var traefik_host=proxy.example.com \
@@ -123,25 +120,10 @@ boilerplates repo add my-templates https://github.com/user/templates \
 boilerplates repo remove my-templates
 ```
 
-## Documentation
-
-For comprehensive documentation, advanced usage, and template development guides, check out the **[Wiki](../../wiki)** _(coming soon)_.
-
-If you're looking for detailed tutorials on specific tools and technologies, visit my [YouTube Channel](https://www.youtube.com/@christianlempa).
-
 ## Contribution
 
-If you’d like to contribute to this project, reach out to me on social media or [Discord](https://christianlempa.de/discord), or create a pull request for the necessary changes.
+Contributions are welcome. Feel free to open an issue or submit a pull request!
 
-## Other Resources
+## License
 
-- [Dotfiles](https://github.com/christianlempa/dotfiles) - My personal configuration files on macOS
-- [Cheat-Sheets](https://github.com/christianlempa/cheat-sheets) - Command Reference for various tools and technologies
-
-## Support me
-
-Creating high-quality videos and valuable resources that are accessible to everyone, free of charge, is a huge challenge. With your contribution, I can dedicate more time and effort into the creation process, which ultimately enhances the quality of the content. So, all your support, by becoming a member, truly makes a significant impact on what I do. And you’ll also get some cool benefits and perks in return, as a recognition of your support.
-
-Remember, ***supporting me is entirely optional.*** Your choice to become a member or not won't change your access to my videos and resources. You are also welcome to reach out to me on Discord, if you have any questions or feedback.
-
-[https://www.patreon.com/christianlempa](https://www.patreon.com/christianlempa)
+This repository is licensed under the [MIT License](./LICENSE).

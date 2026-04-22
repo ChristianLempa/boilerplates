@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh

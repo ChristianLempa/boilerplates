@@ -12,19 +12,12 @@ metadata:
   icon:
     provider: selfh
     id: grafana
-  next_steps: |-
-    Log in with the initial admin user:
-    ```bash
-    Username: admin
-    Password: admin
-    ```
   version: 12.3.1
   author: Christian Lempa
   date: '2025-12-16'
   tags:
     - traefik
     - authentik
-schema: 1.2
 spec:
   general:
     vars:
@@ -47,9 +40,10 @@ spec:
   database:
     vars:
       database_type:
-        options:
-          - sqlite
-          - postgres
+        config:
+          options:
+            - sqlite
+            - postgres
       database_name:
         default: grafana
       database_user:

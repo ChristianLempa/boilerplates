@@ -92,7 +92,6 @@ class TableDisplay:
         table.add_column("Name")
         table.add_column("Tags")
         table.add_column("Version", no_wrap=True)
-        table.add_column("Schema", no_wrap=True)
         table.add_column("Library", no_wrap=True)
 
         settings = self.settings
@@ -101,8 +100,7 @@ class TableDisplay:
             name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            version = template.metadata.version.name if template.metadata.version else ""
 
             # Format library with icon and color
             library_name = template.metadata.library or ""
@@ -111,7 +109,7 @@ class TableDisplay:
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
 
-            table.add_row(template.id, name, tags, version, schema, library_display)
+            table.add_row(template.id, name, tags, version, library_display)
 
         self.base._print_table(table)
 
@@ -216,14 +214,14 @@ class TableDisplay:
         var_type = var_data.get("type", "string")
         var_default = var_data.get("default", "")
         var_desc = var_data.get("description", "")
-        var_sensitive = var_data.get("sensitive", False)
+        var_is_secret = var_data.get("type") == "secret"
 
         label = f"[green]{var_name}[/green] [dim]({var_type})[/dim]"
 
         if var_default is not None and var_default != "":
             settings = self.settings
-            display_val = settings.SENSITIVE_MASK if var_sensitive else str(var_default)
-            if not var_sensitive:
+            display_val = settings.SENSITIVE_MASK if var_is_secret else str(var_default)
+            if not var_is_secret:
                 display_val = self.base.truncate(display_val, settings.VALUE_MAX_LENGTH_DEFAULT)
             label += f" = [{settings.COLOR_WARNING}]{display_val}[/{settings.COLOR_WARNING}]"
 

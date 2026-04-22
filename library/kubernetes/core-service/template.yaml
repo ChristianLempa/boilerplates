@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -27,11 +26,12 @@ spec:
       service_type:
         type: enum
         description: Service type
-        options:
-          - ClusterIP
-          - NodePort
-          - LoadBalancer
-          - ExternalName
+        config:
+          options:
+            - ClusterIP
+            - NodePort
+            - LoadBalancer
+            - ExternalName
         default: ClusterIP
       service_port:
         type: int
@@ -44,10 +44,11 @@ spec:
       protocol:
         type: enum
         description: Protocol
-        options:
-          - TCP
-          - UDP
-          - SCTP
+        config:
+          options:
+            - TCP
+            - UDP
+            - SCTP
         default: TCP
       app_selector:
         type: str

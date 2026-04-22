@@ -19,8 +19,6 @@ metadata:
     provider: selfh
     id: lets-encrypt
   draft: true
-  next_steps: ""
-schema: "1.0"
 spec:
   dns:
     title: DNS Configuration

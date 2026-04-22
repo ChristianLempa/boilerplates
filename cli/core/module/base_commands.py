@@ -6,7 +6,6 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from jinja2 import Template as Jinja2Template
 from typer import Exit
 
 from ..config import ConfigManager
@@ -19,6 +18,13 @@ from ..exceptions import (
 from ..input import InputManager
 from ..template import Template
 from ..validators import get_validator_registry
+from .generation_destination import (
+    GenerationDestination,
+    format_remote_destination,
+    prompt_generation_destination,
+    resolve_cli_destination,
+    write_rendered_files_remote,
+)
 from .helpers import (
     apply_cli_overrides,
     apply_var_file,
@@ -38,27 +44,15 @@ class GenerationConfig:
     """Configuration for template generation."""
 
     id: str
-    directory: str | None = None
     output: str | None = None
+    remote: str | None = None
+    remote_path: str | None = None
     interactive: bool = True
     var: list[str] | None = None
     var_file: str | None = None
     dry_run: bool = False
     show_files: bool = False
     quiet: bool = False
-
-
-@dataclass
-class ConfirmationContext:
-    """Context for file generation confirmation."""
-
-    output_dir: Path
-    rendered_files: dict[str, str]
-    existing_files: list[Path] | None
-    dir_not_empty: bool
-    dry_run: bool
-    interactive: bool
-    display: DisplayManager
 
 
 def list_templates(module_instance, raw: bool = False) -> list:
@@ -73,24 +67,26 @@ def list_templates(module_instance, raw: bool = False) -> list:
             # Output raw format (tab-separated values for easy filtering with awk/sed/cut)
             # Format: ID\tNAME\tTAGS\tVERSION\tLIBRARY
             for template in filtered_templates:
+                name = template.metadata.name or "Unnamed Template"
                 tags_list = template.metadata.tags or []
-                ",".join(tags_list) if tags_list else "-"
-                (str(template.metadata.version) if template.metadata.version else "-")
+                tags = ",".join(tags_list) if tags_list else "-"
+                version = template.metadata.version.name if template.metadata.version else "-"
+                library = template.metadata.library or "-"
+                module_instance.display.text("\t".join([template.id, name, tags, version, library]))
         else:
             # Output rich table format
             def format_template_row(template):
                 name = template.metadata.name or "Unnamed Template"
                 tags_list = template.metadata.tags or []
                 tags = ", ".join(tags_list) if tags_list else "-"
-                version = str(template.metadata.version) if template.metadata.version else ""
-                schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+                version = template.metadata.version.name if template.metadata.version else ""
                 library_name = template.metadata.library or ""
                 library_type = template.metadata.library_type or "git"
                 # Format library with icon and color
                 icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
                 color = "yellow" if library_type == "static" else "blue"
                 library_display = f"[{color}]{icon} {library_name}[/{color}]"
-                return (template.id, name, tags, version, schema, library_display)
+                return (template.id, name, tags, version, library_display)
 
             module_instance.display.data_table(
                 columns=[
@@ -98,7 +94,6 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     {"name": "Name"},
                     {"name": "Tags"},
                     {"name": "Version", "no_wrap": True},
-                    {"name": "Schema", "no_wrap": True},
                     {"name": "Library", "no_wrap": True},
                 ],
                 rows=filtered_templates,
@@ -128,15 +123,14 @@ def search_templates(module_instance, query: str) -> list:
             name = template.metadata.name or "Unnamed Template"
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            version = template.metadata.version.name if template.metadata.version else ""
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
             # Format library with icon and color
             icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
-            return (template.id, name, tags, version, schema, library_display)
+            return (template.id, name, tags, version, library_display)
 
         module_instance.display.data_table(
             columns=[
@@ -144,7 +138,6 @@ def search_templates(module_instance, query: str) -> list:
                 {"name": "Name"},
                 {"name": "Tags"},
                 {"name": "Version", "no_wrap": True},
-                {"name": "Schema", "no_wrap": True},
                 {"name": "Library", "no_wrap": True},
             ],
             rows=filtered_templates,
@@ -234,22 +227,6 @@ def check_output_directory(
     return existing_files
 
 
-def get_generation_confirmation(_ctx: ConfirmationContext) -> bool:
-    """Display file generation confirmation and get user approval."""
-    # No confirmation needed - either non-interactive, dry-run, or already confirmed during directory check
-    return True
-
-
-def _collect_subdirectories(rendered_files: dict[str, str]) -> set[Path]:
-    """Collect unique subdirectories from file paths."""
-    subdirs = set()
-    for file_path in rendered_files:
-        parts = Path(file_path).parts
-        for i in range(1, len(parts)):
-            subdirs.add(Path(*parts[:i]))
-    return subdirs
-
-
 def _analyze_file_operations(
     output_dir: Path, rendered_files: dict[str, str]
 ) -> tuple[list[tuple[str, int, str]], int, int, int]:
@@ -285,6 +262,23 @@ def _format_size(total_size: int) -> str:
     return f"{total_size / BYTES_PER_MB:.1f}MB"
 
 
+def _get_rendered_file_stats(rendered_files: dict[str, str]) -> tuple[int, int, str]:
+    """Return file count, total size, and formatted size for rendered output."""
+    total_size = sum(len(content.encode("utf-8")) for content in rendered_files.values())
+    return len(rendered_files), total_size, _format_size(total_size)
+
+
+def _display_rendered_file_contents(rendered_files: dict[str, str], display: DisplayManager) -> None:
+    """Display rendered file contents for dry-run mode."""
+    display.text("")
+    display.heading("File Contents")
+    for file_path, content in sorted(rendered_files.items()):
+        display.text(f"\n[cyan]{file_path}[/cyan]")
+        display.text(f"{'─' * 80}")
+        display.text(content)
+    display.text("")
+
+
 def execute_dry_run(
     id: str,
     output_dir: Path,
@@ -300,26 +294,35 @@ def execute_dry_run(
     _file_operations, total_size, _new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
     size_str = _format_size(total_size)
 
-    # Show file contents if requested
     if show_files:
-        display.text("")
-        display.heading("File Contents")
-        for file_path, content in sorted(rendered_files.items()):
-            display.text(f"\n[cyan]{file_path}[/cyan]")
-            display.text(f"{'─' * 80}")
-            display.text(content)
-        display.text("")
+        _display_rendered_file_contents(rendered_files, display)
 
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
     return len(rendered_files), overwrite_files, size_str
 
 
-def write_rendered_files(
-    output_dir: Path,
+def execute_remote_dry_run(
+    remote_host: str,
+    remote_path: str,
     rendered_files: dict[str, str],
-    _quiet: bool,
-    _display: DisplayManager,
-) -> None:
+    show_files: bool,
+    display: DisplayManager,
+) -> tuple[int, str]:
+    """Preview a remote upload without writing files."""
+    total_files, _total_size, size_str = _get_rendered_file_stats(rendered_files)
+
+    if show_files:
+        _display_rendered_file_contents(rendered_files, display)
+
+    logger.info(
+        "Dry run completed for remote destination '%s' - %s files",
+        format_remote_destination(remote_host, remote_path),
+        total_files,
+    )
+    return total_files, size_str
+
+
+def write_rendered_files(output_dir: Path, rendered_files: dict[str, str]) -> None:
     """Write rendered files to the output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -376,33 +379,6 @@ def _render_template(template, id: str, display: DisplayManager, interactive: bo
     return rendered_files, variable_values
 
 
-def _determine_output_dir(directory: str | None, output: str | None, id: str) -> tuple[Path, bool]:
-    """Determine and normalize output directory path.
-
-    Returns:
-        Tuple of (output_dir, used_deprecated_arg) where used_deprecated_arg indicates
-        if the deprecated positional directory argument was used.
-    """
-    used_deprecated_arg = False
-
-    # Priority: --output flag > positional directory argument > template ID
-    if output:
-        output_dir = Path(output)
-    elif directory:
-        output_dir = Path(directory)
-        used_deprecated_arg = True
-        logger.debug(f"Using deprecated positional directory argument: {directory}")
-    else:
-        output_dir = Path(id)
-
-    # Normalize paths that look like absolute paths but are relative
-    if not output_dir.is_absolute() and str(output_dir).startswith(("Users/", "home/", "usr/", "opt/", "var/", "tmp/")):
-        output_dir = Path("/") / output_dir
-        logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
-
-    return output_dir, used_deprecated_arg
-
-
 def _display_template_error(display: DisplayManager, template_id: str, error: TemplateRenderError) -> None:
     """Display template rendering error with clean formatting."""
     display.text("")
@@ -442,9 +418,13 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
 
     display = DisplayManager(quiet=config.quiet) if config.quiet else module_instance.display
     template = _prepare_template(module_instance, config.id, config.var_file, config.var, display)
+    slug = getattr(template, "slug", template.id)
 
-    # Determine output directory early to check for deprecated argument usage
-    output_dir, used_deprecated_arg = _determine_output_dir(config.directory, config.output, config.id)
+    try:
+        destination = resolve_cli_destination(config.output, config.remote, config.remote_path, slug)
+    except ValueError as e:
+        display.error(str(e), context="template generation")
+        raise Exit(code=1) from None
 
     if not config.quiet:
         # Display template header
@@ -455,63 +435,64 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         module_instance.display.variables.render_variables_table(template)
         module_instance.display.text("")
 
-        # Show deprecation warning BEFORE any user interaction
-        if used_deprecated_arg:
-            module_instance.display.warning(
-                "Using positional argument for output directory is deprecated and will be removed in v0.2.0",
-                details="Use --output/-o flag instead",
-            )
-            module_instance.display.text("")
-
     try:
-        rendered_files, variable_values = _render_template(template, config.id, display, config.interactive)
+        rendered_files, _variable_values = _render_template(template, config.id, display, config.interactive)
 
-        # Check for conflicts and get confirmation (skip in quiet mode)
-        if not config.quiet:
-            existing_files = check_output_directory(output_dir, rendered_files, config.interactive, display)
-            if existing_files is None:
-                return  # User cancelled
+        if destination is None:
+            if config.interactive:
+                destination = prompt_generation_destination(slug)
+            else:
+                destination = GenerationDestination(mode="local", local_output_dir=Path.cwd() / slug)
 
-            dir_not_empty = output_dir.exists() and any(output_dir.iterdir())
-            ctx = ConfirmationContext(
-                output_dir=output_dir,
-                rendered_files=rendered_files,
-                existing_files=existing_files,
-                dir_not_empty=dir_not_empty,
-                dry_run=config.dry_run,
-                interactive=config.interactive,
-                display=display,
-            )
-            if not get_generation_confirmation(ctx):
-                return  # User cancelled
+        if not destination.is_remote:
+            output_dir = destination.local_output_dir or (Path.cwd() / slug)
+            if (
+                not config.quiet
+                and check_output_directory(output_dir, rendered_files, config.interactive, display) is None
+            ):
+                return
 
         # Execute generation (dry run or actual)
         dry_run_stats = None
-        if config.dry_run:
-            if not config.quiet:
-                dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
+        if destination.is_remote:
+            remote_host = destination.remote_host or ""
+            remote_path = destination.remote_path or f"~/{slug}"
+            if config.dry_run:
+                if not config.quiet:
+                    dry_run_stats = execute_remote_dry_run(
+                        remote_host,
+                        remote_path,
+                        rendered_files,
+                        config.show_files,
+                        display,
+                    )
+            else:
+                write_rendered_files_remote(remote_host, remote_path, rendered_files)
         else:
-            write_rendered_files(output_dir, rendered_files, config.quiet, display)
-
-        # Display next steps (not in quiet mode)
-        if template.metadata.next_steps and not config.quiet:
-            display.text("")
-            display.heading("Next Steps")
-            try:
-                next_steps_template = Jinja2Template(template.metadata.next_steps)
-                rendered_next_steps = next_steps_template.render(variable_values)
-                display.status.markdown(rendered_next_steps)
-            except Exception as e:
-                logger.warning(f"Failed to render next_steps as template: {e}")
-                # Fallback to plain text if rendering fails
-                display.status.markdown(template.metadata.next_steps)
+            output_dir = destination.local_output_dir or (Path.cwd() / slug)
+            if config.dry_run:
+                if not config.quiet:
+                    dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
+            else:
+                write_rendered_files(output_dir, rendered_files)
 
         # Display final status message at the end
         if not config.quiet:
             display.text("")
             display.text("─" * 80, style="dim")
 
-            if config.dry_run and dry_run_stats:
+            if destination.is_remote:
+                remote_host = destination.remote_host or ""
+                remote_path = destination.remote_path or f"~/{slug}"
+                remote_target = format_remote_destination(remote_host, remote_path)
+                if config.dry_run and dry_run_stats:
+                    total_files, size_str = dry_run_stats
+                    display.success(
+                        f"Dry run complete: {total_files} files ({size_str}) would be uploaded to '{remote_target}'"
+                    )
+                else:
+                    display.success(f"Boilerplate uploaded successfully to '{remote_target}'")
+            elif config.dry_run and dry_run_stats:
                 total_files, overwrite_files, size_str = dry_run_stats
                 if overwrite_files > 0:
                     display.warning(
@@ -523,7 +504,6 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
                         f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}'"
                     )
             else:
-                # Actual generation completed
                 display.success(f"Boilerplate generated successfully in '{output_dir}'")
 
     except TemplateRenderError as e:
