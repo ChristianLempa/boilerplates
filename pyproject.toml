@@ -25,6 +25,11 @@ dependencies = [
     "email-validator>=2.0.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+]
+
 [project.scripts]
 boilerplates = "cli.__main__:run"
 

@@ -11,10 +11,18 @@ A sophisticated collection of infrastructure templates (boilerplates) with a Pyt
 ### Running and Testing
 
 ```bash
+# Create and activate a local virtual environment first
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -e ".[test]"
+
 # Run the CLI application
 python3 -m cli
 # Debugging and Testing commands
 python3 -m cli --log-level DEBUG compose list
+# Run tests
+python3 -m pytest
 ```
 
 ### Production-Ready Testing

@@ -12,9 +12,9 @@ from cli.core.config.config_manager import (
     DEFAULT_LIBRARY_DIRECTORY,
     DEFAULT_LIBRARY_NAME,
     DEFAULT_LIBRARY_URL,
-    LEGACY_DEFAULT_LIBRARY_DIRECTORY,
     LEGACY_DEFAULT_LIBRARY_URL,
     ConfigManager,
+    is_legacy_default_library_url,
 )
 from cli.core.exceptions import ConfigError
 
@@ -39,7 +39,7 @@ def test_default_config_uses_new_library_repo(tmp_path: Path) -> None:
 
 
 def test_migrate_legacy_default_library_and_queue_notice(tmp_path: Path) -> None:
-    """Only the legacy built-in default library entry should be rewritten."""
+    """Legacy christianlempa/boilerplates entries should be rewritten."""
     config_path = tmp_path / "config.yaml"
     ConfigManager.consume_migration_notices()
     _write_config(
@@ -53,7 +53,7 @@ def test_migrate_legacy_default_library_and_queue_notice(tmp_path: Path) -> None
                     "type": "git",
                     "url": LEGACY_DEFAULT_LIBRARY_URL,
                     "branch": "feature/test",
-                    "directory": LEGACY_DEFAULT_LIBRARY_DIRECTORY,
+                    "directory": "library",
                     "enabled": True,
                 },
                 {
@@ -85,13 +85,14 @@ def test_migrate_legacy_default_library_and_queue_notice(tmp_path: Path) -> None
 
     assert len(notices) == 1
     assert "boilerplates-library" in notices[0].message
+    assert "default" in notices[0].message
 
     # Notices are consumed once.
     assert ConfigManager.consume_migration_notices() == []
 
 
-def test_does_not_migrate_custom_default_library(tmp_path: Path) -> None:
-    """A user-customized default entry should be left untouched."""
+def test_does_not_migrate_custom_non_boilerplates_library(tmp_path: Path) -> None:
+    """Non-matching custom library entries should be left untouched."""
     config_path = tmp_path / "config.yaml"
     ConfigManager.consume_migration_notices()
     _write_config(
@@ -122,6 +123,48 @@ def test_does_not_migrate_custom_default_library(tmp_path: Path) -> None:
     assert ConfigManager.consume_migration_notices() == []
 
 
+def test_migrates_any_library_pointing_to_legacy_boilerplates_repo(tmp_path: Path) -> None:
+    """Any library URL pointing to christianlempa/boilerplates should migrate."""
+    config_path = tmp_path / "config.yaml"
+    ConfigManager.consume_migration_notices()
+    _write_config(
+        config_path,
+        {
+            "defaults": {},
+            "preferences": {},
+            "libraries": [
+                {
+                    "name": "custom",
+                    "type": "git",
+                    "url": "git@github.com:ChristianLempa/boilerplates.git",
+                    "branch": "feature/test",
+                    "directory": "templates",
+                    "enabled": True,
+                }
+            ],
+        },
+    )
+
+    manager = ConfigManager(config_path=config_path)
+    libraries = manager.get_libraries()
+    notices = ConfigManager.consume_migration_notices()
+
+    assert libraries[0]["name"] == "custom"
+    assert libraries[0]["url"] == DEFAULT_LIBRARY_URL
+    assert libraries[0]["branch"] == "feature/test"
+    assert libraries[0]["directory"] == DEFAULT_LIBRARY_DIRECTORY
+    assert len(notices) == 1
+    assert "custom" in notices[0].message
+
+
+def test_legacy_library_url_matcher_handles_common_git_url_variants() -> None:
+    """Legacy repo detection should match HTTPS and SSH GitHub URL forms."""
+    assert is_legacy_default_library_url("https://github.com/christianlempa/boilerplates.git")
+    assert is_legacy_default_library_url("https://github.com/ChristianLempa/boilerplates")
+    assert is_legacy_default_library_url("git@github.com:ChristianLempa/boilerplates.git")
+    assert not is_legacy_default_library_url("https://github.com/christianlempa/boilerplates-library.git")
+
+
 def test_migration_write_failure_raises_config_error(tmp_path: Path) -> None:
     """Migration failures should surface as config errors instead of being swallowed."""
     config_path = tmp_path / "config.yaml"
@@ -136,7 +179,7 @@ def test_migration_write_failure_raises_config_error(tmp_path: Path) -> None:
                     "type": "git",
                     "url": LEGACY_DEFAULT_LIBRARY_URL,
                     "branch": "main",
-                    "directory": LEGACY_DEFAULT_LIBRARY_DIRECTORY,
+                    "directory": "library",
                     "enabled": True,
                 }
             ],
