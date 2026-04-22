@@ -40,13 +40,27 @@ libraries:
 
 ## Local Storage
 
-Git libraries are stored under:
+Git libraries are stored under the active config directory's `libraries/` folder.
+
+Global-config default:
 
 ```text
 ~/.config/boilerplates/libraries/
 ```
 
+If the CLI is using a local `./config.yaml`, the library checkout location becomes `./libraries/`.
+
 The configured `directory` is applied inside that checkout. For the official library the directory is `.`.
+
+## Configuration Location
+
+By default, Boilerplates uses:
+
+```text
+~/.config/boilerplates/config.yaml
+```
+
+If a local `./config.yaml` exists in your current working directory, the CLI uses that file instead.
 
 ## Discovery Rules
 
@@ -79,9 +93,19 @@ boilerplates repo update
 Add a custom Git library:
 
 ```bash
-boilerplates repo add my-templates https://github.com/user/templates \
+boilerplates repo add my-templates \
+  --library-type git \
+  --url https://github.com/user/templates \
   --directory . \
   --branch main
+```
+
+Add a static library:
+
+```bash
+boilerplates repo add local \
+  --library-type static \
+  --path ~/my-templates
 ```
 
 Remove a library:
@@ -126,12 +150,6 @@ boilerplates compose generate nginx.default
 Templates with `metadata.draft: true` are excluded from normal listings and lookup.
 
 ## Config File
-
-Library configuration lives in:
-
-```text
-~/.config/boilerplates/config.yaml
-```
 
 Example:
 

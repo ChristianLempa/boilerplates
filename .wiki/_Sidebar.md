@@ -11,6 +11,3 @@
 - [Variables](Core-Concepts-Variables)
 - [Libraries](Core-Concepts-Libraries)
 - [Defaults](Core-Concepts-Defaults)
-
-### Reference
-- [Variables](Variables)

@@ -20,10 +20,6 @@ The current runtime supports:
 - [Libraries](Core-Concepts-Libraries) - official and custom libraries, discovery, priority, and config
 - [Defaults](Core-Concepts-Defaults) - saved default values and precedence
 
-## Variable Discovery
-
-- [Variables](Variables) - how to inspect the variables a template actually exposes
-
 ## Additional Docs
 
 - [Repository README](https://github.com/ChristianLempa/boilerplates/blob/main/README.md)

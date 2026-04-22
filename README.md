@@ -6,8 +6,7 @@ Create reusable templates and turn them into configurable workloads for homelabs
 
 Create reusable templates for infrastructure expertise like Docker, Kubernetes, Terraform, Ansible, Python, and more. Use the built-in *Jinja2-like* templating syntax with `<< >>` variables, `<% %>` blocks, and `<# #>` comments to keep configuration modular and conditional. Sync with Git in both directions or manage everything locally. Render templates, configure variables through a guided wizard, and wire up secrets. Copy them to remote servers and environments or any local directory.
 
-*Don't want to start from scratch?*
-> Explore 100+ template presets for homelabs and self-hosted infrastructure: https://github.com/ChristianLempa/boilerplates-library
+✨ Explore 100+ template presets for homelabs and self-hosted infrastructure: https://github.com/ChristianLempa/boilerplates-library
 
 ## Boilerplates CLI
 
@@ -15,10 +14,9 @@ The Boilerplates CLI is the main interface for working with template libraries l
 
 It combines template-defined variables and defaults, guided interactive prompts, CLI variable overrides, and git-backed template libraries into one workflow. In practice, that means you can keep reusable boilerplates in a repository and turn them into concrete, environment-specific configurations with a single command.
 
-> **WARNING**
-> Boilerplates `0.2.0` introduced the new template format. Legacy `template.yaml` / `template.yml` manifests and `.j2` template files are no longer supported.
->
-> New templates must use `template.json`, keep renderable content under `files/`, and use the custom *Jinja2*-like delimiters `<< >>`, `<% %>`, and `<# #>` instead of default *Jinja2* syntax.
+⚠️ Boilerplates `0.2.0` introduced the new template format. Legacy `template.yaml` / `template.yml` manifests and `.j2` template files are no longer supported.
+
+ℹ️ New templates must use `template.json`, keep renderable content under `files/`, and use the custom *Jinja2*-like delimiters `<< >>`, `<% %>`, and `<# #>` instead of default *Jinja2* syntax.
 
 ### Installation
 

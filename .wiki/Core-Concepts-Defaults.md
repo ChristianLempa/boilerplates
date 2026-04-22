@@ -4,7 +4,7 @@ Save time by setting default values for variables you use frequently. This page 
 
 ## What are Default Variables?
 
-**Default variables** are user-defined values that override module and template defaults. They allow you to:
+**Default variables** are user-defined values that override template manifest values for a module. They allow you to:
 - Avoid repetitive typing during template generation
 - Standardize values across multiple templates
 - Customize your environment once, use everywhere
@@ -13,13 +13,13 @@ Save time by setting default values for variables you use frequently. This page 
 
 Variables are resolved in this order (lowest to highest priority):
 
-1. Module runtime defaults
-2. Template defaults from `template.json`
-3. **User config** (your saved defaults) ← This page
-4. `--var-file`
-5. CLI arguments (`--var`)
+1. Template manifest values from `template.json`
+2. **User config** (your saved defaults) ← This page
+3. `--var-file`
+4. CLI arguments (`--var`)
+5. Interactive prompt answers
 
-Your saved defaults override module and template defaults, but they can still be overridden at generation time.
+Your saved defaults override template manifest values, but they can still be overridden at generation time.
 
 ## Managing Defaults
 
@@ -104,7 +104,7 @@ Response:
 Removed default: container_timezone
 ```
 
-The variable will now use module/template defaults again.
+The variable will now use template manifest values again.
 
 ### Clear All Defaults
 
@@ -123,10 +123,12 @@ Cleared all defaults for compose
 
 ## Configuration Storage
 
-Defaults are stored in:
+Defaults are usually stored in:
 ```
 ~/.config/boilerplates/config.yaml
 ```
+
+If a local `./config.yaml` exists in your current working directory, the CLI uses that file instead.
 
 Example content:
 ```yaml
@@ -153,12 +155,14 @@ defaults:
 You can manually edit the config file:
 
 ```bash
-# Edit configuration
+# Edit the global configuration example
 nano ~/.config/boilerplates/config.yaml
 
 # Verify defaults
 boilerplates compose defaults list
 ```
+
+If you are using a local `./config.yaml`, edit that file instead.
 
 ## Common Use Cases
 
@@ -251,6 +255,8 @@ Defaults don't transfer between modules—they're module-specific.
 
 ## Backup and Restore
 
+The examples below use the global config path. If the CLI is using a local `./config.yaml`, substitute that path instead.
+
 ### Backup Configuration
 
 Save your configuration:
@@ -332,7 +338,7 @@ cat ~/.config/boilerplates/config.yaml
 If config file is corrupted:
 
 ```bash
-# Validate YAML syntax
+# Validate global config YAML syntax
 python3 -c "import yaml; yaml.safe_load(open('~/.config/boilerplates/config.yaml'))"
 
 # Or remove and recreate
@@ -346,15 +352,16 @@ If wrong values appear:
 
 ```bash
 # Check precedence
-# 1. Module spec
-# 2. Template spec
-# 3. User defaults ← Check here
+# 1. Template manifest values
+# 2. User defaults ← Check here
+# 3. --var-file
 # 4. CLI --var
+# 5. Interactive answers
 
 # Verify your defaults
 boilerplates compose defaults list
 
-# Check template spec
+# Check the loaded template state
 boilerplates compose show <template-name>
 ```
 

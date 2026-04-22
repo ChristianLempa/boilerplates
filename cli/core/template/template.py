@@ -203,7 +203,6 @@ class TemplateMetadata:
     library: str = "unknown"
     library_type: str = "git"
     draft: bool = False
-    guide: str = ""
     icon: dict[str, Any] = field(default_factory=dict)
 
     def __init__(
@@ -226,7 +225,6 @@ class TemplateMetadata:
         self.library = library_name or "unknown"
         self.library_type = library_type
         self.draft = bool(metadata.get("draft", False))
-        self.guide = str(metadata.get("guide", "")).rstrip("\n")
         self.icon = metadata.get("icon", {}) if isinstance(metadata.get("icon"), dict) else {}
 
 

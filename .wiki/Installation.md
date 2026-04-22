@@ -283,10 +283,15 @@ Sync the default template library:
 boilerplates repo update
 ```
 
-This downloads all available templates to:
+This syncs the configured Git library checkouts under the active config directory's `libraries/` folder.
+
+Global-config default:
+
 ```
 ~/.config/boilerplates/libraries/
 ```
+
+If the CLI is using a local `./config.yaml`, the sync location becomes `./libraries/`.
 
 ### Shell Completion (Optional)
 
