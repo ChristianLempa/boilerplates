@@ -26,5 +26,4 @@ The current runtime supports:
 
 ## Additional Docs
 
-- [Contributing Guide](https://github.com/ChristianLempa/boilerplates/blob/main/CONTRIBUTING.md)
 - [Repository README](https://github.com/ChristianLempa/boilerplates/blob/main/README.md)
