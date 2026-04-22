@@ -35,3 +35,18 @@ printf '%s\\n%s\\n%s\\n' "$INSTALL_VERSION" "$DISTRO_ID" "$DISTRO_VERSION"
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == ["latest", "ubuntu", "24.04"]
+
+
+def test_install_script_runs_from_stdin_with_nounset() -> None:
+    """Regression test for stdin execution via `curl ... | bash`."""
+    result = subprocess.run(
+        ["bash", "-s", "--", "--help"],
+        cwd=REPO_ROOT,
+        input=INSTALL_SCRIPT.read_text(encoding="utf-8"),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Install the boilerplates CLI from GitHub releases via pipx." in result.stdout
