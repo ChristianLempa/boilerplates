@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boilerplates"
-version = "0.2.0-1"
+version = "0.2.0-2"
 description = "CLI tool for managing infrastructure boilerplates"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -93,6 +93,7 @@ line-ending = "lf"
 # CLI command functions need many parameters for command-line arguments
 "cli/core/module/base_module.py" = ["PLR0913"]  # generate() needs all CLI options
 "cli/core/repo.py" = ["PLR0913"]                # add() needs all library config options
+"tests/test_repo.py" = ["PLR0913", "ARG001"]   # monkeypatched repo helpers mirror production call signatures
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

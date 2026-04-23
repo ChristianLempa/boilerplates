@@ -7,14 +7,26 @@ from types import SimpleNamespace
 from cli.core.module.base_commands import GenerationConfig, generate_template, list_templates
 
 
+def _noop(*_args, **_kwargs) -> None:
+    return None
+
+
+def _raise_destination_prompt(slug: str):
+    raise AssertionError(f"prompt_generation_destination called for {slug}")
+
+
+def _raise_output_check(*_args, **_kwargs):
+    raise AssertionError("check_output_directory should not run")
+
+
 class _DisplayCapture:
     def __init__(self) -> None:
         self.lines: list[str] = []
         self.templates = SimpleNamespace(
-            render_template_header=lambda *args, **kwargs: None,
-            render_file_tree=lambda *args, **kwargs: None,
+            render_template_header=_noop,
+            render_file_tree=_noop,
         )
-        self.variables = SimpleNamespace(render_variables_table=lambda *args, **kwargs: None)
+        self.variables = SimpleNamespace(render_variables_table=_noop)
 
     def text(self, value: str, style: str | None = None) -> None:
         del style
@@ -74,18 +86,15 @@ def test_generate_template_dry_run_skips_destination_prompt_and_overwrite_check(
     template = SimpleNamespace(id="whoami", slug="whoami")
     module_instance = SimpleNamespace(name="compose", display=display)
 
-    monkeypatch.setattr("cli.core.module.base_commands._prepare_template", lambda *args, **kwargs: template)
+    monkeypatch.setattr("cli.core.module.base_commands._prepare_template", lambda *_args, **_kwargs: template)
     monkeypatch.setattr(
         "cli.core.module.base_commands._render_template",
-        lambda *args, **kwargs: ({"compose.yaml": "services:\n"}, {}),
+        lambda *_args, **_kwargs: ({"compose.yaml": "services:\n"}, {}),
     )
-    monkeypatch.setattr(
-        "cli.core.module.base_commands.prompt_generation_destination",
-        lambda slug: (_ for _ in ()).throw(AssertionError(f"prompt_generation_destination called for {slug}")),
-    )
+    monkeypatch.setattr("cli.core.module.base_commands.prompt_generation_destination", _raise_destination_prompt)
     monkeypatch.setattr(
         "cli.core.module.base_commands.check_output_directory",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("check_output_directory should not run")),
+        _raise_output_check,
     )
 
     generate_template(

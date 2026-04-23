@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default library migration now rewrites the built-in repository from `christianlempa/boilerplates` to `christianlempa/boilerplates-library`, with startup notices and legacy `/library` path fallback (#1762)
 - Variable definitions now use the `secret` type and nested `config` metadata for options, placeholders, sliders, and secret autogeneration across the runtime, schemas, and migrated template specs (#1767)
 
+## [0.2.0-2] - 2026-04-23
+
+### Fixed
+- Release workflow now publishes a tag-matching hotfix source archive such as `boilerplates-0.2.0-2.tar.gz` even when Python packaging normalizes the internal post-release version.
+
+### Changed
+- Clarified `AGENTS.md` guidance around the canonical template library location and required pre-release verification steps.
+
 ## [0.2.0-1] - 2026-04-23
 
 ### Fixed

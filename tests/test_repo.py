@@ -62,7 +62,9 @@ def test_clone_or_pull_repo_replaces_checkout_after_diverged_pull(monkeypatch, t
 
     clone_calls: list[str] = []
 
-    monkeypatch.setattr(repo, "_get_repo_remote_url", lambda _target_path: "git@github.com:ChristianLempa/boilerplates-library.git")
+    monkeypatch.setattr(
+        repo, "_get_repo_remote_url", lambda _target_path: "git@github.com:ChristianLempa/boilerplates-library.git"
+    )
     monkeypatch.setattr(
         repo,
         "_pull_repo_updates",

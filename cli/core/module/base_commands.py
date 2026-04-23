@@ -501,7 +501,8 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
                 total_files, overwrite_files, size_str = dry_run_stats
                 if used_implicit_dry_run_destination:
                     display.success(
-                        f"Dry run complete: boilerplate rendered successfully ({total_files} files, {size_str}, preview only)"
+                        "Dry run complete: boilerplate rendered successfully "
+                        f"({total_files} files, {size_str}, preview only)"
                     )
                 elif overwrite_files > 0:
                     display.warning(

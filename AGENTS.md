@@ -4,7 +4,12 @@ Guidance for AI Agents working with this repository.
 
 ## Project Overview
 
-A sophisticated collection of infrastructure templates (boilerplates) with a Python CLI for management. Supports Terraform, Docker, Ansible, Kubernetes, etc. Built with Typer (CLI) and Jinja2 (templating).
+A Python CLI for managing infrastructure boilerplates, plus archetypes and template-loading logic. Built with Typer (CLI) and Jinja2 (templating).
+
+**Important library location note:**
+- The canonical template library does **not** live in this repository for modern development.
+- The checked-in `library/` directory here is **legacy/backward-compatibility content for versions older than `0.2.0`**.
+- For `0.2.0+`, the active template library lives in the separate GitHub repository `boilerplates-library`.
 
 ## Development Setup
 
@@ -35,12 +40,17 @@ For detailed information about testing boilerplates in a production-like environ
 
 ### Linting and Formatting
 
-Should **always** happen before pushing anything to the repository.
+Should **always** happen before pushing anything to the repository and before making a release.
 
 - Use `ruff` for Python code:
   - `ruff check --fix .` - Check and auto-fix linting errors (including unused imports)
   - `ruff format .` - Format code according to style guidelines
   - Both commands must be run before committing
+- Minimum pre-release verification:
+  - `ruff check --fix .`
+  - `ruff format .`
+  - `python3 -m pytest`
+- Agents should treat these as release gates, not optional cleanup.
 
 ### Project Management and Git
 
@@ -59,13 +69,9 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
   - `cli/core/` - Core Components of the CLI application
   - `cli/modules/` - Modules implementing technology-specific functions
   - `cli/__main__.py` - CLI entry point, auto-discovers modules and registers commands
-- `library/` - Template collections organized by module
-  - `library/ansible/` - Ansible playbooks and configurations
-  - `library/compose/` - Docker Compose configurations
-  - `library/docker/` - Docker templates
-  - `library/kubernetes/` - Kubernetes deployments
-  - `library/packer/` - Packer templates
-  - `library/terraform/` - OpenTofu/Terraform templates and examples
+- `library/` - Legacy in-repo template content kept only for backward compatibility with versions older than `0.2.0`
+  - Do not treat this directory as the canonical source for new template work
+  - The active `0.2.0+` library is maintained in the separate GitHub repository `boilerplates-library`
 - `archetypes/` - Testing tool for template snippets (archetype development)
   - `archetypes/__init__.py` - Package initialization
   - `archetypes/__main__.py` - CLI tool entry point
@@ -102,6 +108,17 @@ The project is stored in a public GitHub Repository, use issues, and branches fo
 - `cli/core/version.py` - Version comparison utilities for semantic versioning
 
 ### Modules
+
+**Currently supported kinds in code:**
+- `ansible`
+- `compose`
+- `helm`
+- `kubernetes`
+- `packer`
+- `swarm`
+- `terraform`
+
+These are the kinds supported by the registered CLI modules in `cli/modules/`. When answering "what kinds do we support?", prefer this code-level list over whatever legacy content happens to exist under `library/`.
 
 **Module Structure:**
 Modules can be either single files or packages:
@@ -203,6 +220,8 @@ Older Python-based `spec_v*.py` files have been migrated to JSON. The module `__
 - Uses sparse-checkout to clone only template directories for git-based libraries (avoiding unnecessary files)
 - Supports two library types: **git** (synced from repos) and **static** (local directories)
 - Priority determined by config order (first = highest)
+- In this repository, the checked-in `library/` directory is legacy compatibility data only and should not be treated as the primary source for current template development
+- For current `0.2.0+` template work, use the external GitHub repository `boilerplates-library`
 
 **Library Types:**
 - `git`: Requires `url`, `branch`, `directory` fields
@@ -313,6 +332,7 @@ Templates are directory-based. Each template is a directory containing all the n
 **Key Architecture Points:**
 - Variable visibility is dynamic based on `needs` constraints (evaluated at prompt/render time)
 - Jinja2 templates support `{% include %}` and `{% import %}` for composition
+- Template loading can read configured libraries from disk, but the checked-in `library/` tree in this repo is legacy compatibility data, not the canonical `0.2.0+` library source
 
 ### Template Structure
 
