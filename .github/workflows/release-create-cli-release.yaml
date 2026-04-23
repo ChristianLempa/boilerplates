@@ -80,6 +80,34 @@ jobs:
           echo "Checking package integrity:"
           twine check dist/*
 
+      - name: Prepare release asset aliases
+        run: |
+          RAW_VERSION="${{ steps.version.outputs.version }}"
+          NORMALIZED_VERSION=$(python - "$RAW_VERSION" <<'PY'
+import re
+import sys
+
+raw_version = sys.argv[1]
+print(re.sub(r"-(\d+)$", lambda match: f".post{match.group(1)}", raw_version))
+PY
+          )
+
+          mkdir -p dist-release
+          cp dist/* dist-release/
+
+          if [ "$NORMALIZED_VERSION" != "$RAW_VERSION" ]; then
+            NORMALIZED_SDIST="dist/boilerplates-$NORMALIZED_VERSION.tar.gz"
+            RAW_SDIST="dist-release/boilerplates-$RAW_VERSION.tar.gz"
+
+            if [ -f "$NORMALIZED_SDIST" ] && [ ! -f "$RAW_SDIST" ]; then
+              cp "$NORMALIZED_SDIST" "$RAW_SDIST"
+              echo "Created release alias: $(basename "$RAW_SDIST")"
+            fi
+          fi
+
+          echo "Release assets:"
+          ls -lh dist-release/
+
       # PyPI publishing disabled for now - install via GitHub releases
       # - name: Publish to PyPI
       #   if: >
@@ -148,7 +176,7 @@ jobs:
             contains(steps.version.outputs.version, 'beta') ||
             contains(steps.version.outputs.version, 'rc') }}
           files: |
-            dist/*.whl
-            dist/*.tar.gz
+            dist-release/*.whl
+            dist-release/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
