@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default library migration now rewrites the built-in repository from `christianlempa/boilerplates` to `christianlempa/boilerplates-library`, with startup notices and legacy `/library` path fallback (#1762)
 - Variable definitions now use the `secret` type and nested `config` metadata for options, placeholders, sliders, and secret autogeneration across the runtime, schemas, and migrated template specs (#1767)
 
+## [0.2.0-1] - 2026-04-23
+
+### Fixed
+- Interactive prompts now show and preserve effective defaults loaded from config, var-files, and CLI overrides.
+- `generate --dry-run` no longer prompts for local versus remote destinations when none are provided and now ends with a dry-run-specific success message.
+
 ## [0.1.2] - 2025-12-11
 
 ### Fixed

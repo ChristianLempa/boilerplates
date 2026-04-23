@@ -419,6 +419,7 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
     display = DisplayManager(quiet=config.quiet) if config.quiet else module_instance.display
     template = _prepare_template(module_instance, config.id, config.var_file, config.var, display)
     slug = getattr(template, "slug", template.id)
+    used_implicit_dry_run_destination = False
 
     try:
         destination = resolve_cli_destination(config.output, config.remote, config.remote_path, slug)
@@ -439,7 +440,10 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         rendered_files, _variable_values = _render_template(template, config.id, display, config.interactive)
 
         if destination is None:
-            if config.interactive:
+            if config.dry_run:
+                destination = GenerationDestination(mode="local", local_output_dir=Path.cwd() / slug)
+                used_implicit_dry_run_destination = True
+            elif config.interactive:
                 destination = prompt_generation_destination(slug)
             else:
                 destination = GenerationDestination(mode="local", local_output_dir=Path.cwd() / slug)
@@ -447,7 +451,8 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         if not destination.is_remote:
             output_dir = destination.local_output_dir or (Path.cwd() / slug)
             if (
-                not config.quiet
+                not config.dry_run
+                and not config.quiet
                 and check_output_directory(output_dir, rendered_files, config.interactive, display) is None
             ):
                 return
@@ -494,7 +499,11 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
                     display.success(f"Boilerplate uploaded successfully to '{remote_target}'")
             elif config.dry_run and dry_run_stats:
                 total_files, overwrite_files, size_str = dry_run_stats
-                if overwrite_files > 0:
+                if used_implicit_dry_run_destination:
+                    display.success(
+                        f"Dry run complete: boilerplate rendered successfully ({total_files} files, {size_str}, preview only)"
+                    )
+                elif overwrite_files > 0:
                     display.warning(
                         f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}' "
                         f"({overwrite_files} would be overwritten)"
