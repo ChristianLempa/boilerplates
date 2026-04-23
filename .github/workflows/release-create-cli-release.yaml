@@ -84,12 +84,12 @@ jobs:
         run: |
           RAW_VERSION="${{ steps.version.outputs.version }}"
           NORMALIZED_VERSION=$(python - "$RAW_VERSION" <<'PY'
-import re
-import sys
+          import re
+          import sys
 
-raw_version = sys.argv[1]
-print(re.sub(r"-(\d+)$", lambda match: f".post{match.group(1)}", raw_version))
-PY
+          raw_version = sys.argv[1]
+          print(re.sub(r"-(\d+)$", lambda match: f".post{match.group(1)}", raw_version))
+          PY
           )
 
           mkdir -p dist-release
