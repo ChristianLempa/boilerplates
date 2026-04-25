@@ -305,6 +305,8 @@ class Variable:
     ) -> VariableConfig:
         if config_input is None:
             config_data: dict[str, Any] = {}
+        elif isinstance(config_input, VariableConfig):
+            return config_input.clone()
         elif isinstance(config_input, dict):
             config_data = config_input.copy()
         else:

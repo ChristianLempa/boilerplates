@@ -13,6 +13,7 @@ from ..library import LibraryManager
 from ..template import Template
 from .base_commands import (
     GenerationConfig,
+    ValidationConfig,
     generate_template,
     list_templates,
     search_templates,
@@ -44,6 +45,7 @@ class Module(ABC):
     # Class attributes that must be defined by subclasses
     name: str
     description: str
+    kind_validator_class = None
 
     def __init__(self) -> None:
         # Validate required class attributes
@@ -245,35 +247,59 @@ class Module(ABC):
         self,
         template_id: Annotated[
             str | None,
-            Argument(help="Template ID to validate (omit to validate all templates)"),
+            Argument(help="Template ID to validate"),
         ] = None,
         *,
         path: Annotated[
             str | None,
             Option("--path", help="Path to template directory for validation"),
         ] = None,
+        all_templates: Annotated[
+            bool,
+            Option("--all", help="Validate all templates in this module"),
+        ] = False,
         verbose: Annotated[bool, Option("--verbose", "-v", help="Show detailed validation information")] = False,
         semantic: Annotated[
             bool,
             Option(
-                "--semantic/--no-semantic",
-                help="Enable semantic validation (Docker Compose config, YAML structure, etc.)",
+                "--semantic",
+                help="Enable dependency-matrix semantic validation",
             ),
-        ] = True,
+        ] = False,
+        kind: Annotated[
+            bool,
+            Option(
+                "--kind",
+                help="Enable dependency-matrix kind-specific validation when available",
+            ),
+        ] = False,
     ) -> None:
-        """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness.
+        """Validate templates for syntax, rendered semantics, and optional kind-specific checks.
 
         Examples:
             # Validate specific template
-            cli compose validate netbox
+            cli terraform validate cloudflare-dns-record
 
             # Validate all templates
-            cli compose validate
+            cli terraform validate --all
 
-            # Validate with verbose output
-            cli compose validate netbox --verbose
+            # Validate rendered semantic and kind-specific matrix cases
+            cli terraform validate cloudflare-dns-record --semantic --kind
         """
-        return validate_templates(self, template_id, path, verbose, semantic)
+        return validate_templates(
+            self,
+            template_id,
+            path,
+            ValidationConfig(
+                verbose=verbose,
+                semantic=semantic,
+                kind=kind,
+                all_templates=all_templates,
+                kind_validator=self.kind_validator_class(verbose).validate_rendered_files
+                if kind and self.kind_validator_class
+                else None,
+            ),
+        )
 
     def config_get(
         self,

@@ -2,6 +2,7 @@
 
 from ...core.module import Module
 from ...core.registry import registry
+from ...core.validation import PackerValidator
 
 
 class PackerModule(Module):
@@ -9,6 +10,7 @@ class PackerModule(Module):
 
     name = "packer"
     description = "Manage Packer configurations"
+    kind_validator_class = PackerValidator
 
 
 registry.register(PackerModule)
