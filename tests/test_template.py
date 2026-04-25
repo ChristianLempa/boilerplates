@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from cli.core.exceptions import TemplateLoadError, TemplateValidationError
+from cli.core.exceptions import TemplateLoadError
 from cli.core.library import Library
 from cli.core.template import Template, normalize_template_slug
 
@@ -244,17 +244,17 @@ def test_legacy_template_yaml_is_rejected(tmp_path: Path) -> None:
         Template(template_dir, library_name="default")
 
 
-def test_legacy_jinja_delimiters_are_rejected(tmp_path: Path) -> None:
-    """files/ content must use the new custom delimiters."""
-    template_dir = tmp_path / "compose" / "legacy-delimiters"
+def test_raw_jinja_delimiters_are_allowed_in_rendered_files(tmp_path: Path) -> None:
+    """Rendered files may contain raw Jinja syntax for downstream tools like Ansible."""
+    template_dir = tmp_path / "ansible" / "raw-jinja"
     _write_template_json(
         template_dir,
         {
-            "slug": "legacy-delimiters",
-            "kind": "compose",
+            "slug": "raw-jinja",
+            "kind": "ansible",
             "metadata": {
-                "name": "Legacy delimiters",
-                "description": "Bad template",
+                "name": "Raw Jinja",
+                "description": "Ansible template",
                 "version": {
                     "name": "v1.0.0",
                 },
@@ -265,23 +265,35 @@ def test_legacy_jinja_delimiters_are_rejected(tmp_path: Path) -> None:
                     "title": "General",
                     "items": [
                         {
-                            "name": "container_hostname",
+                            "name": "target_host",
                             "type": "str",
-                            "title": "Container hostname",
+                            "title": "Target host",
+                            "default": "all",
                         }
                     ],
                 }
             ],
         },
         {
-            "compose.yaml": "hostname: {{ container_hostname }}\n",
+            "playbook.yaml": (
+                "- hosts: << target_host >>\n"
+                "  tasks:\n"
+                "    - debug:\n"
+                '        msg: "{{ ansible_hostname }}"\n'
+                "    - name: Raw Ansible block delimiter remains literal\n"
+                "      debug:\n"
+                '        msg: "{% raw %}{{ value }}{% endraw %}"\n'
+            ),
         },
     )
 
     template = Template(template_dir, library_name="default")
+    rendered_files, _ = template.render(template.variables)
 
-    with pytest.raises(TemplateValidationError, match="Legacy Jinja delimiter"):
-        _ = template.used_variables
+    assert template.used_variables == {"target_host"}
+    assert "{{ ansible_hostname }}" in rendered_files["playbook.yaml"]
+    assert "{% raw %}{{ value }}{% endraw %}" in rendered_files["playbook.yaml"]
+    assert "- hosts: all" in rendered_files["playbook.yaml"]
 
 
 def test_template_json_rejects_string_metadata_version(tmp_path: Path) -> None:

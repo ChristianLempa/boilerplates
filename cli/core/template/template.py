@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 TEMPLATE_MANIFEST_FILENAME = "template.json"
 LEGACY_TEMPLATE_FILENAMES = ("template.yaml", "template.yml")
 TEMPLATE_FILES_DIRNAME = "files"
-LEGACY_JINJA_DELIMITERS = ("{{", "{%", "{#")
 VARIABLE_START = "<<"
 VARIABLE_END = ">>"
 BLOCK_START = "<%"
@@ -351,33 +350,11 @@ class Template:
         template_files.sort(key=lambda item: str(item.relative_path))
         self.__template_files = template_files
 
-    def _validate_delimiters(self) -> None:
-        """Reject legacy Jinja delimiters in 0.2.0 templates."""
-        for template_file in self.template_files:
-            file_path = self.files_dir / template_file.relative_path
-            try:
-                content = file_path.read_text(encoding="utf-8")
-            except OSError as exc:
-                raise TemplateValidationError(
-                    f"Failed to read template file '{template_file.relative_path}': {exc}"
-                ) from exc
-
-            for delimiter in LEGACY_JINJA_DELIMITERS:
-                if delimiter in content:
-                    raise TemplateValidationError(
-                        f"Legacy Jinja delimiter '{delimiter}' found in '{template_file.relative_path}'. "
-                        f"Use {VARIABLE_START} {VARIABLE_END} for variables, "
-                        f"{BLOCK_START} {BLOCK_END} for blocks, and "
-                        f"{COMMENT_START} {COMMENT_END} for comments."
-                    )
-
     def _extract_all_used_variables(self) -> set[str]:
         """Extract undeclared variables from all files under files/."""
         used_variables: set[str] = set()
         syntax_errors = []
         self._variable_usage_map: dict[str, list[str]] = {}
-
-        self._validate_delimiters()
 
         for template_file in self.template_files:
             file_path = self.files_dir / template_file.relative_path

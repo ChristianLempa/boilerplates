@@ -229,6 +229,10 @@ class AnsibleValidator(RenderedFilesValidator):
             )
             failure = self.failure_from_process(process, str(playbook.relative_to(workdir)))
             if failure is not None:
+                if self._is_dependency_resolution_failure(failure.message):
+                    result.skipped = True
+                    result.warnings.append(failure.message)
+                    continue
                 result.failures.append(failure)
         return result
 
@@ -238,6 +242,19 @@ class AnsibleValidator(RenderedFilesValidator):
         for path in workdir.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in {".yaml", ".yml"}:
                 continue
-            if "playbook" in path.name.lower():
+            if "playbook" in path.name.lower() or AnsibleValidator._looks_like_playbook(path):
                 candidates.append(path)
         return candidates
+
+    @staticmethod
+    def _looks_like_playbook(path: Path) -> bool:
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError:
+            return False
+
+        return any(line.lstrip().startswith("hosts:") for line in content.splitlines())
+
+    @staticmethod
+    def _is_dependency_resolution_failure(message: str) -> bool:
+        return ("the role" in message and "was not found" in message) or "couldn't resolve module/action" in message

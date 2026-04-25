@@ -4,7 +4,13 @@ import json
 from pathlib import Path
 
 from cli.core.template import Template
-from cli.core.validation import DependencyMatrixBuilder, KindValidationResult, MatrixOptions, ValidationRunner
+from cli.core.validation import (
+    AnsibleValidator,
+    DependencyMatrixBuilder,
+    KindValidationResult,
+    MatrixOptions,
+    ValidationRunner,
+)
 
 
 def _write_template(tmp_path: Path, manifest: dict, files: dict[str, str]) -> Template:
@@ -161,3 +167,16 @@ def test_validation_runner_treats_unavailable_kind_validator_as_skip(tmp_path: P
     assert summary.kind_available is False
     assert summary.kind_skipped_cases == {"defaults"}
     assert summary.failures == []
+
+
+def test_ansible_validator_detects_main_yml_playbook_by_hosts_key(tmp_path: Path) -> None:
+    playbook = tmp_path / "main.yml"
+    playbook.write_text("- name: Configure host\n  hosts: all\n  tasks: []\n", encoding="utf-8")
+
+    assert AnsibleValidator._find_playbooks(tmp_path) == [playbook]
+
+
+def test_ansible_validator_classifies_missing_collection_as_dependency_resolution_failure() -> None:
+    assert AnsibleValidator._is_dependency_resolution_failure("ERROR! the role 'vendor.role' was not found")
+    assert AnsibleValidator._is_dependency_resolution_failure("ERROR! couldn't resolve module/action 'vendor.module'")
+    assert not AnsibleValidator._is_dependency_resolution_failure("ERROR! Syntax Error while loading YAML")
