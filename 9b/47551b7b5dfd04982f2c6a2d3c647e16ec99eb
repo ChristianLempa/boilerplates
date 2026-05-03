@@ -1,0 +1,27 @@
+cli/core/module/base_module.py
+  1f2c4c8bc822f5eb 192-199,245
+cli/core/module/base_commands.py
+  1f2c4c8bc822f5eb 56,326-372,489
+tests/test_base_commands.py
+  1f2c4c8bc822f5eb 7,81-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "9b47551b7b5dfd04982f2c6a2d3c647e16ec99eb",
+  "prompts": {
+    "1f2c4c8bc822f5eb": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019deedf-7fe3-713d-ae0a-0d8f6c3c4b50",
+        "model": "gpt-5.5"
+      },
+      "human_author": "ChristianLempa",
+      "messages": [],
+      "total_additions": 113,
+      "total_deletions": 3,
+      "accepted_lines": 2806,
+      "overriden_lines": 0
+    }
+  }
+}
