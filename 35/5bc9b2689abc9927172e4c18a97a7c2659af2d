@@ -1,0 +1,25 @@
+pyproject.toml
+  1f2c4c8bc822f5eb 7
+cli/__init__.py
+  1f2c4c8bc822f5eb 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "355bc9b2689abc9927172e4c18a97a7c2659af2d",
+  "prompts": {
+    "1f2c4c8bc822f5eb": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019deedf-7fe3-713d-ae0a-0d8f6c3c4b50",
+        "model": "gpt-5.5"
+      },
+      "human_author": "ChristianLempa",
+      "messages": [],
+      "total_additions": 2696,
+      "total_deletions": 2,
+      "accepted_lines": 2696,
+      "overriden_lines": 0
+    }
+  }
+}
