@@ -18,6 +18,12 @@ It combines template-defined variables and defaults, guided interactive prompts,
 
 ℹ️ New templates must use `template.json`, keep renderable content under `files/`, and use the custom *Jinja2*-like delimiters `<< >>`, `<% %>`, and `<# #>` instead of default *Jinja2* syntax.
 
+### Template kinds
+
+Use a dedicated kind when the template's primary output matches that technology. Use `python` for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons. Keep Python files inside another kind, such as `compose` or `terraform`, when they are only supporting files for that primary infrastructure template.
+
+Initial `python` validation is intentionally minimal: the CLI validates template syntax, declared variables, rendering, and generic semantic checks where applicable. Python-specific validation such as compilation, formatting, or test execution can be added as a follow-up once template conventions are established.
+
 ### Installation
 
 #### Automated installer script

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Python template kind for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons (#1773)
 - Static template kind for technology-agnostic file and directory boilerplates (#1786)
 - Named generation output paths via `generate --name` / `-n` (#1783)
 - Exhaustive dependency matrix validation for rendering reachable template states, with optional kind-specific validators (#1780)
@@ -18,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Default library migration now rewrites the built-in repository from `christianlempa/boilerplates` to `christianlempa/boilerplates-library`, with startup notices and legacy `/library` path fallback (#1762)
 - Variable definitions now use the `secret` type and nested `config` metadata for options, placeholders, sliders, and secret autogeneration across the runtime, schemas, and migrated template specs (#1767)
+
+### Fixed
+- Ansible templates can now contain literal downstream Jinja expressions like `{{ variable }}` without boilerplate validation treating them as undeclared variables (#1775)
 
 ## [0.2.0-2] - 2026-04-23
 
