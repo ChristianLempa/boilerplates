@@ -1,0 +1,25 @@
+CHANGELOG.md
+  73cd3014653915f0 10-11,149-152
+RELEASE.md
+  73cd3014653915f0 86-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "9ebf5d6b969f0292e0bfb8d6a47ad5102e147d7c",
+  "prompts": {
+    "73cd3014653915f0": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df3b8-a0d7-7325-902d-028ef93e6c69",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 15,
+      "total_deletions": 2,
+      "accepted_lines": 15,
+      "overriden_lines": 0
+    }
+  }
+}
