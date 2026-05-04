@@ -20,9 +20,9 @@ It combines template-defined variables and defaults, guided interactive prompts,
 
 ### Template kinds
 
-Use a dedicated kind when the template's primary output matches that technology. Use `python` for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons. Keep Python files inside another kind, such as `compose` or `terraform`, when they are only supporting files for that primary infrastructure template.
+Use a dedicated kind when the template's primary output matches that technology. Use `python` for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons. Use `bash` for Bash-oriented scripts, bootstrap flows, maintenance tasks, and automation snippets. Keep Python or Bash files inside another kind, such as `compose` or `terraform`, when they are only supporting files for that primary infrastructure template.
 
-Initial `python` validation is intentionally minimal: the CLI validates template syntax, declared variables, rendering, and generic semantic checks where applicable. Python-specific validation such as compilation, formatting, or test execution can be added as a follow-up once template conventions are established.
+Initial `python` and `bash` validation is intentionally minimal: the CLI validates template syntax, declared variables, rendering, and generic semantic checks where applicable. Language-specific validation such as Python compilation, shell syntax checks, formatting, or test execution can be added as follow-up work once template conventions are established.
 
 ### Installation
 
