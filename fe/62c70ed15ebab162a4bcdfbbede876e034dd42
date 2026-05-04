@@ -1,0 +1,31 @@
+tests/test_static_module.py
+  240bd71f13fcb195 1-20
+CHANGELOG.md
+  240bd71f13fcb195 11
+AGENTS.md
+  240bd71f13fcb195 118
+README.md
+  240bd71f13fcb195 7,70,73-74
+cli/modules/static/__init__.py
+  240bd71f13fcb195 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "fe62c70ed15ebab162a4bcdfbbede876e034dd42",
+  "prompts": {
+    "240bd71f13fcb195": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df347-d917-7708-8cb9-e2cb781c0b42",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 41,
+      "total_deletions": 2,
+      "accepted_lines": 41,
+      "overriden_lines": 0
+    }
+  }
+}
