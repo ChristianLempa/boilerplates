@@ -1,0 +1,23 @@
+CHANGELOG.md
+  240bd71f13fcb195 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "58644a71d8eea0ac027f1a06a444eb33710fb3a6",
+  "prompts": {
+    "240bd71f13fcb195": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df347-d917-7708-8cb9-e2cb781c0b42",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
