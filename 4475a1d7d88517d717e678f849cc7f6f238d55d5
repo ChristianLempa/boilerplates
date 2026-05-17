@@ -1,0 +1,33 @@
+CHANGELOG.md
+  240bd71f13fcb195 13
+cli/modules/compose/__init__.py
+  240bd71f13fcb195 27,36,42-50,60-73,76-78,86-87
+cli/core/module/base_commands.py
+  240bd71f13fcb195 21,65-66,655,659-662,665,789-816,820-823,836-843
+cli/core/module/base_module.py
+  240bd71f13fcb195 258,267,273-281,292,299,302,311
+tests/test_base_commands.py
+  240bd71f13fcb195 7-15,64-73,182-237
+cli/modules/swarm/__init__.py
+  240bd71f13fcb195 27,36,42-50,60-73,76-78,86-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "4475a1d7d88517d717e678f849cc7f6f238d55d5",
+  "prompts": {
+    "240bd71f13fcb195": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df347-d917-7708-8cb9-e2cb781c0b42",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 200,
+      "total_deletions": 29,
+      "accepted_lines": 200,
+      "overriden_lines": 0
+    }
+  }
+}

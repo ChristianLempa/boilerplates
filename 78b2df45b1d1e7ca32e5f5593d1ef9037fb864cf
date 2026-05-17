@@ -1,0 +1,29 @@
+cli/modules/compose/__init__.py
+  240bd71f13fcb195 3-4,73
+cli/modules/swarm/__init__.py
+  240bd71f13fcb195 3-4,73
+cli/modules/compose/validate.py
+  240bd71f13fcb195 3-4
+cli/core/validation/kind_validators.py
+  240bd71f13fcb195 223-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "78b2df45b1d1e7ca32e5f5593d1ef9037fb864cf",
+  "prompts": {
+    "240bd71f13fcb195": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df347-d917-7708-8cb9-e2cb781c0b42",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 1027,
+      "total_deletions": 16,
+      "accepted_lines": 1027,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,0 +1,29 @@
+tests/test_python_module.py
+  8d04d75797f3adcf 1-20
+cli/modules/python/__init__.py
+  8d04d75797f3adcf 1-14
+CHANGELOG.md
+  8d04d75797f3adcf 11,23-25
+README.md
+  8d04d75797f3adcf 21-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "888284c777ab385b68a526e4f2d12bd3bb24f41f",
+  "prompts": {
+    "8d04d75797f3adcf": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019df374-c717-705f-8088-04143787bc08",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad",
+      "messages": [],
+      "total_additions": 54,
+      "total_deletions": 0,
+      "accepted_lines": 54,
+      "overriden_lines": 0
+    }
+  }
+}
