@@ -83,6 +83,9 @@ The release workflow validates this and fails if they differ.
    release: prepare vx.x.x
    ```
 
+   GitHub Actions automatically runs the configured PR checks for pull requests targeting `main`.
+   Monitor the PR until those checks complete successfully.
+
 7. Merge the release PR after checks and review pass.
 
 ## Publish the release

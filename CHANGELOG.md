@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-04
+
 ### Added
 - Bash template kind for Bash-oriented scripts, bootstrap flows, maintenance tasks, and automation snippets (#1772)
 - Python template kind for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons (#1773)
@@ -144,7 +146,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release with core CLI functionality.
 
-[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.1.2...HEAD
+[unreleased]: https://github.com/christianlempa/boilerplates/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/christianlempa/boilerplates/compare/v0.2.0-2...v0.2.1
+[0.2.0-2]: https://github.com/christianlempa/boilerplates/compare/v0.2.0-1...v0.2.0-2
+[0.2.0-1]: https://github.com/christianlempa/boilerplates/compare/v0.1.2...v0.2.0-1
 [0.1.2]: https://github.com/christianlempa/boilerplates/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/christianlempa/boilerplates/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/christianlempa/boilerplates/compare/v0.0.7...v0.1.0
