@@ -104,8 +104,8 @@ spec:
         description: DNS provider API token
         type: secret
         required: true
-        needs: ['traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun']
-        extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, or PORKBUN_API_KEY
+        needs: ['traefik_tls_certresolver=cloudflare,digitalocean,godaddy,namecheap,porkbun,desec']
+        extra: CF_DNS_API_TOKEN, DO_AUTH_TOKEN, GODADDY_API_KEY, NAMECHEAP_API_KEY, PORKBUN_API_KEY or DESEC_KEY
       traefik_tls_acme_username:
         description: Namecheap API username
         type: str
@@ -114,7 +114,7 @@ spec:
       traefik_tls_certresolver:
         description: ACME DNS challenge provider
         config:
-          options: [cloudflare, porkbun, godaddy, digitalocean, route53, azure, namecheap]
+          options: [cloudflare, porkbun, godaddy, digitalocean, route53, azure, namecheap, desec]
         extra: DNS provider for domain validation
       traefik_tls_enabled:
         description: Enable HTTPS/TLS with ACME

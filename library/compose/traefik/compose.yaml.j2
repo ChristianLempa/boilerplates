@@ -147,6 +147,16 @@ services:
       {% endif %}
       - NAMECHEAP_API_USER={{ traefik_tls_acme_username }}
       {% endif %}
+      {% elif traefik_tls_certresolver == 'desec' %}
+      {% if swarm_enabled %}
+      - DESEC_TOKEN=/run/secrets/{{ service_name }}_token
+      {% else %}
+      - DESEC_TOKEN=${DESEC_TOKEN}
+      {% endif %}
+      - DESEC_HTTP_TIMEOUT=600
+      - DESEC_PROPAGATION_TIMEOUT=2400
+      - DESEC_TTL=3600
+      - DESEC_POLLING_INTERVAL=60
       {% endif %}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8082/ping"]
