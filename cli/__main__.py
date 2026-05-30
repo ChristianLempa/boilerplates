@@ -239,29 +239,27 @@ def run() -> None:
         except (ValueError, IndexError):
             pass  # Let Typer handle argument parsing errors
 
-    init_app()
-    app()
 
-    # try:
-    #     init_app()
-    #     app()
-    # except (ValueError, RuntimeError) as e:
-    #     # Handle configuration and initialization errors cleanly
-    #     display.error(str(e))
-    #     sys.exit(1)
-    # except ImportError as e:
-    #     # Handle module import errors with detailed info
-    #     display.error(f"Module Import Error: {e}")
-    #     sys.exit(1)
-    # except KeyboardInterrupt:
-    #     # Handle Ctrl+C gracefully
-    #     display.warning("Operation cancelled by user")
-    #     sys.exit(130)
-    # except Exception as e:
-    #     # Handle unexpected errors - show simplified message
-    #     display.error(str(e))
-    #     display.info("Use --log-level DEBUG for more details")
-    #     sys.exit(1)
+    try:
+        init_app()
+        app()
+    except (ValueError, RuntimeError) as e:
+        # Handle configuration and initialization errors cleanly
+        display.error(str(e))
+        sys.exit(1)
+    except ImportError as e:
+        # Handle module import errors with detailed info
+        display.error(f"Module Import Error: {e}")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        display.warning("Operation cancelled by user")
+        sys.exit(130)
+    except Exception as e:
+        # Handle unexpected errors - show simplified message
+        display.error(str(e))
+        display.info("Use --log-level DEBUG for more details")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
