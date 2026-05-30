@@ -14,7 +14,7 @@ from pathlib import Path
 
 import click
 from rich.console import Console
-from typer import Option, Typer
+from typer import Option, Typer, Context
 from typer.core import TyperGroup
 
 import cli.modules
@@ -79,6 +79,7 @@ def setup_logging(log_level: str = "WARNING") -> None:
 
 @app.callback(invoke_without_command=True)
 def main(
+    ctx: Context,
     _version: bool | None = Option(
         None,
         "--version",
@@ -103,9 +104,6 @@ def main(
     else:
         # Silence all logging (including third-party) unless user explicitly requests it
         logging.disable(logging.CRITICAL)
-
-    # Get context without type annotation (compatible with all Typer versions)
-    ctx = click.get_current_context()
 
     # Store log level in context for potential use by other commands
     ctx.ensure_object(dict)
@@ -241,26 +239,29 @@ def run() -> None:
         except (ValueError, IndexError):
             pass  # Let Typer handle argument parsing errors
 
-    try:
-        init_app()
-        app()
-    except (ValueError, RuntimeError) as e:
-        # Handle configuration and initialization errors cleanly
-        display.error(str(e))
-        sys.exit(1)
-    except ImportError as e:
-        # Handle module import errors with detailed info
-        display.error(f"Module Import Error: {e}")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        # Handle Ctrl+C gracefully
-        display.warning("Operation cancelled by user")
-        sys.exit(130)
-    except Exception as e:
-        # Handle unexpected errors - show simplified message
-        display.error(str(e))
-        display.info("Use --log-level DEBUG for more details")
-        sys.exit(1)
+    init_app()
+    app()
+
+    # try:
+    #     init_app()
+    #     app()
+    # except (ValueError, RuntimeError) as e:
+    #     # Handle configuration and initialization errors cleanly
+    #     display.error(str(e))
+    #     sys.exit(1)
+    # except ImportError as e:
+    #     # Handle module import errors with detailed info
+    #     display.error(f"Module Import Error: {e}")
+    #     sys.exit(1)
+    # except KeyboardInterrupt:
+    #     # Handle Ctrl+C gracefully
+    #     display.warning("Operation cancelled by user")
+    #     sys.exit(130)
+    # except Exception as e:
+    #     # Handle unexpected errors - show simplified message
+    #     display.error(str(e))
+    #     display.info("Use --log-level DEBUG for more details")
+    #     sys.exit(1)
 
 
 if __name__ == "__main__":

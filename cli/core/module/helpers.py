@@ -194,10 +194,7 @@ def apply_cli_overrides(template, var: list[str] | None, ctx=None) -> None:
 
     # Get context if not provided (compatible with all Typer versions)
     if ctx is None:
-        try:
-            ctx = click.get_current_context()
-        except RuntimeError:
-            ctx = None
+        ctx = click.get_current_context(silent=True)
 
     extra_args = list(ctx.args) if ctx and hasattr(ctx, "args") else []
     cli_overrides = parse_var_inputs(var or [], extra_args)
