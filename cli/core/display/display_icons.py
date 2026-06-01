@@ -163,7 +163,7 @@ class IconManager:
 
     @classmethod
     def lock(cls) -> str:
-        """Get the lock icon (for sensitive variables)."""
+        """Get the lock icon (for secret variables)."""
         return cls.UI_LOCK
 
     @classmethod

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Bash template kind for Bash-oriented scripts, bootstrap flows, maintenance tasks, and automation snippets (#1772)
+- Python template kind for Python-oriented project scaffolds, automation helpers, packages, and service/tooling skeletons (#1773)
+- Static template kind for technology-agnostic file and directory boilerplates (#1786)
+- Named generation output paths via `generate --name` / `-n` (#1783)
+- Exhaustive dependency matrix validation for rendering reachable template states, with optional kind-specific validators (#1780)
+- `template.json` runtime support with required `files/` directories, custom `<< >>` / `<% %>` / `<# #>` delimiters, and legacy-format rejection for `0.2.0` (#1768)
+- Remote generation destinations via `generate --remote` and `--remote-path`, including SSH host discovery and SCP upload flow (#1765)
+- Initial dedicated `swarm` module and validation flow as groundwork for the `compose` / `swarm` split in `0.2.0` (#1766)
+
+### Changed
+- Default library migration now rewrites the built-in repository from `christianlempa/boilerplates` to `christianlempa/boilerplates-library`, with startup notices and legacy `/library` path fallback (#1762)
+- Variable definitions now use the `secret` type and nested `config` metadata for options, placeholders, sliders, and secret autogeneration across the runtime, schemas, and migrated template specs (#1767)
+
+### Fixed
+- Ansible templates can now contain literal downstream Jinja expressions like `{{ variable }}` without boilerplate validation treating them as undeclared variables (#1775)
+
+## [0.2.0-2] - 2026-04-23
+
+### Fixed
+- Release workflow now publishes a tag-matching hotfix source archive such as `boilerplates-0.2.0-2.tar.gz` even when Python packaging normalizes the internal post-release version.
+
+### Changed
+- Clarified `AGENTS.md` guidance around the canonical template library location and required pre-release verification steps.
+
+## [0.2.0-1] - 2026-04-23
+
+### Fixed
+- Interactive prompts now show and preserve effective defaults loaded from config, var-files, and CLI overrides.
+- `generate --dry-run` no longer prompts for local versus remote destinations when none are provided and now ends with a dry-run-specific success message.
+
 ## [0.1.2] - 2025-12-11
 
 ### Fixed

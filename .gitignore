@@ -1,6 +1,8 @@
 # Ignore local development files
 **/.vscode
 **/.DS_Store
+/AGENTS.md
+/docs
 
 # Docker Secrets, Environment Files
 **/secret.*

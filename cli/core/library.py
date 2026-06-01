@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
-import yaml
-
 from .config import ConfigManager
 from .exceptions import DuplicateTemplateError, LibraryError, TemplateNotFoundError
+from .template import normalize_template_slug
 
 logger = logging.getLogger(__name__)
 
 # Qualified ID format: "template_id.library_name"
 QUALIFIED_ID_PARTS = 2
+TEMPLATE_MANIFEST_FILENAME = "template.json"
 
 
 class Library:
@@ -36,21 +37,42 @@ class Library:
 
     def _is_template_draft(self, template_path: Path) -> bool:
         """Check if a template is marked as draft."""
-        # Find the template file
-        for filename in ("template.yaml", "template.yml"):
-            template_file = template_path / filename
-            if template_file.exists():
-                break
-        else:
+        template_file = template_path / TEMPLATE_MANIFEST_FILENAME
+        if not template_file.exists():
             return False
 
         try:
             with template_file.open(encoding="utf-8") as f:
-                docs = [doc for doc in yaml.safe_load_all(f) if doc]
-                return docs[0].get("metadata", {}).get("draft", False) if docs else False
-        except (yaml.YAMLError, OSError) as e:
+                data = json.load(f) or {}
+            return bool(data.get("metadata", {}).get("draft", False))
+        except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"Error checking draft status for {template_path}: {e}")
             return False
+
+    @staticmethod
+    def _has_template_manifest(template_path: Path) -> bool:
+        """Check if a directory contains the supported template manifest."""
+        return template_path.is_dir() and (template_path / TEMPLATE_MANIFEST_FILENAME).exists()
+
+    @staticmethod
+    def _load_template_id(template_path: Path) -> str:
+        """Load the canonical template ID from the manifest slug.
+
+        Falls back to the directory name when manifest metadata is unreadable.
+        """
+        manifest_path = template_path / TEMPLATE_MANIFEST_FILENAME
+        if manifest_path.exists():
+            try:
+                with manifest_path.open(encoding="utf-8") as file_handle:
+                    data = json.load(file_handle) or {}
+                slug = str(data.get("slug", "")).strip()
+                kind = str(data.get("kind", "")).strip()
+                if slug:
+                    return normalize_template_slug(slug, kind)
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Error reading template slug for %s: %s", template_path, exc)
+
+        return template_path.name
 
     def find_by_id(self, module_name: str, template_id: str) -> tuple[Path, str]:
         """Find a template by its ID in this library.
@@ -67,19 +89,24 @@ class Library:
         """
         logger.debug(f"Looking for template '{template_id}' in module '{module_name}' in library '{self.name}'")
 
-        # Build the path to the specific template directory
-        template_path = self.path / module_name / template_id
-
-        # Check if template directory exists with a template file
-        has_template = template_path.is_dir() and any(
-            (template_path / f).exists() for f in ("template.yaml", "template.yml")
-        )
-
-        if not has_template or self._is_template_draft(template_path):
+        module_path = self.path / module_name
+        if not module_path.is_dir():
             raise TemplateNotFoundError(template_id, module_name)
 
-        logger.debug(f"Found template '{template_id}' at: {template_path}")
-        return template_path, self.name
+        try:
+            for item in module_path.iterdir():
+                if not self._has_template_manifest(item) or self._is_template_draft(item):
+                    continue
+                resolved_id = self._load_template_id(item)
+                if resolved_id == template_id:
+                    logger.debug("Found template '%s' at: %s", template_id, item)
+                    return item, self.name
+        except PermissionError as exc:
+            raise LibraryError(
+                f"Permission denied accessing module '{module_name}' in library '{self.name}': {exc}"
+            ) from exc
+
+        raise TemplateNotFoundError(template_id, module_name)
 
     def find(self, module_name: str, sort_results: bool = False) -> list[tuple[Path, str]]:
         """Find templates in this library for a specific module.
@@ -110,9 +137,9 @@ class Library:
         template_dirs = []
         try:
             for item in module_path.iterdir():
-                has_template = item.is_dir() and any((item / f).exists() for f in ("template.yaml", "template.yml"))
+                has_template = self._has_template_manifest(item)
                 if has_template and not self._is_template_draft(item):
-                    template_id = item.name
+                    template_id = self._load_template_id(item)
 
                     # Check for duplicate within same library
                     if template_id in seen_ids:
@@ -148,7 +175,9 @@ class LibraryManager:
         directory = lib_config.get("directory", ".")
         library_base = libraries_path / name
         if directory and directory != ".":
-            return library_base / directory
+            configured_path = library_base / directory
+            fallback_path = self._fallback_template_root(configured_path)
+            return fallback_path or configured_path
         return library_base
 
     def _resolve_static_library_path(self, name: str, lib_config: dict) -> Path | None:
@@ -161,7 +190,34 @@ class LibraryManager:
         library_path = Path(path_str).expanduser()
         if not library_path.is_absolute():
             library_path = (self.config.config_path.parent / library_path).resolve()
-        return library_path
+        fallback_path = self._fallback_template_root(library_path)
+        return fallback_path or library_path
+
+    @staticmethod
+    def _looks_like_template_root(path: Path) -> bool:
+        """Check whether a path looks like the root of a templates repository."""
+        if not path.is_dir():
+            return False
+        try:
+            return any(item.is_dir() for item in path.iterdir())
+        except OSError:
+            return False
+
+    def _fallback_template_root(self, path: Path) -> Path | None:
+        """Resolve common old-style /library paths to the actual template repo root."""
+        if path.exists():
+            if self._looks_like_template_root(path):
+                return path
+            if path.name == "library" and self._looks_like_template_root(path.parent):
+                logger.info("Using parent directory '%s' as template root instead of '%s'", path.parent, path)
+                return path.parent
+            return None
+
+        if path.name == "library" and self._looks_like_template_root(path.parent):
+            logger.info("Using parent directory '%s' as template root instead of missing '%s'", path.parent, path)
+            return path.parent
+
+        return None
 
     def _warn_missing_library(self, name: str, library_path: Path, lib_type: str) -> None:
         """Log warning about missing library."""

@@ -13,6 +13,7 @@ from ..library import LibraryManager
 from ..template import Template
 from .base_commands import (
     GenerationConfig,
+    ValidationConfig,
     generate_template,
     list_templates,
     search_templates,
@@ -44,9 +45,7 @@ class Module(ABC):
     # Class attributes that must be defined by subclasses
     name: str
     description: str
-
-    # Schema version supported by this module (override in subclasses)
-    schema_version: str = "1.0"
+    kind_validator_class = None
 
     def __init__(self) -> None:
         # Validate required class attributes
@@ -78,9 +77,6 @@ class Module(ABC):
                 library_type = library.library_type if library else "git"
 
                 template = Template(template_dir, library_name=library_name, library_type=library_type)
-
-                # Validate schema version compatibility
-                template._validate_schema_version(self.schema_version, self.name)
 
                 # If template ID needs qualification, set qualified ID
                 if needs_qualification:
@@ -114,9 +110,6 @@ class Module(ABC):
 
         try:
             template = Template(template_dir, library_name=library_name, library_type=library_type)
-
-            # Validate schema version compatibility
-            template._validate_schema_version(self.schema_version, self.name)
 
             # If the original ID was qualified, preserve it
             if "." in id:
@@ -167,26 +160,45 @@ class Module(ABC):
     def generate(
         self,
         id: Annotated[str, Argument(help="Template ID")],
-        directory: Annotated[
-            str | None, Argument(help="[DEPRECATED: use --output] Output directory (defaults to template ID)")
-        ] = None,
         *,
         output: Annotated[
             str | None,
             Option(
                 "--output",
                 "-o",
-                help="Output directory (defaults to template ID)",
+                help="Local output directory",
+            ),
+        ] = None,
+        remote: Annotated[
+            str | None,
+            Option(
+                "--remote",
+                "-r",
+                help="Upload generated files to this SSH host instead of a local directory",
+            ),
+        ] = None,
+        remote_path: Annotated[
+            str | None,
+            Option(
+                "--remote-path",
+                help="Remote target directory (defaults to ~/<slug> when --remote is used)",
             ),
         ] = None,
         interactive: Annotated[
             bool,
             Option(
                 "--interactive/--no-interactive",
-                "-i/-n",
                 help="Enable interactive prompting for variables",
             ),
         ] = True,
+        name: Annotated[
+            str | None,
+            Option(
+                "--name",
+                "-n",
+                help="Rename top-level generated files/directories with this name",
+            ),
+        ] = None,
         var: Annotated[
             list[str] | None,
             Option(
@@ -219,19 +231,20 @@ class Module(ABC):
         """Generate from template.
 
         Variable precedence chain (lowest to highest):
-        1. Module spec (defined in cli/modules/*.py)
-        2. Template spec (from template.yaml)
-        3. Config defaults (from ~/.config/boilerplates/config.yaml)
-        4. Variable file (from --var-file)
-        5. CLI overrides (--var flags)
+        1. Template defaults (from template.json)
+        2. Config defaults (from ~/.config/boilerplates/config.yaml)
+        3. Variable file (from --var-file)
+        4. CLI overrides (--var flags)
         """
         config = GenerationConfig(
             id=id,
-            directory=directory,
             output=output,
+            remote=remote,
+            remote_path=remote_path,
             interactive=interactive,
             var=var,
             var_file=var_file,
+            name=name,
             dry_run=dry_run,
             show_files=show_files,
             quiet=quiet,
@@ -249,28 +262,60 @@ class Module(ABC):
             str | None,
             Option("--path", help="Path to template directory for validation"),
         ] = None,
+        all_templates: Annotated[
+            bool,
+            Option("--all", help="Validate all templates in this module (default when no template ID is provided)"),
+        ] = False,
         verbose: Annotated[bool, Option("--verbose", "-v", help="Show detailed validation information")] = False,
         semantic: Annotated[
             bool,
             Option(
                 "--semantic/--no-semantic",
-                help="Enable semantic validation (Docker Compose schema, etc.)",
+                help="Enable semantic validation for rendered files",
             ),
         ] = True,
+        matrix: Annotated[
+            bool,
+            Option(
+                "--matrix",
+                help="Validate all reachable dependency states for a single template",
+            ),
+        ] = False,
+        kind: Annotated[
+            bool,
+            Option(
+                "--kind",
+                help="Enable dependency-matrix kind-specific validation when available",
+            ),
+        ] = False,
     ) -> None:
-        """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness.
+        """Validate templates for syntax, rendered semantics, and optional dependency matrix checks.
 
         Examples:
             # Validate specific template
-            cli compose validate netbox
+            cli terraform validate cloudflare-dns-record
 
             # Validate all templates
-            cli compose validate
+            cli terraform validate
 
-            # Validate with verbose output
-            cli compose validate netbox --verbose
+            # Validate rendered semantic and kind-specific matrix cases
+            cli terraform validate cloudflare-dns-record --matrix --kind
         """
-        return validate_templates(self, template_id, path, verbose, semantic)
+        return validate_templates(
+            self,
+            template_id,
+            path,
+            ValidationConfig(
+                verbose=verbose,
+                semantic=semantic,
+                matrix=matrix,
+                kind=kind,
+                all_templates=all_templates,
+                kind_validator=self.kind_validator_class(verbose).validate_rendered_files
+                if kind and self.kind_validator_class
+                else None,
+            ),
+        )
 
     def config_get(
         self,

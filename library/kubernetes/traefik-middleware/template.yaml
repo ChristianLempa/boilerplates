@@ -19,8 +19,6 @@ metadata:
     provider: selfh
     id: traefik
   draft: false
-  next_steps: ""
-schema: "1.0"
 spec:
   general:
     vars:
@@ -33,4 +31,5 @@ spec:
         description: Middleware type
         type: enum
         default: redirectScheme
-        options: [redirectScheme, stripPrefix, addPrefix, headers, rateLimit]
+        config:
+          options: [redirectScheme, stripPrefix, addPrefix, headers, rateLimit]

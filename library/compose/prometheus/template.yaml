@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -26,22 +25,6 @@ metadata:
     - traefik
     - swarm
     - authentik
-  next_steps: |
-    {% if swarm_enabled -%}
-    1. Deploy to Docker Swarm:
-       docker stack deploy -c compose.yaml {{ service_name }}
-    2. Access Prometheus:
-       {%- if traefik_enabled %} https://{{ traefik_host }}
-       {%- else %} http://<swarm-node-ip>:{{ ports_http }}{%- endif %}
-    {% else -%}
-    1. Start Prometheus with Docker Compose:
-       docker compose up -d
-    2. Access Prometheus:
-       {%- if traefik_enabled %} https://{{ traefik_host }}
-       {%- else %} http://localhost:{{ ports_http }}{%- endif %}
-    {% endif -%}
-    3. Edit config/prometheus.yaml to add scrape targets
-    4. Reload configuration: docker exec {{ container_name if not swarm_enabled else service_name }} kill -HUP 1
 spec:
   general:
     vars:

@@ -20,7 +20,9 @@ from typer.core import TyperGroup
 import cli.modules
 from cli import __version__
 from cli.core import repo
+from cli.core.config import ConfigManager
 from cli.core.display import DisplayManager
+from cli.core.exceptions import ConfigError
 from cli.core.registry import registry
 
 
@@ -108,6 +110,15 @@ def main(
     # Store log level in context for potential use by other commands
     ctx.ensure_object(dict)
     ctx.obj["log_level"] = log_level
+
+    # Trigger config migration early and surface any user-visible notices once.
+    try:
+        ConfigManager()
+    except ConfigError as e:
+        display.error("Failed to load configuration", details=str(e))
+        sys.exit(1)
+    for notice in ConfigManager.consume_migration_notices():
+        display.warning(notice.message)
 
     # If no subcommand is provided, show help and friendly intro
     if ctx.invoked_subcommand is None:

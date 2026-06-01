@@ -66,8 +66,7 @@ class TemplateDisplay:
         settings = self.settings
 
         template_name = template.metadata.name or settings.TEXT_UNNAMED_TEMPLATE
-        version = str(template.metadata.version) if template.metadata.version else settings.TEXT_VERSION_NOT_SPECIFIED
-        schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+        version = template.metadata.version.name if template.metadata.version else settings.TEXT_VERSION_NOT_SPECIFIED
         description = template.metadata.description or settings.TEXT_NO_DESCRIPTION
 
         # Get library information and format with icon/color
@@ -87,9 +86,6 @@ class TemplateDisplay:
         header_content.append(" │ ", style="dim")
         header_content.append("version:", style="white")
         header_content.append(version, style="cyan")
-        header_content.append(" │ ", style="dim")
-        header_content.append("schema:", style="white")
-        header_content.append(schema, style="magenta")
         header_content.append(" │ ", style="dim")
         header_content.append("library:", style="white")
         header_content.append(icon + " ", style=color)

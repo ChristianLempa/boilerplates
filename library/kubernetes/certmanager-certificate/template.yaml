@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -49,5 +48,6 @@ spec:
       certmanager_issuer_kind:
         type: enum
         description: Issuer type
-        options: [Issuer, ClusterIssuer]
+        config:
+          options: [Issuer, ClusterIssuer]
         default: ClusterIssuer

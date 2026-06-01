@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
-from jinja2 import Template as Jinja2Template
 from typer import Exit
 
 from ..config import ConfigManager
@@ -18,7 +17,15 @@ from ..exceptions import (
 )
 from ..input import InputManager
 from ..template import Template
+from ..validation import DependencyMatrixBuilder, MatrixOptions, ValidationRunner
 from ..validators import get_validator_registry
+from .generation_destination import (
+    GenerationDestination,
+    format_remote_destination,
+    prompt_generation_destination,
+    resolve_cli_destination,
+    write_rendered_files_remote,
+)
 from .helpers import (
     apply_cli_overrides,
     apply_var_file,
@@ -38,27 +45,30 @@ class GenerationConfig:
     """Configuration for template generation."""
 
     id: str
-    directory: str | None = None
     output: str | None = None
+    remote: str | None = None
+    remote_path: str | None = None
     interactive: bool = True
     var: list[str] | None = None
     var_file: str | None = None
     dry_run: bool = False
     show_files: bool = False
     quiet: bool = False
+    name: str | None = None
 
 
 @dataclass
-class ConfirmationContext:
-    """Context for file generation confirmation."""
+class ValidationConfig:
+    """Configuration for template validation."""
 
-    output_dir: Path
-    rendered_files: dict[str, str]
-    existing_files: list[Path] | None
-    dir_not_empty: bool
-    dry_run: bool
-    interactive: bool
-    display: DisplayManager
+    verbose: bool
+    semantic: bool = True
+    matrix: bool = False
+    kind: bool = False
+    all_templates: bool = False
+    matrix_max_combinations: int = 100
+    kind_validator: object | None = None
+    quiet_success: bool = False
 
 
 def list_templates(module_instance, raw: bool = False) -> list:
@@ -73,24 +83,26 @@ def list_templates(module_instance, raw: bool = False) -> list:
             # Output raw format (tab-separated values for easy filtering with awk/sed/cut)
             # Format: ID\tNAME\tTAGS\tVERSION\tLIBRARY
             for template in filtered_templates:
+                name = template.metadata.name or "Unnamed Template"
                 tags_list = template.metadata.tags or []
-                ",".join(tags_list) if tags_list else "-"
-                (str(template.metadata.version) if template.metadata.version else "-")
+                tags = ",".join(tags_list) if tags_list else "-"
+                version = template.metadata.version.name if template.metadata.version else "-"
+                library = template.metadata.library or "-"
+                module_instance.display.text("\t".join([template.id, name, tags, version, library]))
         else:
             # Output rich table format
             def format_template_row(template):
                 name = template.metadata.name or "Unnamed Template"
                 tags_list = template.metadata.tags or []
                 tags = ", ".join(tags_list) if tags_list else "-"
-                version = str(template.metadata.version) if template.metadata.version else ""
-                schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+                version = template.metadata.version.name if template.metadata.version else ""
                 library_name = template.metadata.library or ""
                 library_type = template.metadata.library_type or "git"
                 # Format library with icon and color
                 icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
                 color = "yellow" if library_type == "static" else "blue"
                 library_display = f"[{color}]{icon} {library_name}[/{color}]"
-                return (template.id, name, tags, version, schema, library_display)
+                return (template.id, name, tags, version, library_display)
 
             module_instance.display.data_table(
                 columns=[
@@ -98,7 +110,6 @@ def list_templates(module_instance, raw: bool = False) -> list:
                     {"name": "Name"},
                     {"name": "Tags"},
                     {"name": "Version", "no_wrap": True},
-                    {"name": "Schema", "no_wrap": True},
                     {"name": "Library", "no_wrap": True},
                 ],
                 rows=filtered_templates,
@@ -128,15 +139,14 @@ def search_templates(module_instance, query: str) -> list:
             name = template.metadata.name or "Unnamed Template"
             tags_list = template.metadata.tags or []
             tags = ", ".join(tags_list) if tags_list else "-"
-            version = str(template.metadata.version) if template.metadata.version else ""
-            schema = template.schema_version if hasattr(template, "schema_version") else "1.0"
+            version = template.metadata.version.name if template.metadata.version else ""
             library_name = template.metadata.library or ""
             library_type = template.metadata.library_type or "git"
             # Format library with icon and color
             icon = IconManager.UI_LIBRARY_STATIC if library_type == "static" else IconManager.UI_LIBRARY_GIT
             color = "yellow" if library_type == "static" else "blue"
             library_display = f"[{color}]{icon} {library_name}[/{color}]"
-            return (template.id, name, tags, version, schema, library_display)
+            return (template.id, name, tags, version, library_display)
 
         module_instance.display.data_table(
             columns=[
@@ -144,7 +154,6 @@ def search_templates(module_instance, query: str) -> list:
                 {"name": "Name"},
                 {"name": "Tags"},
                 {"name": "Version", "no_wrap": True},
-                {"name": "Schema", "no_wrap": True},
                 {"name": "Library", "no_wrap": True},
             ],
             rows=filtered_templates,
@@ -234,22 +243,6 @@ def check_output_directory(
     return existing_files
 
 
-def get_generation_confirmation(_ctx: ConfirmationContext) -> bool:
-    """Display file generation confirmation and get user approval."""
-    # No confirmation needed - either non-interactive, dry-run, or already confirmed during directory check
-    return True
-
-
-def _collect_subdirectories(rendered_files: dict[str, str]) -> set[Path]:
-    """Collect unique subdirectories from file paths."""
-    subdirs = set()
-    for file_path in rendered_files:
-        parts = Path(file_path).parts
-        for i in range(1, len(parts)):
-            subdirs.add(Path(*parts[:i]))
-    return subdirs
-
-
 def _analyze_file_operations(
     output_dir: Path, rendered_files: dict[str, str]
 ) -> tuple[list[tuple[str, int, str]], int, int, int]:
@@ -285,6 +278,23 @@ def _format_size(total_size: int) -> str:
     return f"{total_size / BYTES_PER_MB:.1f}MB"
 
 
+def _get_rendered_file_stats(rendered_files: dict[str, str]) -> tuple[int, int, str]:
+    """Return file count, total size, and formatted size for rendered output."""
+    total_size = sum(len(content.encode("utf-8")) for content in rendered_files.values())
+    return len(rendered_files), total_size, _format_size(total_size)
+
+
+def _display_rendered_file_contents(rendered_files: dict[str, str], display: DisplayManager) -> None:
+    """Display rendered file contents for dry-run mode."""
+    display.text("")
+    display.heading("File Contents")
+    for file_path, content in sorted(rendered_files.items()):
+        display.text(f"\n[cyan]{file_path}[/cyan]")
+        display.text(f"{'─' * 80}")
+        display.text(content)
+    display.text("")
+
+
 def execute_dry_run(
     id: str,
     output_dir: Path,
@@ -300,26 +310,82 @@ def execute_dry_run(
     _file_operations, total_size, _new_files, overwrite_files = _analyze_file_operations(output_dir, rendered_files)
     size_str = _format_size(total_size)
 
-    # Show file contents if requested
     if show_files:
-        display.text("")
-        display.heading("File Contents")
-        for file_path, content in sorted(rendered_files.items()):
-            display.text(f"\n[cyan]{file_path}[/cyan]")
-            display.text(f"{'─' * 80}")
-            display.text(content)
-        display.text("")
+        _display_rendered_file_contents(rendered_files, display)
 
     logger.info(f"Dry run completed for template '{id}' - {len(rendered_files)} files, {total_size} bytes")
     return len(rendered_files), overwrite_files, size_str
 
 
-def write_rendered_files(
-    output_dir: Path,
+def execute_remote_dry_run(
+    remote_host: str,
+    remote_path: str,
     rendered_files: dict[str, str],
-    _quiet: bool,
-    _display: DisplayManager,
-) -> None:
+    show_files: bool,
+    display: DisplayManager,
+) -> tuple[int, str]:
+    """Preview a remote upload without writing files."""
+    total_files, _total_size, size_str = _get_rendered_file_stats(rendered_files)
+
+    if show_files:
+        _display_rendered_file_contents(rendered_files, display)
+
+    logger.info(
+        "Dry run completed for remote destination '%s' - %s files",
+        format_remote_destination(remote_host, remote_path),
+        total_files,
+    )
+    return total_files, size_str
+
+
+def _validate_output_name(name: str) -> str:
+    """Validate and normalize a generated output name."""
+    normalized_name = name.strip()
+    if not normalized_name:
+        raise ValueError("--name cannot be empty")
+    if "/" in normalized_name or "\\" in normalized_name:
+        raise ValueError("--name must be a file name, not a path")
+    if normalized_name in {".", ".."}:
+        raise ValueError("--name cannot be '.' or '..'")
+    return normalized_name
+
+
+def _prefix_path_part(name: str, part: str) -> str:
+    """Prefix one top-level path part with the generated output name."""
+    path = Path(part)
+    if path.stem == "main" and path.suffix:
+        return f"{name}{path.suffix}"
+    return f"{name}_{part}"
+
+
+def apply_output_name(rendered_files: dict[str, str], name: str | None) -> dict[str, str]:
+    """Rename top-level generated paths with a user-provided output name.
+
+    The top-level entrypoint file named ``main.<ext>`` becomes ``<name>.<ext>``.
+    All other top-level files or directories receive ``<name>_`` as a prefix.
+    Nested path segments are preserved unchanged.
+    """
+    if name is None:
+        return rendered_files
+
+    normalized_name = _validate_output_name(name)
+    renamed_files: dict[str, str] = {}
+    for file_path, content in rendered_files.items():
+        path = Path(file_path)
+        parts = path.parts
+        if not parts:
+            continue
+
+        renamed_top_level = _prefix_path_part(normalized_name, parts[0])
+        renamed_path = Path(renamed_top_level, *parts[1:]).as_posix()
+        if renamed_path in renamed_files:
+            raise ValueError(f"--name creates duplicate generated path: {renamed_path}")
+        renamed_files[renamed_path] = content
+
+    return renamed_files
+
+
+def write_rendered_files(output_dir: Path, rendered_files: dict[str, str]) -> None:
     """Write rendered files to the output directory."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -376,33 +442,6 @@ def _render_template(template, id: str, display: DisplayManager, interactive: bo
     return rendered_files, variable_values
 
 
-def _determine_output_dir(directory: str | None, output: str | None, id: str) -> tuple[Path, bool]:
-    """Determine and normalize output directory path.
-
-    Returns:
-        Tuple of (output_dir, used_deprecated_arg) where used_deprecated_arg indicates
-        if the deprecated positional directory argument was used.
-    """
-    used_deprecated_arg = False
-
-    # Priority: --output flag > positional directory argument > template ID
-    if output:
-        output_dir = Path(output)
-    elif directory:
-        output_dir = Path(directory)
-        used_deprecated_arg = True
-        logger.debug(f"Using deprecated positional directory argument: {directory}")
-    else:
-        output_dir = Path(id)
-
-    # Normalize paths that look like absolute paths but are relative
-    if not output_dir.is_absolute() and str(output_dir).startswith(("Users/", "home/", "usr/", "opt/", "var/", "tmp/")):
-        output_dir = Path("/") / output_dir
-        logger.debug(f"Normalized relative-looking absolute path to: {output_dir}")
-
-    return output_dir, used_deprecated_arg
-
-
 def _display_template_error(display: DisplayManager, template_id: str, error: TemplateRenderError) -> None:
     """Display template rendering error with clean formatting."""
     display.text("")
@@ -442,9 +481,14 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
 
     display = DisplayManager(quiet=config.quiet) if config.quiet else module_instance.display
     template = _prepare_template(module_instance, config.id, config.var_file, config.var, display)
+    slug = getattr(template, "slug", template.id)
+    used_implicit_dry_run_destination = False
 
-    # Determine output directory early to check for deprecated argument usage
-    output_dir, used_deprecated_arg = _determine_output_dir(config.directory, config.output, config.id)
+    try:
+        destination = resolve_cli_destination(config.output, config.remote, config.remote_path, slug)
+    except ValueError as e:
+        display.error(str(e), context="template generation")
+        raise Exit(code=1) from None
 
     if not config.quiet:
         # Display template header
@@ -455,65 +499,76 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
         module_instance.display.variables.render_variables_table(template)
         module_instance.display.text("")
 
-        # Show deprecation warning BEFORE any user interaction
-        if used_deprecated_arg:
-            module_instance.display.warning(
-                "Using positional argument for output directory is deprecated and will be removed in v0.2.0",
-                details="Use --output/-o flag instead",
-            )
-            module_instance.display.text("")
-
     try:
-        rendered_files, variable_values = _render_template(template, config.id, display, config.interactive)
+        rendered_files, _variable_values = _render_template(template, config.id, display, config.interactive)
+        rendered_files = apply_output_name(rendered_files, config.name)
 
-        # Check for conflicts and get confirmation (skip in quiet mode)
-        if not config.quiet:
-            existing_files = check_output_directory(output_dir, rendered_files, config.interactive, display)
-            if existing_files is None:
-                return  # User cancelled
+        if destination is None:
+            if config.dry_run:
+                destination = GenerationDestination(mode="local", local_output_dir=Path.cwd() / slug)
+                used_implicit_dry_run_destination = True
+            elif config.interactive:
+                destination = prompt_generation_destination(slug)
+            else:
+                destination = GenerationDestination(mode="local", local_output_dir=Path.cwd() / slug)
 
-            dir_not_empty = output_dir.exists() and any(output_dir.iterdir())
-            ctx = ConfirmationContext(
-                output_dir=output_dir,
-                rendered_files=rendered_files,
-                existing_files=existing_files,
-                dir_not_empty=dir_not_empty,
-                dry_run=config.dry_run,
-                interactive=config.interactive,
-                display=display,
-            )
-            if not get_generation_confirmation(ctx):
-                return  # User cancelled
+        if not destination.is_remote:
+            output_dir = destination.local_output_dir or (Path.cwd() / slug)
+            if (
+                not config.dry_run
+                and not config.quiet
+                and check_output_directory(output_dir, rendered_files, config.interactive, display) is None
+            ):
+                return
 
         # Execute generation (dry run or actual)
         dry_run_stats = None
-        if config.dry_run:
-            if not config.quiet:
-                dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
+        if destination.is_remote:
+            remote_host = destination.remote_host or ""
+            remote_path = destination.remote_path or f"~/{slug}"
+            if config.dry_run:
+                if not config.quiet:
+                    dry_run_stats = execute_remote_dry_run(
+                        remote_host,
+                        remote_path,
+                        rendered_files,
+                        config.show_files,
+                        display,
+                    )
+            else:
+                write_rendered_files_remote(remote_host, remote_path, rendered_files)
         else:
-            write_rendered_files(output_dir, rendered_files, config.quiet, display)
-
-        # Display next steps (not in quiet mode)
-        if template.metadata.next_steps and not config.quiet:
-            display.text("")
-            display.heading("Next Steps")
-            try:
-                next_steps_template = Jinja2Template(template.metadata.next_steps)
-                rendered_next_steps = next_steps_template.render(variable_values)
-                display.status.markdown(rendered_next_steps)
-            except Exception as e:
-                logger.warning(f"Failed to render next_steps as template: {e}")
-                # Fallback to plain text if rendering fails
-                display.status.markdown(template.metadata.next_steps)
+            output_dir = destination.local_output_dir or (Path.cwd() / slug)
+            if config.dry_run:
+                if not config.quiet:
+                    dry_run_stats = execute_dry_run(config.id, output_dir, rendered_files, config.show_files, display)
+            else:
+                write_rendered_files(output_dir, rendered_files)
 
         # Display final status message at the end
         if not config.quiet:
             display.text("")
             display.text("─" * 80, style="dim")
 
-            if config.dry_run and dry_run_stats:
+            if destination.is_remote:
+                remote_host = destination.remote_host or ""
+                remote_path = destination.remote_path or f"~/{slug}"
+                remote_target = format_remote_destination(remote_host, remote_path)
+                if config.dry_run and dry_run_stats:
+                    total_files, size_str = dry_run_stats
+                    display.success(
+                        f"Dry run complete: {total_files} files ({size_str}) would be uploaded to '{remote_target}'"
+                    )
+                else:
+                    display.success(f"Boilerplate uploaded successfully to '{remote_target}'")
+            elif config.dry_run and dry_run_stats:
                 total_files, overwrite_files, size_str = dry_run_stats
-                if overwrite_files > 0:
+                if used_implicit_dry_run_destination:
+                    display.success(
+                        "Dry run complete: boilerplate rendered successfully "
+                        f"({total_files} files, {size_str}, preview only)"
+                    )
+                elif overwrite_files > 0:
                     display.warning(
                         f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}' "
                         f"({overwrite_files} would be overwritten)"
@@ -523,7 +578,6 @@ def generate_template(module_instance, config: GenerationConfig) -> None:  # noq
                         f"Dry run complete: {total_files} files ({size_str}) would be written to '{output_dir}'"
                     )
             else:
-                # Actual generation completed
                 display.success(f"Boilerplate generated successfully in '{output_dir}'")
 
     except TemplateRenderError as e:
@@ -538,17 +592,20 @@ def validate_templates(
     module_instance,
     template_id: str,
     path: str | None,
-    verbose: bool,
-    semantic: bool,
+    config: ValidationConfig,
 ) -> None:
     """Validate templates for Jinja2 syntax, undefined variables, and semantic correctness."""
     # Load template based on input
+    if config.all_templates and (template_id or path):
+        module_instance.display.error("--all cannot be combined with a template ID or --path")
+        raise Exit(code=1) from None
+
     template = _load_template_for_validation(module_instance, template_id, path)
 
     if template:
-        _validate_single_template(module_instance, template, template_id, verbose, semantic)
+        _validate_single_template(module_instance, template, template_id or template.id, config)
     else:
-        _validate_all_templates(module_instance, verbose)
+        _validate_all_templates(module_instance, config)
 
 
 def _load_template_for_validation(module_instance, template_id: str, path: str | None):
@@ -581,21 +638,31 @@ def _load_template_for_validation(module_instance, template_id: str, path: str |
     return None
 
 
-def _validate_single_template(module_instance, template, template_id: str, verbose: bool, semantic: bool) -> None:
+def _validate_single_template(
+    module_instance,
+    template,
+    template_id: str,
+    config: ValidationConfig,
+) -> None:
     """Validate a single template."""
     try:
         # Jinja2 validation
         _ = template.used_variables
         _ = template.variables
-        module_instance.display.success("Jinja2 validation passed")
+        if not config.quiet_success:
+            module_instance.display.success("Jinja2 validation passed")
 
-        # Semantic validation
-        if semantic:
-            _run_semantic_validation(module_instance, template, verbose)
+        if config.matrix or config.kind:
+            _run_matrix_validation(module_instance, template, config)
+            return
+
+        # Semantic validation for the default rendered output.
+        if config.semantic:
+            _run_semantic_validation(module_instance, template, config.verbose)
 
         # Verbose output
-        if verbose:
-            _display_validation_details(module_instance, template, semantic)
+        if config.verbose:
+            _display_validation_details(module_instance, template, config.semantic)
 
     except TemplateRenderError as e:
         module_instance.display.error(str(e), context=f"template '{template_id}'")
@@ -604,13 +671,123 @@ def _validate_single_template(module_instance, template, template_id: str, verbo
         module_instance.display.error(f"Validation failed for '{template_id}':")
         module_instance.display.info(f"\n{e}")
         raise Exit(code=1) from None
+    except Exit:
+        raise
     except Exception as e:
         module_instance.display.error(f"Unexpected error validating '{template_id}': {e}")
         raise Exit(code=1) from None
 
 
+def _run_matrix_validation(
+    module_instance,
+    template,
+    config: ValidationConfig,
+) -> None:
+    """Run dependency matrix validation for one template."""
+    module_instance.display.info("")
+    module_instance.display.info("Running dependency matrix validation...")
+
+    options = MatrixOptions(max_combinations=config.matrix_max_combinations)
+    cases = DependencyMatrixBuilder(template, options).build()
+    runner = ValidationRunner(
+        template,
+        cases,
+        semantic=config.semantic,
+        kind_validator=config.kind_validator,
+    )
+    summary = runner.run()
+
+    module_instance.display.data_table(
+        columns=[
+            {"name": "Case", "style": "cyan", "no_wrap": False},
+            {"name": "Tpl", "justify": "center"},
+            {"name": "Sem", "justify": "center"},
+            {"name": "Kind", "justify": "center"},
+        ],
+        rows=_build_matrix_result_rows(
+            cases,
+            summary.failures,
+            kind_requested=config.kind,
+            kind_available=config.kind_validator is not None,
+            kind_skipped_cases=summary.kind_skipped_cases,
+        ),
+        title=f"Dependency Matrix ({len(cases)} cases)",
+    )
+
+    if config.kind and config.kind_validator is None:
+        module_instance.display.warning(f"No kind-specific validator available for '{module_instance.name}'")
+    elif summary.kind_skipped_cases:
+        module_instance.display.warning("Kind-specific validation skipped for one or more cases")
+
+    if summary.failures:
+        module_instance.display.info("")
+        for failure in summary.failures:
+            location = f" [{failure.file_path}]" if failure.file_path else ""
+            validator = f" ({failure.validator})" if failure.validator else ""
+            module_instance.display.error(
+                f"{failure.case_name}: {failure.stage}{location}{validator}: {failure.message}"
+            )
+        raise Exit(code=1) from None
+
+    module_instance.display.success(f"Dependency matrix validation passed ({summary.total_cases} case(s))")
+
+
+def _build_matrix_result_rows(
+    cases,
+    failures,
+    kind_requested: bool,
+    kind_available: bool,
+    kind_skipped_cases: set[str],
+) -> list[tuple[str, str, str, str]]:
+    """Build display rows for matrix validation results."""
+    failures_by_case: dict[str, dict[str, set[str]]] = {}
+    for failure in failures:
+        case_failures = failures_by_case.setdefault(failure.case_name, {})
+        case_failures.setdefault(failure.stage, set()).add(failure.message)
+
+    rows = []
+    for case in cases:
+        failed_stages = failures_by_case.get(case.name, {})
+        rows.append(
+            (
+                case.name,
+                "fail" if "tpl" in failed_stages else "pass",
+                "fail" if "sem" in failed_stages else "pass",
+                _matrix_stage_status(
+                    failed_stages,
+                    "kind",
+                    requested=kind_requested,
+                    available=kind_available,
+                    skipped=case.name in kind_skipped_cases,
+                ),
+            )
+        )
+    return rows
+
+
+def _matrix_stage_status(
+    failed_stages: dict[str, set[str]],
+    stage: str,
+    *,
+    requested: bool = True,
+    available: bool = True,
+    skipped: bool = False,
+) -> str:
+    if not requested:
+        return "skip"
+    if not available:
+        return "missing"
+    if any("not available" in message or "unavailable" in message for message in failed_stages.get(stage, set())):
+        return "missing"
+    if stage in failed_stages:
+        return "fail"
+    if skipped:
+        return "skip"
+    return "pass"
+
+
 def _run_semantic_validation(module_instance, template, verbose: bool) -> None:
-    """Run semantic validation on rendered template files."""
+    """Run semantic validation on the default rendered template files."""
     module_instance.display.info("")
     module_instance.display.info("Running semantic validation...")
 
@@ -646,7 +823,7 @@ def _display_validation_details(module_instance, template, semantic: bool) -> No
         module_instance.display.info(f"Generated {len(rendered_files)} files")
 
 
-def _validate_all_templates(module_instance, verbose: bool) -> None:
+def _validate_all_templates(module_instance, config: ValidationConfig) -> None:
     """Validate all templates in the module."""
     module_instance.display.info(f"Validating all {module_instance.name} templates...")
 
@@ -656,23 +833,35 @@ def _validate_all_templates(module_instance, verbose: bool) -> None:
 
     all_templates = module_instance._load_all_templates()
     total = len(all_templates)
+    # Preserve historical all-template validation behavior: by default this
+    # checks template syntax/variables only. Matrix or kind validation can be
+    # explicitly enabled for all templates with --matrix/--kind.
+    child_config = replace(
+        config,
+        semantic=config.semantic if config.matrix or config.kind else False,
+        quiet_success=not config.verbose,
+    )
 
     for template in all_templates:
         try:
-            _ = template.used_variables
-            _ = template.variables
+            _validate_single_template(module_instance, template, template.id, child_config)
             valid_count += 1
-            if verbose:
+            if config.verbose:
                 module_instance.display.success(template.id)
+        except Exit:
+            invalid_count += 1
+            errors.append((template.id, "Validation failed"))
+            if config.verbose:
+                module_instance.display.error(template.id)
         except ValueError as e:
             invalid_count += 1
             errors.append((template.id, str(e)))
-            if verbose:
+            if config.verbose:
                 module_instance.display.error(template.id)
         except Exception as e:
             invalid_count += 1
             errors.append((template.id, f"Load error: {e}"))
-            if verbose:
+            if config.verbose:
                 module_instance.display.warning(template.id)
 
     # Display summary

@@ -22,7 +22,6 @@ metadata:
   tags:
     - traefik
     - swarm
-schema: "1.2"
 spec:
   general:
     vars:

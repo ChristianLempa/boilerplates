@@ -11,7 +11,7 @@ from rich.progress import SpinnerColumn, TextColumn
 from rich.table import Table
 from typer import Argument, Option, Typer
 
-from ..core.config import ConfigManager, LibraryConfig
+from ..core.config import ConfigManager, LibraryConfig, normalize_git_url
 from ..core.display import DisplayManager, IconManager
 from ..core.exceptions import ConfigError
 
@@ -69,8 +69,89 @@ def _clone_or_pull_repo(
         Tuple of (success, message)
     """
     if target_path.exists() and (target_path / ".git").exists():
-        return _pull_repo_updates(name, target_path, branch)
+        remote_url = _get_repo_remote_url(target_path)
+        if not remote_url:
+            return _replace_repo_checkout(
+                name,
+                url,
+                target_path,
+                branch,
+                sparse_dir,
+                reason="existing checkout has no readable origin remote",
+            )
+
+        if normalize_git_url(remote_url) != normalize_git_url(url):
+            return _replace_repo_checkout(
+                name,
+                url,
+                target_path,
+                branch,
+                sparse_dir,
+                reason=f"configured remote changed from {remote_url} to {url}",
+            )
+
+        success, message = _pull_repo_updates(name, target_path, branch)
+        if success:
+            return success, message
+
+        if _is_recoverable_pull_failure(message):
+            return _replace_repo_checkout(
+                name,
+                url,
+                target_path,
+                branch,
+                sparse_dir,
+                reason="managed checkout diverged from origin",
+            )
+
+        return success, message
     return _clone_new_repo(name, url, target_path, branch, sparse_dir)
+
+
+def _get_repo_remote_url(target_path: Path) -> str | None:
+    """Return the current origin remote URL for an existing checkout."""
+    success, stdout, stderr = _run_git_command(["remote", "get-url", "origin"], cwd=target_path)
+    if not success:
+        logger.warning("Failed to read origin remote for '%s': %s", target_path, stderr or stdout)
+        return None
+    return stdout.strip() or None
+
+
+def _is_recoverable_pull_failure(message: str) -> bool:
+    """Identify pull failures that can be fixed by replacing the managed checkout."""
+    recoverable_markers = (
+        "Not possible to fast-forward",
+        "Diverging branches can't be fast-forwarded",
+        "refusing to merge unrelated histories",
+        "fatal: bad object",
+        "couldn't find remote ref",
+    )
+    return any(marker in message for marker in recoverable_markers)
+
+
+def _replace_repo_checkout(
+    name: str,
+    url: str,
+    target_path: Path,
+    branch: str | None,
+    sparse_dir: str | None,
+    *,
+    reason: str,
+) -> tuple[bool, str]:
+    """Replace a managed checkout with a clean clone from the configured remote."""
+    logger.warning("Replacing managed library checkout '%s' at %s: %s", name, target_path, reason)
+
+    try:
+        shutil.rmtree(target_path)
+    except OSError as exc:
+        logger.error("Failed to remove managed library checkout '%s': %s", name, exc)
+        return False, f"{reason}; failed to remove old checkout: {exc}"
+
+    success, message = _clone_new_repo(name, url, target_path, branch, sparse_dir)
+    if not success:
+        return False, f"{reason}; {message}"
+
+    return True, f"Re-cloned successfully after {reason}"
 
 
 def _pull_repo_updates(name: str, target_path: Path, branch: str | None) -> tuple[bool, str]:
@@ -252,7 +333,9 @@ def _get_library_path_for_git(lib: dict, libraries_path: Path, name: str) -> Pat
     directory = lib.get("directory", "library")
     library_base = libraries_path / name
     if directory and directory != ".":
-        return library_base / directory
+        configured_path = library_base / directory
+        fallback_path = _fallback_template_root(configured_path)
+        return fallback_path or configured_path
     return library_base
 
 
@@ -262,7 +345,33 @@ def _get_library_path_for_static(lib: dict, config: ConfigManager) -> Path:
     library_path = Path(url_or_path).expanduser()
     if not library_path.is_absolute():
         library_path = (config.config_path.parent / library_path).resolve()
-    return library_path
+    fallback_path = _fallback_template_root(library_path)
+    return fallback_path or library_path
+
+
+def _looks_like_template_root(path: Path) -> bool:
+    """Check whether a path looks like the root of a templates repository."""
+    if not path.is_dir():
+        return False
+    try:
+        return any(item.is_dir() for item in path.iterdir())
+    except OSError:
+        return False
+
+
+def _fallback_template_root(path: Path) -> Path | None:
+    """Resolve old-style /library paths to the actual template repo root."""
+    if path.exists():
+        if _looks_like_template_root(path):
+            return path
+        if path.name == "library" and _looks_like_template_root(path.parent):
+            return path.parent
+        return None
+
+    if path.name == "library" and _looks_like_template_root(path.parent):
+        return path.parent
+
+    return None
 
 
 def _get_library_info(lib: dict, config: ConfigManager, libraries_path: Path) -> tuple[str, str, str, str, str, str]:

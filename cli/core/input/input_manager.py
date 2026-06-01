@@ -61,6 +61,7 @@ class InputManager:
             result = Prompt.ask(
                 f"[{self.settings.PROMPT_STYLE}]{prompt}[/{self.settings.PROMPT_STYLE}]",
                 default=default or "",
+                show_default=default is not None,
                 console=console,
             )
 
@@ -84,6 +85,7 @@ class InputManager:
         return Prompt.ask(
             f"[{self.settings.PROMPT_STYLE}]{prompt}[/{self.settings.PROMPT_STYLE}]",
             default=default or "",
+            show_default=default is not None,
             password=True,
             console=console,
         )
@@ -183,6 +185,58 @@ class InputManager:
 
             if result in choices:
                 return result
+
+            console.print(
+                f"[{self.settings.PROMPT_ERROR_STYLE}]{self.settings.MSG_INVALID_CHOICE}[/{self.settings.PROMPT_ERROR_STYLE}]"
+            )
+
+    def numbered_choice(self, prompt: str, choices: list[str], default: str | None = None) -> str:
+        """Prompt user to select one option from a numbered list.
+
+        Users can answer with either the displayed number or the literal choice
+        value. This keeps common binary selections concise without changing the
+        existing free-text choice behavior used elsewhere in the CLI.
+
+        Args:
+            prompt: Prompt message to display
+            choices: List of valid options
+            default: Default choice if user presses Enter
+
+        Returns:
+            Selected choice
+        """
+        if not choices:
+            raise ValueError("Choices list cannot be empty")
+
+        if default is not None and default not in choices:
+            raise ValueError("Default choice must be one of the available choices")
+
+        numbered_choices = {str(index): choice for index, choice in enumerate(choices, start=1)}
+        default_index = None
+        if default is not None:
+            default_index = choices.index(default) + 1
+
+        while True:
+            console.print(f"[{self.settings.PROMPT_STYLE}]{prompt}[/{self.settings.PROMPT_STYLE}]")
+            for index, choice in enumerate(choices, start=1):
+                console.print(f"  {index}. {choice}")
+
+            result = Prompt.ask(
+                f"[{self.settings.PROMPT_STYLE}]Selection[/{self.settings.PROMPT_STYLE}]",
+                default=str(default_index) if default_index is not None else "",
+                show_default=default_index is not None,
+                console=console,
+            ).strip()
+
+            if result == "" and default_index is not None:
+                return numbered_choices[str(default_index)]
+
+            if result in numbered_choices:
+                return numbered_choices[result]
+
+            normalized_result = result
+            if normalized_result in choices:
+                return normalized_result
 
             console.print(
                 f"[{self.settings.PROMPT_ERROR_STYLE}]{self.settings.MSG_INVALID_CHOICE}[/{self.settings.PROMPT_ERROR_STYLE}]"

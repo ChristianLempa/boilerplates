@@ -19,7 +19,6 @@ metadata:
     - traefik
     - database
   draft: true
-schema: 1.2
 spec:
   general:
     vars:

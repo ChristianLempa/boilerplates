@@ -1,386 +1,235 @@
 # Templates
 
-Templates are the core building blocks of the Boilerplates CLI. This page explains what templates are, how they work, and how to use them effectively.
+Templates are the core unit of Boilerplates. A supported template is a directory with a `template.json` manifest and a `files/` directory containing every renderable output file.
 
-## What is a Template?
+## Required Layout
 
-A template is a **directory-based configuration package** that contains:
-- **Metadata** - Name, description, version, author information
-- **Variable specifications** - Configurable parameters
-- **Template files** - Jinja2 templates that generate your configuration
-- **Static files** - Files copied as-is (optional)
-
-When you generate a template, the CLI:
-1. Prompts you for variable values (or uses defaults/CLI overrides)
-2. Renders template files using Jinja2
-3. Writes the generated files to your specified directory
-
-## Template Structure
-
-Every template is a directory containing at minimum a `template.yaml` file:
-
-```
-template-name/
-├── template.yaml          # Template definition and metadata
-├── docker-compose.yml.j2  # Jinja2 template files
-├── .env.j2               # Environment configuration
-└── README.md             # Static file (copied as-is)
+```text
+my-template/
+├── template.json
+└── files/
+    ├── compose.yaml
+    ├── .env
+    └── config/
+        └── app.yaml
 ```
 
-### The template.yaml File
+Rules:
+- `template.json` is the only supported manifest format
+- all rendered content must live under `files/`
+- legacy `template.yaml`, `template.yml`, and top-level `.j2` layouts are incompatible with the current runtime
 
-This file defines everything about your template:
+## Top-Level Manifest Shape
+
+- `slug`
+- `kind`
+- `metadata`
+- `variables`
+
+Example:
+
+```json
+{
+  "slug": "my-template",
+  "kind": "compose",
+  "metadata": {
+    "name": "My Template",
+    "description": "Short human description",
+    "author": "Your Name",
+    "date": "2026-04-22",
+    "tags": ["infra", "dev"],
+    "icon": {
+      "provider": "mdi",
+      "id": "docker",
+      "color": "blue"
+    },
+    "draft": false,
+    "version": {
+      "name": "v1.1",
+      "source_dep_name": "ghcr.io/example/my-image",
+      "source_dep_version": "1.1.0",
+      "source_dep_digest": "sha256:abc123def456",
+      "upstream_ref": "release-2026-04-22",
+      "notes": "Tracks the tested upstream dependency snapshot"
+    }
+  },
+  "variables": [
+    {
+      "name": "general",
+      "title": "General",
+      "items": [
+        {
+          "name": "service_name",
+          "type": "str",
+          "title": "Service name",
+          "default": "my-service"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## `slug` and Template IDs
+
+`slug` is the canonical template ID exposed by the CLI.
+
+Behavior:
+- if `slug` is present, it wins over the directory name
+- if `slug` ends with `-<kind>`, that suffix is normalized away for CLI use
+- if `slug` is missing, the directory name is used
+
+Example:
+- directory: `portainer/`
+- `kind`: `compose`
+- `slug`: `portainer-compose`
+- CLI ID: `portainer`
+
+## Metadata
+
+Common metadata fields:
+- `name`
+- `description`
+- `author`
+- `date`
+- `tags`
+- `icon`
+- `draft`
+- `version`
+
+### Version Metadata
+
+`metadata.version` is optional, but when present it must be an object.
+
+Supported fields:
+- `name`
+- `source_dep_name`
+- `source_dep_version`
+- `source_dep_digest`
+- `upstream_ref`
+- `notes`
+
+Important behavior:
+- `metadata.version.name` is the user-facing version label shown in list/show output
+- the rest of the version object is for upstream dependency tracking
+- the full object may be omitted
+- individual fields inside the object may also be omitted
+
+## Variable Declarations Are Mandatory
+
+Any variable used in files under `files/` must be declared in `template.json`.
+
+If a file references an undeclared variable, the template fails validation and load/render operations surface a template error.
+
+Use the [Variables](Core-Concepts-Variables) page for the manifest structure.
+
+## Files and Rendering
+
+Everything under `files/` is part of the output tree.
+
+Rendering behavior:
+- Boilerplates walks every file under `files/`
+- files are rendered with the custom delimiter set
+- files without template expressions still pass through the render pipeline
+- output paths currently mirror the relative paths inside `files/`
+- rendered output is sanitized to normalize blank lines and trailing whitespace
+
+## Delimiters
+
+Templates use custom delimiters rather than default Jinja syntax:
+
+- variables: `<< value >>`
+- blocks: `<% if condition %>`
+- comments: `<# comment #>`
+
+Example:
 
 ```yaml
----
-kind: compose              # Module type (compose, terraform, ansible, etc.)
-schema: "X.Y"             # Schema version (affects available features)
-metadata:
-  name: My Service
-  description: Service description with Markdown support
-  version: 1.0.0          # Application/service version
-  author: Your Name
-  date: '2025-01-12'
-  tags:
-    - docker
-    - service
-spec:
-  # Variable specifications (see Variables page)
+services:
+  << service_name >>:
+    image: nginx:1.27.0
+<% if ports_enabled %>
+    ports:
+      - "<< http_port >>:80"
+<% endif %>
 ```
 
-## Template Discovery
+Legacy `{{ }}`, `{% %}`, and `{# #}` delimiters are rejected.
 
-Templates are organized in **libraries**. A library is a collection of templates for a specific module type.
+## Includes and Imports
 
-### Default Library Structure
+Includes and imports resolve relative to the template's `files/` directory.
 
-```
-~/.config/boilerplates/libraries/
-└── default/
-    └── library/
-        ├── compose/
-        │   ├── nginx/
-        │   ├── traefik/
-        │   └── whoami/
-        ├── terraform/
-        └── ansible/
+```jinja
+<% include 'partials/header.yaml' %>
 ```
 
-### Finding Templates
+## Discovery Rules
+
+Templates are discovered from configured libraries.
+
+A directory is considered a valid template only when:
+- `template.json` exists
+- `files/` exists
+
+In practice, Boilerplates discovers templates by module directory path such as `compose/<template>/` or `terraform/<template>/`.
+
+Useful commands:
 
 ```bash
-# List all templates for a module
 boilerplates compose list
-
-# Search templates by name
-boilerplates compose search proxy
-
-# Show details about a template
+boilerplates compose search nginx
 boilerplates compose show nginx
 ```
 
-## Template Metadata
+Draft templates:
+- set `metadata.draft` to `true` to hide the template from normal discovery
 
-### Required Fields
+## Generation Workflow
 
-```yaml
-metadata:
-  name: Template Name        # Display name
-  description: Description   # What the template does
-  version: 1.0.0            # Application version
-  author: Your Name         # Template author
-  date: '2025-01-12'       # Last update date
-```
-
-### Optional Fields
-
-```yaml
-metadata:
-  tags:                     # Searchable tags
-    - docker
-    - web-server
-  draft: false             # Hide from listings if true
-  next_steps: |            # Post-generation instructions
-    ## What's Next
-    1. Review the generated files
-    2. Customize as needed
-    3. Deploy!
-```
-
-### Description Markdown
-
-The `description` field supports Markdown:
-
-```yaml
-metadata:
-  description: |
-    A **powerful reverse proxy** and load balancer.
-    
-    ## Features
-    - Automatic HTTPS
-    - Load balancing
-    - Let's Encrypt integration
-    
-    ## Resources
-    - **Project**: https://traefik.io
-    - **Documentation**: https://doc.traefik.io
-```
-
-This renders nicely when you run `boilerplates compose show <template>`.
-
-## Template Files
-
-### Jinja2 Templates
-
-Files ending in `.j2` are processed by Jinja2:
-
-**docker-compose.yml.j2:**
-```yaml
-services:
-  {{ service_name }}:
-    image: nginx:{{ nginx_version }}
-    ports:
-      - "{{ nginx_port }}:80"
-    {% if enable_ssl %}
-    volumes:
-      - ./ssl:/etc/nginx/ssl
-    {% endif %}
-```
-
-After rendering with variables:
-- `service_name=web`
-- `nginx_version=1.25`
-- `nginx_port=8080`
-- `enable_ssl=true`
-
-**Generated docker-compose.yml:**
-```yaml
-services:
-  web:
-    image: nginx:1.25
-    ports:
-      - "8080:80"
-    volumes:
-      - ./ssl:/etc/nginx/ssl
-```
-
-### Static Files
-
-Files without `.j2` extension are copied as-is:
-- `README.md` - Copied unchanged
-- `scripts/setup.sh` - Copied unchanged
-
-### File Includes
-
-Templates can include other template files:
-
-**main.j2:**
-```jinja2
-{% include 'common/header.j2' %}
-
-services:
-  {{ service_name }}:
-    image: nginx:latest
-```
-
-**common/header.j2:**
-```yaml
-version: '3.8'
-name: {{ project_name }}
-```
-
-## Schema Versioning
-
-Templates declare a schema version that determines available features:
-
-```yaml
-schema: "X.Y"  # Use schema version X.Y (e.g., "1.0", "1.2")
-```
-
-**Why Schema Versions?**
-- Modules evolve with new features over time
-- Older templates continue working (backward compatibility)
-- Templates opt-into new features by upgrading schema version
-
-**Checking Current Schema:**
-
-To find the latest schema version and available features for each module, refer to the module-specific variable documentation:
-- [Compose Variables](Variables-Compose) - Shows current schema version at bottom
-- [Terraform Variables](Variables-Terraform)
-- [Ansible Variables](Variables-Ansible)
-- [Kubernetes Variables](Variables-Kubernetes)
-- [Helm Variables](Variables-Helm)
-- [Packer Variables](Variables-Packer)
-
-Each Variables page documents the current schema and which features are available.
-
-## Template Lifecycle
-
-### 1. Discovery
-
-```bash
-boilerplates repo update    # Sync libraries
-boilerplates compose list   # Discover templates
-```
-
-### 2. Preview
+Typical workflow:
 
 ```bash
 boilerplates compose show nginx
+boilerplates compose generate nginx --output ./my-nginx
 ```
 
-Shows:
-- Metadata
-- Variable specifications
-- File structure
+Useful flags:
+- `--output` for local output
+- `--remote` and `--remote-path` for SSH upload targets
+- `--var-file` for YAML overrides
+- `--var` for direct CLI overrides
+- `--no-interactive` for non-interactive generation
+- `--dry-run` to preview generation without writing files
+- `--show-files` to print rendered files during dry-run
 
-### 3. Generation
+## Validation
 
-```bash
-# Interactive mode
-boilerplates compose generate nginx
-
-# Non-interactive mode
-boilerplates compose generate nginx ./my-nginx \
-  --var service_name=my-nginx \
-  --no-interactive
-```
-
-### 4. Validation (Optional)
+Validate one template:
 
 ```bash
-# Validate template structure
 boilerplates compose validate nginx
+```
 
-# Validate all templates
+Validate all templates in a module:
+
+```bash
 boilerplates compose validate
 ```
 
-## Template Identification
-
-Templates are identified by their directory name:
-
-```
-library/compose/nginx/   → template ID: nginx
-library/compose/traefik/ → template ID: traefik
-```
-
-### Qualified IDs
-
-When using multiple libraries, templates can have qualified IDs:
-
-```bash
-# Simple ID (uses first matching template from priority order)
-boilerplates compose generate nginx
-
-# Qualified ID (targets specific library)
-boilerplates compose generate nginx.local
-boilerplates compose generate nginx.default
-```
-
-## Template Inheritance
-
-Templates inherit variables from module specifications. You only need to override what's different.
-
-**Module spec defines:**
-- `service_name` (default: empty)
-- `container_port` (default: 8080)
-- `restart_policy` (default: unless-stopped)
-
-**Template overrides:**
-```yaml
-spec:
-  general:
-    vars:
-      service_name:
-        default: nginx  # Override default
-      # container_port inherits 8080
-      # restart_policy inherits unless-stopped
-```
-
-This keeps templates concise—you only specify what's unique.
+Validation covers:
+- manifest structure
+- variable declaration coverage
+- delimiter compatibility
+- renderability
+- optional semantic validators for module-specific output
 
 ## Best Practices
 
-### Naming Conventions
-
-- **Template directories**: lowercase, hyphen-separated (`my-service`, `nginx-proxy`)
-- **Service names**: match template name by default
-- **File names**: descriptive and clear (`docker-compose.yml.j2`, not `dc.j2`)
-
-### Version Management
-
-**Application Versions:**
-- Hardcode in template files: `image: nginx:1.25.3`
-- Update `metadata.version` to match application
-- Don't create version variables unless necessary
-
-**Template Updates:**
-- Increment `metadata.version` when updating
-- Update `metadata.date` to current date
-- Document changes in commit messages
-
-### Documentation
-
-- Use Markdown in `description`
-- Provide `next_steps` for post-generation instructions
-- Include links to official documentation
-- Add usage examples
-
-### Testing
-
-Before publishing:
-```bash
-# Validate template
-boilerplates compose validate my-template
-
-# Test generation (dry run)
-boilerplates compose generate my-template --dry-run
-
-# Test with real generation
-boilerplates compose generate my-template /tmp/test
-
-# Verify generated files
-cd /tmp/test && docker compose config
-```
-
-## Advanced Features
-
-### Conditional File Generation
-
-Use Jinja2 conditionals to skip entire sections:
-
-```jinja2
-{% if traefik_enabled %}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{ service_name }}.rule=Host(`{{ traefik_host }}`)"
-{% endif %}
-```
-
-### Dynamic File Names
-
-Template file names can use variables (though this is rare):
-
-```
-config-{{ environment }}.yml.j2  # Generates: config-prod.yml
-```
-
-### Template Validation
-
-Templates are validated on load:
-- Jinja2 syntax errors detected
-- Undefined variables reported
-- Schema compatibility checked
-
-## Next Steps
-
-- [Variables](Core-Concepts-Variables) - Learn about variable types and configuration
-- [Configuration](Core-Concepts-Libraries) - Manage template libraries
-- [Variable Reference](Variables-Compose) - Complete variable documentation for modules
-- [Developer Guide](Developers-Templates) - Create your own templates
-
-## See Also
-
-- [Getting Started](Getting-Started) - Generate your first template
-- [Installation](Installation) - Install the CLI
+- keep manifests in `template.json`
+- keep every generated file under `files/`
+- declare every variable that appears in rendered content
+- use the custom delimiter set consistently
+- hardcode tested upstream application versions in rendered files unless a variable is actually needed
+- use `metadata.version.name` for the user-facing label
+- use the remaining `metadata.version` fields for upstream snapshot context when useful

@@ -1,6 +1,5 @@
 ---
 kind: compose
-schema: "1.2"
 metadata:
   icon:
     provider: selfh
@@ -59,10 +58,11 @@ spec:
         description: Volume mounting mode (local, mount, nfs)
         type: str
         default: "local"
-        options:
-          - local
-          - mount
-          - nfs
+        config:
+          options:
+            - local
+            - mount
+            - nfs
       volume_mount_path:
         description: Path for bind mounts when volume_mode is 'mount'
         type: str

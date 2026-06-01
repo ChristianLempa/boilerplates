@@ -1,6 +1,5 @@
 ---
 kind: kubernetes
-schema: "1.0"
 metadata:
   icon:
     provider: selfh
@@ -29,14 +28,16 @@ spec:
       volume_binding_mode:
         type: enum
         description: Volume binding mode
-        options:
-          - Immediate
-          - WaitForFirstConsumer
+        config:
+          options:
+            - Immediate
+            - WaitForFirstConsumer
         default: WaitForFirstConsumer
       reclaim_policy:
         type: enum
         description: Reclaim policy for volumes
-        options:
-          - Retain
-          - Delete
+        config:
+          options:
+            - Retain
+            - Delete
         default: Delete

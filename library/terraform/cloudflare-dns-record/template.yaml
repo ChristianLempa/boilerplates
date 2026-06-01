@@ -17,8 +17,6 @@ metadata:
     provider: selfh
     id: cloudflare
   draft: false
-  next_steps: ""
-schema: "1.0"
 spec:
   comment:
     title: Comment
@@ -73,7 +71,8 @@ spec:
         description: DNS record type
         type: enum
         default: A
-        options: [A, AAAA, CNAME, TXT, MX]
+        config:
+          options: [A, AAAA, CNAME, TXT, MX]
       ttl:
         description: Time to live (1 = automatic, or 60-86400 seconds)
         type: int
