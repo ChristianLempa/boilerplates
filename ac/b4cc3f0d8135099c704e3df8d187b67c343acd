@@ -1,0 +1,19 @@
+cli/__main__.py
+  s_4652398df29c5b::t_c84eece9e2e641 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "acb4cc3f0d8135099c704e3df8d187b67c343acd",
+  "prompts": {},
+  "sessions": {
+    "s_4652398df29c5b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e8713-63df-7826-bccf-11afa6fb7076",
+        "model": "gpt-5.5"
+      },
+      "human_author": "xcad <christian.lempa@clcreative.de>"
+    }
+  }
+}
