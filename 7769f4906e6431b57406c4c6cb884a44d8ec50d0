@@ -1,0 +1,19 @@
+.gitignore
+  s_9fe906e99801a7::t_7a72041a3747c9 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "7769f4906e6431b57406c4c6cb884a44d8ec50d0",
+  "prompts": {},
+  "sessions": {
+    "s_9fe906e99801a7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e36de-fc32-73df-8da1-1244ab3e6927",
+        "model": "gpt-5.5"
+      },
+      "human_author": "ChristianLempa <christian.lempa@clcreative.de>"
+    }
+  }
+}
