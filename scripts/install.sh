@@ -45,6 +45,28 @@ is_command_usable() {
   "$cmd" --version >/dev/null 2>&1
 }
 
+resolve_uv_cmd() {
+  if command -v uv >/dev/null 2>&1; then
+    local uv_cmd
+    uv_cmd="$(command -v uv)"
+    if is_command_usable "$uv_cmd"; then
+      printf '%s\n' "$uv_cmd"
+      return 0
+    fi
+  fi
+
+  if command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"; then
+    local uv_from_uvx
+    uv_from_uvx="$(dirname "$(command -v uvx)")/uv"
+    if [[ -x "$uv_from_uvx" ]] && is_command_usable "$uv_from_uvx"; then
+      printf '%s\n' "$uv_from_uvx"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 validate_dependency_installer() {
   local option_name="$1"
   local value="$2"
@@ -56,11 +78,7 @@ validate_dependency_installer() {
 }
 
 has_uv() {
-  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
-    return 0
-  fi
-
-  command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"
+  resolve_uv_cmd >/dev/null 2>&1
 }
 
 has_pipx() {
@@ -87,11 +105,7 @@ ensure_homebrew() {
 }
 
 install_uv() {
-  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
-    return 0
-  fi
-
-  if command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"; then
+  if resolve_uv_cmd >/dev/null 2>&1; then
     return 0
   fi
 
@@ -107,11 +121,7 @@ install_uv() {
 
   export PATH="$HOME/.local/bin:$PATH"
 
-  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
-    return 0
-  fi
-
-  command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"
+  resolve_uv_cmd >/dev/null 2>&1
 }
 
 detect_os() {
@@ -319,14 +329,12 @@ check_dependencies() {
     fi
   fi
   
-  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
-    UV_CMD="$(command -v uv)"
-    INSTALL_METHOD="uv"
-  elif command -v uvx >/dev/null 2>&1; then
-    local uv_from_uvx
-    uv_from_uvx="$(dirname "$(command -v uvx)")/uv"
-    if [[ -x "$uv_from_uvx" ]] && is_command_usable "$uv_from_uvx"; then
-      UV_CMD="$uv_from_uvx"
+  local resolved_uv_cmd=""
+  if resolved_uv_cmd="$(resolve_uv_cmd)"; then
+    UV_CMD="$resolved_uv_cmd"
+    if command -v uv >/dev/null 2>&1 && [[ "$UV_CMD" == "$(command -v uv)" ]]; then
+      INSTALL_METHOD="uv"
+    else
       INSTALL_METHOD="uvx"
     fi
   fi

@@ -189,3 +189,51 @@ printf '%s\n' "$INSTALL_METHOD"
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines()[-1] == "pipx"
+
+
+def test_check_dependencies_rejects_standalone_uvx_without_uv(tmp_path: Path) -> None:
+    """A standalone uvx should not satisfy uv availability without a sibling uv binary."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+
+    git_script = fake_bin / "git"
+    git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    git_script.chmod(0o755)
+
+    uv_script = fake_bin / "uv"
+    uv_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    uv_script.chmod(0o755)
+
+    uvx_script = fake_bin / "uvx"
+    uvx_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"--version\" ]]; then\n"
+        "  echo 'uvx 0.5.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    uvx_script.chmod(0o755)
+
+    pipx_script = fake_bin / "pipx"
+    pipx_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    pipx_script.chmod(0o755)
+
+    command = f'''
+source "{INSTALL_SCRIPT}"
+PATH="{fake_bin}:$PATH"
+AUTO_INSTALL=false
+check_dependencies
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Missing dependencies. Install: git and uv or pipx" in result.stderr
