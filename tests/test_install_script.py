@@ -196,6 +196,18 @@ def test_check_dependencies_rejects_standalone_uvx_without_uv(tmp_path: Path) ->
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
 
+    python3_script = fake_bin / "python3"
+    python3_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"site\" && \"$3\" == \"--user-base\" ]]; then\n"
+        "  echo '/nonexistent'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    python3_script.chmod(0o755)
+
     git_script = fake_bin / "git"
     git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
     git_script.chmod(0o755)
