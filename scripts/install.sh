@@ -9,12 +9,13 @@ OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
 INSTALL_METHOD=""
 UV_CMD=""
 PIPX_CMD=""
+UV_INSTALL_URL="https://astral.sh/uv/install.sh"
 
 usage() {
   cat <<USAGE
 Usage: install.sh [OPTIONS]
 
-Install the boilerplates CLI from GitHub releases via pipx.
+Install the boilerplates CLI from GitHub releases via uv or pipx.
 
 Options:
   --version VER          Version to install (default: "latest")
@@ -26,6 +27,7 @@ Examples:
   curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash -s -- --version v1.0.0
 
 Uninstall:
+  uv tool uninstall boilerplates
   pipx uninstall boilerplates
 USAGE
 }
@@ -37,6 +39,34 @@ is_command_usable() {
   local cmd="$1"
   [[ -n "$cmd" ]] || return 1
   "$cmd" --version >/dev/null 2>&1
+}
+
+install_uv() {
+  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
+    return 0
+  fi
+
+  if command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"; then
+    return 0
+  fi
+
+  log "Installing uv..."
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -LsSf "$UV_INSTALL_URL" | sh >/dev/null 2>&1 || return 1
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$UV_INSTALL_URL" | sh >/dev/null 2>&1 || return 1
+  else
+    return 1
+  fi
+
+  export PATH="$HOME/.local/bin:$PATH"
+
+  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
+    return 0
+  fi
+
+  command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"
 }
 
 detect_os() {
@@ -69,8 +99,12 @@ install_dependencies_macos() {
     log "Installing git..."
     brew install git || error "Failed to install git"
   fi
+
+  if ! install_uv; then
+    error "Failed to install uv"
+  fi
   
-  if ! command -v pipx >/dev/null 2>&1; then
+  if ! command -v uv >/dev/null 2>&1 && ! command -v uvx >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1; then
     log "Installing pipx..."
     brew install pipx || error "Failed to install pipx"
     pipx ensurepath
@@ -143,8 +177,12 @@ install_dependencies_linux() {
     log "pip not available, installing..."
     $INSTALL_CMD $PYTHON_PKG || error "Failed to install pip"
   fi
+
+  if ! install_uv; then
+    error "Failed to install uv"
+  fi
   
-  if ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
+  if ! command -v uv >/dev/null 2>&1 && ! command -v uvx >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
     log "Installing pipx..."
     
     # Try system package first if available
@@ -183,6 +221,10 @@ install_dependencies_linux() {
 
 check_dependencies() {
   local missing_deps=()
+  local pipx_user_cmd=""
+  local uv_cmd=""
+  local uvx_cmd=""
+  local pipx_cmd=""
   
   command -v tar >/dev/null 2>&1 || missing_deps+=("tar")
   command -v mktemp >/dev/null 2>&1 || missing_deps+=("mktemp")
@@ -207,9 +249,25 @@ check_dependencies() {
     log "pip not found"
     needs_install=true
   fi
+
+  if command -v uv >/dev/null 2>&1; then
+    uv_cmd="$(command -v uv)"
+  fi
+
+  if command -v uvx >/dev/null 2>&1; then
+    uvx_cmd="$(command -v uvx)"
+  fi
+
+  if command -v pipx >/dev/null 2>&1; then
+    pipx_cmd="$(command -v pipx)"
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    pipx_user_cmd="$(python3 -m site --user-base 2>/dev/null)/bin/pipx"
+  fi
   
-  if ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
-    log "pipx not found"
+  if ! is_command_usable "$uv_cmd" && ! is_command_usable "$uvx_cmd" && ! is_command_usable "$pipx_cmd" && ! is_command_usable "$pipx_user_cmd"; then
+    log "No supported installer found (uv/uvx or pipx)"
     needs_install=true
   fi
   
@@ -223,10 +281,10 @@ check_dependencies() {
       elif [[ "$OS_TYPE" == "linux" ]]; then
         install_dependencies_linux
       else
-        error "Unsupported OS. Please install manually: python3, pip, git, and pipx"
+        error "Unsupported OS. Please install manually: python3, pip, git, and uv or pipx"
       fi
     else
-      error "Missing dependencies. Install: python3, pip, git, and pipx (or run without --no-auto-install)"
+      error "Missing dependencies. Install: python3, pip, git, and uv or pipx (or run without --no-auto-install)"
     fi
   fi
   

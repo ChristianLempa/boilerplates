@@ -49,4 +49,61 @@ def test_install_script_runs_from_stdin_with_nounset() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Install the boilerplates CLI from GitHub releases via pipx." in result.stdout
+    assert "Install the boilerplates CLI from GitHub releases via uv or pipx." in result.stdout
+
+
+def test_check_dependencies_accepts_uv_without_pipx(tmp_path: Path) -> None:
+    """uv should satisfy installer requirements when pipx is absent."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+
+    python3_script = fake_bin / "python3"
+    python3_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"pip\" && \"$3\" == \"--version\" ]]; then\n"
+        "  echo 'pip 24.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"site\" && \"$3\" == \"--user-base\" ]]; then\n"
+        "  echo '/nonexistent'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    python3_script.chmod(0o755)
+
+    git_script = fake_bin / "git"
+    git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    git_script.chmod(0o755)
+
+    uv_script = fake_bin / "uv"
+    uv_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"--version\" ]]; then\n"
+        "  echo 'uv 0.5.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    uv_script.chmod(0o755)
+
+    command = f'''
+source "{INSTALL_SCRIPT}"
+PATH="{fake_bin}:$PATH"
+AUTO_INSTALL=false
+check_dependencies
+printf '%s\n' "$INSTALL_METHOD"
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[-1] == "uv"
