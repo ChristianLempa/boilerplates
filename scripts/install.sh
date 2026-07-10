@@ -6,6 +6,8 @@ REPO_NAME="boilerplates"
 INSTALL_VERSION="${VERSION:-${INSTALL_VERSION:-latest}}"
 AUTO_INSTALL="${AUTO_INSTALL:-true}"
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
+MACOS_DEPENDENCY_INSTALLER="${MACOS_DEPENDENCY_INSTALLER:-pipx}"
+LINUX_DEPENDENCY_INSTALLER="${LINUX_DEPENDENCY_INSTALLER:-pipx}"
 INSTALL_METHOD=""
 UV_CMD=""
 PIPX_CMD=""
@@ -19,6 +21,8 @@ Install the boilerplates CLI from GitHub releases via uv or pipx.
 
 Options:
   --version VER          Version to install (default: "latest")
+  --macos-installer VAL  Auto-install dependency for macOS: uv or pipx (default: "pipx")
+  --linux-installer VAL  Auto-install dependency for Linux: uv or pipx (default: "pipx")
   --no-auto-install      Skip automatic dependency installation
   -h, --help             Show this message
 
@@ -39,6 +43,47 @@ is_command_usable() {
   local cmd="$1"
   [[ -n "$cmd" ]] || return 1
   "$cmd" --version >/dev/null 2>&1
+}
+
+validate_dependency_installer() {
+  local option_name="$1"
+  local value="$2"
+
+  case "$value" in
+    uv|pipx) ;;
+    *) error "$option_name must be one of: uv, pipx" ;;
+  esac
+}
+
+has_uv() {
+  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
+    return 0
+  fi
+
+  command -v uvx >/dev/null 2>&1 && is_command_usable "$(command -v uvx)"
+}
+
+has_pipx() {
+  local pipx_user_cmd=""
+
+  if command -v pipx >/dev/null 2>&1 && is_command_usable "$(command -v pipx)"; then
+    return 0
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    pipx_user_cmd="$(python3 -m site --user-base 2>/dev/null)/bin/pipx"
+    is_command_usable "$pipx_user_cmd"
+    return $?
+  fi
+
+  return 1
+}
+
+ensure_homebrew() {
+  if ! command -v brew >/dev/null 2>&1; then
+    log "Homebrew not found. Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || error "Failed to install Homebrew"
+  fi
 }
 
 install_uv() {
@@ -84,27 +129,32 @@ detect_os() {
 
 install_dependencies_macos() {
   log "Detected macOS"
-  
-  if ! command -v brew >/dev/null 2>&1; then
-    log "Homebrew not found. Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || error "Failed to install Homebrew"
-  fi
-  
-  if ! command -v python3 >/dev/null 2>&1; then
-    log "Installing Python3..."
-    brew install python3 || error "Failed to install Python3"
-  fi
+
+  validate_dependency_installer "macOS installer" "$MACOS_DEPENDENCY_INSTALLER"
   
   if ! command -v git >/dev/null 2>&1; then
+    ensure_homebrew
     log "Installing git..."
     brew install git || error "Failed to install git"
   fi
 
-  if ! install_uv; then
-    error "Failed to install uv"
+  if has_uv || has_pipx; then
+    return 0
   fi
-  
-  if ! command -v uv >/dev/null 2>&1 && ! command -v uvx >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1; then
+
+  if [[ "$MACOS_DEPENDENCY_INSTALLER" == "uv" ]]; then
+    install_uv || error "Failed to install uv"
+    return 0
+  fi
+
+  ensure_homebrew
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "Installing Python3..."
+    brew install python3 || error "Failed to install Python3"
+  fi
+
+  if ! has_pipx; then
     log "Installing pipx..."
     brew install pipx || error "Failed to install pipx"
     pipx ensurepath
@@ -113,6 +163,7 @@ install_dependencies_macos() {
 
 install_dependencies_linux() {
   log "Detected Linux ($DISTRO_ID)"
+  validate_dependency_installer "Linux installer" "$LINUX_DEPENDENCY_INSTALLER"
   
   case "$DISTRO_ID" in
     ubuntu|debian|pop|linuxmint|elementary)
@@ -157,32 +208,38 @@ install_dependencies_linux() {
       ;;
     *)
       log "Unsupported Linux distribution: $DISTRO_ID"
-      log "Please install manually: python3, pip, git, and pipx"
+      log "Please install manually: git and uv or pipx"
       return 1
       ;;
   esac
   
+  if ! command -v git >/dev/null 2>&1; then
+    log "Installing git..."
+    $UPDATE_CMD
+    $INSTALL_CMD $GIT_PKG || error "Failed to install git"
+  fi
+
+  if has_uv || has_pipx; then
+    return 0
+  fi
+
+  if [[ "$LINUX_DEPENDENCY_INSTALLER" == "uv" ]]; then
+    install_uv || error "Failed to install uv"
+    return 0
+  fi
+
   if ! command -v python3 >/dev/null 2>&1; then
     log "Installing Python3..."
     $UPDATE_CMD
     $INSTALL_CMD $PYTHON_PKG || error "Failed to install Python3"
   fi
-  
-  if ! command -v git >/dev/null 2>&1; then
-    log "Installing git..."
-    $INSTALL_CMD $GIT_PKG || error "Failed to install git"
-  fi
-  
+
   if ! python3 -m pip --version >/dev/null 2>&1; then
     log "pip not available, installing..."
     $INSTALL_CMD $PYTHON_PKG || error "Failed to install pip"
   fi
 
-  if ! install_uv; then
-    error "Failed to install uv"
-  fi
-  
-  if ! command -v uv >/dev/null 2>&1 && ! command -v uvx >/dev/null 2>&1 && ! command -v pipx >/dev/null 2>&1 && [[ ! -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
+  if ! has_pipx; then
     log "Installing pipx..."
     
     # Try system package first if available
@@ -221,10 +278,6 @@ install_dependencies_linux() {
 
 check_dependencies() {
   local missing_deps=()
-  local pipx_user_cmd=""
-  local uv_cmd=""
-  local uvx_cmd=""
-  local pipx_cmd=""
   
   command -v tar >/dev/null 2>&1 || missing_deps+=("tar")
   command -v mktemp >/dev/null 2>&1 || missing_deps+=("mktemp")
@@ -232,41 +285,20 @@ check_dependencies() {
   if [[ ${#missing_deps[@]} -gt 0 ]]; then
     error "Required system tools missing: ${missing_deps[*]}"
   fi
+
+  validate_dependency_installer "macOS installer" "$MACOS_DEPENDENCY_INSTALLER"
+  validate_dependency_installer "Linux installer" "$LINUX_DEPENDENCY_INSTALLER"
+
+  detect_os
   
   local needs_install=false
-  
-  if ! command -v python3 >/dev/null 2>&1; then
-    log "Python3 not found"
-    needs_install=true
-  fi
   
   if ! command -v git >/dev/null 2>&1; then
     log "git not found"
     needs_install=true
   fi
   
-  if ! python3 -m pip --version >/dev/null 2>&1; then
-    log "pip not found"
-    needs_install=true
-  fi
-
-  if command -v uv >/dev/null 2>&1; then
-    uv_cmd="$(command -v uv)"
-  fi
-
-  if command -v uvx >/dev/null 2>&1; then
-    uvx_cmd="$(command -v uvx)"
-  fi
-
-  if command -v pipx >/dev/null 2>&1; then
-    pipx_cmd="$(command -v pipx)"
-  fi
-
-  if command -v python3 >/dev/null 2>&1; then
-    pipx_user_cmd="$(python3 -m site --user-base 2>/dev/null)/bin/pipx"
-  fi
-  
-  if ! is_command_usable "$uv_cmd" && ! is_command_usable "$uvx_cmd" && ! is_command_usable "$pipx_cmd" && ! is_command_usable "$pipx_user_cmd"; then
+  if ! has_uv && ! has_pipx; then
     log "No supported installer found (uv/uvx or pipx)"
     needs_install=true
   fi
@@ -274,17 +306,16 @@ check_dependencies() {
   if [[ "$needs_install" == "true" ]]; then
     if [[ "$AUTO_INSTALL" == "true" ]]; then
       log "Installing missing dependencies..."
-      detect_os
       
       if [[ "$OS_TYPE" == "macos" ]]; then
         install_dependencies_macos
       elif [[ "$OS_TYPE" == "linux" ]]; then
         install_dependencies_linux
       else
-        error "Unsupported OS. Please install manually: python3, pip, git, and uv or pipx"
+        error "Unsupported OS. Please install manually: git and uv or pipx"
       fi
     else
-      error "Missing dependencies. Install: python3, pip, git, and uv or pipx (or run without --no-auto-install)"
+      error "Missing dependencies. Install: git and uv or pipx (or run without --no-auto-install)"
     fi
   fi
   
@@ -326,6 +357,20 @@ parse_args() {
         [[ $# -lt 2 ]] && error "--version requires an argument"
         [[ "$2" =~ ^- ]] && error "--version requires a version string, not an option"
         INSTALL_VERSION="$2"
+        shift 2
+        ;;
+      --macos-installer)
+        [[ $# -lt 2 ]] && error "--macos-installer requires an argument"
+        [[ "$2" =~ ^- ]] && error "--macos-installer requires 'uv' or 'pipx', not an option"
+        validate_dependency_installer "macOS installer" "$2"
+        MACOS_DEPENDENCY_INSTALLER="$2"
+        shift 2
+        ;;
+      --linux-installer)
+        [[ $# -lt 2 ]] && error "--linux-installer requires an argument"
+        [[ "$2" =~ ^- ]] && error "--linux-installer requires 'uv' or 'pipx', not an option"
+        validate_dependency_installer "Linux installer" "$2"
+        LINUX_DEPENDENCY_INSTALLER="$2"
         shift 2
         ;;
       --no-auto-install)
