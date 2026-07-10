@@ -6,6 +6,9 @@ REPO_NAME="boilerplates"
 INSTALL_VERSION="${VERSION:-${INSTALL_VERSION:-latest}}"
 AUTO_INSTALL="${AUTO_INSTALL:-true}"
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
+INSTALL_METHOD=""
+UV_CMD=""
+PIPX_CMD=""
 
 usage() {
   cat <<USAGE
@@ -29,6 +32,12 @@ USAGE
 
 log() { printf '[boilerplates] %s\n' "$*" >&2; }
 error() { printf '[boilerplates][error] %s\n' "$*" >&2; exit 1; }
+
+is_command_usable() {
+  local cmd="$1"
+  [[ -n "$cmd" ]] || return 1
+  "$cmd" --version >/dev/null 2>&1
+}
 
 detect_os() {
   if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -221,12 +230,32 @@ check_dependencies() {
     fi
   fi
   
-  if command -v pipx >/dev/null 2>&1; then
-    PIPX_CMD="pipx"
-  elif [[ -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
-    PIPX_CMD="$(python3 -m site --user-base)/bin/pipx"
-  else
-    error "pipx installation failed or not found in PATH. Try: python3 -m pip install --user pipx && python3 -m pipx ensurepath"
+  if command -v uv >/dev/null 2>&1 && is_command_usable "$(command -v uv)"; then
+    UV_CMD="$(command -v uv)"
+    INSTALL_METHOD="uv"
+  elif command -v uvx >/dev/null 2>&1; then
+    local uv_from_uvx
+    uv_from_uvx="$(dirname "$(command -v uvx)")/uv"
+    if [[ -x "$uv_from_uvx" ]] && is_command_usable "$uv_from_uvx"; then
+      UV_CMD="$uv_from_uvx"
+      INSTALL_METHOD="uvx"
+    fi
+  fi
+
+  if [[ -z "$INSTALL_METHOD" ]]; then
+    if command -v pipx >/dev/null 2>&1 && is_command_usable "$(command -v pipx)"; then
+      PIPX_CMD="pipx"
+      INSTALL_METHOD="pipx"
+    elif [[ -x "$(python3 -m site --user-base 2>/dev/null)/bin/pipx" ]]; then
+      local pipx_user_cmd
+      pipx_user_cmd="$(python3 -m site --user-base)/bin/pipx"
+      if is_command_usable "$pipx_user_cmd"; then
+        PIPX_CMD="$pipx_user_cmd"
+        INSTALL_METHOD="pipx"
+      fi
+    fi
+
+    [[ -z "$INSTALL_METHOD" ]] && error "No supported installer found. Install uv (preferred) or pipx and ensure the command is runnable."
   fi
   
   log "All dependencies available"
@@ -319,12 +348,21 @@ install_cli() {
   local package_path="$1"
   local version="$2"
   
-  log "Installing CLI via pipx..."
-  "$PIPX_CMD" ensurepath 2>&1 | grep -v "^$" || true
-  
-  # Install from tarball
-  if ! "$PIPX_CMD" install --force "$package_path" >/dev/null 2>&1; then
-    error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
+  if [[ "$INSTALL_METHOD" == "uv" ]] || [[ "$INSTALL_METHOD" == "uvx" ]]; then
+    log "Installing CLI via uv..."
+    "$UV_CMD" tool uninstall boilerplates >/dev/null 2>&1 || true
+
+    if ! "$UV_CMD" tool install "$package_path" >/dev/null 2>&1; then
+      error "uv installation failed. Try: uv tool install $package_path"
+    fi
+  else
+    log "Installing CLI via pipx..."
+    "$PIPX_CMD" ensurepath 2>&1 | grep -v "^$" || true
+    
+    # Install from tarball
+    if ! "$PIPX_CMD" install --force "$package_path" >/dev/null 2>&1; then
+      error "pipx installation failed. Try: pipx uninstall boilerplates && pipx install boilerplates"
+    fi
   fi
   
   log "CLI installed successfully"
@@ -349,16 +387,21 @@ main() {
   local package_path
   package_path=$(download_and_extract "$INSTALL_VERSION")
   install_cli "$package_path" "$INSTALL_VERSION"
+
+  local uninstall_cmd="pipx uninstall boilerplates"
+  if [[ "$INSTALL_METHOD" == "uv" ]] || [[ "$INSTALL_METHOD" == "uvx" ]]; then
+    uninstall_cmd="uv tool uninstall boilerplates"
+  fi
   
   # Get installed version
   local installed_version=$(boilerplates --version 2>/dev/null | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
   
-  cat <<EOF
+  cat >&2 <<EOF
 
-\uf05d Installation complete!
+Installation complete!
 
 Version: $installed_version
-Installed via: pipx
+Installed via: $INSTALL_METHOD
 
 Usage:
   boilerplates --help
@@ -367,7 +410,7 @@ Update:
   curl -qfsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/install.sh | bash
 
 Uninstall:
-  pipx uninstall boilerplates
+  $uninstall_cmd
 EOF
 }
 
