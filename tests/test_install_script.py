@@ -49,4 +49,203 @@ def test_install_script_runs_from_stdin_with_nounset() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Install the boilerplates CLI from GitHub releases via pipx." in result.stdout
+    assert "Install the boilerplates CLI from GitHub releases via uv or pipx." in result.stdout
+    assert "--macos-installer VAL" in result.stdout
+    assert "--linux-installer VAL" in result.stdout
+
+
+def test_parse_args_accepts_platform_installer_flags() -> None:
+    command = f'''
+source "{INSTALL_SCRIPT}"
+parse_args --macos-installer uv --linux-installer pipx
+printf '%s\n%s\n' "$MACOS_DEPENDENCY_INSTALLER" "$LINUX_DEPENDENCY_INSTALLER"
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["uv", "pipx"]
+
+
+def test_check_dependencies_accepts_uv_without_pipx(tmp_path: Path) -> None:
+    """uv should satisfy installer requirements when pipx is absent."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+
+    python3_script = fake_bin / "python3"
+    python3_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"pip\" && \"$3\" == \"--version\" ]]; then\n"
+        "  echo 'pip 24.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"site\" && \"$3\" == \"--user-base\" ]]; then\n"
+        "  echo '/nonexistent'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    python3_script.chmod(0o755)
+
+    git_script = fake_bin / "git"
+    git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    git_script.chmod(0o755)
+
+    uv_script = fake_bin / "uv"
+    uv_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"--version\" ]]; then\n"
+        "  echo 'uv 0.5.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    uv_script.chmod(0o755)
+
+    command = f'''
+source "{INSTALL_SCRIPT}"
+PATH="{fake_bin}:$PATH"
+AUTO_INSTALL=false
+check_dependencies
+printf '%s\n' "$INSTALL_METHOD"
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[-1] == "uv"
+
+
+def test_check_dependencies_accepts_pipx_without_uv(tmp_path: Path) -> None:
+    """pipx should satisfy installer requirements when uv is absent."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+
+    python3_script = fake_bin / "python3"
+    python3_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"site\" && \"$3\" == \"--user-base\" ]]; then\n"
+        "  echo '/nonexistent'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    python3_script.chmod(0o755)
+
+    git_script = fake_bin / "git"
+    git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    git_script.chmod(0o755)
+
+    uv_script = fake_bin / "uv"
+    uv_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    uv_script.chmod(0o755)
+
+    uvx_script = fake_bin / "uvx"
+    uvx_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    uvx_script.chmod(0o755)
+
+    pipx_script = fake_bin / "pipx"
+    pipx_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"--version\" ]]; then\n"
+        "  echo '1.7.1'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    pipx_script.chmod(0o755)
+
+    command = f'''
+source "{INSTALL_SCRIPT}"
+PATH="{fake_bin}:$PATH"
+AUTO_INSTALL=false
+check_dependencies
+printf '%s\n' "$INSTALL_METHOD"
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[-1] == "pipx"
+
+
+def test_check_dependencies_rejects_standalone_uvx_without_uv(tmp_path: Path) -> None:
+    """A standalone uvx should not satisfy uv availability without a sibling uv binary."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+
+    python3_script = fake_bin / "python3"
+    python3_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"-m\" && \"$2\" == \"site\" && \"$3\" == \"--user-base\" ]]; then\n"
+        "  echo '/nonexistent'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    python3_script.chmod(0o755)
+
+    git_script = fake_bin / "git"
+    git_script.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    git_script.chmod(0o755)
+
+    uv_script = fake_bin / "uv"
+    uv_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    uv_script.chmod(0o755)
+
+    uvx_script = fake_bin / "uvx"
+    uvx_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"$1\" == \"--version\" ]]; then\n"
+        "  echo 'uvx 0.5.0'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n",
+        encoding="utf-8",
+    )
+    uvx_script.chmod(0o755)
+
+    pipx_script = fake_bin / "pipx"
+    pipx_script.write_text("#!/usr/bin/env bash\nexit 1\n", encoding="utf-8")
+    pipx_script.chmod(0o755)
+
+    command = f'''
+source "{INSTALL_SCRIPT}"
+PATH="{fake_bin}:$PATH"
+AUTO_INSTALL=false
+check_dependencies
+'''
+
+    result = subprocess.run(
+        ["bash", "-lc", command],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Missing dependencies. Install: git and uv or pipx" in result.stderr
